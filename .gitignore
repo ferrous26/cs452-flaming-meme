@@ -27,8 +27,8 @@
 
 VERSION
 
-reports/**/*.aux
-reports/**/*.log
-reports/**/*.out
-reports/**/md5_info.csv
+report/**/*.aux
+report/**/*.log
+report/**/*.out
+report/**/md5_info.csv
 
