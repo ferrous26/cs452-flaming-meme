@@ -13,11 +13,10 @@ int main(int argc, char* argv[]) {
   vt_blank();
   vt_hide();
 
-  debug_message("Welcome OS v%u", __BUILD__);
+  debug_message("Welcome to ferOS v%u", __BUILD__);
   debug_message("Built %s %s", __DATE__, __TIME__);
 
   while (1) {
-    //    tick();
     vt_read();
     vt_write();
   }
