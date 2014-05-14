@@ -1,9 +1,9 @@
 #
 # Makefile for cs452
 #
-XCC     = gcc
-AS      = as
-LD      = ld
+XCC = gcc
+AS  = as
+LD  = ld
 
 # source files
 SOURCES_ASM := $(wildcard src/*.s)
@@ -51,13 +51,6 @@ libmemory: src/memory.o
 libclock: src/clock.o
 	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
 
-libtrain: src/trains.o
-	$(AR) $(ARFLAGS) lib/libtrain.a src/trains.o
-
-libinput: src/input.o
-	$(AR) $(ARFLAGS) lib/libinput.a src/input.o
-
-
 # C.
 %.o: %.c Makefile
 	$(XCC) $(CFLAGS) -c $< -o $@
@@ -78,9 +71,9 @@ local:
 	cp kernel.elf /u/cs452/tftp/ARM/marada/kernel.elf
 
 remote:
-	rsync -truliph --stats --exclude '.git/' ../cs452 uw:/u3/marada
-	ssh uw "source ~/.cs452 && cd cs452 && make"
-	ssh uw "cd cs452/ && cp kernel.elf /u/cs452/tftp/ARM/marada/kernel.elf"
+	rsync -truliph --stats --exclude '.git/' ../cs452 uw:/u3/marada/trains
+	ssh uw "source ~/.cs452 && cd trains/cs452 && make"
+	ssh uw "cd trains/cs452 && cp kernel.elf /u/cs452/tftp/ARM/marada/micro.elf"
 
 clean:
 	-rm -f src/kernel.elf src/kernel.map
