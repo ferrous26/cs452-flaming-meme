@@ -58,7 +58,9 @@ void uart_init() {
   *line = *line & ~FEN_MASK; // TODO: should this not be the other way around?
 }
 
-void debug_message(const char* msg) {
+void debug_message(const char* const msg, ...) {
+
+  va_list args;
 
   error_line++;
   error_count++;
@@ -66,9 +68,9 @@ void debug_message(const char* msg) {
 
   vt_goto(error_line, 1);
   vt_kill_line();
-  kprintf_unum(error_count);
+  kprintf_uint(error_count);
   kprintf_string(": ");
-  kprintf(msg);
+  kprintf(msg, args);
 }
 
 void vt_write() {
@@ -83,7 +85,7 @@ void vt_write() {
 void vt_bwputc(const char c) {
 
   const int* flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
-  const int* data  = (int*)(UART2_BASE + UART_DATA_OFFSET);
+  int* const data  = (int*)(UART2_BASE + UART_DATA_OFFSET);
 
   while (*flags & TXFF_MASK);
   *data = c;
@@ -178,11 +180,13 @@ static void kprintf_num_simple(const uint32 num) {
 
   // build the string in reverse order to be used like a stack
   size i;
-  uint8 nums[16];
+  uint8  nums[16];
+  uint32 nom = num;
+
   for (i = 1; i < 16; i++) {
-    nums[i] = (num % 10);
-    num    -= nums[i];
-    num    /= 10;
+    nums[i] = (nom % 10);
+    nom    -= nums[i];
+    nom    /= 10;
   }
 
   kprintf_num_stack(nums, 16);
@@ -199,13 +203,14 @@ void kprintf_int(const int32 num) {
   // turn the negative case into a positive case
   if (num < 0) {
     vt_putc('-');
-    num = -num;
+    kprintf_num_simple((const uint32)-num);
   }
-
-  kprintf_num_simple((uint32)num);
+  else {
+    kprintf_num_simple((const uint32)num);
+  }
 }
 
-void kprintf_unum(const uint32 num) {
+void kprintf_uint(const uint32 num) {
 
   // handle the 0 case now
   if (num == 0) {
@@ -229,9 +234,11 @@ void kprintf_hex(const uint32 num) {
   // build the string in reverse order to be used like a stack
   size i;
   uint8 nums[10];
+  uint8 nom = num;
+
   for (i = 1; i < 10; i++) {
-    nums[i] = num & 0xf; // take the lower four bits
-    num     = num >> 4;  // shift last three off the end
+    nums[i] = nom & 0xf; // take the lower four bits
+    nom     = nom >> 4;  // shift last three off the end
   }
 
   // pop the stack contents, printing if we need to
@@ -255,9 +262,11 @@ void kprintf_ptr(const void* const ptr) {
   // build the string in reverse order to be used like a stack
   size i;
   uint8 nums[8];
+  uint32 potr = (uint32)ptr;
+
   for (i = 0; i < 8; i++) {
-    nums[i] = ptr & 0xf; // take the lower four bits
-    ptr     = ptr >> 4;  // shift last three off the end
+    nums[i] = potr & 0xf; // take the lower four bits
+    potr    = potr >> 4;  // shift last three off the end
   }
 
   // pop the stack contents, printing everything
@@ -269,12 +278,12 @@ void kprintf_ptr(const void* const ptr) {
   }
 }
 
-void kprintf_string(const char* const str) {
+void kprintf_string(const char* str) {
   while (str[0])
     vt_putc(*str++);
 }
 
-void kprintf_bwstring(const char* const str) {
+void kprintf_bwstring(const char* str) {
   while (str[0])
     vt_bwputc(*str++);
 }

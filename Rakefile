@@ -1,5 +1,12 @@
-task :default do
+task :default => :increment_version do
   sh 'make remote'
+end
+
+task :increment_version do
+  version = File.read('VERSION').to_i + 1
+  File.open('VERSION', 'w') do |fd|
+    fd.puts version
+  end
 end
 
 task :md5 do

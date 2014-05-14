@@ -20,6 +20,7 @@ else
 # CFLAGS = -O2
 endif
 
+CFLAGS += -D __BUILD__=$(shell cat VERSION)
 CFLAGS += -c -fPIC -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Winline -Wfloat-equal -Wno-multichar -Wno-div-by-zero
@@ -72,7 +73,7 @@ local:
 
 remote:
 	rsync -truliph --stats --exclude '.git/' ../cs452 uw:/u3/marada/trains
-	ssh uw "source ~/.cs452 && cd trains/cs452 && make"
+	ssh uw "source ~/.cs452 && cd trains/cs452 && make clean && make"
 	ssh uw "cd trains/cs452 && cp kernel.elf /u/cs452/tftp/ARM/marada/micro.elf"
 
 clean:

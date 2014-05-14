@@ -10,7 +10,7 @@ void uart_init();
 #define DEBUG_HOME 5
 #define DEBUG_HISTORY_SIZE 25
 #define DEBUG_END  (DEBUG_HOME + DEBUG_HISTORY_SIZE)
-void debug_message(const char* message, ...);
+void debug_message(const char* const message, ...);
 
 // actually doing I/O
 void vt_write();
@@ -37,8 +37,8 @@ void kprintf_int(const int32 num);
 void kprintf_uint(const uint32 num);
 void kprintf_hex(const uint32 num);
 void kprintf_ptr(const void* const ptr);
-void kprintf_string(const char* const str);
-void kprintf_bwstring(const char* const str);
+void kprintf_string(const char* str);
+void kprintf_bwstring(const char* str);
 
 typedef enum {
   BLACK   = 0,

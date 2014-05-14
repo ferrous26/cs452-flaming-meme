@@ -9,8 +9,8 @@ int memcmp(void* left, void* right, size len) {
 
   size i = 0;
 
-  for (; i < size; i++, left++, right++) {
-    int diff = (int8)*left - (int8)*right;
+  for (; i < len; i++, left++, right++) {
+    int diff = *(int8*)left - *(int*)right;
     if (diff) return diff;
   }
 

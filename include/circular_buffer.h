@@ -30,14 +30,14 @@ typedef struct circular_buffer_char {
 
 /** A circular buffer specialized for type uint32 */
 typedef struct circular_buffer_uint32 {
-  struct circular_buffer;
+  struct circular_buffer cb;
   uint32* buffer;
 } uint_buffer;
 
-void cbuf_init(const char_buffer*  cb,
+void cbuf_init(char_buffer* const  cb,
 	       const size          length,
 	       const char* const   buffer);
-void ibuf_init(const uint_buffer*  cb,
+void ibuf_init(uint_buffer* const  cb,
 	       const size          length,
 	       const uint32* const buffer);
 
