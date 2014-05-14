@@ -24,6 +24,8 @@ static char_buffer vt_in;
 static uint32 error_line  = 0;
 static uint32 error_count = 0;
 
+static inline void kprintf_va(const char* const fmt, va_list args);
+
 
 void uart_init() {
 
@@ -60,8 +62,6 @@ void uart_init() {
 
 void debug_message(const char* const msg, ...) {
 
-  va_list args;
-
   error_line++;
   error_count++;
   if (error_line == DEBUG_END) error_line = DEBUG_HOME; // reset
@@ -70,7 +70,11 @@ void debug_message(const char* const msg, ...) {
   vt_kill_line();
   kprintf_uint(error_count);
   kprintf_string(": ");
-  kprintf(msg, args);
+
+  va_list args;
+  va_start(args, msg);
+  kprintf_va(msg, args);
+  va_end(args);
 }
 
 void vt_write() {
@@ -302,9 +306,13 @@ void vt_colour(const colour c) {
 }
 
 void kprintf(const char* const fmt, ...) {
-
   va_list args;
   va_start(args, fmt);
+  kprintf_va(fmt, args);
+  va_end(args);
+}
+
+static inline void kprintf_va(const char* const fmt, va_list args) {
 
   size index = 0;
   while (1) {
@@ -347,6 +355,4 @@ void kprintf(const char* const fmt, ...) {
       index++;
     }
   }
-
-  va_end(args);
 }
