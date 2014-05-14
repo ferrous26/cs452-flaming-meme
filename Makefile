@@ -72,9 +72,9 @@ local:
 	cp kernel.elf /u/cs452/tftp/ARM/marada/kernel.elf
 
 remote:
-	rsync -truliph --stats --exclude '.git/' ../cs452 uw:/u3/marada/trains
-	ssh uw "source ~/.cs452 && cd trains/cs452 && make clean && make"
-	ssh uw "cd trains/cs452 && cp kernel.elf /u/cs452/tftp/ARM/marada/micro.elf"
+	rsync -truliph --stats --exclude '.git/' ./ uw:/$(UW_HOME)/trains
+	ssh uw "cd trains/ && make clean && make"
+	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/micro.elf"
 
 clean:
 	-rm -f src/kernel.elf src/kernel.map
