@@ -23,7 +23,11 @@
 *.hex
 
 *.swp
+*.swo
+
 *.s
+
+.DS_Store
 
 reports/**/*.aux
 reports/**/*.log

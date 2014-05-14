@@ -21,4 +21,9 @@ typedef          char  int8;
 typedef uint32 size;
 typedef int32  ssize;
 
+int abs(const int val);
+bool isspace(const char c);
+bool isdigit(const char c);
+bool ishexdigit(const char c);
+
 #endif
