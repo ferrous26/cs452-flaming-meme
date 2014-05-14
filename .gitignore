@@ -25,6 +25,8 @@
 *.swp
 *.s
 
+VERSION
+
 reports/**/*.aux
 reports/**/*.log
 reports/**/*.out
