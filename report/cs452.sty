@@ -1,0 +1,33 @@
+\usepackage{csvsimple}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{csquotes}
+\usepackage{mfirstuc}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{parskip}
+
+\usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+
+\usepackage{fullpage}
+
+\newcommand{\titlemake}[1]{
+\title{CS 452\\ Assignment \capitalisewords{#1}}
+\date{}
+\author{
+Mark Rada (\texttt{marada})\\}
+\maketitle
+\newpage
+}
+
+\newcommand{\ttt}{\texttt}
+\newcommand{\tbf}{\textbf}
+
+\renewcommand{\thepart}{}
+\renewcommand{\thesection}{}
+\renewcommand{\thesubsection}{}
+\renewcommand{\thesubsubsection}{}
