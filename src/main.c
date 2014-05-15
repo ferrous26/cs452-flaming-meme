@@ -4,10 +4,12 @@
 
 #include <std.h>
 #include <io.h>
+#include <vt100.h>
 #include <clock.h>
 
 void function( ) {
-    kprintf_bwstring( "Interrupt!\n" );
+    kprintf_string( "Interrupt!\n" );
+    vt_flush();
     __asm__ ( "movs pc, lr" );
 }
 
@@ -24,8 +26,8 @@ int main(int argc, char* argv[]) {
     debug_message("Built %s %s", __DATE__, __TIME__);
 
     // tell the CPU where to handle software interrupts
-    void** irq_handler = (void**)0x28;
-    *irq_handler = (void*)function;
+    //    void** irq_handler = (void**)0x28;
+    //    *irq_handler = (void*)function;
 
     /*
       int i;
@@ -34,15 +36,23 @@ int main(int argc, char* argv[]) {
       }
     */
 
-    __asm__ ("swi 1");
-    kprintf_bwstring( "RETURNED" );
+    //    __asm__ ("swi 1");
+    //    kprintf_string( "RETURNED" );
+    //    vt_flush();
 
-    /* while (1) { */
-    /* 	vt_read(); */
-    /* 	vt_write(); */
-    /* } */
+    bool done = false;
+    while (1) {
+    	vt_read();
+    	vt_write();
 
-    vt_bwblank();
+	if (!done) {
+	    kprintf_cpsr();
+	    done = true;
+	}
+    }
+
+    vt_blank();
+    vt_flush();
 
     return 0;
 }

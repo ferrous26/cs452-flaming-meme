@@ -1,5 +1,6 @@
 #include <clock.h>
 #include <io.h>
+#include <vt100.h>
 
 static unsigned int worst_loop = 0;
 static unsigned int current_loop = 0;

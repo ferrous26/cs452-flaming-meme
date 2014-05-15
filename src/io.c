@@ -6,6 +6,7 @@
  */
 
 #include <io.h>
+#include <vt100.h>
 #include <ts7200.h>
 #include <circular_buffer.h>
 
@@ -78,7 +79,6 @@ void debug_message(const char* const msg, ...) {
 }
 
 void vt_write() {
-
     const int* const flags = (int*)( UART2_BASE + UART_FLAG_OFFSET);
     char* const       data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
@@ -115,63 +115,12 @@ void vt_read() {
 	cbuf_produce(&vt_in, *data);
 }
 
-int vt_can_get() {
+bool vt_can_get(void) {
     return cbuf_can_consume(&vt_in);
 }
 
-int vt_getc() {
+int vt_getc(void) {
     return cbuf_consume(&vt_in);
-}
-
-void vt_esc() {
-    vt_putc((char)0x1b); // ESC
-    vt_putc('[');
-}
-
-void vt_blank() {
-    vt_esc();
-    vt_putc('2');
-    vt_putc('J');
-}
-
-void vt_bwblank() {
-    vt_bwputc((char)0x1b);
-    vt_bwputc('[');
-    vt_bwputc('2');
-    vt_bwputc('J');
-}
-
-void vt_home() {
-    vt_esc();
-    vt_putc('H');
-}
-
-void vt_hide() {
-    vt_esc();
-    vt_putc('?');
-    vt_putc('2');
-    vt_putc('5');
-    vt_putc('l');
-}
-
-void vt_kill_line() {
-    vt_esc();
-    vt_putc('K');
-}
-
-void vt_goto(const uint8 row, const uint8 column) {
-    const char row_high = row / 10;
-    const char row_low  = row % 10;
-    const char col_high = column / 10;
-    const char col_low  = column % 10;
-
-    vt_esc();
-    if (row_high) vt_putc(row_high + '0');
-    vt_putc(row_low + '0');
-    vt_putc(';');
-    if (col_high) vt_putc(col_high + '0');
-    vt_putc(col_low + '0');
-    vt_putc('H');
 }
 
 static void kprintf_num_stack(const uint8* nums, const size stack_size) {
@@ -183,7 +132,7 @@ static void kprintf_num_stack(const uint8* nums, const size stack_size) {
     for (i = (stack_size - 1); i > 0; i--)
 	if (nums[i] || started) {
 	    started = true;
-	    vt_putc(nums[i] + '0');
+	    kprintf_char(nums[i] + '0');
 	}
 }
 
@@ -207,13 +156,13 @@ void kprintf_int(const int32 num) {
 
     // handle the 0 case specially
     if (num == 0) {
-	vt_putc('0');
+	kprintf_char('0');
 	return;
     }
 
     // turn the negative case into a positive case
     if (num < 0) {
-	vt_putc('-');
+	kprintf_char('-');
 	kprintf_num_simple((const uint32)-num);
     }
     else {
@@ -225,7 +174,7 @@ void kprintf_uint(const uint32 num) {
 
     // handle the 0 case now
     if (num == 0) {
-	vt_putc('0');
+	kprintf_char('0');
 	return;
     }
 
@@ -234,11 +183,11 @@ void kprintf_uint(const uint32 num) {
 
 void kprintf_hex(const uint32 num) {
 
-    vt_putc('0');
-    vt_putc('x');
+    kprintf_char('0');
+    kprintf_char('x');
 
     if (num == 0) {
-	vt_putc('0');
+	kprintf_char('0');
 	return;
     }
 
@@ -258,17 +207,17 @@ void kprintf_hex(const uint32 num) {
 	if (nums[i] || started) {
 	    started = true;
 	    if (nums[i] > 9)
-		vt_putc((nums[i] - 10) + 'A');
+		kprintf_char((nums[i] - 10) + 'A');
 	    else
-		vt_putc(nums[i] + '0');
+		kprintf_char(nums[i] + '0');
 	}
     }
 }
 
 void kprintf_ptr(const void* const ptr) {
 
-    vt_putc('0');
-    vt_putc('x');
+    kprintf_char('0');
+    kprintf_char('x');
 
     // build the string in reverse order to be used like a stack
     size i;
@@ -283,33 +232,19 @@ void kprintf_ptr(const void* const ptr) {
     // pop the stack contents, printing everything
     for (i = 8; i > 0; i--) {
 	if (nums[i-1] > 9)
-	    vt_putc((nums[i-1] - 10) + 'A');
+	    kprintf_char((nums[i-1] - 10) + 'A');
 	else
-	    vt_putc(nums[i-1] + '0');
+	    kprintf_char(nums[i-1] + '0');
     }
 }
 
 void kprintf_string(const char* str) {
     while (str[0])
-	vt_putc(*str++);
+	kprintf_char(*str++);
 }
 
-void kprintf_bwstring(const char* str) {
-    while (str[0])
-	vt_bwputc(*str++);
-}
-
-void vt_colour_reset() {
-    vt_esc();
-    vt_putc('0');
-    vt_putc('m');
-}
-
-void vt_colour(const colour c) {
-    vt_esc();
-    vt_putc('3');
-    vt_putc('0' + c);
-    vt_putc('m');
+void kprintf_char(const char c) {
+    cbuf_produce(&vt_out, c);
 }
 
 void kprintf(const char* const fmt, ...) {
@@ -347,10 +282,10 @@ static inline void kprintf_va(const char* const fmt, va_list args) {
 		kprintf_string(va_arg(args, char*));
 		break;
 	    case 'c': // character
-		vt_putc((const char)va_arg(args, int));
+		kprintf_char((const char)va_arg(args, int));
 		break;
 	    case '%':
-		vt_putc('%');
+		kprintf_char('%');
 		break;
 	    default:
 		kprintf("Unknown format type `%%%c`", token);
@@ -358,8 +293,35 @@ static inline void kprintf_va(const char* const fmt, va_list args) {
 	    index += 2;
 	}
 	else {
-	    vt_putc(token);
+	    kprintf_char(token);
 	    index++;
 	}
     }
+}
+
+
+#define CPU_MODE_MASK 0x1f
+
+static inline const char const * processor_mode(const uint status) {
+    switch (status & CPU_MODE_MASK) {
+    case 0x10: return "user";
+    case 0x11: return "fiq";
+    case 0x12: return "irq";
+    case 0x13: return "supervisor";
+    case 0x16: return "abort";
+    case 0x1b: return "undefined";
+    case 0x1f: return "system";
+    default: return "ERROR";
+    }
+}
+
+
+void kprintf_cpsr(void) {
+
+    const uint status;
+    asm("mrs %0, cpsr" : "=r" (status));
+
+    const char const * mode = processor_mode(status);
+
+    debug_message("Current Mode: %s", mode);
 }

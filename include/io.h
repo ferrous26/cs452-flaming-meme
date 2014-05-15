@@ -13,47 +13,26 @@ void uart_init();
 void debug_message(const char* const message, ...);
 
 // actually doing I/O
-void vt_write();
-void vt_read();
-void vt_bwputc(const char c); // hold over from the old days
+void vt_write(void);
+void vt_read(void);
+void vt_flush(void); // flush the entire output buffer
 
 // buffered I/O
-void vt_putc(const char c);
-int  vt_getc();
-int  vt_can_get();
+int  vt_getc(void);
+bool vt_can_get(void);
 
-// shortcuts
-void vt_esc();
-void vt_blank();
-void vt_bwblank();
-void vt_home();
-void vt_hide();
-void vt_kill_line();
-void vt_goto(const uint8 row, const uint8 column);
+// debug helpers
+void kprintf_cpsr(void);
+void kprintf_spsr(void);
 
 // general number printing, reasonably fast, but special case
-// code will be faster
+// code will still be faster
 void kprintf_int(const int32 num);
 void kprintf_uint(const uint32 num);
 void kprintf_hex(const uint32 num);
 void kprintf_ptr(const void* const ptr);
 void kprintf_string(const char* str);
-void kprintf_bwstring(const char* str);
-
-typedef enum {
-  BLACK   = 0,
-  RED     = 1,
-  GREEN   = 2,
-  YELLOW  = 3,
-  BLUE    = 4,
-  MAGENTA = 5,
-  CYAN    = 6,
-  WHITE   = 7,
-  DEFAULT = 7
-} colour;
-
-void vt_colour_reset();
-void vt_colour(const colour c);
+void kprintf_char(const char c);
 
 /**
  * Similar to printf(3), except it only supports a subset of format specifiers.
