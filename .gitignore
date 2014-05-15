@@ -34,3 +34,6 @@ report/**/*.log
 report/**/*.out
 report/**/md5_info.csv
 
+VERSION
+
+
