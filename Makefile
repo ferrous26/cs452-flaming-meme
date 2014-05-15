@@ -57,10 +57,11 @@ libclock: src/clock.o
 
 # C.
 %.o: %.c Makefile
-	$(XCC) $(CFLAGS) -c $< -o $@
+	$(XCC) -S $(CFLAGS) $< -o $(<:.c=.s)
+	$(AS) $(ASFLAGS) $(<:.c=.s) -o $@
 
-%.s: %.c Makefile
-	$(XCC) -S $(CFLAGS) $< -o $@
+#%.s: %.c Makefile
+#	$(XCC) -S $(CFLAGS) $< -o $@
 
 # AS.
 %.o: %.S Makefile

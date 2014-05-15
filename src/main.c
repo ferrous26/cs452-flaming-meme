@@ -7,14 +7,17 @@
 #include <vt100.h>
 #include <clock.h>
 
+#define SWI_HANDLER ((int*)0x28)
+
 void function( ) {
-    kprintf_string( "Interrupt!\n" );
-    vt_flush();
-    __asm__ ( "movs pc, lr" );
+    debug_message( "Interrupt!" );
+    kprintf_cpsr();
+
+    debug_message( "Exiting Interrupt!" );
+    asm ( "movs pc, lr" );
 }
 
 int main(int argc, char* argv[]) {
-
     UNUSED(argc);
     UNUSED(argv);
 
@@ -25,34 +28,17 @@ int main(int argc, char* argv[]) {
     debug_message("Welcome to ferOS v%u", __BUILD__);
     debug_message("Built %s %s", __DATE__, __TIME__);
 
-    // tell the CPU where to handle software interrupts
-    //    void** irq_handler = (void**)0x28;
-    //    *irq_handler = (void*)function;
+    *SWI_HANDLER = (int)function;
 
-    /*
-      int i;
-      for( i = 8; i < 255; i += 4 ) {
-      irq_handler[i/4] = (void*)function;
-      }
-    */
+    kprintf_cpsr();
+    kprintf_char('\n');
+    
+    asm ("swi 1\n");
 
-    //    __asm__ ("swi 1");
-    //    kprintf_string( "RETURNED" );
-    //    vt_flush();
+    kprintf_string("\nRETURNED");
+    kprintf_cpsr();     
 
-    bool done = false;
-    while (1) {
-    	vt_read();
-    	vt_write();
-
-	if (!done) {
-	    kprintf_cpsr();
-	    done = true;
-	}
-    }
-
-    vt_blank();
     vt_flush();
-
     return 0;
 }
+
