@@ -15,6 +15,7 @@ void debug_message(const char* const message, ...);
 // actually doing I/O
 void vt_write();
 void vt_read();
+
 void vt_bwputc(const char c); // hold over from the old days
 
 // buffered I/O
@@ -38,6 +39,8 @@ void kprintf_uint(const uint32 num);
 void kprintf_hex(const uint32 num);
 void kprintf_ptr(const void* const ptr);
 void kprintf_string(const char* str);
+
+void kprintf_bwptr(const void* const ptr);
 void kprintf_bwstring(const char* str);
 
 typedef enum {

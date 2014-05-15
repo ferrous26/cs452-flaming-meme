@@ -289,6 +289,30 @@ void kprintf_ptr(const void* const ptr) {
   }
 }
 
+void kprintf_bwptr(const void* const ptr) {
+  vt_bwputc('0');
+  vt_bwputc('x');
+
+  // build the string in reverse order to be used like a stack
+  size i;
+  uint8 nums[8];
+  uint32 potr = (uint32)ptr;
+
+  for (i = 0; i < 8; i++) {
+    nums[i] = potr & 0xf; // take the lower four bits
+    potr    = potr >> 4;  // shift last three off the end
+  }
+
+  // pop the stack contents, printing everything
+  for (i = 8; i > 0; i--) {
+    if (nums[i-1] > 9)
+      vt_bwputc((nums[i-1] - 10) + 'A');
+    else
+      vt_bwputc(nums[i-1] + '0');
+  }
+}
+
+
 void kprintf_string(const char* str) {
   while (str[0])
     vt_putc(*str++);
