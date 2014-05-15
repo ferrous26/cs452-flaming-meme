@@ -8,9 +8,11 @@
 void uart_init();
 
 #define DEBUG_HOME 5
+#define DEBUG_OFFSET 80
 #define DEBUG_HISTORY_SIZE 25
 #define DEBUG_END  (DEBUG_HOME + DEBUG_HISTORY_SIZE)
 void debug_message(const char* const message, ...);
+void debug_cpsr(void);
 
 // actually doing I/O
 void vt_write(void);
@@ -20,10 +22,6 @@ void vt_flush(void); // flush the entire output buffer
 // buffered I/O
 int  vt_getc(void);
 bool vt_can_get(void);
-
-// debug helpers
-void kprintf_cpsr(void);
-void kprintf_spsr(void);
 
 // general number printing, reasonably fast, but special case
 // code will still be faster

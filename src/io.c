@@ -67,7 +67,7 @@ void debug_message(const char* const msg, ...) {
     error_count++;
     if (error_line == DEBUG_END) error_line = DEBUG_HOME; // reset
 
-    vt_goto(error_line, 1);
+    vt_goto(error_line, DEBUG_OFFSET);
     vt_kill_line();
     kprintf_uint(error_count);
     kprintf_string(": ");
@@ -300,7 +300,7 @@ static inline const char const * processor_mode(const uint status) {
 }
 
 
-void kprintf_cpsr(void) {
+void debug_cpsr(void) {
 
     const uint status;
     asm("mrs %0, cpsr" : "=r" (status));
