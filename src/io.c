@@ -104,6 +104,26 @@ static inline const char const * processor_mode(const uint status) {
     }
 }
 
+static inline const char const * thumb_state(const uint status) {
+    return (status & THUMB_STATUS_MASK ? "Yes" : "No");
+}
+
+static inline const char const * fiq_state(const uint status) {
+    return (status & FIQ_STATUS_MASK ? "No" : "Yes");
+}
+
+static inline const char const * irq_state(const uint status) {
+    return (status & IRQ_STATUS_MASK ? "No" : "Yes");
+}
+
+static inline const char const * abort_state(const uint status) {
+    return (status & ABORT_STATUS_MASK ? "Yes" : "No");
+}
+
+static inline const char const * endianess(const uint status) {
+    return (status & ENDIANESS_STATUS_MASK ? "Little" : "Big");
+}
+
 static inline char cc_n(const uint status) {
     return (status & FLAG_NEGATIVE_MASK ? 'N' : '_');
 }
@@ -124,15 +144,20 @@ static inline char cc_s(const uint status) {
     return (status & FLAG_STICKY_OVERFLOW_MASK ? 'S' : '_');
 }
 
+/**
+ * http://www.heyrick.co.uk/armwiki/The_Status_register
+ */
 void debug_cpsr(void) {
 
     const uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 
-    const char const * mode = processor_mode(status);
-
-    debug_message("CSPR");
-    debug_message("       Current Mode: %s", mode);
+    debug_message("CSPR Information");
+    debug_message("       Current Mode: %s", processor_mode(status));
+    debug_message("        Thumb State: %s", thumb_state(status));
+    debug_message("        FIQ Enabled: %s", fiq_state(status));
+    debug_message("        IRQ Enabled: %s", irq_state(status));
+    debug_message("      Abort Enabled: %s", abort_state(status));
     debug_message("    Condition Codes: %c %c %c %c %c",
 		  cc_n(status),
 		  cc_z(status),
