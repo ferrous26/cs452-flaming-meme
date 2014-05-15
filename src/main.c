@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     	vt_write();
 
 	if (!done) {
-	    kprintf_cpsr();
+	    debug_cpsr();
 	    done = true;
 	}
     }
