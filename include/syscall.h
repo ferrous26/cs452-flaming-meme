@@ -1,6 +1,6 @@
 
-#ifndef __SYSCALLS_H__
-#define __SYSCALLS_H__
+#ifndef __SYSCALL_H__
+#define __SYSCALL_H__
 
 int Create( int priority, void (*code) (void) );
 
