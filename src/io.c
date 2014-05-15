@@ -86,28 +86,12 @@ void vt_write() {
 	*data = cbuf_consume(&vt_out);
 }
 
-void vt_bwputc(const char c) {
-
-    const int* flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
-    int* const data  = (int*)(UART2_BASE + UART_DATA_OFFSET);
-
-    while (*flags & TXFF_MASK);
-    *data = c;
-}
-
-void vt_bwputstr(const char* const str){
-  unsigned int index;
-  for (index = 0; str[index] != '\0'; index++) {
-    vt_bwputc(str[index]);
-  }
-}
-
-void vt_putc(const char c) {
-    cbuf_produce(&vt_out, c);
+void vt_flush() {
+    while (cbuf_can_consume(&vt_out))
+	vt_write();
 }
 
 void vt_read() {
-
     const int*  const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
     const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
