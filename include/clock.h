@@ -1,14 +1,15 @@
-
 #ifndef __CLOCK_H__
 #define __CLOCK_H__
 
-int clock_init( void );
-int clock_get( unsigned int *mins, unsigned int *secs, unsigned int *tens );
-int clock_poll( void );
+#include <std.h>
+#include <ts7200.h>
 
-void clock_t4enable( void )        { return; }
-unsigned int clock_t4tick( void )  { return 1; }
+inline void clock_t4enable(void) {
+    *(int*)(TIMER4_BASE + TIMER4_CONTROL) = 0x100;
+}
 
+inline uint clock_t4tick(void) {
+    return *(uint*)(TIMER4_BASE + TIMER4_VALUE);
+}
 
 #endif
-

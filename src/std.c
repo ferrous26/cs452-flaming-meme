@@ -1,4 +1,3 @@
-
 #include <std.h>
 
 int abs(const int val) {
@@ -6,6 +5,7 @@ int abs(const int val) {
 }
 
 bool isspace(const char c) {
+
     switch( c ) {
     case ' ':
     case '\t':
@@ -26,4 +26,3 @@ bool isdigit(const char c) {
 bool ishexdigit(const char c) {
     return isdigit( c ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' );
 }
-

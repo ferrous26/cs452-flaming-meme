@@ -37,8 +37,8 @@ LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
 all: kernel.elf
 
-kernel.elf: $(OBJS) src/main.o libmemory libcircular libio
-	$(LD) $(LDFLAGS) -o $@ src/main.o -lio -lcircular -lmemory -lgcc
+kernel.elf: $(OBJS) src/main.o libmemory libcircular libio libvt100
+	$(LD) $(LDFLAGS) -o $@ src/main.o -lvt100 -lio -lcircular -lmemory -lgcc
 
 libio: src/io.o
 	$(AR) $(ARFLAGS) lib/libio.a src/io.o
@@ -48,6 +48,9 @@ libcircular: src/circular_buffer.o
 
 libmemory: src/memory.o
 	$(AR) $(ARFLAGS) lib/libmemory.a src/memory.o
+
+libvt100: src/vt100.o
+	$(AR) $(ARFLAGS) lib/libvt100.a src/vt100.o
 
 libclock: src/clock.o
 	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
@@ -72,8 +75,7 @@ local:
 	cp kernel.elf /u/cs452/tftp/ARM/marada/kernel.elf
 
 remote:
-	rsync -truliph --stats --exclude '.git/' ./ uw:/$(UW_HOME)/trains
-	ssh uw 'whoami; pwd; echo $$PATH'
+	rsync -truliph --stats --exclude '.git/' ./ uw:$(UW_HOME)/trains
 	ssh uw "cd trains/ && make clean && make"
 	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/micro.elf"
 

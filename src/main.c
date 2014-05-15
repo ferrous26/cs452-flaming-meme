@@ -4,45 +4,55 @@
 
 #include <std.h>
 #include <io.h>
-
+#include <vt100.h>
+#include <clock.h>
 
 void function( ) {
-	kprintf_bwstring( "Interrupt!\n" );
-	__asm__ ( "movs pc, lr" );
+    kprintf_string( "Interrupt!\n" );
+    vt_flush();
+    __asm__ ( "movs pc, lr" );
 }
 
 int main(int argc, char* argv[]) {
-  UNUSED(argc);
-  UNUSED(argv);
 
-  uart_init();
-  vt_blank();
-  vt_hide();
+    UNUSED(argc);
+    UNUSED(argv);
 
-  debug_message("Welcome to ferOS v%u", __BUILD__);
-  debug_message("Built %s %s", __DATE__, __TIME__);
+    uart_init();
+    vt_blank();
+    vt_hide();
 
+    debug_message("Welcome to ferOS v%u", __BUILD__);
+    debug_message("Built %s %s", __DATE__, __TIME__);
 
-  void** irq_handler = (void**)0x28;
-  *irq_handler = (void*)function;
+    // tell the CPU where to handle software interrupts
+    //    void** irq_handler = (void**)0x28;
+    //    *irq_handler = (void*)function;
 
-  /*
-  int i;
-  for( i = 8; i < 255; i += 4 ) {
-    irq_handler[i/4] = (void*)function;
-  }
-  */
-  __asm__ ("swi 1");
-  kprintf_bwstring( "RETURNED" );
+    /*
+      int i;
+      for( i = 8; i < 255; i += 4 ) {
+      irq_handler[i/4] = (void*)function;
+      }
+    */
 
-  /*
-  while (1) {
-    vt_read();
-    vt_write();
-  }
-  */
+    //    __asm__ ("swi 1");
+    //    kprintf_string( "RETURNED" );
+    //    vt_flush();
 
-  vt_bwblank();
+    bool done = false;
+    while (1) {
+    	vt_read();
+    	vt_write();
 
-  return 0;
+	if (!done) {
+	    kprintf_cpsr();
+	    done = true;
+	}
+    }
+
+    vt_blank();
+    vt_flush();
+
+    return 0;
 }
