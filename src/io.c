@@ -58,7 +58,7 @@ void uart_init() {
 
     // disable fifo for vt100
     int* const line = (int*)(UART2_BASE + UART_LCRH_OFFSET);
-    *line = *line & ~FEN_MASK; // TODO: should this not be the other way around?
+    *line = *line & ~FEN_MASK;
 }
 
 void debug_message(const char* const msg, ...) {
