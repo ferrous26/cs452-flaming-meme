@@ -8,6 +8,7 @@ typedef unsigned int bool;
 #define false 0
 
 typedef unsigned int   uint32;
+typedef unsigned int   uint;
 typedef signed   int   int32;
 typedef unsigned short uint16;
 typedef signed   short int16;
