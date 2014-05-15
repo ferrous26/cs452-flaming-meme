@@ -34,22 +34,13 @@ int main(int argc, char* argv[]) {
       }
     */
 
-    clock_t4enable();
-    uint clock_prev = clock_t4tick();
-    uint clock_curr = clock_t4tick();
-
     __asm__ ("swi 1");
     kprintf_bwstring( "RETURNED" );
 
-    while (1) {
-	vt_read();
-	vt_write();
-
-	if (clock_curr - clock_prev > 100000) {
-	    clock_prev = clock_curr;
-	    debug_message("Clock is %u", clock_curr);
-	}
-    }
+    /* while (1) { */
+    /* 	vt_read(); */
+    /* 	vt_write(); */
+    /* } */
 
     vt_bwblank();
 
