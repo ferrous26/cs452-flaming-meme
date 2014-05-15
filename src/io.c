@@ -95,6 +95,13 @@ void vt_bwputc(const char c) {
     *data = c;
 }
 
+void vt_bwputstr(const char* const str){
+  unsigned int index;
+  for (index = 0; str[index] != '\0'; index++) {
+    vt_bwputc(str[index]);
+  }
+}
+
 void vt_putc(const char c) {
     cbuf_produce(&vt_out, c);
 }
