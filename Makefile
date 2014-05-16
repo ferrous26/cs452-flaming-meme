@@ -13,11 +13,11 @@ SOURCES_C   := $(wildcard src/*.c)
 OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM))
 OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
-ifeq ($(DEBUG), 1)
+ifeq ($(RELEASE), 1)
 # -g: include hooks for gdb
-CFLAGS = -g
+CFLAGS = -O2
 else
-# CFLAGS = -O2
+CFLAGS = -g
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION)
