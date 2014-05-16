@@ -4,10 +4,18 @@
 	.global	syscall_enter
 	.type	syscall_enter, %function
 syscall_enter:
-	ldr	r0, [lr, #-4]		/* load bwi instruction into r0 */
-	and	r0, r0, #0x00FFFFFF	/* extract the code from bwi instruction ~ [24:0] */
+	# msr	cpsr, #0x9F /* system */
+	stmfd	sp!, {r0-lr}
+	# msr	cpsr, #0x93 /* supervisor */
 
+	bl syscall_handle(PLT)
+
+	# msr	cpsr, #0x9F /* system */
+	ldmfd	sp!, {r0-lr}
+	# msr	cpsr, #0x93 /* supervisor */
+
+	mov	r0, #100
 	movs	pc, lr
-	.size syscall_enter, .-processor_mode
+	.size	syscall_enter, .-syscall_enter
 
 

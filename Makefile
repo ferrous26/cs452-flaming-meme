@@ -35,10 +35,12 @@ LDFLAGS  = -init main -Map kernel.map -N -T orex.ld
 LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
 
+KERN_CODE = src/main.o src/context.o src/syscall.o
+
 all: kernel.elf
 
-kernel.elf: $(OBJS) src/main.o src/context.o libdebug libscheduler libmemory libcircular libio libvt100 libclock
-	$(LD) $(LDFLAGS) -o $@ src/main.o src/context.o -lscheduler -ldebug -lvt100 -lio -lcircular -lclock -lmemory -lgcc
+kernel.elf: $(OBJS) $(KERN_CODE) libdebug libscheduler libmemory libcircular libio libvt100 libclock
+	$(LD) $(LDFLAGS) -o $@ $(KERN_CODE) -lscheduler -ldebug -lvt100 -lio -lcircular -lclock -lmemory -lgcc
 
 libio: src/io.o
 	$(AR) $(ARFLAGS) lib/libio.a src/io.o

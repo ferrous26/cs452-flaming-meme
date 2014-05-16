@@ -21,7 +21,6 @@ int main(int argc, char* argv[]) {
     UNUSED(argc);
     UNUSED(argv);
 
-
     // startup various systems
     clock_t4enable();
     debug_init();
@@ -29,6 +28,14 @@ int main(int argc, char* argv[]) {
     vt_init();
 
     print_startup_message();
+
+    *SWI_HANDLER = (void*)syscall_enter;
+    debug_cpsr();
+
+    vt_flush();
+    unsigned int ret = myTid();
+    kprintf_char('\n');
+    kprintf_ptr((void*)ret);
 
     // TODO: main loop goes here!
     // startup_idle_task()
