@@ -8,8 +8,10 @@
 #define SYS_PASS   4
 #define SYS_EXIT   5
 
+#define SWI_HANDLER ((void**)0x28)
+
 void* syscall_enter(void);                  /* found in context.asm */
-int   syscall_handle(unsigned int code);
+int   syscall_handle(uint32 code, uint32 *sp);
 
 int Create(int priority, void (*code) (void));
 

@@ -6,6 +6,7 @@
 syscall_enter:
 	# msr	cpsr, #0x9F /* system */
 	stmfd	sp!, {r0-lr}
+	mov	r1, sp
 	# msr	cpsr, #0x93 /* supervisor */
 
 	bl syscall_handle(PLT)
@@ -14,7 +15,6 @@ syscall_enter:
 	ldmfd	sp!, {r0-lr}
 	# msr	cpsr, #0x93 /* supervisor */
 
-	mov	r0, #100
 	movs	pc, lr
 	.size	syscall_enter, .-syscall_enter
 

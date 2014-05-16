@@ -12,18 +12,19 @@ unsigned int  _syscall(int code) {
     return ret;
 }
 
-int syscall_handle (unsigned int code) {
-    register unsigned int r1 asm ("r1");
+int syscall_handle (uint code, uint32* sp) {
     
     kprintf_char( '\n' );
     kprintf_ptr( (void*)code );
     kprintf_char( '\n' );
-    kprintf_ptr( (void*)r1 );
-    
-    debug_message( "Interrupt!" );
-    debug_cpsr();
+    kprintf_ptr( (void*)sp );
 
-    debug_message( "Exiting Interrupt!" );
+    sp[0] = 16;			     // write the value 16 to return
+    // sp[14] = (uint32)syscall_handle; //modify the lr to return back to this function
+
+    debug_log( "Interrupt!" );
+    debug_cpsr();
+    debug_log( "Exiting Interrupt!" );
 
     return 0;
 }
