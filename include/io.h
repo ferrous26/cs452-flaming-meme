@@ -7,13 +7,6 @@
 
 void uart_init();
 
-#define DEBUG_HOME 5
-#define DEBUG_OFFSET 60
-#define DEBUG_HISTORY_SIZE 35
-#define DEBUG_END  (DEBUG_HOME + DEBUG_HISTORY_SIZE)
-void debug_message(const char* const message, ...);
-void debug_cpsr(void);
-
 // actually doing I/O
 void vt_write(void);
 void vt_read(void);
@@ -48,4 +41,5 @@ void kprintf_char(const char c);
  * Note that "\n" characters are automatically translated into "\r\n" in order
  * to handle serial I/O correctly.
  */
-void kprintf(const char* const str, ...);
+void kprintf(const char* const fmt, ...);
+inline void kprintf_va(const char* const fmt, va_list args);

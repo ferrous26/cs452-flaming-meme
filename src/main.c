@@ -4,6 +4,7 @@
 
 #include <std.h>
 #include <io.h>
+#include <debug.h>
 #include <vt100.h>
 #include <clock.h>
 #include <syscall.h>
@@ -31,6 +32,7 @@ int main(int argc, char* argv[]) {
 
     // startup various systems
     clock_t4enable();
+    debug_init();
     uart_init();
     vt_blank();
     vt_hide();

@@ -21,21 +21,12 @@ static char vt_ins[128];
 static char_buffer vt_out;
 static char_buffer vt_in;
 
-// keep track of where to put debug messages
-static uint32 error_line  = 0;
-static uint32 error_count = 0;
-
-static inline void kprintf_va(const char* const fmt, va_list args);
-
 
 void uart_init() {
 
     // initialize the buffers
     cbuf_init(&vt_out, 2048, vt_outs);
     cbuf_init(&vt_in,   128,  vt_ins);
-
-    error_line  = DEBUG_HOME - 1;
-    error_count = 0;
 
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
@@ -59,111 +50,6 @@ void uart_init() {
     // disable fifo for vt100
     int* const line = (int*)(UART2_BASE + UART_LCRH_OFFSET);
     *line = *line & ~FEN_MASK;
-}
-
-void debug_message(const char* const msg, ...) {
-
-    error_line++;
-    error_count++;
-    if (error_line == DEBUG_END) error_line = DEBUG_HOME; // reset
-
-    vt_goto(error_line, DEBUG_OFFSET);
-    vt_kill_line();
-    kprintf_uint(error_count);
-    kprintf_string(": ");
-
-    va_list args;
-    va_start(args, msg);
-    kprintf_va(msg, args);
-    va_end(args);
-}
-
-#define CPU_MODE_MASK             0x0000001f
-#define THUMB_STATUS_MASK         0x00000020
-#define FIQ_STATUS_MASK           0x00000040
-#define IRQ_STATUS_MASK           0x00000080
-#define ABORT_STATUS_MASK         0x00000100
-#define ENDIANESS_STATUS_MASK     0x00000200
-
-#define FLAG_NEGATIVE_MASK        0x80000000
-#define FLAG_ZERO_MASK            0x40000000
-#define FLAG_CARRY_MASK           0x20000000
-#define FLAG_OVERFLOW_MASK        0x10000000
-#define FLAG_STICKY_OVERFLOW_MASK 0x08000000
-
-static inline const char* processor_mode(const uint status) {
-    switch (status & CPU_MODE_MASK) {
-    case 0x10: return "user";
-    case 0x11: return "fiq";
-    case 0x12: return "irq";
-    case 0x13: return "supervisor";
-    case 0x16: return "abort";
-    case 0x1b: return "undefined";
-    case 0x1f: return "system";
-    default: return "ERROR";
-    }
-}
-
-static inline const char* thumb_state(const uint status) {
-    return (status & THUMB_STATUS_MASK ? "Yes" : "No");
-}
-
-static inline const char* fiq_state(const uint status) {
-    return (status & FIQ_STATUS_MASK ? "No" : "Yes");
-}
-
-static inline const char* irq_state(const uint status) {
-    return (status & IRQ_STATUS_MASK ? "No" : "Yes");
-}
-
-static inline const char* abort_state(const uint status) {
-    return (status & ABORT_STATUS_MASK ? "Yes" : "No");
-}
-
-static inline const char* endianess(const uint status) {
-    return (status & ENDIANESS_STATUS_MASK ? "Little" : "Big");
-}
-
-static inline char cc_n(const uint status) {
-    return (status & FLAG_NEGATIVE_MASK ? 'N' : '_');
-}
-
-static inline char cc_z(const uint status) {
-    return (status & FLAG_ZERO_MASK ? 'Z' : '_');
-}
-
-static inline char cc_c(const uint status) {
-    return (status & FLAG_CARRY_MASK ? 'C' : '_');
-}
-
-static inline char cc_v(const uint status) {
-    return (status & FLAG_OVERFLOW_MASK ? 'V' : '_');
-}
-
-static inline char cc_s(const uint status) {
-    return (status & FLAG_STICKY_OVERFLOW_MASK ? 'S' : '_');
-}
-
-/**
- * http://www.heyrick.co.uk/armwiki/The_Status_register
- */
-void debug_cpsr(void) {
-
-    const uint status;
-    asm("mrs %0, cpsr" : "=r" (status));
-
-    debug_message("CSPR Information");
-    debug_message("       Current Mode: %s", processor_mode(status));
-    debug_message("        Thumb State: %s", thumb_state(status));
-    debug_message("        FIQ Enabled: %s", fiq_state(status));
-    debug_message("        IRQ Enabled: %s", irq_state(status));
-    debug_message("      Abort Enabled: %s", abort_state(status));
-    debug_message("    Condition Codes: %c %c %c %c %c",
-		  cc_n(status),
-		  cc_z(status),
-		  cc_c(status),
-		  cc_v(status),
-		  cc_s(status));
 }
 
 void vt_write() {
@@ -326,7 +212,7 @@ void kprintf(const char* const fmt, ...) {
     va_end(args);
 }
 
-static inline void kprintf_va(const char* const fmt, va_list args) {
+inline void kprintf_va(const char* const fmt, va_list args) {
 
     size index = 0;
     while (1) {
