@@ -1,6 +1,8 @@
 #ifndef __STD_H__
 #define __STD_H__
 
+#include <limits.h>
+
 #define UNUSED(x) (void)(x)
 
 typedef unsigned int bool;
@@ -15,10 +17,6 @@ typedef signed   short int16;
 typedef unsigned char  uint8;
 typedef          char  int8;
 
-#define UINT_MAX 0xffffffff
-#define  INT_MAX 0xefffffff
-
-#define SIZE_MAX 0xffffffff
 typedef uint32 size;
 typedef int32  ssize;
 
