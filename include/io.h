@@ -9,7 +9,7 @@ void uart_init();
 
 #define DEBUG_HOME 5
 #define DEBUG_OFFSET 60
-#define DEBUG_HISTORY_SIZE 25
+#define DEBUG_HISTORY_SIZE 35
 #define DEBUG_END  (DEBUG_HOME + DEBUG_HISTORY_SIZE)
 void debug_message(const char* const message, ...);
 void debug_cpsr(void);
