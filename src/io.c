@@ -212,7 +212,7 @@ void kprintf(const char* const fmt, ...) {
     va_end(args);
 }
 
-inline void kprintf_va(const char* const fmt, va_list args) {
+void kprintf_va(const char* const fmt, va_list args) {
 
     size index = 0;
     while (1) {

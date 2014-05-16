@@ -17,6 +17,7 @@ static void print_startup_message(void) {
 
 
 #define SWI_HANDLER ((void**)0x28)
+
 DEBUG_TIME(test);
 
 void function(void) {
@@ -64,7 +65,7 @@ int main(int argc, char* argv[]) {
 
     // TODO: main loop goes here!
 
-    uint count = 10000000;
+    uint count = 100000;
     for (; count; count--) {
 	vt_read();
 	vt_write();

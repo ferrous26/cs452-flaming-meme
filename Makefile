@@ -37,8 +37,8 @@ LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
 all: kernel.elf
 
-kernel.elf: $(OBJS) src/main.o src/context.o libdebug libmemory libcircular libio libvt100
-	$(LD) $(LDFLAGS) -o $@ src/main.o src/context.o -ldebug -lvt100 -lio -lcircular -lmemory -lgcc
+kernel.elf: $(OBJS) src/main.o src/context.o libdebug libscheduler libmemory libcircular libio libvt100 libclock
+	$(LD) $(LDFLAGS) -o $@ src/main.o src/context.o -lscheduler -ldebug -lvt100 -lio -lcircular -lclock -lmemory -lgcc
 
 libio: src/io.o
 	$(AR) $(ARFLAGS) lib/libio.a src/io.o
@@ -55,8 +55,14 @@ libvt100: src/vt100.o
 libclock: src/clock.o
 	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
 
+libscheduler: src/scheduler.o
+	$(AR) $(ARFLAGS) lib/libscheduler.a src/scheduler.o
+
 libdebug: src/debug.o
 	$(AR) $(ARFLAGS) lib/libdebug.a src/debug.o
+
+libclock: src/clock.o
+	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
 
 # C.
 %.o: %.c Makefile

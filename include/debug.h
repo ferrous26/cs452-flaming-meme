@@ -4,6 +4,7 @@
 #include <std.h>
 #include <clock.h>
 
+
 #define BENCHMARK 1
 
 typedef struct {
@@ -13,6 +14,7 @@ typedef struct {
     uint total;
     uint count;
 } benchmark;
+
 
 #if BENCHMARK
 
@@ -29,18 +31,11 @@ typedef struct {
     name.curr  = 0;				\
     name.worst = 0;				\
     name.total = 0;				\
-void debug_init(void);
     name.count = 0;
 
-#define DEBUG_HOME 5
-#define DEBUG_OFFSET 60
 #define DEBUG_TIME_PRINT_WORST(name)			\
     debug_message(#name ".worst: %u", name.worst);
-#define DEBUG_HISTORY_SIZE 35
-#define DEBUG_END  (DEBUG_HOME + DEBUG_HISTORY_SIZE)
 
-void debug_message(const char* const message, ...);
-void debug_cpsr(void);
 #define DEBUG_TIME_PRINT_AVERAGE(name)				\
     debug_message(#name ".avg: %u", name.total / name.count);
 
@@ -58,6 +53,26 @@ void debug_cpsr(void);
         }								\
     }
 
+
+#else
+#define DEBUG_TIME(name)
+#define DEBUG_TIME_INIT(name)
+#define DEBUG_TIME_PRINT_WORST(name)
+#define DEBUG_TIME_PRINT_AVERAGE(name)
+#define DEBUG_TIME_LAP(name, threshold)
+#endif
+
+
+void debug_init(void);
+
+#define DEBUG_HOME 5
+#define DEBUG_OFFSET 60
+#define DEBUG_HISTORY_SIZE 35
+#define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
+
+void debug_message(const char* const message, ...);
+void debug_cpsr(void);
+
 typedef enum {
     USER       = 0x10,
     FIQ        = 0x11,
@@ -68,13 +83,6 @@ typedef enum {
     SYSTEM     = 0x1f
 } pmode;
 
-#else
-#define DEBUG_TIME(name)
-#define DEBUG_TIME_INIT(name)
-#define DEBUG_TIME_PRINT_WORST(name)
 inline pmode debug_processor_mode(void);
-#define DEBUG_TIME_PRINT_AVERAGE(name)
-#define DEBUG_TIME_LAP(name, threshold)
-#endif
 
 #endif

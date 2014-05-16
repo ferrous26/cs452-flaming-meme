@@ -42,4 +42,4 @@ void kprintf_char(const char c);
  * to handle serial I/O correctly.
  */
 void kprintf(const char* const fmt, ...);
-inline void kprintf_va(const char* const fmt, va_list args);
+void kprintf_va(const char* const fmt, va_list args);
