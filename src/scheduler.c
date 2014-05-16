@@ -4,11 +4,6 @@
 #define TASK_MAX  32
 #define IDLE_TASK 0
 
-struct task_state {
-    task_state state;
-    uint8 priority;
-};
-
 task tasks[TASK_MAX];
 
 uint8 highest_priority_buffer[TASK_MAX];
@@ -23,10 +18,6 @@ short_buffer lowest_priority;
 
 
 void scheduler_init(void) {
-
-    uint8 index = 0;
-    for (; index < TASK_MAX; index++)
-	tasks[index].state = ZOMBIE;
 
     sbuf_init(&high_priority,   32, highest_priority_buffer);
     sbuf_init(&medium_priority, 32, medium_priority_buffer);
