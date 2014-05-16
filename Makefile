@@ -13,11 +13,11 @@ SOURCES_C   := $(wildcard src/*.c)
 OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM))
 OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
-ifeq ($(DEBUG), 1)
+ifeq ($(RELEASE), 1)
 # -g: include hooks for gdb
-CFLAGS = -g
+CFLAGS = -O2
 else
-# CFLAGS = -O2
+CFLAGS = -g
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION)
@@ -39,8 +39,8 @@ KERN_CODE = src/main.o src/context.o src/syscall.o
 
 all: kernel.elf
 
-kernel.elf: $(OBJS) $(KERN_CODE) libmemory libcircular libio libvt100
-	$(LD) $(LDFLAGS) -o $@ $(KERN_CODE) -lvt100 -lio -lcircular -lmemory -lgcc
+kernel.elf: $(OBJS) $(KERN_CODE) libdebug libscheduler libmemory libcircular libio libvt100 libclock
+	$(LD) $(LDFLAGS) -o $@ $(KERN_CODE) -lscheduler -ldebug -lvt100 -lio -lcircular -lclock -lmemory -lgcc
 
 libio: src/io.o
 	$(AR) $(ARFLAGS) lib/libio.a src/io.o
@@ -53,6 +53,15 @@ libmemory: src/memory.o
 
 libvt100: src/vt100.o
 	$(AR) $(ARFLAGS) lib/libvt100.a src/vt100.o
+
+libclock: src/clock.o
+	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
+
+libscheduler: src/scheduler.o
+	$(AR) $(ARFLAGS) lib/libscheduler.a src/scheduler.o
+
+libdebug: src/debug.o
+	$(AR) $(ARFLAGS) lib/libdebug.a src/debug.o
 
 libclock: src/clock.o
 	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
@@ -84,3 +93,4 @@ clean:
 	-rm -f src/*.s
 	-rm -f src/*.a
 	-rm -f src/*.o
+	-rm -f lib/*.a

@@ -1,4 +1,5 @@
 #include <io.h>
+#include <debug.h>
 #include <syscall.h>
 
 unsigned int  _syscall(int code) {

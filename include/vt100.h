@@ -1,11 +1,12 @@
 #include <std.h>
 
-// shortcuts for
-void vt_esc();
-void vt_blank();
-void vt_home();
-void vt_hide();
-void vt_kill_line();
+void vt_init(void);
+
+void vt_esc(void);
+void vt_blank(void);
+void vt_home(void);
+void vt_hide(void);
+void vt_kill_line(void);
 void vt_goto(const uint8 row, const uint8 column);
 
 // coloured output
@@ -21,5 +22,5 @@ typedef enum {
   DEFAULT = 7
 } colour;
 
-void vt_colour_reset();
+void vt_colour_reset(void);
 void vt_colour(const colour c);
