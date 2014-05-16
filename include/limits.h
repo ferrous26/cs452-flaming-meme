@@ -1,4 +1,3 @@
-
 #define CHAR_BIT 8
 
 #define SCHAR_MAX 127
@@ -13,4 +12,3 @@
 #define INT_MIN (-INT_MAX-1)
 
 #define UINT_MAX 4294967295U
-

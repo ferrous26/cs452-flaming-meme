@@ -91,7 +91,7 @@ void debug_message(const char* const msg, ...) {
 #define FLAG_OVERFLOW_MASK        0x10000000
 #define FLAG_STICKY_OVERFLOW_MASK 0x08000000
 
-static inline const char const * processor_mode(const uint status) {
+static inline const char* processor_mode(const uint status) {
     switch (status & CPU_MODE_MASK) {
     case 0x10: return "user";
     case 0x11: return "fiq";
@@ -104,23 +104,23 @@ static inline const char const * processor_mode(const uint status) {
     }
 }
 
-static inline const char const * thumb_state(const uint status) {
+static inline const char* thumb_state(const uint status) {
     return (status & THUMB_STATUS_MASK ? "Yes" : "No");
 }
 
-static inline const char const * fiq_state(const uint status) {
+static inline const char* fiq_state(const uint status) {
     return (status & FIQ_STATUS_MASK ? "No" : "Yes");
 }
 
-static inline const char const * irq_state(const uint status) {
+static inline const char* irq_state(const uint status) {
     return (status & IRQ_STATUS_MASK ? "No" : "Yes");
 }
 
-static inline const char const * abort_state(const uint status) {
+static inline const char* abort_state(const uint status) {
     return (status & ABORT_STATUS_MASK ? "Yes" : "No");
 }
 
-static inline const char const * endianess(const uint status) {
+static inline const char* endianess(const uint status) {
     return (status & ENDIANESS_STATUS_MASK ? "Little" : "Big");
 }
 

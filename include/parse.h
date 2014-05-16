@@ -1,9 +1,8 @@
-
 #ifndef __PARSE_H__
 #define __PARSE_H__
 
 typedef enum {
-    NONE,
+    NONE = 0,
     SPEED,
     GATE,
     REVERSE,
@@ -11,7 +10,6 @@ typedef enum {
     ERROR
 } command;
 
-command parse_command( const char* const cmd, int* const buffer);
+command parse_command(const char* const cmd, int* const buffer);
 
 #endif
-
