@@ -6,8 +6,11 @@
 #include <io.h>
 #include <vt100.h>
 #include <clock.h>
+#include <debug.h>
 
 #define SWI_HANDLER ((int*)0x28)
+
+DEBUG_TIME(test);
 
 void function(void) {
     debug_message( "Interrupt!" );
@@ -20,6 +23,7 @@ void function(void) {
 int main(int argc, char* argv[]) {
     UNUSED(argc);
     UNUSED(argv);
+    DEBUG_TIME_INIT(test);
 
     // startup various systems
     clock_t4enable();
@@ -41,6 +45,15 @@ int main(int argc, char* argv[]) {
 
     // TODO: main loop goes here!
 
+    uint count = 10000000;
+    for (; count; count--) {
+	vt_read();
+	vt_write();
+	DEBUG_TIME_LAP(test, 0);
+    }
+
+    DEBUG_TIME_PRINT_WORST(test);
+    DEBUG_TIME_PRINT_AVERAGE(test);
 
     // shutdown various systems
     vt_flush();
