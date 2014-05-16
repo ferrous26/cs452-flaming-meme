@@ -2,7 +2,7 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
-void* int_entry();
+void* syscall_enter( void );
 
 int Create( int priority, void (*code) (void) );
 

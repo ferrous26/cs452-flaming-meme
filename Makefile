@@ -37,8 +37,8 @@ LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
 all: kernel.elf
 
-kernel.elf: $(OBJS) src/main.o libmemory libcircular libio libvt100
-	$(LD) $(LDFLAGS) -o $@ src/main.o -lvt100 -lio -lcircular -lmemory -lgcc
+kernel.elf: $(OBJS) src/main.o src/context.o libmemory libcircular libio libvt100
+	$(LD) $(LDFLAGS) -o $@ src/main.o src/context.o -lvt100 -lio -lcircular -lmemory -lgcc
 
 libio: src/io.o
 	$(AR) $(ARFLAGS) lib/libio.a src/io.o
@@ -60,12 +60,9 @@ libclock: src/clock.o
 	$(XCC) -S $(CFLAGS) $< -o $(<:.c=.s)
 	$(AS) $(ASFLAGS) $(<:.c=.s) -o $@
 
-#%.s: %.c Makefile
-#	$(XCC) -S $(CFLAGS) $< -o $@
-
 # AS.
-%.o: %.S Makefile
-	$(AS) $(ASFLAGS) -c $< -o $@
+%.o: %.asm Makefile
+	$(AS) $(ASFLAGS) $< -o $@
 
 
 .PHONY: local remote clean
