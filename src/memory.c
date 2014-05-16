@@ -1,11 +1,11 @@
 #include <memory.h>
 
-void memcpy(char* destaddr, char* srcaddr, size len) {
+void memcpy(char* destaddr, const char* srcaddr, size len) {
     // TODO: optimize with ldm and stm instructions
     while (len--) *destaddr++ = *srcaddr++;
 }
 
-int memcmp(void* left, void* right, size len) {
+int memcmp(const void* left, const void* right, const size len) {
 
     size i = 0;
 
@@ -17,7 +17,7 @@ int memcmp(void* left, void* right, size len) {
     return 0;
 }
 
-bool streql(char* left, char* right) {
+bool streql(const char* left, const char* right) {
 
     while (*left) {
 	if (*left != *right) return false;

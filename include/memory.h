@@ -1,10 +1,10 @@
 #include <std.h>
 
-void memcpy(char* destaddr, char* srcaddr, size len);
+void memcpy(char* destaddr, const char* srcaddr, size len);
+
+int memcmp(const void* left, const void* right, const size len);
 
 /**
  * Compare two strings and return whether or not they are equal.
  */
-bool streql(char* left, char* right);
-
-int memcmp(void* left, void* right, size len);
+bool streql(const char* left, const char* right);
