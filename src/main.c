@@ -10,20 +10,6 @@
 
 #define SWI_HANDLER ((void**)0x28)
 
-void function(void) {
-    register unsigned int r0 asm ("r0");
-    register unsigned int r1 asm ("r1");
-    
-    kprintf_char( '\n' );
-    kprintf_ptr( (void*)r0 );
-    kprintf_char( '\n' );
-    kprintf_ptr( (void*)r1 );
-    
-    debug_message( "Interrupt!" );
-    debug_cpsr();
-
-    debug_message( "Exiting Interrupt!" );
-}
 
 int main(int argc, char* argv[]) {
     UNUSED(argc);
@@ -40,13 +26,10 @@ int main(int argc, char* argv[]) {
     debug_cpsr();
 
     vt_flush();
+    unsigned int ret = myTid();
 
-    asm ("swi 23");
-    register unsigned int x asm("r0");
-    
-    unsigned int i = x;
     kprintf_char('\n');
-    kprintf_ptr((void*)i);
+    kprintf_ptr((void*)ret);
 
     debug_message("\nRETURNED");
     debug_cpsr();

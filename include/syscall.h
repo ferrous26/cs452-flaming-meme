@@ -2,9 +2,16 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
-void* syscall_enter( void );
+#define SYS_CREATE 1
+#define SYS_TID    2
+#define SYS_PTID   3
+#define SYS_PASS   4
+#define SYS_EXIT   5
 
-int Create( int priority, void (*code) (void) );
+void* syscall_enter(void);                  /* found in context.asm */
+int   syscall_handle(unsigned int code);
+
+int Create(int priority, void (*code) (void));
 
 int myTid(void);
 int myParentTid(void);
