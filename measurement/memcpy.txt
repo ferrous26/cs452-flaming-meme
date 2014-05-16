@@ -1,0 +1,40 @@
+Naive memcpy:
+
+mem8.worst = 55
+mem8.avg = 53
+
+mem16.worst = 86
+mem16.avg = 84
+
+mem32.worst = 147
+mem32.avg = 145
+
+mem64.worst = 273
+mem64.avg = 268
+
+mem3.worst = 36
+mem3.avg = 34
+
+mema.worst = 147
+mema.avg = 146
+
+
+Naive memcpy with -O2:
+
+mem8.worst = 18
+mem8.avg = 17
+
+mem16.worst = 29
+mem16.avg = 27
+
+mem32.worst = 49
+mem32.avg = 48
+
+mem64.worst = 90
+mem64.avg = 89
+
+mem3.worst = 12
+mem3.avg = 11
+
+mema.worst = 49
+mema.avg = 48
