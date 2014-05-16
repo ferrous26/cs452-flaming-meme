@@ -1,6 +1,11 @@
 #include <vt100.h>
 #include <io.h>
 
+void vt_init() {
+    vt_blank();
+    vt_hide();
+}
+
 void vt_esc() {
     kprintf_char((char)0x1b); // ESC
     kprintf_char('[');
