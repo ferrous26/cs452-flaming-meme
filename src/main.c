@@ -21,6 +21,8 @@ int main(int argc, char* argv[]) {
     UNUSED(argc);
     UNUSED(argv);
 
+    // startup various systems
+    clock_t4enable();
     uart_init();
     vt_blank();
     vt_hide();
@@ -37,6 +39,10 @@ int main(int argc, char* argv[]) {
     debug_message("\nRETURNED");
     debug_cpsr();
 
+    // TODO: main loop goes here!
+
+
+    // shutdown various systems
     vt_flush();
 
     return 0;
