@@ -70,7 +70,7 @@ void debug_init(void);
 #define DEBUG_HISTORY_SIZE 35
 #define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
 
-void debug_message(const char* const message, ...);
+void debug_log(const char* const message, ...);
 void debug_cpsr(void);
 
 typedef enum {

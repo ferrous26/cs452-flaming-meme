@@ -11,7 +11,7 @@ void debug_init(void) {
     error_count = 0;
 }
 
-void debug_message(const char* const msg, ...) {
+void debug_log(const char* const msg, ...) {
 
     error_line++;
     error_count++;
@@ -77,18 +77,18 @@ void debug_cpsr(void) {
     const uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 
-    debug_message("CSPR Information");
-    debug_message("       Current Mode: %s", processor_mode_string());
-    debug_message("        Thumb State: %s", thumb_state(status) ? 'Yes' : 'No');
-    debug_message("        FIQ Enabled: %s", fiq_state(status)   ? 'Yes' : 'No');
-    debug_message("        IRQ Enabled: %s", irq_state(status)   ? 'No'  : 'Yes');
-    debug_message("      Abort Enabled: %s", abort_state(status) ? 'No'  : 'Yes');
-    debug_message("    Condition Codes: %c %c %c %c %c",
-		  cc_n(status) ? 'N' : '_',
-		  cc_z(status) ? 'Z' : '_',
-		  cc_c(status) ? 'C' : '_',
-		  cc_v(status) ? 'V' : '_',
-		  cc_s(status) ? 'S' : '_');
+    debug_log("CSPR Information");
+    debug_log("       Current Mode: %s", processor_mode_string());
+    debug_log("        Thumb State: %s", thumb_state(status) ? 'Yes' : 'No');
+    debug_log("        FIQ Enabled: %s", fiq_state(status)   ? 'Yes' : 'No');
+    debug_log("        IRQ Enabled: %s", irq_state(status)   ? 'No'  : 'Yes');
+    debug_log("      Abort Enabled: %s", abort_state(status) ? 'No'  : 'Yes');
+    debug_log("    Condition Codes: %c %c %c %c %c",
+	      cc_n(status) ? 'N' : '_',
+	      cc_z(status) ? 'Z' : '_',
+	      cc_c(status) ? 'C' : '_',
+	      cc_v(status) ? 'V' : '_',
+	      cc_s(status) ? 'S' : '_');
 }
 
 inline pmode debug_processor_mode() {
