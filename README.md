@@ -3,6 +3,7 @@
 CS452 Real Time Programming
 
 [Prof. William Cowan](http://www.cgl.uwaterloo.ca/~wmcowan/)
+
 [Course Website](http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/s14)
 
 ## TODO
