@@ -81,33 +81,26 @@ int vt_getc(void) {
     return cbuf_consume(&vt_in);
 }
 
-static void kprintf_num_stack(const uint8* nums, const size stack_size) {
-
-    bool started = false;
-    size i;
-
-    // pop the stack contents, printing if we need to
-    for (i = (stack_size - 1); i > 0; i--)
-	if (nums[i] || started) {
-	    started = true;
-	    kprintf_char(nums[i] + '0');
-	}
-}
-
 static void kprintf_num_simple(const uint32 num) {
 
     // build the string in reverse order to be used like a stack
-    size i;
-    uint8  nums[11];
+    size     i = 0;
     uint32 nom = num;
+    uint8  nums[10];
 
-    for (i = 1; i < 11; i++) {
+    for (; i < 10; i++) {
 	nums[i] = (nom % 10);
 	nom    -= nums[i];
 	nom    /= 10;
     }
 
-    kprintf_num_stack(nums, 11);
+    // pop the stack contents, printing if we need to
+    bool started = false;
+    for (i = 9; i < 128; i--)
+	if (nums[i] || started) {
+	    started = true;
+	    kprintf_char(nums[i] + '0');
+	}
 }
 
 void kprintf_int(const int32 num) {
@@ -150,18 +143,18 @@ void kprintf_hex(const uint32 num) {
     }
 
     // build the string in reverse order to be used like a stack
-    size i;
-    uint8 nums[9];
+    size  i = 0;
+    uint8 nums[8];
     uint8 nom = num;
 
-    for (i = 1; i < 9; i++) {
+    for (; i < 8; i++) {
 	nums[i] = nom & 0xf; // take the lower four bits
 	nom     = nom >> 4;  // shift last three off the end
     }
 
     // pop the stack contents, printing if we need to
     bool started = false;
-    for (i = 8; i > 0; i--) {
+    for (i = 7; i < 128; i--) {
 	if (nums[i] || started) {
 	    started = true;
 	    if (nums[i] > 9)
@@ -172,27 +165,27 @@ void kprintf_hex(const uint32 num) {
     }
 }
 
-void kprintf_ptr(const void* const ptr) {
+void kprintf_ptr(const void* const pointer) {
 
     kprintf_char('0');
     kprintf_char('x');
 
     // build the string in reverse order to be used like a stack
-    size i;
+    size i = 0;
     uint8 nums[8];
-    uint32 potr = (uint32)ptr;
+    uint32 ptr = (uint32)pointer;
 
-    for (i = 0; i < 8; i++) {
-	nums[i] = potr & 0xf; // take the lower four bits
-	potr    = potr >> 4;  // shift last three off the end
+    for (; i < 8; i++) {
+	nums[i] = ptr & 0xf; // take the lower four bits
+	ptr     = ptr >> 4;  // shift last four off the end
     }
 
     // pop the stack contents, printing everything
-    for (i = 8; i > 0; i--) {
-	if (nums[i-1] > 9)
-	    kprintf_char((nums[i-1] - 10) + 'A');
+    for (i = 7; i < 128; i--) {
+	if (nums[i] > 9)
+	    kprintf_char((nums[i] - 10) + 'A');
 	else
-	    kprintf_char(nums[i-1] + '0');
+	    kprintf_char(nums[i] + '0');
     }
 }
 
