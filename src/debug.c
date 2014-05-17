@@ -44,8 +44,8 @@ void debug_log(const char* const msg, ...) {
 #define FLAG_OVERFLOW_MASK        0x10000000
 #define FLAG_STICKY_OVERFLOW_MASK 0x08000000
 
-static inline const char* processor_mode_string(void) {
-    switch (debug_processor_mode()) {
+static inline const char* processor_mode_string(uint status) {
+    switch (status & CPU_MODE_MASK) {
     case USER:       return "user";
     case FIQ:        return "fiq";
     case IRQ:        return "irq";
@@ -73,12 +73,29 @@ static inline bool cc_s(const uint status) { return (status & FLAG_STICKY_OVERFL
  * http://www.heyrick.co.uk/armwiki/The_Status_register
  */
 void debug_cpsr(void) {
-
     const uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 
-    debug_log("CSPR Information");
-    debug_log("       Current Mode: %s", processor_mode_string());
+    debug_log("CPSR Information");
+    debug_log("       Current Mode: %s", processor_mode_string(status));
+    debug_log("        Thumb State: %s", thumb_state(status) ? 'Yes' : 'No');
+    debug_log("        FIQ Enabled: %s", fiq_state(status)   ? 'Yes' : 'No');
+    debug_log("        IRQ Enabled: %s", irq_state(status)   ? 'No'  : 'Yes');
+    debug_log("      Abort Enabled: %s", abort_state(status) ? 'No'  : 'Yes');
+    debug_log("    Condition Codes: %c %c %c %c %c",
+	      cc_n(status) ? 'N' : '_',
+	      cc_z(status) ? 'Z' : '_',
+	      cc_c(status) ? 'C' : '_',
+	      cc_v(status) ? 'V' : '_',
+	      cc_s(status) ? 'S' : '_');
+}
+
+void debug_spsr(void) {
+    const uint status;
+    asm("mrs %0, spsr" : "=r" (status));
+
+    debug_log("SPSR Information");
+    debug_log("       Current Mode: %s", processor_mode_string(status));
     debug_log("        Thumb State: %s", thumb_state(status) ? 'Yes' : 'No');
     debug_log("        FIQ Enabled: %s", fiq_state(status)   ? 'Yes' : 'No');
     debug_log("        IRQ Enabled: %s", irq_state(status)   ? 'No'  : 'Yes');

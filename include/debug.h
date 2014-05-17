@@ -72,6 +72,7 @@ void debug_init(void);
 
 void debug_log(const char* const message, ...);
 void debug_cpsr(void);
+void debug_spsr(void);
 
 typedef enum {
     USER       = 0x10,
