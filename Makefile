@@ -56,14 +56,9 @@ kernel.elf: $(OBJS)
 
 .PHONY: local remote clean
 
-local:
-	make clean
-	make
-	cp kernel.elf /u/cs452/tftp/ARM/marada/kernel.elf
-
 remote:
-	rsync -truliph --stats --exclude '.git/' ./ uw:$(UW_HOME)/trains
-	ssh uw "cd trains/ && make clean && make -j16"
+	rsync -trulip --exclude '.git/' --exclude './measurement' ./ uw:$(UW_HOME)/trains
+	ssh uw "cd trains/ && make clean && RELEASE=$(RELEASE) make -s -j8"
 	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/micro.elf"
 
 clean:
