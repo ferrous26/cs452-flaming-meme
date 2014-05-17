@@ -1,6 +1,6 @@
 #include <std.h>
 
-void memcpy(char* destaddr, const char* srcaddr, size len);
+void memcpy(void* destaddr, const void* srcaddr, size len);
 
 int memcmp(const void* left, const void* right, const size len);
 

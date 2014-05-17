@@ -6,11 +6,11 @@ AS  = as
 LD  = ld
 
 # source files
-SOURCES_ASM := $(wildcard src/*.s)
+SOURCES_ASM := $(wildcard src/*.asm)
 SOURCES_C   := $(wildcard src/*.c)
 
 # object files
-OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM))
+OBJS        := $(patsubst %.asm,%.o,$(SOURCES_ASM))
 OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
 ifeq ($(RELEASE), 1)
@@ -40,7 +40,7 @@ KERN_CODE = src/main.o src/context.o src/syscall.o
 
 all: kernel.elf
 
-kernel.elf: $(OBJS) $(KERN_CODE)
+kernel.elf: $(OBJS)
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) -lgcc
 
 # C.

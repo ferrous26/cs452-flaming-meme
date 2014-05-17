@@ -1,10 +1,5 @@
 #include <memory.h>
 
-void memcpy(char* destaddr, const char* srcaddr, size len) {
-    // TODO: optimize with ldm and stm instructions
-    while (len--) *destaddr++ = *srcaddr++;
-}
-
 int memcmp(const void* left, const void* right, const size len) {
 
     size i = 0;
