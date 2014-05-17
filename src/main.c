@@ -17,32 +17,46 @@ static void print_startup_message(void) {
     debug_log("Built %s %s", __DATE__, __TIME__);
 }
 
+static void _init() {
+    print_startup_message();
+    vt_flush();
+
+    *SWI_HANDLER = (void*)syscall_enter;
+
+    clock_t4enable();
+    debug_init();
+    uart_init();
+    vt_init();
+}
+
+static void _shutdown() {
+    kprintf_string( "Shutting Down\n" );
+    vt_flush();
+}
+
 int main(int argc, char* argv[]) {
     UNUSED(argc);
     UNUSED(argv);
 
     // startup various systems
-    clock_t4enable();
-    debug_init();
-    uart_init();
-    vt_init();
+    _init();
 
-    print_startup_message();
-
-    *SWI_HANDLER = (void*)syscall_enter;
     debug_cpsr();
-
     vt_flush();
+
+    /*
     unsigned int ret = myTid();
     kprintf_char('\n');
     kprintf_ptr((void*)ret);
+    */
 
-    // TODO: main loop goes here!
-    // startup_idle_task()
-    // go into scheduling loop
+    scheduler_init();
+    
+    task* tsk = scheduler_schedule();
+    scheduler_activate(tsk);
 
     // shutdown various systems
-    vt_flush();
+    _shutdown();
 
     return 0;
 }
