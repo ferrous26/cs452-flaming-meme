@@ -14,7 +14,7 @@ OBJS        := $(patsubst %.asm,%.o,$(SOURCES_ASM))
 OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
 ifeq ($(RELEASE), 1)
-CFLAGS = -O2 -fpeel-loop -ftracer
+CFLAGS = -O2 -fpeel-loops -ftracer
 #-ffast-math -ftree-vectorize -floop-optimize2 -ftree-loop-linear -ftracer
 else
 # -g: include hooks for gdb
