@@ -7,7 +7,7 @@ LD  = ld
 
 # source files
 SOURCES_ASM := $(wildcard src/*.asm)
-SOURCES_C   := $(wildcard src/*.c)
+SOURCES_C   := $(wildcard src/*.c) $(wildcard src/tasks/*.c)
 
 # object files
 OBJS        := $(patsubst %.asm,%.o,$(SOURCES_ASM))
