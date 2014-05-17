@@ -8,7 +8,7 @@ typedef struct task_state {
     task_id  p_tid;
     task_pri priority;
     uint16   reserved;
-    void*    sp;
+    uint32*  sp;
 } task;
 
 typedef struct {
@@ -37,5 +37,5 @@ typedef enum {
 } task_state;
 
 void    scheduler_init(void);
-task_id scheduler_schedule(void);
-void    scheduler_activate(const task_id tid);
+task*   scheduler_schedule(void);
+void    scheduler_activate(task* const tsk);

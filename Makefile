@@ -35,8 +35,8 @@ ARFLAGS = rcs
 LDFLAGS  = -init main -Map kernel.map -N -T orex.ld
 LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
-
 KERN_CODE = src/main.o src/context.o src/syscall.o
+TASKS     = src/tasks/bootstrap.o
 
 all: kernel.elf
 
