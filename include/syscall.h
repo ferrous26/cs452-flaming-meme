@@ -8,6 +8,13 @@
 #define SYS_PASS   4
 #define SYS_EXIT   5
 
+/**
+ * The notes very clearly state that we want address 0x08. If that value
+ * is wrong then something is euchered or we should tell/ask the professor
+ * about the problem.
+ *
+ * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/s14/notes/l05.html
+ */
 #define SWI_HANDLER ((void**)0x28)
 
 void* syscall_enter(void);                  /* found in context.asm */
@@ -22,4 +29,3 @@ void Pass(void);
 void Exit(void);
 
 #endif
-
