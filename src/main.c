@@ -29,17 +29,7 @@ int main(int argc, char* argv[]) {
 
     print_startup_message();
 
-    *SWI_HANDLER = (void*)syscall_enter;
-    debug_cpsr();
-
-    vt_flush();
-    unsigned int ret = myTid();
-    kprintf_char('\n');
-    kprintf_ptr((void*)ret);
-
     // TODO: main loop goes here!
-    // startup_idle_task()
-    // go into scheduling loop
 
     // shutdown various systems
     vt_flush();
