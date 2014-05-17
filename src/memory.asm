@@ -10,11 +10,19 @@ memcpy: /* r0 = dst, r1 = src, r2 = len, r3 = scratch
 	   }
 	*/
 .loop:
+	/* load src and increment pointer */
 	ldrb r3, [r1]
 	add  r1, r1, #1
+
+	/* try to optimize pipeline stalling */
+	subs  r2, r2, #1
+
+	/* store and update pointer */
 	strb r3, [r0]
 	add  r0, r0, #1
-	subs  r2, r2, #1
+
+	/* start again if we need to */
 	bpl .loop
+
 	mov  pc, lr
 	.size	memcpy, .-memcpy
