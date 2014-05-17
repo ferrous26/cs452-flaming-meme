@@ -24,7 +24,8 @@ endif
 CFLAGS += -D __BUILD__=$(shell cat VERSION)
 CFLAGS += -c -fPIC -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
-CFLAGS += -Winline -Wfloat-equal -Wno-multichar -Wno-div-by-zero
+CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
+CFLAGS += -Wswitch-enum
 
 
 ASFLAGS	= -mcpu=arm920t -mapcs-32
