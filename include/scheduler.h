@@ -15,8 +15,8 @@ typedef struct {
     uint8 size;
     uint8 head;
     uint8 tail;
-    //    uint8 reserved;
-} task_q ;
+    uint8 reserved;
+} task_q;
 
 typedef union {
     task_q q;
