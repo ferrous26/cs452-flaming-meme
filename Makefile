@@ -40,32 +40,8 @@ KERN_CODE = src/main.o src/context.o src/syscall.o
 
 all: kernel.elf
 
-kernel.elf: $(OBJS) $(KERN_CODE) libdebug libscheduler libmemory libcircular libio libvt100 libclock
-	$(LD) $(LDFLAGS) -o $@ $(KERN_CODE) -lscheduler -ldebug -lvt100 -lio -lcircular -lclock -lmemory -lgcc
-
-libio: src/io.o
-	$(AR) $(ARFLAGS) lib/libio.a src/io.o
-
-libcircular: src/circular_buffer.o
-	$(AR) $(ARFLAGS) lib/libcircular.a src/circular_buffer.o
-
-libmemory: src/memory.o
-	$(AR) $(ARFLAGS) lib/libmemory.a src/memory.o
-
-libvt100: src/vt100.o
-	$(AR) $(ARFLAGS) lib/libvt100.a src/vt100.o
-
-libclock: src/clock.o
-	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
-
-libscheduler: src/scheduler.o
-	$(AR) $(ARFLAGS) lib/libscheduler.a src/scheduler.o
-
-libdebug: src/debug.o
-	$(AR) $(ARFLAGS) lib/libdebug.a src/debug.o
-
-libclock: src/clock.o
-	$(AR) $(ARFLAGS) lib/libclock.a src/clock.o
+kernel.elf: $(OBJS) $(KERN_CODE)
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) -lgcc
 
 # C.
 %.o: %.c Makefile
