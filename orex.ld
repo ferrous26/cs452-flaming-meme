@@ -8,21 +8,21 @@ MEMORY
 
 SECTIONS
 {
-	data : /* Initialized data. */
+	.data : /* Initialized data. */
 	{
 		_DataStart = . ;
 		*(.data)
 		_DataEnd = . ;
 	} >ram
 
-	bss : /* Uninitialized data. */
+	.bss : /* Uninitialized data. */
 	{
 		_BssStart = . ;
 		*(.bss)
 		_BssEnd = . ;
 	} >ram
 
-	text : /* The actual instructions. */
+	.text : /* The actual instructions. */
 	{
 		*(.text)
 		*(.got)
