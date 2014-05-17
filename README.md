@@ -9,7 +9,5 @@ CS452 Real Time Programming
 ## TODO
 
 - [ ] Fill-in TODO
-- [ ] Optimized memcpy (maybe memcpy64, memcpy32, memcpy16, memcpy8)
-- [ ] Configure interrupts
 
 
