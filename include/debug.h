@@ -34,10 +34,10 @@ typedef struct {
     name.count = 0;
 
 #define DEBUG_TIME_PRINT_WORST(name)			\
-    debug_message(#name ".worst: %u", name.worst);
+    debug_log(#name ".worst: %u", name.worst);
 
 #define DEBUG_TIME_PRINT_AVERAGE(name)				\
-    debug_message(#name ".avg: %u", name.total / name.count);
+    debug_log(#name ".avg: %u", name.total / name.count);
 
 /* (╯°□°）╯︵ ┻━┻ */
 #define DEBUG_TIME_LAP(name, threshold)					\
