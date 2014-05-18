@@ -11,7 +11,8 @@
 #include <debug.h>
 #include <memory.h>
 #include <scheduler.h>
-
+#include <task.h>
+#include <bootstrap.h>
 
 static void _init(void) {
     clock_t4enable();
@@ -39,8 +40,13 @@ int main(int argc, char* argv[]) {
 
     _init();
 
-    // task* tsk = scheduler_schedule();
-    // scheduler_activate(tsk);
+    
+    task tsk;
+    //task* tsk = scheduler_schedule();
+    
+    //This call should be part of initalization
+    task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
+    scheduler_activate(&tsk);
 
     // shutdown various systems
     _shutdown();

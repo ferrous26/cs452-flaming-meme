@@ -6,7 +6,6 @@
 #include <io.h>
 #include <debug.h>
 
-
 #define TASK_QLENGTH 32
 
 // 0x1000 - start of block
@@ -25,12 +24,15 @@ typedef struct {
     uint8 tail;
     uint8 reserved;
 } task_q;
-
+//FIXME:why bother with typedef this just to use it once in one place, same for above
 typedef struct task_manager {
     uint32 state;
     task*  active_task;
     task_q q[TASK_QLENGTH];
 } task_man;
+
+static task_man manager;
+static task* priority_queue[TASK_QLENGTH * TASK_PRIORITY_LEVELS];
 
 static inline uint msb16(uint x) {
 
@@ -47,8 +49,6 @@ static inline uint msb16(uint x) {
     return r + bit_vals[x];
 }
 
-static task_man manager;
-static task* priority_queue[TASK_QLENGTH * TASK_PRIORITY_LEVELS];
 
 static void scheduler_produce(task* const t) {
     // always turn the bit in the field on
@@ -106,26 +106,16 @@ task* scheduler_schedule() {
 
 // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
 void scheduler_activate(task* const tsk) {
-    manager.active_task = tsk;
+    manager.active_task = tsk; 
 
     debug_log("Activating!! %p %p %p", tsk->sp, (char*)tsk->sp[2], (char*)tsk->sp[3]);
     debug_cpsr();
     vt_flush();
 
     // should be able to  context switch into task
-    int x = kernel_exit( tsk->sp );
-    debug_log( "jumping to %p", x );
+    kernel_exit( (void*)tsk->sp );
+    debug_log( "jumping back" );
+
     debug_cpsr();
     vt_flush();
-
-    // TODO: fix this
-    uint32 code = NULL;
-
-    debug_log("Bootstrap: %p", code);
-
-    // TODO: should task_create be in charge of setting up the stack?
-    // set up the stack space
-    tsk->sp    = (uint32*) 0x4000;
-    tsk->sp[2] = (uint32) code + 0x217000;     /* will get loaded into the pc on exit */
-    tsk->sp[3] = 0x10;              /* want task to start in user mode */
 }

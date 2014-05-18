@@ -1,3 +1,7 @@
+
+#ifndef __TASK_H__
+#define __TASK_H__
+
 #include <std.h>
 
 #define TASK_KERNEL_ID 0
@@ -28,7 +32,7 @@ typedef struct task_state {
     task_state state;
     task_pri   priority;
     uint16     reserved;
-    uint32*    sp;
+    void**     sp;
 } task;
 
 
@@ -39,13 +43,19 @@ void task_init(void);
 
 /**
  * @todo Perhaps the sp should be set by the caller?
+ * I have a feeling it shouldn't because the function
+ * will have the same access path as the caller
  */
-task_err task_create(task** t,
+task_err task_create(task* t,
 		     const task_id p_tid,
 		     const task_pri pri,
-		     const void* const sp);
+		     void** sp,
+		     void (*start) (void));
 
 /**
  * Mark the task descriptor as being available for reuse.
  */
 void task_destroy(task* const t);
+
+#endif
+
