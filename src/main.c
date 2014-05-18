@@ -26,10 +26,10 @@ static void _init(void) {
     debug_log("Built %s %s", __DATE__, __TIME__);
     vt_flush();
 
-    *SWI_HANDLER = (void*)kernel_enter;
+    *SWI_HANDLER = (void*)kernel_enter + 0x217000;
 }
 
-static void _shutdown(void) {
+void _shutdown(void) {
     debug_log("Shutting Down");
     vt_flush();
 }
@@ -42,14 +42,17 @@ int main(int argc, char* argv[]) {
 
     
     task tsk;
-    //task* tsk = scheduler_schedule();
     
     //This call should be part of initalization
     task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
-    scheduler_activate(&tsk);
+
+    for(;;) {
+    //    task* tsk = scheduler_schedule();
+        scheduler_activate(&tsk);
+    }
 
     // shutdown various systems
-    _shutdown();
+    // _shutdown();
 
-    return 0;
+    // return 0;
 }

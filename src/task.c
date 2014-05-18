@@ -1,6 +1,6 @@
 #include <task.h>
-#define TASK_MAX 32 // 32 for now, because of implementation reasons
 
+#define TASK_MAX 32 // 32 for now, because of implementation reasons
 static inline uint msb32(uint x) {
     // TODO: test that this initializes correctly
     //       if not, then we need to figure out where in the orex
@@ -58,7 +58,6 @@ task_err task_create(task* tsk,
      * i need the pointer to the task so i can activate it
     task* tsk       = tasks + tid;
     */
-
     tsk->tid        = tid; // TODO: handle tid overflow (trololo)
     tsk->p_tid      = p_tid;
     tsk->state      = TASK_STATE_READY;
@@ -67,7 +66,7 @@ task_err task_create(task* tsk,
     // TODO: sp should probably not be a thing passed in but grabbed by this function
     // type needs to point to something that is a word large to get the compiler to
     // insert contents properly
-    tsk->sp         = sp;
+    tsk->sp         = sp - 13 * 4; // # of saved registers * word size
     // TASK CREATE NEEDS TO SET UP THE STACK PROPERLY SO WE CAN CONTEXT SWITCH INTO THE
     // TASK TRANSPARENTLY THIS IS LITERALLY THE MOST IMPORTANT PART OF task_create
     tsk->sp[2]      = (void*) start + 0x217000;

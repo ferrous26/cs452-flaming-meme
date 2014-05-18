@@ -7,14 +7,13 @@ kernel_enter:
 	mov	r2, lr
 	mrs	r3, spsr
 	
-	msr	cpsr, #0x9F /* system */
+	msr	cpsr, #0x9F 		/* system */
 	stmfd	sp!, {r0-r12, lr}
 	mov	r2, sp
-	msr	cpsr, #0x93 /* supervisor */
-
-	# bl syscall_handle(PLT)
+	msr	cpsr, #0x93 		/* supervisor */
+	ldmfd	sp!, {r4-r12, lr}
+	b	syscall_handle (PLT)
 	.size	kernel_enter, .-kernel_enter
-
 
 	.align	2
 	.global	kernel_exit
@@ -25,14 +24,11 @@ kernel_exit:
 
 	msr	cpsr, #0x9F		/* System */
 	mov	sp, r0
-	ldmfd	sp, {r0-r12, lr}
-	msr	cpsr, #0x93
-
-	ldmfd	sp!, {r4-r12, lr}
-
+	ldmfd	sp!, {r0-r12, lr}
+	msr	cpsr, #0x93		/* Supervisor */
+	
 	msr	spsr, r3
 	movs	pc, r2
-
 	.size	kernel_exit, .-kernel_exit
 
 

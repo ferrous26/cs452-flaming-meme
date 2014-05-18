@@ -20,7 +20,7 @@
 
 void kernel_enter(unsigned int code);  /* found in context.asm */
 int  kernel_exit(unsigned int *sp);    /* found in context.asm */
-int  syscall_handle(uint32 code, uint32 *sp);
+int  syscall_handle(uint32 code, uint32* req, void** sp, uint32 spsr);
 
 int Create(int priority, void (*code) (void));
 

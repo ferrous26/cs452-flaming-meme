@@ -1,6 +1,9 @@
 #include <io.h>
+#include <task.h>
 #include <debug.h>
 #include <syscall.h>
+
+extern task* active_task;
 
 unsigned int  _syscall(int code) {
     // on init code will be in r0 so we can easily pass it to the handler
@@ -12,15 +15,11 @@ unsigned int  _syscall(int code) {
     return ret;
 }
 
-int syscall_handle (uint code, uint32* sp) {
-    
-    kprintf_char( '\n' );
-    kprintf_ptr( (void*)code );
-    kprintf_char( '\n' );
-    kprintf_ptr( (void*)sp );
+int syscall_handle (uint code, uint32* req, void** sp, uint32 spsr) {
+    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\nSPSR:\t%p\n", code, req, sp, spsr);
+    active_task->sp = sp;
 
-    sp[0] = 16;			     // write the value 16 to return
-    // sp[14] = (uint32)syscall_handle; //modify the lr to return back to this function
+    debug_log( "Active_Task %p", active_task );
 
     debug_log( "Interrupt!" );
     debug_cpsr();

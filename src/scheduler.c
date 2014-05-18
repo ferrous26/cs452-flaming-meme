@@ -31,6 +31,9 @@ typedef struct task_manager {
     task_q q[TASK_QLENGTH];
 } task_man;
 
+// This needs to be global because other sections of the kernel need to 
+// be able to refer to it
+task* active_task;
 static task_man manager;
 static task* priority_queue[TASK_QLENGTH * TASK_PRIORITY_LEVELS];
 
@@ -48,7 +51,6 @@ static inline uint msb16(uint x) {
     if (x & 0x000000F0) { r +=  4; x >>=  4; }
     return r + bit_vals[x];
 }
-
 
 static void scheduler_produce(task* const t) {
     // always turn the bit in the field on
@@ -106,7 +108,7 @@ task* scheduler_schedule() {
 
 // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
 void scheduler_activate(task* const tsk) {
-    manager.active_task = tsk; 
+    active_task = tsk; 
 
     debug_log("Activating!! %p %p %p", tsk->sp, (char*)tsk->sp[2], (char*)tsk->sp[3]);
     debug_cpsr();
@@ -114,7 +116,8 @@ void scheduler_activate(task* const tsk) {
 
     // should be able to  context switch into task
     kernel_exit( (void*)tsk->sp );
-    debug_log( "jumping back" );
+    debug_log( "Welcome back, friend" );
+    debug_log( "active_task %p sp %p", active_task, tsk->sp );
 
     debug_cpsr();
     vt_flush();
