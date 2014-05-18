@@ -2,6 +2,9 @@
 #include <syscall.h>
 #include <bootstrap.h> // TODO: does this belong here?
 
+#include <io.h>
+#include <debug.h>
+
 
 #define TASK_QLENGTH 32
 
@@ -79,13 +82,31 @@ static task* scheduler_consume(void) {
 
 // TODO: REWRITE THIS MOTHER TRUCKER
 static void _task_create(task* loc, task_pri priority, void (*code)(void)) {
+void scheduler_activate(task* const tsk) {
+    active_task = tsk;
 
     task_create(&loc, manager.active_task->tid, priority, NULL);
+    debug_log( "Activating!! %p %p %p", tsk->sp, tsk->sp[2], tsk->sp[3] );
+    debug_cpsr();
+    vt_flush();
 
     // TODO: should task_create be in charge of setting up the stack?
     loc->sp = (void*)0x00400000;
     UNUSED(code);
     //    loc->sp[16] = (void*)code; // TODO: why the fuck are you writing pass end of array?
+    // should be able to  context switch into task
+    int x = kernel_exit( tsk->sp );
+    debug_log( "jumping to %p", x );
+    debug_cpsr();
+    vt_flush();
+
+    debug_log( "Bootstrap: %p", code );
+    
+    // set up the stack space
+    loc->sp = (uint32*) 0x4000;
+    loc->sp[2] = (uint32) code + 0x217000;     /* will get loaded into the pc on exit */
+    loc->sp[3] = 0x10;              /* want task to start in user mode */
+
 }
 
 void scheduler_init(void) {

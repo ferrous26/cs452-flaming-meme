@@ -18,8 +18,9 @@
 #define SYS_PASS   4
 #define SYS_EXIT   5
 
-void* syscall_enter(void);                  /* found in context.asm */
-int   syscall_handle(uint32 code, uint32 *sp);
+void kernel_enter(unsigned int code);  /* found in context.asm */
+int  kernel_exit(unsigned int *sp);    /* found in context.asm */
+int  syscall_handle(uint32 code, uint32 *sp);
 
 int Create(int priority, void (*code) (void));
 
