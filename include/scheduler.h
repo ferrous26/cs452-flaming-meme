@@ -1,5 +1,10 @@
 #include <std.h>
 
+#define MAX_TASKS 60
+#define TASK_STACK_SIZE 512
+// 0x1000 - start of block
+// start of block + task id << lg(task_stack_size)
+
 #define TASK_Q_LENGTH 16
 typedef uint8 task_id;
 typedef uint8 task_pri;
