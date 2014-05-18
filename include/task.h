@@ -28,7 +28,7 @@ typedef struct task_state {
     task_state state;
     task_pri   priority;
     uint16     reserved;
-    void*      sp;
+    uint32*    sp;
 } task;
 
 

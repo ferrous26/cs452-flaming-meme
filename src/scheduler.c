@@ -1,12 +1,18 @@
 #include <scheduler.h>
 #include <syscall.h>
-#include <bootstrap.h> // TODO: does this belong here?
 
+ // TODO: does these belong here?
+#include <bootstrap.h>
 #include <io.h>
 #include <debug.h>
 
 
 #define TASK_QLENGTH 32
+
+// 0x1000 - start of block
+// start of block + task id << lg(task_stack_size)
+#define TASK_STACK_SIZE 512
+
 
 // TODO: we need to rethink these scheduler data structures
 //       based on what we need to do; they are too messy at
@@ -80,35 +86,6 @@ static task* scheduler_consume(void) {
     return manager.active_task;
 }
 
-// TODO: REWRITE THIS MOTHER TRUCKER
-static void _task_create(task* loc, task_pri priority, void (*code)(void)) {
-void scheduler_activate(task* const tsk) {
-    active_task = tsk;
-
-    task_create(&loc, manager.active_task->tid, priority, NULL);
-    debug_log( "Activating!! %p %p %p", tsk->sp, tsk->sp[2], tsk->sp[3] );
-    debug_cpsr();
-    vt_flush();
-
-    // TODO: should task_create be in charge of setting up the stack?
-    loc->sp = (void*)0x00400000;
-    UNUSED(code);
-    //    loc->sp[16] = (void*)code; // TODO: why the fuck are you writing pass end of array?
-    // should be able to  context switch into task
-    int x = kernel_exit( tsk->sp );
-    debug_log( "jumping to %p", x );
-    debug_cpsr();
-    vt_flush();
-
-    debug_log( "Bootstrap: %p", code );
-    
-    // set up the stack space
-    loc->sp = (uint32*) 0x4000;
-    loc->sp[2] = (uint32) code + 0x217000;     /* will get loaded into the pc on exit */
-    loc->sp[3] = 0x10;              /* want task to start in user mode */
-
-}
-
 void scheduler_init(void) {
     manager.state       = 0;
     manager.active_task = NULL; // TODO: if bootstrap changes, this might need to change
@@ -118,19 +95,37 @@ void scheduler_init(void) {
 	q->head = 0;
 	q->tail = 0;
     }
-
-    // TODO: WAT
-    _task_create(NULL, 0, bootstrap);
 }
 
 task* scheduler_schedule() {
     // place active task back into queue (unless blocked or exiting)
     // get next task to execute
-    scheduler_produce(NULL);
+    scheduler_produce(manager.active_task);
     return scheduler_consume();
 }
 
+// Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
 void scheduler_activate(task* const tsk) {
-    UNUSED(tsk);
-    // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
+    manager.active_task = tsk;
+
+    debug_log("Activating!! %p %p %p", tsk->sp, (char*)tsk->sp[2], (char*)tsk->sp[3]);
+    debug_cpsr();
+    vt_flush();
+
+    // should be able to  context switch into task
+    int x = kernel_exit( tsk->sp );
+    debug_log( "jumping to %p", x );
+    debug_cpsr();
+    vt_flush();
+
+    // TODO: fix this
+    uint32 code = NULL;
+
+    debug_log("Bootstrap: %p", code);
+
+    // TODO: should task_create be in charge of setting up the stack?
+    // set up the stack space
+    tsk->sp    = (uint32*) 0x4000;
+    tsk->sp[2] = (uint32) code + 0x217000;     /* will get loaded into the pc on exit */
+    tsk->sp[3] = 0x10;              /* want task to start in user mode */
 }
