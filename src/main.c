@@ -24,7 +24,7 @@ static void _init(void) {
     debug_log("Built %s %s", __DATE__, __TIME__);
     vt_flush();
 
-    *SWI_HANDLER = (void*)syscall_enter;
+    *SWI_HANDLER = (void*)kernel_enter;
 }
 
 static void _shutdown(void) {
