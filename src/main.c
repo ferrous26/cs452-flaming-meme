@@ -13,12 +13,13 @@
 #include <scheduler.h>
 
 
-
 static void _init(void) {
     clock_t4enable();
     debug_init();
     uart_init();
     vt_init();
+    task_init();
+    scheduler_init();
 
     debug_log("Welcome to ferOS build %u", __BUILD__);
     debug_log("Built %s %s", __DATE__, __TIME__);
@@ -38,10 +39,7 @@ int main(int argc, char* argv[]) {
 
     _init();
 
-
-
-    //    scheduler_init();
-    //    task* tsk = scheduler_schedule();
+    // task* tsk = scheduler_schedule();
     // scheduler_activate(tsk);
 
     // shutdown various systems

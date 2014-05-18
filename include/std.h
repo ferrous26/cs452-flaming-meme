@@ -4,6 +4,7 @@
 #include <limits.h>
 
 #define UNUSED(x) (void)(x)
+#define NULL 0
 
 typedef unsigned int bool;
 #define true  1
