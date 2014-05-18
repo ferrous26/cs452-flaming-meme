@@ -21,7 +21,7 @@ else
 CFLAGS = -g
 endif
 
-CFLAGS += -D __BUILD__=$(shell cat VERSION)
+CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
 CFLAGS += -c -fPIC -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
