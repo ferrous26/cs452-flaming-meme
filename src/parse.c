@@ -96,4 +96,3 @@ command parse_command(const char* const cmd, int* const buffer) {
         return ERROR;
     }
 }
-
