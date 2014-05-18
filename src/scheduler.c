@@ -38,7 +38,6 @@ static task_man manager;
 static task* priority_queue[TASK_QLENGTH * TASK_PRIORITY_LEVELS];
 
 static inline uint msb16(uint x) {
-
     // TODO: test that this initializes correctly (like in task.c)
     static const uint bit_vals[16] = {
 	0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4
@@ -110,15 +109,7 @@ task* scheduler_schedule() {
 void scheduler_activate(task* const tsk) {
     active_task = tsk; 
 
-    debug_log("Activating!! %p %p %p", tsk->sp, (char*)tsk->sp[2], (char*)tsk->sp[3]);
-    debug_cpsr();
-    vt_flush();
-
     // should be able to  context switch into task
     kernel_exit( (void*)tsk->sp );
-    debug_log( "Welcome back, friend" );
-    debug_log( "active_task %p sp %p", active_task, tsk->sp );
-
-    debug_cpsr();
-    vt_flush();
+    // will return here from syscall_handle
 }

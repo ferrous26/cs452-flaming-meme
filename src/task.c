@@ -1,4 +1,5 @@
 #include <task.h>
+#include <io.h>
 
 #define TASK_MAX 32 // 32 for now, because of implementation reasons
 static inline uint msb32(uint x) {
