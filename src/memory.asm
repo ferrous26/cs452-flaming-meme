@@ -1,7 +1,7 @@
 	.file	"memory.asm"
 	.text
 	.align	2
-	.global	memcpy, memcpy4, memcpy8, memcpy16, memcpy32, memcmp, memcmp4
+	.global memcpy4, memcpy8, memcpy16, memcpy32, memcmp, memcmp4
 	.type	memcpy,   %function
 	.type	memcpy4,  %function
 	.type	memcpy8,  %function
@@ -9,10 +9,6 @@
 	.type	memcpy32, %function
 	.type	memcmp,   %function
 	.type	memcmp4,  %function
-memcpy:
-/* 	ands   r3, r0, #3  /* if r0 is aligned */
-/* 	andeqs r3, r1, #3  /* if r0 && r1 are aligned */
-/*	bne .memcpy1 /* have to go slow if we are not aligned */
 
 memcpy32:
 	subs r2, r2, #32
@@ -45,16 +41,6 @@ memcpy4:
 	bne memcpy4
 	mov pc, lr
 	.size   memcmp4, .-memcmp4
-
-memcpy1: /* the really slow way */
-	ldrb r3, [r1]
-	add  r1, r1, #1
-	subs  r2, r2, #1 /* code motion: optimize pipeline stalling */
-	strb r3, [r0]
-	add  r0, r0, #1
-	bpl memcpy1
-	mov  pc, lr
-	.size	memcpy1, .-memcpy1
 
 memcmp:
 	ldrb r3, [r0]
