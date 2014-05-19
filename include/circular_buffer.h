@@ -28,12 +28,6 @@ typedef struct circular_buffer_char {
     char* buffer;
 } char_buffer;
 
-/** A circular buffer specialized for type uint8 */
-typedef struct circular_buffer_uint8 {
-    struct circular_buffer cb;
-    uint8* buffer;
-} short_buffer;
-
 /** A circular buffer specialized for type uint32 */
 typedef struct circular_buffer_uint32 {
     struct circular_buffer cb;
@@ -43,21 +37,15 @@ typedef struct circular_buffer_uint32 {
 void cbuf_init(char_buffer* const  cb,
 	       const size          length,
 	       const char* const   buffer);
-void sbuf_init(short_buffer* const cb,
-	       const size          length,
-	       const uint8* const  buffer);
 void ibuf_init(uint_buffer* const  cb,
 	       const size          length,
 	       const uint32* const buffer);
 
 void cbuf_produce(char_buffer*  const cb, const char   value);
-void sbuf_produce(short_buffer* const cb, const uint8  value);
 void ibuf_produce(uint_buffer*  const cb, const uint32 value);
 
 bool cbuf_can_consume(const char_buffer*  const cb);
-bool sbuf_can_consume(const short_buffer* const cb);
 bool ibuf_can_consume(const uint_buffer*  const cb);
 
 char   cbuf_consume(char_buffer*  const cb);
-uint8  sbuf_consume(short_buffer* const cb);
 uint32 ibuf_consume(uint_buffer*  const cb);

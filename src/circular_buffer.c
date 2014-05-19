@@ -29,14 +29,6 @@ bool cbuf_can_consume(const char_buffer* const cb)         { CB_CAN_CONSUME; }
 char cbuf_consume(char_buffer* const cb)                   { CB_CONSUME(char); }
 
 
-void  sbuf_init(short_buffer* const cb,
-	        const size          length,
-	        const uint8* const  buffer)                   { CB_INIT(uint8); }
-void  sbuf_produce(short_buffer* const cb, const uint8 value) { CB_PRODUCE; }
-bool  sbuf_can_consume(const short_buffer* const cb)          { CB_CAN_CONSUME; }
-uint8 sbuf_consume(short_buffer* const cb)                    { CB_CONSUME(uint8); }
-
-
 void ibuf_init(uint_buffer* const  cb,
 	       const size          length,
 	       const uint32* const buffer)                   { CB_INIT(uint32); }
