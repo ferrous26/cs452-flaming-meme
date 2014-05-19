@@ -8,13 +8,12 @@
 #include <vt100.h>
 #include <clock.h>
 #include <syscall.h>
-#include <debug.h>
 #include <memory.h>
 #include <scheduler.h>
 #include <task.h>
 #include <bootstrap.h>
 
-static void _init(void) {
+static inline void _init(void* dp) {
     debug_init(dp);
     clock_t4enable();
     uart_init();
@@ -29,7 +28,7 @@ static void _init(void) {
     *SWI_HANDLER = (void*)kernel_enter + 0x217000;
 }
 
-void _shutdown(void) {
+static inline void _shutdown(void) {
     debug_log("Shutting Down");
     vt_flush();
 }
@@ -39,12 +38,12 @@ int main(int argc, char* argv[]) {
     UNUSED(argv);
 
     void* dp;
-    asm ("mov %0, lr" : "=r" (dp));
+    asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    
+
     task tsk;
-    
+
     //This call should be part of initalization
     task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
 
