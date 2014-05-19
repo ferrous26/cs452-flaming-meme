@@ -40,11 +40,10 @@ int main(int argc, char* argv[]) {
     void* dp;
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
+    //This call should be part of initalization
 
 
     task tsk;
-
-    //This call should be part of initalization
     task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
 
     for(;;) {
@@ -53,7 +52,6 @@ int main(int argc, char* argv[]) {
     }
 
     // shutdown various systems
-    _shutdown();
-
-    return 0;
+    //    _shutdown();
+    // return 0;
 }

@@ -1,5 +1,7 @@
-#include <task.h>
 #include <io.h>
+#include <syscall.h>
+
+#include <task.h>
 
 #define TASK_MAX 32 // 32 for now, because of implementation reasons
 static inline uint msb32(uint x) {
@@ -67,11 +69,12 @@ task_err task_create(task* tsk,
     // TODO: sp should probably not be a thing passed in but grabbed by this function
     // type needs to point to something that is a word large to get the compiler to
     // insert contents properly
-    tsk->sp         = sp - 13 * 4; // # of saved registers * word size
+    tsk->sp         = sp - 12 * 4; // # of saved registers * word size
     // TASK CREATE NEEDS TO SET UP THE STACK PROPERLY SO WE CAN CONTEXT SWITCH INTO THE
     // TASK TRANSPARENTLY THIS IS LITERALLY THE MOST IMPORTANT PART OF task_create
-    tsk->sp[2]      = (void*) start + 0x217000;
-    tsk->sp[3]      = (void*) 0x10;
+    tsk->sp[1]      = (void*) start + 0x217000;
+    tsk->sp[2]      = (void*) 0x10;
+    tsk->sp[12]     = (void*) Exit + 0x217000;
 
     // *t = tsk; why this adds more memory copying overhead,
     // somone gives you space then you use it don't add more unnessicary redirection

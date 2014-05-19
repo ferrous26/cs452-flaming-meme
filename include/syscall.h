@@ -18,9 +18,15 @@
 #define SYS_PASS   4
 #define SYS_EXIT   5
 
+typedef struct {
+    int priority;
+    void (*code) (void);
+} kreq_create;
+
 void kernel_enter(unsigned int code);  /* found in context.asm */
+
 int  kernel_exit(unsigned int *sp);    /* found in context.asm */
-int  syscall_handle(uint32 code, uint32* req, void** sp, uint32 spsr);
+int  syscall_handle(uint32 code, void* req, void** sp);
 
 int Create(int priority, void (*code) (void));
 
