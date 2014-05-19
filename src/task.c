@@ -69,7 +69,7 @@ task_err task_create(task* tsk,
     // TODO: sp should probably not be a thing passed in but grabbed by this function
     // type needs to point to something that is a word large to get the compiler to
     // insert contents properly
-    tsk->sp         = sp - 12 * 4; // # of saved registers * word size
+    tsk->sp         = sp - 12 * WORD_SIZE; // 12 = # of saved registers
     // TASK CREATE NEEDS TO SET UP THE STACK PROPERLY SO WE CAN CONTEXT SWITCH INTO THE
     // TASK TRANSPARENTLY THIS IS LITERALLY THE MOST IMPORTANT PART OF task_create
     tsk->sp[1]      = (void*) start + 0x217000;

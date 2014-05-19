@@ -13,3 +13,5 @@
 
 #define UINT_MAX 0xffffffffU
 #define SIZE_MAX UINT_MAX
+
+#define WORD_SIZE 4
