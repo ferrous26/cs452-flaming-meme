@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
     }
 
     // shutdown various systems
-    // _shutdown();
+    _shutdown();
 
-    // return 0;
+    return 0;
 }
