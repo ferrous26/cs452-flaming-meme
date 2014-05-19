@@ -13,8 +13,11 @@ void debug_init(void* dp) {
     debug_end   = dp;
 }
 
-void debug_assert_fail(const char* const msg) {
-    debug_log(msg);
+void debug_assert_fail(const char* const msg,
+		       const char* const file,
+		       const uint line) {
+    debug_log("ASSERTION FAILURE AT %s:%u", file, line);
+    debug_log("%s", msg);
     vt_flush();
     asm("mov pc, %0" : : "rm"(debug_end));
 }

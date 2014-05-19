@@ -6,6 +6,7 @@
 
 
 #define BENCHMARK 1
+#define ASSERT 1
 
 typedef struct {
     uint prev;
@@ -63,10 +64,17 @@ typedef struct {
 #define DEBUG_TIME_LAP(name, threshold)
 #endif
 
-#define assert(expr, msg) { if (!(expr)) debug_assert_fail(msg); }
+#if ASSERT
+#define assert(expr, msg)					\
+    { if (!(expr)) debug_assert_fail(msg, __FILE__, __LINE__); }
+#else
+#define assert(expr, msg)
+#endif
 
 void debug_init(void* dp);
-void debug_assert_fail(const char* const msg);
+void debug_assert_fail(const char* const msg,
+		       const char* const file,
+		       const uint line);
 
 
 #define DEBUG_HOME 5
