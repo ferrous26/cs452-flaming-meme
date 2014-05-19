@@ -6,7 +6,7 @@
 kernel_enter:
 	mov	r2, lr
 	mrs	r3, spsr
-	
+
 	msr	cpsr, #0x9F 		/* system */
 	stmfd	sp!, {r0-r12, lr}
 	mov	r2, sp
@@ -26,9 +26,7 @@ kernel_exit:
 	mov	sp, r0
 	ldmfd	sp!, {r0-r12, lr}
 	msr	cpsr, #0x93		/* Supervisor */
-	
+
 	msr	spsr, r3
 	movs	pc, r2
 	.size	kernel_exit, .-kernel_exit
-
-
