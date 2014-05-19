@@ -8,7 +8,7 @@ kernel_enter:
 	mrs	r3, spsr
 	
 	msr	cpsr, #0x9F 		/* system */
-	stmfd	sp!, {r0-r12, lr}
+	stmfd	sp!, {r0, r2-r12, lr}
 	mov	r2, sp
 	msr	cpsr, #0x93 		/* supervisor */
 	ldmfd	sp!, {r4-r12, lr}
@@ -24,7 +24,7 @@ kernel_exit:
 
 	msr	cpsr, #0x9F		/* System */
 	mov	sp, r0
-	ldmfd	sp!, {r0-r12, lr}
+	ldmfd	sp!, {r0, r2-r12, lr}
 	msr	cpsr, #0x93		/* Supervisor */
 	
 	msr	spsr, r3

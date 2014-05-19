@@ -10,20 +10,23 @@ unsigned int  _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
     UNUSED(code);
     UNUSED(request);
-    asm ( "swi 0" );
+    asm ("swi 0" );
 
     // r0 will have the return value of the operation
     register unsigned int ret asm ("r0");
     return ret;
 }
 
-int syscall_handle (uint code, uint32* req, void** sp, uint32 spsr) {
-    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\nSPSR:\t%p\n", code, req, sp, spsr);
+int syscall_handle (uint code, void* request, void** sp) {
+    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\n", code, request, sp);
     active_task->sp = sp;
 
     switch(code) {
-    case SYS_CREATE:
+    case SYS_CREATE: {
+        kreq_create* r = (kreq_create*) request;
+        debug_log("CREATING TASK (%d): %p", r->priority, r->code);
         break;
+    }
     case SYS_TID:
         sp[0] = (void*) active_task->tid;
         break;
@@ -33,18 +36,22 @@ int syscall_handle (uint code, uint32* req, void** sp, uint32 spsr) {
     case SYS_PASS:
 	break;
     case SYS_EXIT:
+	debug_log("Task %d exiting", active_task->tid);
 	break;
     default:
 	debug_log("why am i here?");
     }
 
+    vt_flush();
     return 0;
 }
 
 int Create( int priority, void (*code) () ) {
-    (void) priority;
-    (void) code;
-    return _syscall(SYS_CREATE, NULL);
+    kreq_create req;
+    req.code = code;
+    req.priority = priority;
+
+    return _syscall(SYS_CREATE, &req);
 }
 
 int myTid() {

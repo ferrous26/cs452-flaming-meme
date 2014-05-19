@@ -39,11 +39,9 @@ int main(int argc, char* argv[]) {
     UNUSED(argv);
 
     _init();
-
-    
-    task tsk;
     
     //This call should be part of initalization
+    task tsk;
     task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
 
     for(;;) {
@@ -52,7 +50,6 @@ int main(int argc, char* argv[]) {
     }
 
     // shutdown various systems
-    _shutdown();
-
-    return 0;
+    //    _shutdown();
+    // return 0;
 }
