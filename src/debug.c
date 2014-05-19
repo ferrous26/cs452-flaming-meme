@@ -5,14 +5,21 @@
 // keep track of where to put debug messages
 static uint32 error_line  = 0;
 static uint32 error_count = 0;
+static void*  debug_end   = 0;
 
-void debug_init(void) {
+void debug_init(void* dp) {
     error_line  = DEBUG_HOME - 1;
     error_count = 0;
+    debug_end   = dp;
+}
+
+void debug_assert_fail(const char* const msg) {
+    debug_log(msg);
+    vt_flush();
+    asm("mov pc, %0" : : "rm"(debug_end));
 }
 
 void debug_log(const char* const msg, ...) {
-
     error_line++;
     error_count++;
     if (error_line == DEBUG_END) error_line = DEBUG_HOME; // reset
@@ -27,7 +34,6 @@ void debug_log(const char* const msg, ...) {
     kprintf_va(msg, args);
     va_end(args);
 }
-
 
 
 #define CPU_MODE_MASK             0x0000001f

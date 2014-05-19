@@ -63,8 +63,11 @@ typedef struct {
 #define DEBUG_TIME_LAP(name, threshold)
 #endif
 
+#define assert(expr, msg) { if (!(expr)) debug_assert_fail(msg); }
 
-void debug_init(void);
+void debug_init(void* dp);
+void debug_assert_fail(const char* const msg);
+
 
 #define DEBUG_HOME 5
 #define DEBUG_OFFSET 60
