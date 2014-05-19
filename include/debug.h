@@ -26,12 +26,12 @@ typedef struct {
 /**
  * Put this in the library init function to initialize the state.
  */
-#define DEBUG_TIME_INIT(name)			\
-    name.prev  = clock_t4tick();		\
+#define DEBUG_TIME_START(name)			\
     name.curr  = 0;				\
     name.worst = 0;				\
     name.total = 0;				\
-    name.count = 0;
+    name.count = 0;				\
+    name.prev  = clock_t4tick();
 
 #define DEBUG_TIME_PRINT_WORST(name)			\
     debug_log(#name ".worst: %u", name.worst);
