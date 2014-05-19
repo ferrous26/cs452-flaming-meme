@@ -21,7 +21,8 @@ typedef struct {
 /**
  * Put this somewhere in global space to setup the variables needed.
  */
-#define DEBUG_TIME(name) static benchmark name;
+#define DEBUG_TIME(name) benchmark name;
+#define DEBUG_TIME_EXPOSE(name) extern benchmark name;
 
 /**
  * Put this in the library init function to initialize the state.
