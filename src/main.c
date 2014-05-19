@@ -14,9 +14,9 @@
 #include <task.h>
 #include <bootstrap.h>
 
-static void _init(void) {
+static void _init(void* dp) {
+    debug_init(dp);
     clock_t4enable();
-    debug_init();
     uart_init();
     vt_init();
     task_init();
@@ -38,8 +38,10 @@ int main(int argc, char* argv[]) {
     UNUSED(argc);
     UNUSED(argv);
 
-    _init();
-    
+    void* dp;
+    asm ("mov %0, lr" : "=r" (dp));
+    _init(dp);
+
     //This call should be part of initalization
     task tsk;
     task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
