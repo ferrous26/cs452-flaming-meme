@@ -1,40 +1,31 @@
-
 #ifndef __TASK_H__
 #define __TASK_H__
 
 #include <std.h>
 
-#define TASK_KERNEL_ID 0
+#define TASK_MAX 32 // 32 for now, because of implementation reasons
 
 #define TASK_PRIORITY_LEVELS 16
 #define TASK_PRIORITY_MAX    15
 #define TASK_PRIORITY_MIN     0
 
-#define TASK_STATE_ZOMBIE  0
-#define TASK_STATE_BLOCKED 1
-#define TASK_STATE_READY   2
-#define TASK_STATE_ACTIVE  3
-
-typedef int32 task_id;
+typedef uint16 task_id;
 typedef uint8 task_pri;
 typedef uint8 task_state;
 
-typedef enum {
-    OK               =  0,
-    NO_DESCRIPTORS   = -1,
-    INVALID_PRIORITY = -2
-} task_err;
+#define NO_DESCRIPTORS   -1
+#define INVALID_PRIORITY -2
 
-// TODO: do we really want to make this public?
-typedef struct task_state {
-    task_id    tid;
-    task_id    p_tid;
-    task_state state;
-    task_pri   priority;
-    uint16     reserved;
-    void**     sp;
+typedef struct task_descriptor {
+    task_id  tid;
+    task_id  p_tid;
+    task_pri priority;
+    uint8    reserved1;
+    uint16   reserved2;
+    uint*    sp;
 } task;
 
+extern task* task_active;
 
 /**
  * Initialize global state related to tasks
@@ -42,20 +33,15 @@ typedef struct task_state {
 void task_init(void);
 
 /**
- * @todo Perhaps the sp should be set by the caller?
- * I have a feeling it shouldn't because the function
- * will have the same access path as the caller
+ * @return tid of new task, or an error code as defined by CreateTask()
  */
-task_err task_create(task* t,
-		     const task_id p_tid,
-		     const task_pri pri,
-		     void** sp,
-		     void (*start) (void));
+task_id task_create(const task_id p_tid,
+		    const task_pri pri,
+		    void (*const start)(void));
 
 /**
  * Mark the task descriptor as being available for reuse.
  */
-void task_destroy(task* const t);
+void task_destroy(const task* const t);
 
 #endif
-

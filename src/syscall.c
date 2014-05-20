@@ -3,8 +3,6 @@
 #include <debug.h>
 #include <syscall.h>
 
-extern task* active_task;
-
 //TODO: reqest should be a pointer to an object that hold all of the arguments
 unsigned int  _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
@@ -17,9 +15,9 @@ unsigned int  _syscall(int code, void* request) {
     return ret;
 }
 
-int syscall_handle (uint code, void* request, void** sp) {
+int syscall_handle (uint code, void* request, uint* sp) {
     kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\n", code, request, sp);
-    active_task->sp = sp;
+    task_active->sp = sp;
 
     switch(code) {
     case SYS_CREATE: {
@@ -28,15 +26,15 @@ int syscall_handle (uint code, void* request, void** sp) {
         break;
     }
     case SYS_TID:
-        sp[0] = (void*) active_task->tid;
+        sp[0] = (uint)task_active->tid;
         break;
     case SYS_PTID:
-        sp[0] = (void*) active_task->p_tid;	
+        sp[0] = (uint)task_active->p_tid;
         break;
     case SYS_PASS:
 	break;
     case SYS_EXIT:
-	debug_log("Task %d exiting", active_task->tid);
+	debug_log("Task %d exiting", task_active->tid);
 	break;
     default:
 	debug_log("why am i here?");
@@ -50,6 +48,8 @@ int Create( int priority, void (*code) () ) {
     kreq_create req;
     req.code = code;
     req.priority = priority;
+
+    // TODO: check priority level is valid
 
     return _syscall(SYS_CREATE, &req);
 }
@@ -69,4 +69,3 @@ void Pass() {
 void Exit() {
     _syscall(SYS_EXIT, NULL);
 }
-

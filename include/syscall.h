@@ -18,6 +18,14 @@
 #define SYS_PASS   4
 #define SYS_EXIT   5
 
+#define SAVED_REGISTERS 12
+#define TRAP_FRAME_SIZE 48 // (SAVED_REGISTERS * WORD_SIZE)
+
+#define OS_OFFSET 0x217000
+#define START_ADDRESS(fn) ((uint)fn   + OS_OFFSET)
+#define EXIT_ADDRESS      ((uint)Exit + OS_OFFSET)
+#define DEFAULT_SPSR      0x10
+
 typedef struct {
     int priority;
     void (*code) (void);
@@ -26,7 +34,7 @@ typedef struct {
 void kernel_enter(unsigned int code);  /* found in context.asm */
 
 int  kernel_exit(unsigned int *sp);    /* found in context.asm */
-int  syscall_handle(uint32 code, void* req, void** sp);
+int  syscall_handle(uint32 code, void* req, uint* sp);
 
 int Create(int priority, void (*code) (void));
 
