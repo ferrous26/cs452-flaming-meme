@@ -52,8 +52,12 @@ int main(int argc, char* argv[]) {
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
+    volatile int x = 1;
     scheduler_get_next();
-    kernel_exit(task_active->sp);
+    for(;x;) {
+        scheduler_activate();
+    }
+	    
 
     _shutdown();
     return 0;

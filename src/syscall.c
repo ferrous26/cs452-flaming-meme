@@ -52,7 +52,8 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	assert(false, "Invalid system call #%u", code);
     }
 
-    scheduler_activate();
+
+//    scheduler_activate();
     return 0;
 }
 
