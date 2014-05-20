@@ -41,7 +41,8 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	break;
     case SYS_EXIT:
 	debug_log("Task %d exiting", task_active->tid);
-	task_destroy(task_active); // this works, but I wanted to test something...
+	task_destroy(task_active);
+	scheduler_get_next();
 	break;
     case SYS_PRIORITY:
         sp[0] = (uint)task_active->priority;
