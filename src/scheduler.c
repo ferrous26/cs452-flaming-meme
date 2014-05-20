@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <io.h>
 #include <bootstrap.h>
+#include <kernel.h>
 
 #define TASK_QLENGTH TASK_MAX
 
@@ -50,8 +51,10 @@ void scheduler_get_next(void) {
 
     // find the msb and add it
     uint qid = short_lg(manager.state) - 1;
-    struct task_q* curr = &manager.q[qid];
+    if (qid > TASK_PRIORITY_LEVELS)
+	_shutdown();
 
+    struct task_q* curr = &manager.q[qid];
     assert(curr->size, "trying to dequeue from empty queue %u", qid);
 
     // turn off the bit if the queue is now empty

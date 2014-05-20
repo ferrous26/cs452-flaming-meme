@@ -11,9 +11,12 @@
 #include <memory.h>
 #include <scheduler.h>
 #include <task.h>
+#include <kernel.h>
+
+static void* exit_point = NULL;
 
 static inline void _init(void* dp) {
-    debug_init(dp);
+    debug_init();
     clock_t4enable();
     uart_init();
     vt_init();
@@ -25,11 +28,19 @@ static inline void _init(void* dp) {
     vt_flush();
 
     *SWI_HANDLER = (void*)kernel_enter + OS_OFFSET;
+    exit_point   = dp;
 }
 
-static inline void _shutdown(void) {
+// forces gcc to do the right thing (tm)
+void __attribute__ ((noinline)) exit_to_redboot(void* ep) {
+    UNUSED(ep);
+    asm("mov pc, r0");
+}
+
+void _shutdown(void) {
     debug_log("Shutting Down");
     vt_flush();
+    exit_to_redboot(exit_point);
 }
 
 int main(int argc, char* argv[]) {
@@ -41,10 +52,8 @@ int main(int argc, char* argv[]) {
     _init(dp);
 
     scheduler_get_next();
-    scheduler_activate();
+    kernel_exit(task_active->sp);
 
-    // shutdown various systems
     _shutdown();
-
     return 0;
 }

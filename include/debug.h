@@ -14,7 +14,7 @@
 #define assert(expr, msg, ...)
 #endif
 
-void debug_init(void* dp);
+void debug_init();
 void debug_log(const char* const message, ...);
 void debug_assert_fail(const char* const file,
 		       const uint line,

@@ -2,6 +2,7 @@
 #include <debug.h>
 #include <io.h>
 #include <vt100.h>
+#include <kernel.h>
 
 #define DEBUG_HOME 4
 #define DEBUG_OFFSET 50
@@ -11,18 +12,10 @@
 // keep track of where to put debug messages
 static uint32 error_line  = 0;
 static uint32 error_count = 0;
-static void*  debug_exit  = 0;
 
-void debug_init(void* dp) {
+void debug_init() {
     error_line  = DEBUG_HOME - 1;
     error_count = 0;
-    debug_exit  = dp;
-}
-
-// forces gcc to do the right thing (tm)
-void __attribute__ ((noinline)) unsafe_exit(void* exit_point) {
-    UNUSED( exit_point );
-    asm ( "mov pc, r0" );
 }
 
 static void debug_new_line() {
@@ -51,7 +44,7 @@ void debug_assert_fail(const char* const file,
     va_end(args);
 
     vt_flush();
-    unsafe_exit(debug_exit);
+    _shutdown();
 }
 
 void debug_log(const char* const msg, ...) {
