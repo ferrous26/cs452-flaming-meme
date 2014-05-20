@@ -10,7 +10,9 @@ SECTIONS
 {
   .heap 0x1000 : /* Space to futz with */
   {
+    _HeapStart = . ;
     . = . + 25165824; /* allocate 24 MB for dynamic memory use */
+    _HeapEnd = . ;
   } >ram
 
   .data : /* Initialized data. */
