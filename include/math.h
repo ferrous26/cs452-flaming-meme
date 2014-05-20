@@ -1,11 +1,13 @@
+
 #ifndef __MATH_H__
 #define __MATH_H__
 
 #include <debug.h>
 
-static inline uint lg(uint x)  __attribute__ ((pure));
-static inline uint short_lg(uint x)  __attribute__ ((pure));
+#define MOD(x, y) (x & (y - 1))
 
+
+static inline uint lg(uint x)  __attribute__ ((pure));
 static inline uint lg(uint x) {
 
     uint r = 0;
@@ -42,6 +44,7 @@ static inline uint lg(uint x) {
     return 0;
 }
 
+static inline uint short_lg(uint x)  __attribute__ ((pure));
 static inline uint short_lg(uint x) {
 
     uint r = 0;
