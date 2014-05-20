@@ -39,17 +39,18 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	debug_log("Task %d exiting", task_active->tid);
 	// task_destroy(task_active); // this works, but I wanted to test something...
 	scheduler_get_next();
-	scheduler_activate();
 	break;
     case SYS_PRIORITY:
         sp[0] = (uint)task_active->priority;
         break;
     default:
-	assert(false, "Invalid system call");
+	// TODO: maybe find a way to tell us which task was the culprit
+	assert(false, "Invalid system call #%u", code);
     }
 
-    vt_flush();
-    kernel_exit(task_active->sp);
+    vt_flush(); // TODO: remove this
+
+    scheduler_activate();
     return 0;
 }
 
