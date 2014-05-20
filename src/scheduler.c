@@ -55,7 +55,7 @@ void scheduler_get_next(void) {
     assert(curr->size, "trying to dequeue from empty queue %u", qid);
 
     // turn off the bit if the queue is now empty
-    if (!(curr->size--))
+    if (!(--curr->size))
 	manager.state ^= (1 << qid);
 
     task_active = priority_queue[qid][curr->tail];
