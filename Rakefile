@@ -1,6 +1,4 @@
-task default: 'increment_version' do
-  sh 'make remote'
-end
+task default: :debug
 
 task :increment_version do
   version = File.read('VERSION').to_i + 1
@@ -9,6 +7,17 @@ task :increment_version do
   end
 end
 
+task bench: :increment_version do
+  sh 'BENCHMARK=yes make remote'
+end
+
+task debug: :increment_version do
+  sh 'make remote'
+end
+
+task release: :increment_version do
+  sh 'RELEASE=3 make remote'
+end
 
 namespace :md5 do
   def make_md5_for report

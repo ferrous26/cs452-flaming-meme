@@ -14,11 +14,15 @@ OBJS        := $(patsubst %.asm,%.o,$(SOURCES_ASM))
 OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
 ifdef RELEASE
-CFLAGS = -O$(RELEASE) -fpeel-loops -ftracer
+# Flags to look into trying:
 #-ffast-math -ftree-vectorize -floop-optimize2 -ftree-loop-linear -ftracer
+CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer
 else
-# -g: include hooks for gdb
-CFLAGS = -g
+CFLAGS = -g -D ASSERT=yes
+endif
+
+ifdef BENCHMARK
+CFLAGS += -D BENCHMARK=yes
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
@@ -26,7 +30,6 @@ CFLAGS += -c -fPIC -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
 CFLAGS += -Wswitch-enum
-
 
 ASFLAGS	= -mcpu=arm920t -mapcs-32
 # -mapcs: always generate a complete stack frame
@@ -36,6 +39,7 @@ ARFLAGS = rcs
 LDFLAGS  = -init main -Map kernel.map -N -T orex.ld
 LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
 
+# TODO: proper separation of kernel and user code
 KERN_CODE = src/main.o src/context.o src/syscall.o
 TASKS     = src/tasks/bootstrap.o
 
@@ -58,7 +62,7 @@ kernel.elf: $(OBJS)
 
 remote:
 	rsync -trulip --exclude '.git/' --exclude './measurement' ./ uw:$(UW_HOME)/trains
-	ssh uw "cd trains/ && make clean && RELEASE=$(RELEASE) make -s -j16"
+	ssh uw "cd trains/ && make clean && RELEASE=$(RELEASE) BENCHMARK=$(BENCHMARK) make -s -j16"
 	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/micro.elf"
 
 clean:
