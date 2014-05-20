@@ -4,11 +4,6 @@
 #include <vt100.h>
 #include <kernel.h>
 
-#define DEBUG_HOME 2
-#define DEBUG_OFFSET 50
-#define DEBUG_HISTORY_SIZE 36
-#define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
-
 // keep track of where to put debug messages
 static uint32 error_line  = 0;
 static uint32 error_offset = 0;
@@ -41,15 +36,15 @@ static void debug_new_line() {
 void debug_assert_fail(const char* const file,
 		       const uint line,
 		       const char* const msg, ...) {
+    va_list args;
+    va_start(args, msg);
+
     debug_new_line();
     kprintf("assertion failure at %s:%u", file, line);
     debug_new_line();
-
-    va_list args;
-    va_start(args, msg);
     kprintf_va(msg, args);
-    va_end(args);
 
+    va_end(args);
     vt_flush();
     _shutdown();
 }

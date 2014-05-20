@@ -14,6 +14,11 @@
 #define assert(expr, msg, ...)
 #endif
 
+#define DEBUG_HOME 2
+#define DEBUG_OFFSET 50
+#define DEBUG_HISTORY_SIZE 36
+#define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
+
 void debug_init();
 void debug_log(const char* const message, ...);
 void debug_assert_fail(const char* const file,

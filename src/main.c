@@ -39,6 +39,7 @@ static void __attribute__ ((noinline)) exit_to_redboot(void* ep) {
 
 void _shutdown(void) {
     debug_log("Shutting Down");
+    vt_goto(DEBUG_END+1, 0);
     vt_flush();
     exit_to_redboot(exit_point);
 }
