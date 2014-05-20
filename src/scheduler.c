@@ -32,7 +32,7 @@ void scheduler_init(void) {
 	q->tail = 0;
     }
 
-    task_create(0, 0, bootstrap);
+    task_create(0, 4, bootstrap);
 }
 
 void scheduler_schedule(task* t) {
