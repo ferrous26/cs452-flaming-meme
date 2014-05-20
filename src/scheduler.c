@@ -69,6 +69,8 @@ void scheduler_get_next(void) {
 // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
 int scheduler_activate(void) {
     // should be able to context switch into task
+    debug_log("%d: %p %p", task_active->tid, task_active->sp, task_active->sp[1]);
+    vt_flush();
     return kernel_exit((void*)task_active->sp);
     // will return here from syscall_handle
 }

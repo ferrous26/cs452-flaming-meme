@@ -25,7 +25,9 @@ int syscall_handle (uint code, void* request, uint* sp) {
         kreq_create* r = (kreq_create*) request;
         //debug_log("CREATING TASK (%d): %p", r->priority, r->code);
 	sp[0] = task_create(task_active->tid, r->priority, r->code);
-        break;
+	scheduler_schedule(task_active);
+	scheduler_get_next();
+	break;
     }
     case SYS_TID:
         sp[0] = (uint)task_active->tid;
@@ -34,11 +36,12 @@ int syscall_handle (uint code, void* request, uint* sp) {
         sp[0] = (uint)task_active->p_tid;
         break;
     case SYS_PASS:
+	scheduler_schedule(task_active);
+	scheduler_get_next();
 	break;
     case SYS_EXIT:
 	debug_log("Task %d exiting", task_active->tid);
-	// task_destroy(task_active); // this works, but I wanted to test something...
-	scheduler_get_next();
+	task_destroy(task_active); // this works, but I wanted to test something...
 	break;
     case SYS_PRIORITY:
         sp[0] = (uint)task_active->priority;

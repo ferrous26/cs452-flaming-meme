@@ -3,9 +3,10 @@
 #include <syscall.h>
 
 #include <hello.h>
+#include <debug.h>
 
 static void print_info(int tid, int pid) {
-    kprintf("Id: %d Parent: %d\n", tid, pid);
+    debug_log("Id: %d Parent: %d\n", tid, pid);
     vt_flush();
 }
 
