@@ -11,10 +11,10 @@ static void print_created(int tid) {
 }
 
 void bootstrap(void) {
-    print_created(Create(8, hello));
-    print_created(Create(8, hello));
     print_created(Create(1, hello));
     print_created(Create(1, hello));
+    print_created(Create(8, hello));
+    print_created(Create(8, hello));
 
     debug_log("First: exiting");
     vt_flush();

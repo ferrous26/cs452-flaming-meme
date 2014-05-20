@@ -3,8 +3,9 @@
 #include <syscall.h>
 #include <debug.h>
 #include <io.h>
-#include <bootstrap.h>
 #include <kernel.h>
+
+#include <task_launcher.h>
 
 #define TASK_QLENGTH TASK_MAX
 
@@ -32,7 +33,7 @@ void scheduler_init(void) {
 	q->tail = 0;
     }
 
-    task_create(0, 4, bootstrap);
+    task_create(0, 0, task_launcher);
 }
 
 void scheduler_schedule(task* t) {
@@ -55,7 +56,7 @@ void scheduler_get_next(void) {
 	_shutdown();
 
     struct task_q* curr = &manager.q[qid];
-    debug_log("choosing %u with %u", qid, curr->size);
+    //debug_log("choosing %u with %u", qid, curr->size);
     assert(curr->size, "trying to dequeue from empty queue %u", qid);
 
     // turn off the bit if the queue is now empty
@@ -64,14 +65,14 @@ void scheduler_get_next(void) {
 
     task_active = priority_queue[qid][curr->tail];
     vt_flush();
-    curr->tail = (curr->tail + 1) & TASK_QLENGTH;
+    curr->tail = (curr->tail + 1) & (TASK_QLENGTH - 1);
 }
 
 // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
 int scheduler_activate(void) {
     // should be able to context switch into task
-    debug_log("%d: %p %p", task_active->tid, task_active->sp, task_active->sp[1]);
-    vt_flush();
+    // debug_log("%d: %p %p", task_active->tid, task_active->sp, task_active->sp[1]);
+    // vt_flush();
     return kernel_exit((void*)task_active->sp);
     // will return here from syscall_handle
 }
