@@ -20,7 +20,7 @@ void debug_init(void* dp) {
 }
 
 // forces gcc to do the right thing (tm)
-void unsafe_exit(void* exit_point){
+void __attribute__ ((noinline)) unsafe_exit(void* exit_point) {
     UNUSED( exit_point );
     asm ( "mov pc, r0" );
 }
