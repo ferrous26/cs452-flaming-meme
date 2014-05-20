@@ -36,6 +36,9 @@ int syscall_handle (uint code, void* request, uint* sp) {
     case SYS_EXIT:
 	debug_log("Task %d exiting", task_active->tid);
 	break;
+    case SYS_PRIORITY:
+        sp[0] = (uint)task_active->priority;
+        break;
     default:
 	debug_log("why am i here?");
     }
@@ -60,6 +63,10 @@ int myTid() {
 
 int myParentTid() {
     return _syscall(SYS_PTID, NULL);
+}
+
+int myPriority() {
+    return _syscall(SYS_PRIORITY, NULL);
 }
 
 void Pass() {

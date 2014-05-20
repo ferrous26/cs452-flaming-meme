@@ -12,11 +12,12 @@
  */
 #define SWI_HANDLER ((void**)0x28)
 
-#define SYS_CREATE 1
-#define SYS_TID    2
-#define SYS_PTID   3
-#define SYS_PASS   4
-#define SYS_EXIT   5
+#define SYS_CREATE   1
+#define SYS_TID      2
+#define SYS_PTID     3
+#define SYS_PASS     4
+#define SYS_EXIT     5
+#define SYS_PRIORITY 6
 
 #define SAVED_REGISTERS 12
 #define TRAP_FRAME_SIZE 48 // (SAVED_REGISTERS * WORD_SIZE)
@@ -40,6 +41,7 @@ int Create(int priority, void (*code) (void));
 
 int myTid(void);
 int myParentTid(void);
+int myPriority(void);
 
 void Pass(void);
 void Exit(void);
