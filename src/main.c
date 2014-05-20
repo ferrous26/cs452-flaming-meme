@@ -27,10 +27,10 @@ static inline void _init(void* dp) {
     *SWI_HANDLER = (void*)kernel_enter + OS_OFFSET;
 }
 
-// static inline void _shutdown(void) {
-//     debug_log("Shutting Down");
-//     vt_flush();
-// }
+static inline void _shutdown(void) {
+    debug_log("Shutting Down");
+    vt_flush();
+}
 
 int main(int argc, char* argv[]) {
     UNUSED(argc);
@@ -40,16 +40,11 @@ int main(int argc, char* argv[]) {
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    for (;;) {
-	debug_task(0);
-	vt_flush();
-
-	scheduler_get_next();
-	scheduler_activate();
-    }
+    scheduler_get_next();
+    scheduler_activate();
 
     // shutdown various systems
-    // _shutdown();
+    _shutdown();
 
-    // return 0;
+    return 0;
 }

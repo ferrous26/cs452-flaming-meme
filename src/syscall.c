@@ -2,6 +2,7 @@
 #include <task.h>
 #include <debug.h>
 #include <syscall.h>
+#include <scheduler.h>
 
 //TODO: reqest should be a pointer to an object that hold all of the arguments
 unsigned int  _syscall(int code, void* request) {
@@ -16,13 +17,14 @@ unsigned int  _syscall(int code, void* request) {
 }
 
 int syscall_handle (uint code, void* request, uint* sp) {
-    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\n", code, request, sp);
+    //    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\n", code, request, sp);
     task_active->sp = sp;
 
     switch(code) {
     case SYS_CREATE: {
         kreq_create* r = (kreq_create*) request;
-        debug_log("CREATING TASK (%d): %p", r->priority, r->code);
+        //debug_log("CREATING TASK (%d): %p", r->priority, r->code);
+	task_create(task_active->tid, r->priority, r->code);
         break;
     }
     case SYS_TID:
@@ -35,6 +37,9 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	break;
     case SYS_EXIT:
 	debug_log("Task %d exiting", task_active->tid);
+	// task_destroy(task_active); // this works, but I wanted to test something...
+	scheduler_get_next();
+	scheduler_activate();
 	break;
     case SYS_PRIORITY:
         sp[0] = (uint)task_active->priority;
@@ -44,6 +49,7 @@ int syscall_handle (uint code, void* request, uint* sp) {
     }
 
     vt_flush();
+    kernel_exit(task_active->sp);
     return 0;
 }
 
