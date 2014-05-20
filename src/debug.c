@@ -4,28 +4,35 @@
 #include <vt100.h>
 #include <kernel.h>
 
-#define DEBUG_HOME 4
+#define DEBUG_HOME 2
 #define DEBUG_OFFSET 50
 #define DEBUG_HISTORY_SIZE 36
 #define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
 
 // keep track of where to put debug messages
 static uint32 error_line  = 0;
+static uint32 error_offset = 0;
 static uint32 error_count = 0;
 
 void debug_init() {
-    error_line  = DEBUG_HOME - 1;
-    error_count = 0;
+    error_line   = DEBUG_HOME - 1;
+    error_offset = 0;
+    error_count  = 0;
 }
 
 static void debug_new_line() {
 
     error_count++;
     error_line++;
-    //    if (error_line > DEBUG_END)
-    //	error_line = DEBUG_HOME; // reset
+    if (error_line > DEBUG_END) {
+    	error_line = DEBUG_HOME; // reset
+	error_offset += 40;
 
-    vt_goto(error_line, DEBUG_OFFSET);
+	if (error_offset > 120)
+	    error_offset = 0;
+    }
+
+    vt_goto(error_line, error_offset);
     vt_kill_line();
     kprintf_uint(error_count);
     kprintf_string(": ");
