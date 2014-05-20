@@ -55,6 +55,7 @@ void scheduler_get_next(void) {
 	_shutdown();
 
     struct task_q* curr = &manager.q[qid];
+    debug_log("choosing %u with %u", qid, curr->size);
     assert(curr->size, "trying to dequeue from empty queue %u", qid);
 
     // turn off the bit if the queue is now empty
