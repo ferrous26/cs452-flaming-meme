@@ -16,6 +16,4 @@ void hello() {
     print_info(tid, pid);
     Pass();
     print_info(tid, pid);
-    Exit(); // Doesn't need to be called linked implicitly
 }
-

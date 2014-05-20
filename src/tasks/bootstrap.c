@@ -18,6 +18,4 @@ void bootstrap(void) {
 
     kprintf("First: exiting");
     vt_flush();
-
-    Exit();
 }
