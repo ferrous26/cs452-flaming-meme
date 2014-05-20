@@ -8,7 +8,7 @@ unsigned int  _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
     UNUSED(code);
     UNUSED(request);
-    asm ("swi 0" );
+    asm("swi 0");
 
     // r0 will have the return value of the operation
     register unsigned int ret asm ("r0");
