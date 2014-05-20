@@ -3,6 +3,7 @@
 #include <syscall.h>
 #include <debug.h>
 #include <io.h>
+#include <bootstrap.h>
 
 #define TASK_QLENGTH TASK_MAX
 
@@ -30,7 +31,7 @@ void scheduler_init(void) {
 	q->tail = 0;
     }
 
-    // TODO: bootstrap the first task (possibly with hacks)
+    task_create(0, 0, bootstrap);
 }
 
 void scheduler_schedule(task* t) {

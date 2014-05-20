@@ -23,6 +23,17 @@ void task_init(void) {
     // TODO: setup the stack canaries
 }
 
+void debug_task(const task_id tid) {
+
+    task* tsk = &tasks[tid & (TASK_MAX - 1)];
+
+    debug_log("Task:");
+    debug_log("             ID: %u", tsk->tid);
+    debug_log("      Parent ID: %u", tsk->p_tid);
+    debug_log("       Priority: %u", tsk->priority);
+    debug_log("  Stack Pointer: %p", tsk->sp);
+}
+
 static inline uint* task_stack(const uint8 task_index) __attribute__ ((pure));
 static inline uint* task_stack(const uint8 task_index) {
     return (uint*)(TASK_HEAP_BASE + (TASK_STACK_SIZE * task_index));

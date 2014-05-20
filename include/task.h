@@ -33,6 +33,11 @@ extern task* task_active;
 void task_init(void);
 
 /**
+ * Print debug info about the given task to the debug console.
+ */
+void debug_task(const task_id tid);
+
+/**
  * @return tid of new task, or an error code as defined by CreateTask()
  */
 task_id task_create(const task_id p_tid,

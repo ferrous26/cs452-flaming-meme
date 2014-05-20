@@ -11,7 +11,6 @@
 #include <memory.h>
 #include <scheduler.h>
 #include <task.h>
-#include <bootstrap.h>
 
 static inline void _init(void* dp) {
     debug_init(dp);
@@ -28,10 +27,10 @@ static inline void _init(void* dp) {
     *SWI_HANDLER = (void*)kernel_enter + 0x217000;
 }
 
-static inline void _shutdown(void) {
-    debug_log("Shutting Down");
-    vt_flush();
-}
+// static inline void _shutdown(void) {
+//     debug_log("Shutting Down");
+//     vt_flush();
+// }
 
 int main(int argc, char* argv[]) {
     UNUSED(argc);
@@ -40,18 +39,17 @@ int main(int argc, char* argv[]) {
     void* dp;
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
-    //This call should be part of initalization
 
+    for (;;) {
+	debug_task(0);
+	vt_flush();
 
-    task tsk;
-    task_create( &tsk, -1, 4, (void**)0x4000, bootstrap );
-
-    for(;;) {
-    //    task* tsk = scheduler_schedule();
-        scheduler_activate(&tsk);
+	scheduler_get_next();
+	scheduler_activate();
     }
 
     // shutdown various systems
-    //    _shutdown();
+    // _shutdown();
+
     // return 0;
 }
