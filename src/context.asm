@@ -12,7 +12,7 @@ kernel_enter:
 	mov	r2, sp
 	msr	cpsr, #0x93 		/* supervisor */
 /*	ldmfd   sp!, {r4-r12, lr}*/
-	mov     sp, #1000
+	mov     sp, #0x1000
 	b	syscall_handle (PLT)
 	.size	kernel_enter, .-kernel_enter
 
