@@ -24,7 +24,7 @@ int syscall_handle (uint code, void* request, uint* sp) {
     case SYS_CREATE: {
         kreq_create* r = (kreq_create*) request;
         //debug_log("CREATING TASK (%d): %p", r->priority, r->code);
-	task_create(task_active->tid, r->priority, r->code);
+	sp[0] = task_create(task_active->tid, r->priority, r->code);
         break;
     }
     case SYS_TID:
