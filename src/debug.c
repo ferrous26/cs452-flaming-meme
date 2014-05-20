@@ -1,18 +1,23 @@
+
 #include <debug.h>
 #include <io.h>
 #include <vt100.h>
 
+#define DEBUG_HOME 4
+#define DEBUG_OFFSET 50
+#define DEBUG_HISTORY_SIZE 36
+#define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
+
 // keep track of where to put debug messages
 static uint32 error_line  = 0;
 static uint32 error_count = 0;
-static void*  debug_end   = 0;
+static void*  debug_exit  = 0;
 
 void debug_init(void* dp) {
     error_line  = DEBUG_HOME - 1;
     error_count = 0;
-    debug_end   = dp;
+    debug_exit  = dp;
 }
-
 
 // forces gcc to do the right thing (tm)
 void unsafe_exit(void* exit_point){
@@ -20,26 +25,37 @@ void unsafe_exit(void* exit_point){
     asm ( "mov pc, r0" );
 }
 
-void debug_assert_fail(const char* const msg,
-		       const char* const file,
-		       const uint line) {
-    debug_log("ASSERTION FAILURE AT %s:%u", file, line);
-    debug_log("%s", msg);
-    vt_flush();
-    unsafe_exit(debug_end);
-}
+static void debug_new_line() {
 
-
-
-void debug_log(const char* const msg, ...) {
-    error_line++;
     error_count++;
-    if (error_line == DEBUG_END) error_line = DEBUG_HOME; // reset
+    error_line++;
+    if (error_line > DEBUG_END)
+	error_line = DEBUG_HOME; // reset
 
     vt_goto(error_line, DEBUG_OFFSET);
     vt_kill_line();
     kprintf_uint(error_count);
     kprintf_string(": ");
+}
+
+void debug_assert_fail(const char* const file,
+		       const uint line,
+		       const char* const msg, ...) {
+    debug_new_line();
+    kprintf("assertion failure at %s:%u", file, line);
+    debug_new_line();
+
+    va_list args;
+    va_start(args, msg);
+    kprintf_va(msg, args);
+    va_end(args);
+
+    vt_flush();
+    unsafe_exit(debug_exit);
+}
+
+void debug_log(const char* const msg, ...) {
+    debug_new_line();
 
     va_list args;
     va_start(args, msg);
