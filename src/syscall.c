@@ -40,7 +40,7 @@ int syscall_handle (uint code, void* request, uint* sp) {
         sp[0] = (uint)task_active->priority;
         break;
     default:
-	debug_log("why am i here?");
+	assert(false, "Invalid system call");
     }
 
     vt_flush();
