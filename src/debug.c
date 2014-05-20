@@ -22,8 +22,8 @@ static void debug_new_line() {
 
     error_count++;
     error_line++;
-    if (error_line > DEBUG_END)
-	error_line = DEBUG_HOME; // reset
+    //    if (error_line > DEBUG_END)
+    //	error_line = DEBUG_HOME; // reset
 
     vt_goto(error_line, DEBUG_OFFSET);
     vt_kill_line();
