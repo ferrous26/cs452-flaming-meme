@@ -52,11 +52,11 @@ void scheduler_get_next(void) {
     uint qid = short_lg(manager.state) - 1;
     struct task_q* curr = &manager.q[qid];
 
+    assert(curr->size, "trying to dequeue from empty queue %u", qid);
+
     // turn off the bit if the queue is now empty
     if (!(curr->size--))
 	manager.state ^= (1 << qid);
-
-    // TODO: ass hurt
 
     task_active = priority_queue[qid][curr->tail];
     vt_flush();
