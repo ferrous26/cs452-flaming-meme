@@ -13,14 +13,23 @@ void debug_init(void* dp) {
     debug_end   = dp;
 }
 
+
+// forces gcc to do the right thing (tm)
+void unsafe_exit(void* exit_point){
+    UNUSED( exit_point );
+    asm ( "mov pc, r0" );
+}
+
 void debug_assert_fail(const char* const msg,
 		       const char* const file,
 		       const uint line) {
     debug_log("ASSERTION FAILURE AT %s:%u", file, line);
     debug_log("%s", msg);
     vt_flush();
-    asm("mov pc, %0" : : "rm"(debug_end));
+    unsafe_exit(debug_end);
 }
+
+
 
 void debug_log(const char* const msg, ...) {
     error_line++;
