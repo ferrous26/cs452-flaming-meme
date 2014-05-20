@@ -32,13 +32,14 @@ static inline void _init(void* dp) {
 }
 
 // forces gcc to do the right thing (tm)
-void __attribute__ ((noinline)) exit_to_redboot(void* ep) {
+static void __attribute__ ((noinline)) exit_to_redboot(void* ep) {
     UNUSED(ep);
     asm("mov pc, r0");
 }
 
 void _shutdown(void) {
     debug_log("Shutting Down");
+    vt_goto(DEBUG_END+1, 0);
     vt_flush();
     exit_to_redboot(exit_point);
 }

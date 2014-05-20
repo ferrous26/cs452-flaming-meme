@@ -18,12 +18,13 @@ unsigned int  _syscall(int code, void* request) {
 
 int syscall_handle (uint code, void* request, uint* sp) {
     //    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\n", code, request, sp);
+
+    // save it, save it real good
     task_active->sp = sp;
 
     switch(code) {
     case SYS_CREATE: {
         kreq_create* r = (kreq_create*) request;
-        //debug_log("CREATING TASK (%d): %p", r->priority, r->code);
 	sp[0] = task_create(task_active->tid, r->priority, r->code);
 	scheduler_schedule(task_active);
 	scheduler_get_next();
@@ -40,7 +41,6 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	scheduler_get_next();
 	break;
     case SYS_EXIT:
-	debug_log("Task %d exiting", task_active->tid);
 	task_destroy(task_active);
 	scheduler_get_next();
 	break;
@@ -52,8 +52,6 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	assert(false, "Invalid system call #%u", code);
     }
 
-    vt_flush(); // TODO: remove this
-
     scheduler_activate();
     return 0;
 }
@@ -63,7 +61,8 @@ int Create( int priority, void (*code) () ) {
     req.code = code;
     req.priority = priority;
 
-    // TODO: check priority level is valid
+    if (priority > TASK_PRIORITY_MAX)
+	return INVALID_PRIORITY;
 
     return _syscall(SYS_CREATE, &req);
 }

@@ -6,7 +6,7 @@
 #include <bootstrap.h>
 
 static void print_created(int tid) {
-    debug_log("Created: %d\n", tid);
+    debug_log("Created: %d", tid);
     vt_flush();
 }
 
