@@ -4,7 +4,7 @@
 #include <math.h>
 #include <scheduler.h>
 
-#define TASK_HEAP_BASE 0x1000
+#define TASK_HEAP_BASE (0x1000 + OS_OFFSET)
 #define TASK_STACK_SIZE 786432 // 192 pages * 4096 bytes per page
 
 // this acts like a mask, just like the scheduler queue
