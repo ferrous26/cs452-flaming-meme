@@ -2,19 +2,12 @@ ENTRY (main)
 
 MEMORY
 {
-  ram : ORIGIN = 0x00000000, LENGTH = 32M
+  ram : ORIGIN = 0x00001000, LENGTH = 32M
   rom : ORIGIN = 0x60000000, LENGTH = 8M
 }
 
 SECTIONS
 {
-  .heap 0x1000 : /* Space to futz with */
-  {
-    _HeapStart = . ;
-    . = . + 25165824; /* allocate 24 MB for dynamic memory use */
-    _HeapEnd = . ;
-  } >ram
-
   .data : /* Initialized data. */
   {
     _DataStart = . ;

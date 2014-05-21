@@ -4,8 +4,8 @@
 #include <math.h>
 #include <scheduler.h>
 
-#define TASK_HEAP_BASE (0x1000 + OS_OFFSET)
-#define TASK_STACK_SIZE 786432 // 192 pages * 4096 bytes per page
+#define TASK_HEAP_BASE 0x1F00000 // 31 MB
+#define TASK_STACK_SIZE 524288 // 128 pages * 4096 bytes per page
 
 // this acts like a mask, just like the scheduler queue
 static uint tasks_bitmap = 0;
@@ -36,7 +36,7 @@ void debug_task(const task_id tid) {
 
 static inline uint* task_stack(const uint8 task_index) __attribute__ ((pure));
 static inline uint* task_stack(const uint8 task_index) {
-    return (uint*)(TASK_HEAP_BASE + (TASK_STACK_SIZE * task_index));
+    return (uint*)(TASK_HEAP_BASE - (TASK_STACK_SIZE * task_index));
 }
 
 task_id task_create(const task_id p_tid,
