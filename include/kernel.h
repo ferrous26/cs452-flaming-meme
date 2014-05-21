@@ -4,6 +4,6 @@
 
 #include <std.h>
 
-void _shutdown(void);
+void shutdown(void);
 
 #endif

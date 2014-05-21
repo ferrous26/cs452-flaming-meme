@@ -46,7 +46,7 @@ void debug_assert_fail(const char* const file,
 
     va_end(args);
     vt_flush();
-    _shutdown();
+    shutdown();
 }
 
 void debug_log(const char* const msg, ...) {
