@@ -27,7 +27,6 @@ int syscall_handle (uint code, void* request, uint* sp) {
         kreq_create* r = (kreq_create*) request;
 	sp[0] = task_create(task_active->tid, r->priority, r->code);
 	scheduler_schedule(task_active);
-	scheduler_get_next();
 	break;
     }
     case SYS_TID:
@@ -38,11 +37,9 @@ int syscall_handle (uint code, void* request, uint* sp) {
         break;
     case SYS_PASS:
 	scheduler_schedule(task_active);
-	scheduler_get_next();
 	break;
     case SYS_EXIT:
 	task_destroy(task_active);
-	scheduler_get_next();
 	break;
     case SYS_PRIORITY:
         sp[0] = (uint)task_active->priority;
@@ -52,7 +49,6 @@ int syscall_handle (uint code, void* request, uint* sp) {
 	assert(false, "Invalid system call #%u", code);
     }
 
-    scheduler_activate();
     return 0;
 }
 

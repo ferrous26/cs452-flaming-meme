@@ -52,8 +52,10 @@ int main(int argc, char* argv[]) {
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    scheduler_get_next();
-    kernel_exit(task_active->sp);
+    for(;!scheduler_get_next();) {
+        scheduler_activate();
+    }
+	    
 
     _shutdown();
     return 0;

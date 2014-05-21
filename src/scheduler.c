@@ -33,7 +33,7 @@ void scheduler_init(void) {
 	q->tail = 0;
     }
 
-    task_create(0, 0, task_launcher);
+    task_create(0, TASK_PRIORITY_MIN, task_launcher);
 }
 
 void scheduler_schedule(task* t) {
@@ -48,12 +48,12 @@ void scheduler_schedule(task* t) {
 }
 
 // scheduler_consume
-void scheduler_get_next(void) {
-
+int scheduler_get_next(void) {
     // find the msb and add it
     uint qid = short_lg(manager.state) - 1;
-    if (qid > TASK_PRIORITY_LEVELS)
-	_shutdown();
+    if (qid > TASK_PRIORITY_LEVELS) {
+	return -1;
+    }
 
     struct task_q* curr = &manager.q[qid];
     assert(curr->size, "trying to dequeue from empty queue %u", qid);
@@ -64,6 +64,7 @@ void scheduler_get_next(void) {
 
     task_active = priority_queue[qid][curr->tail];
     curr->tail = (curr->tail + 1) & (TASK_QLENGTH - 1);
+    return 0;
 }
 
 // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
