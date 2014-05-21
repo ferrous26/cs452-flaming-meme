@@ -1,11 +1,11 @@
-#include <scheduler.h>
-#include <math.h>
-#include <syscall.h>
-#include <debug.h>
 #include <io.h>
+#include <math.h>
+#include <debug.h>
 #include <kernel.h>
+#include <syscall.h>
 
-#include <task_launcher.h>
+#include <tasks/task_launcher.h>
+#include <scheduler.h>
 
 #define TASK_QLENGTH TASK_MAX
 

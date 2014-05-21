@@ -52,8 +52,9 @@ int main(int argc, char* argv[]) {
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    for(;!scheduler_get_next();) {
-        scheduler_activate();
+    int reschedule = 1;
+    for(;!(reschedule && scheduler_get_next());) {
+        reschedule = scheduler_activate();
     }
 	    
 

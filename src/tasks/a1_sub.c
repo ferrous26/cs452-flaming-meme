@@ -1,16 +1,14 @@
 
 #include <io.h>
+#include <debug.h>
 #include <syscall.h>
-#include <debug.h>
-#include <hello.h>
-#include <debug.h>
 
-static void print_info(int tid, int pid) {
+inline static void print_info(int tid, int pid) {
     debug_log("Id: %d Parent: %d", tid, pid);
     vt_flush();
 }
 
-void hello() {
+void a1_sub() {
     int tid = myTid();
     int pid = myParentTid();
 

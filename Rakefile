@@ -26,8 +26,9 @@ end
 namespace :md5 do
   def make_md5_for report
     files = ['Makefile', 'Rakefile', 'orex.ld'] +
-      FileList['include/*.h'] +
-      FileList['src/*.c']
+      FileList['include/**/*.h'] +
+      FileList['src/**/*.c'] +
+      FileList['src/**/*.asm']
 
     require 'digest/md5'
     require 'csv'

@@ -1,8 +1,9 @@
 #include <io.h>
 #include <task.h>
 #include <debug.h>
-#include <syscall.h>
 #include <scheduler.h>
+
+#include <syscall.h>
 
 //TODO: reqest should be a pointer to an object that hold all of the arguments
 unsigned int  _syscall(int code, void* request) {
@@ -17,8 +18,6 @@ unsigned int  _syscall(int code, void* request) {
 }
 
 int syscall_handle (uint code, void* request, uint* sp) {
-    //    kprintf( "\nIC:\t%p\nR1:\t%p\nSP:\t%p\n", code, request, sp);
-
     // save it, save it real good
     task_active->sp = sp;
 
@@ -27,29 +26,27 @@ int syscall_handle (uint code, void* request, uint* sp) {
         kreq_create* r = (kreq_create*) request;
 	sp[0] = task_create(task_active->tid, r->priority, r->code);
 	scheduler_schedule(task_active);
-	break;
+        return 1;
     }
     case SYS_TID:
         sp[0] = (uint)task_active->tid;
-        break;
+	return 0;
     case SYS_PTID:
         sp[0] = (uint)task_active->p_tid;
-        break;
+        return 0;
     case SYS_PASS:
 	scheduler_schedule(task_active);
-	break;
+        return 1;
     case SYS_EXIT:
 	task_destroy(task_active);
-	break;
+        return 1;
     case SYS_PRIORITY:
         sp[0] = (uint)task_active->priority;
-        break;
+	return 0;
     default:
 	// TODO: maybe find a way to tell us which task was the culprit
-	assert(false, "Invalid system call #%u", code);
+        return 1;
     }
-
-    return 0;
 }
 
 int Create( int priority, void (*code) () ) {
