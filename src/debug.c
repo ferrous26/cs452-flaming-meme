@@ -21,9 +21,9 @@ static void debug_new_line() {
     error_line++;
     if (error_line > DEBUG_END) {
     	error_line = DEBUG_HOME; // reset
-	error_offset += 40;
+	error_offset += 50;
 
-	if (error_offset > 120)
+	if (error_offset >= 80)
 	    error_offset = 0;
     }
 
