@@ -18,7 +18,9 @@ ifdef RELEASE
 #-ffast-math -ftree-vectorize -floop-optimize2 -ftree-loop-linear -ftracer
 CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer
 else
-CFLAGS = -g -D ASSERT
+CFLAGS  = -g -D ASSERT
+# -mapcs: always generate a complete stack frame
+ASFLAGS = -mapcs-32
 endif
 
 ifdef BENCHMARK
@@ -31,8 +33,7 @@ CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
 CFLAGS += -Wswitch-enum
 
-ASFLAGS	= -mcpu=arm920t -mapcs-32
-# -mapcs: always generate a complete stack frame
+ASFLAGS	+= -mcpu=arm920t
 
 ARFLAGS = rcs
 
