@@ -35,7 +35,7 @@ void task_launcher() {
 	    break;
 	case 'h':
         default:
-
+	    print_help();
 	    break;
         }
     }
