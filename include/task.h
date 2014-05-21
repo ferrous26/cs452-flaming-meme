@@ -40,9 +40,9 @@ void debug_task(const task_id tid);
 /**
  * @return tid of new task, or an error code as defined by CreateTask()
  */
-task_id task_create(const task_id p_tid,
-		    const task_pri pri,
-		    void (*const start)(void));
+int task_create(const task_id p_tid,
+		const task_pri pri,
+		void (*const start)(void));
 
 /**
  * Mark the task descriptor as being available for reuse.

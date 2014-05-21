@@ -39,9 +39,9 @@ static inline uint* task_stack(const uint8 task_index) {
     return (uint*)(TASK_HEAP_BASE - (TASK_STACK_SIZE * task_index));
 }
 
-task_id task_create(const task_id p_tid,
-		    const task_pri pri,
-		    void (*const start)(void)) {
+int task_create(const task_id p_tid,
+		const task_pri pri,
+		void (*const start)(void)) {
 
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority");
 
