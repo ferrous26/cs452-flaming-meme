@@ -11,8 +11,8 @@
  *
  * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/s14/notes/l05.html
  */
-#define SWI_HANDLER ((void**)0x28)
-#define HWI_HANDLER ((void**)0x38)
+#define SWI_HANDLER ((uint*)0x28)
+#define HWI_HANDLER ((uint*)0x38)
 
 #define SYS_CREATE   1
 #define SYS_TID      2
