@@ -18,11 +18,11 @@ ifdef RELEASE
 #-ffast-math -ftree-vectorize -floop-optimize2 -ftree-loop-linear -ftracer
 CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer
 else
-CFLAGS = -g -D ASSERT=yes
+CFLAGS = -g -D ASSERT
 endif
 
 ifdef BENCHMARK
-CFLAGS += -D BENCHMARK=yes
+CFLAGS += -D BENCHMARK
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
