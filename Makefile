@@ -20,7 +20,7 @@ ifdef RELEASE
 # -ftree-loop-im
 CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer -floop-optimize2
 else
-CFLAGS  = -g -D ASSERT
+CFLAGS  = -g -D ASSERT -D DEBUG
 # -mapcs: always generate a complete stack frame
 ASFLAGS = -mapcs-32
 endif
