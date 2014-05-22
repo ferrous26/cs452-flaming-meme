@@ -56,10 +56,8 @@ void syscall_handle (uint code, void* req, uint* sp) {
 	ksyscall_priority(sp);
 	break;
     default:
-        debug_log("Task %d, called invalid system call %d",
-                  task_active->tid,
-		  code);
-	vt_flush();
+        assert(false, "Task %d, called invalid system call %d",
+	       tasks[task_active].tid,
+	       code);
     }
 }
-
