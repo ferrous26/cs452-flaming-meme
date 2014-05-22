@@ -4,11 +4,11 @@
 
 #include <debug.h>
 
-static inline uint __attribute__ ((pure)) mod2(uint top, uint mod) {
+static inline uint __attribute__ ((const)) mod2(uint top, uint mod) {
     return (top & (mod - 1));
 }
 
-static inline uint __attribute__ ((pure)) lg(uint x) {
+static inline uint __attribute__ ((const)) lg(uint x) {
 
     uint r = 0;
 
@@ -44,7 +44,7 @@ static inline uint __attribute__ ((pure)) lg(uint x) {
     return 0;
 }
 
-static inline uint __attribute__ ((pure)) short_lg(uint x) {
+static inline uint __attribute__ ((const)) short_lg(uint x) {
 
     uint r = 0;
 

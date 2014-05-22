@@ -30,11 +30,11 @@ typedef struct task_descriptor {
 extern task_idx task_active;
 extern task     tasks[TASK_MAX];
 
-static inline uint __attribute__ ((pure)) task_index_from_pointer(task* t) {
+static inline uint __attribute__ ((const)) task_index_from_pointer(task* t) {
     return mod2(t->tid, TASK_MAX);
 }
 
-static inline uint __attribute__ ((pure)) task_index_from_tid(const int32 tid) {
+static inline uint __attribute__ ((const)) task_index_from_tid(const int32 tid) {
     return mod2(tid, TASK_MAX);
 }
 

@@ -47,7 +47,7 @@ void debug_task(const task_id tid) {
 }
 #endif
 
-static inline uint* __attribute__ ((pure)) task_stack(const task_idx idx) {
+static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
     return (uint*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
 }
 
