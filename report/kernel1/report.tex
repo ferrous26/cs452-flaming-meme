@@ -7,7 +7,20 @@
 
 \section*{Overview}
 
-Herp Derp
+Write something about the kernel (tasks) and using the Task Launcher here.
+
+\section*{Operation Instructions}
+
+A pre-compiled kernel exists at
+\ttt{/u/cs452/tftp/ARM/marada/k1.elf}, which can be loaded with
+default RedBoot command given in the course tutorial document:
+
+\begin{center}
+  \ttt{load -b 0x00218000 -h 10.15.167.4 ARM/marada/k1.elf; go}
+\end{center}
+
+The source code for my program exists in \ttt{/u3/marada/kernel1/},
+which has the following list of files:
 
 \begin{center}
 \begin{tabular}{l|l}
@@ -17,6 +30,15 @@ Herp Derp
   {\\\file & \ttt{\hash}}%
 \end{tabular}
 \end{center}
+
+The program can be compiled with the following command:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel1 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the make file.
 
 
 \end{document}
