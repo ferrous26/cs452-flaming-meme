@@ -4,6 +4,8 @@
 
 #include <std.h>
 
+
+void exit_to_redboot(void* ep);
 void shutdown(void);
 
 #endif

@@ -32,12 +32,6 @@ static inline void _init(void* dp) {
     exit_point   = dp;
 }
 
-// forces gcc to do the right thing (tm)
-static void __attribute__ ((noinline)) exit_to_redboot(void* ep) {
-    UNUSED(ep);
-    asm("mov pc, r0");
-}
-
 void shutdown(void) {
     vt_log("Shutting Down");
     vt_flush();
