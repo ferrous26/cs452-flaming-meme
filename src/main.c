@@ -27,7 +27,7 @@ static inline void _init(void* dp) {
     debug_log("Built %s %s", __DATE__, __TIME__);
     vt_flush();
 
-    *SWI_HANDLER = (void*)kernel_enter + OS_OFFSET;
+    *SWI_HANDLER = START_ADDRESS(kernel_enter);
     exit_point   = dp;
 }
 
