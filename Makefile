@@ -66,7 +66,7 @@ kernel.elf: $(OBJS)
 remote:
 	rsync -trulip --exclude '.git/' --exclude './measurement' ./ uw:$(UW_HOME)/trains
 	ssh uw "cd trains/ && make clean && touch Makefile && RELEASE=$(RELEASE) BENCHMARK=$(BENCHMARK) make -s -j16"
-	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/micro.elf"
+	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/k2.elf"
 
 clean:
 	-rm -f src/kernel.elf src/kernel.map
