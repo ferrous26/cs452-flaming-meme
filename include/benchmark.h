@@ -7,6 +7,7 @@
 
 #include <std.h>
 #include <clock.h>
+#include <vt100.h>
 
 struct benchmark {
     uint prev;
@@ -47,10 +48,10 @@ struct benchmark {
     }
 
 #define BENCH_PRINT_WORST(name)			\
-    debug_log(#name ".worst: %u", name.worst);
+    vt_log(#name ".worst: %u", name.worst);
 
 #define BENCH_PRINT_AVERAGE(name)				\
-    debug_log(#name ".avg: %u", name.total / name.count);
+    vt_log(#name ".avg: %u", name.total / name.count);
 
 #else
 
