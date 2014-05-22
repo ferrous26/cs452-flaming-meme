@@ -1,5 +1,6 @@
 \documentclass[pdftex,10pt,a4paper]{article}
 \usepackage{../cs452}
+\usepackage{verbatim}
 
 \begin{document}
 
@@ -22,12 +23,49 @@ default RedBoot command given in the course tutorial document:
 The source code for my program exists in \ttt{/u3/marada/kernel1/},
 which has the following list of files:
 
-
+\newpage
 \section*{Kernel1 Task Output}
 
-Kernels can do coolish things
+Running a task that performs the operations outlined by the kernel1 assignment
+specification produces the following output:
 
+\verbatiminput{k1_task_out.txt}
 
+\begin{description}
+\item[Lines 1-3:] \hfill \\
+Standard output created by the initialization sequence of the kernel
+
+\item[Lines 4,5:] \hfill \\
+The main task reported that it had created sub tasks with ids 2 and 3 respectively.
+since these tasks have a lower priority than the main task the kernel continues
+to schedule the main task and holds the current children tasks in the ready
+queue of their respective priority level.
+
+\item[Lines 6-8:] \hfill \\
+The main task creates a subtask with id 4. This task has a higher priority than
+the main task causing the kernel to this task to run next. Since task 4 has the
+highest priority in the system it runs until its execution is complete. After
+Task 4 completes execution, The kernel schedules the main task and the main task
+was notified it created task 4 and outputs outputs its task creation message.
+
+\item[Lines 9-11:] \hfill \\
+Output is similar to lines 6-8 however the created subtask has an id of 5.
+
+\item[Line 12:] \hfill \\
+The main task has performed all of its duties so it shuts itself down.
+
+\item[Lines 13-16:] \hfill \\
+Now the first 2 tasks created by now zombified main task are the the highest
+priority tasks in the scheduling queue. Since these 2 tasks are at the same
+priority level they will interleave their execution which causes the output to
+flip messages between the two tasks until they reach the end of their execution
+at which point all of the non system tasks have finished execution and the kernel
+will reschedule back to the task launcher.
+
+\end{description}
+
+\newpage
+\section*{Submitted Files}
 \begin{center}
 \begin{tabular}{l|l}
   \bfseries File & \bfseries MD5 Hash
