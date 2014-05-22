@@ -20,10 +20,10 @@ typedef uint8 task_state;
 
 typedef struct task_descriptor {
     task_id  tid;
-    task_idx p_index;
+    task_id  p_tid;
     task_pri priority;
     task_idx next;
-    uint8    reserved;
+    uint16   reserved;
     uint*    sp;
 } task;
 
