@@ -14,12 +14,8 @@
 #define assert(expr, msg, ...)
 #endif
 
-#define DEBUG_HOME 2
-#define DEBUG_OFFSET 50
-#define DEBUG_HISTORY_SIZE 36
-#define DEBUG_END (DEBUG_HOME + DEBUG_HISTORY_SIZE)
+#ifdef DEBUG
 
-void debug_init();
 void debug_log(const char* const message, ...);
 void debug_assert_fail(const char* const file,
 		       const uint line,
@@ -38,5 +34,15 @@ typedef enum {
 inline pmode debug_processor_mode(void);
 void debug_cpsr(void);
 void debug_spsr(void);
+
+#else
+
+#define debug_log
+#define debug_assert_fail
+#define debug_processor_mode
+#define debug_cpsr
+#define debug_spsr
+
+#endif
 
 #endif

@@ -1,8 +1,12 @@
+
+#ifndef __VT100_H__
+#define __VT100_H__
+
 #include <std.h>
+#include <io.h>
 
 void vt_init(void);
 
-void vt_esc(void);
 void vt_blank(void);
 void vt_home(void);
 void vt_hide(void);
@@ -24,3 +28,12 @@ typedef enum {
 
 void vt_colour_reset(void);
 void vt_colour(const colour c);
+
+#define LOG_HOME 8
+#define LOG_END  40
+
+void vt_log_start(void);
+void vt_log_end(void);
+void vt_log(const char* fmt, ...);
+
+#endif

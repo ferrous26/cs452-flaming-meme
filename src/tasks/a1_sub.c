@@ -1,10 +1,10 @@
 
 #include <io.h>
-#include <debug.h>
+#include <vt100.h>
 #include <syscall.h>
 
 inline static void print_info(int tid, int pid) {
-    debug_log("Id: %d Parent: %d", tid, pid);
+    vt_log("Id: %d Parent: %d", tid, pid);
     vt_flush();
 }
 

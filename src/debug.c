@@ -4,34 +4,7 @@
 #include <vt100.h>
 #include <kernel.h>
 
-// keep track of where to put debug messages
-static uint32 error_line  = 0;
-static uint32 error_offset = 0;
-static uint32 error_count = 0;
-
-void debug_init() {
-    error_line   = DEBUG_HOME - 1;
-    error_offset = 0;
-    error_count  = 0;
-}
-
-static void debug_new_line() {
-
-    error_count++;
-    error_line++;
-    if (error_line > DEBUG_END) {
-    	error_line = DEBUG_HOME; // reset
-	error_offset += 50;
-
-	if (error_offset >= 80)
-	    error_offset = 0;
-    }
-
-    vt_goto(error_line, error_offset);
-    vt_kill_line();
-    kprintf_uint(error_count);
-    kprintf_string(": ");
-}
+#if DEBUG
 
 void debug_assert_fail(const char* const file,
 		       const uint line,
@@ -39,22 +12,25 @@ void debug_assert_fail(const char* const file,
     va_list args;
     va_start(args, msg);
 
-    debug_new_line();
-    kprintf("assertion failure at %s:%u", file, line);
-    debug_new_line();
+    vt_log_start();
+    kprintf("assertion failure at %s:%u\n\r", file, line);
     kprintf_va(msg, args);
+    vt_log_end();
+    vt_flush();
 
     va_end(args);
-    vt_flush();
     shutdown();
 }
 
 void debug_log(const char* const msg, ...) {
-    debug_new_line();
-
     va_list args;
     va_start(args, msg);
+
+    vt_log_start();
     kprintf_va(msg, args);
+    vt_log_end();
+    vt_flush();
+
     va_end(args);
 }
 
@@ -143,3 +119,5 @@ inline pmode debug_processor_mode() {
 
     return (status & CPU_MODE_MASK);
 }
+
+#endif

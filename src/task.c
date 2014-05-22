@@ -33,6 +33,7 @@ void task_init(void) {
     // TODO: setup the stack canaries
 }
 
+#if DEBUG
 void debug_task(const task_id tid) {
 
     task* tsk = &tasks[task_index_from_tid(tid)];
@@ -44,6 +45,7 @@ void debug_task(const task_id tid) {
     debug_log("           Next: %u", tsk->next);
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
+#endif
 
 static inline uint* __attribute__ ((pure)) task_stack(const task_idx idx) {
     return (uint*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));

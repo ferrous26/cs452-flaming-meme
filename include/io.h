@@ -2,6 +2,9 @@
  * io.h - UART I/O methods
  */
 
+#ifndef __IO_H__
+#define __IO_H__
+
 #include <std.h>
 #include <stdarg.h>
 
@@ -43,3 +46,5 @@ void kprintf_char(const char c);
  */
 void kprintf(const char* const fmt, ...);
 void kprintf_va(const char* const fmt, va_list args);
+
+#endif

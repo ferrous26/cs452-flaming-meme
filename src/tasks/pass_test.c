@@ -6,7 +6,7 @@
 BENCH(ctx);
 
 void pass_test(void) {
-    debug_log("PASS TEST STARTING...");
+    vt_log("PASS TEST STARTING...");
     vt_flush();
 
     BENCH_START(ctx);
@@ -18,6 +18,6 @@ void pass_test(void) {
     BENCH_PRINT_WORST(ctx);
     BENCH_PRINT_AVERAGE(ctx);
 
-    debug_log("PASS TEST DONE!");
+    vt_log("PASS TEST DONE!");
     vt_flush();
 }
