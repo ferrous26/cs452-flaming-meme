@@ -15,8 +15,10 @@ OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
 ifdef RELEASE
 # Flags to look into trying:
-#-ffast-math -ftree-vectorize -floop-optimize2 -ftree-loop-linear -ftracer
-CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer
+#-ffast-math -ftree-vectorize -fmerge-all-constants -ftree-loop-linear -ftracer
+# -fmodulo-sched -fgcse-sm -fgcse-las -fgcse-after-reload -ftree-loop-linear
+# -ftree-loop-im
+CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer -floop-optimize2
 else
 CFLAGS  = -g -D ASSERT
 # -mapcs: always generate a complete stack frame
