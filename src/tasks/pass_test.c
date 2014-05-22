@@ -1,4 +1,4 @@
-#include <io.h>
+#include <vt100.h>
 #include <debug.h>
 #include <syscall.h>
 #include <benchmark.h>
