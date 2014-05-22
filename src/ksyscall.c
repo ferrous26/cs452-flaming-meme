@@ -8,37 +8,41 @@ inline static void ksyscall_pass() {
     scheduler_schedule(task_active);
 }
 
-inline static void ksyscall_create(kreq_create* req, uint* result) {
-    *result = task_create(task_active->tid, req->priority, req->code);
-    ksyscall_pass();
+inline static void ksyscall_create(const kreq_create* req, uint* const result) {
+    *result = task_create(req->priority, req->code);
+    scheduler_schedule(task_active);
 }
 
-inline static void ksyscall_tid(uint* result) {
-    *result = (uint)task_active->tid;
-    ksyscall_pass();
+inline static void ksyscall_tid(uint* const result) {
+    *result = (uint)tasks[task_active].tid;
+    scheduler_schedule(task_active);
 }
 
-inline static void ksyscall_ptid(uint* result) {
-    *result = (uint)task_active->p_tid;
-    ksyscall_pass();
+inline static void ksyscall_ptid(uint* const result) {
+    // TODO: hmmm....
+    *result = (uint)tasks[tasks[task_active].p_index].tid;
+    scheduler_schedule(task_active);
 }
 
 inline static void ksyscall_exit() {
     task_destroy(task_active);
 }
 
-inline static void ksyscall_priority(uint* result) {
-    *result = (uint)task_active->priority;
-    ksyscall_pass();
+inline static void ksyscall_priority(uint* const result) {
+    *result = (uint)tasks[task_active].priority;
+    scheduler_schedule(task_active);
 }
 
-void syscall_handle (uint code, void* req, uint* sp) {
+void syscall_handle(const uint code,
+		    const kreq_create* const req,
+		    uint* const sp) {
+
     // save it, save it real good
-    task_active->sp = sp;
+    tasks[task_active].sp = sp;
 
     switch(code) {
     case SYS_CREATE:
-        ksyscall_create((kreq_create*) req, sp);
+        ksyscall_create(req, sp);
         break;
     case SYS_TID:
         ksyscall_tid(sp);

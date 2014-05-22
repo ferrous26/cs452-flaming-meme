@@ -1,74 +1,83 @@
+#include <scheduler.h>
 #include <io.h>
 #include <math.h>
 #include <debug.h>
-#include <kernel.h>
 #include <syscall.h>
-
 #include <tasks/task_launcher.h>
-#include <scheduler.h>
-
-#define TASK_QLENGTH TASK_MAX
 
 struct task_q {
-    uint8 size;
-    uint8 head;
-    uint8 tail;
-    uint8 reserved;
+    task_idx head;
+    task_idx tail;
+    uint16 reserved;
 };
 
 struct task_manager {
-    uint32 state;
-    struct task_q q[TASK_QLENGTH];
+    uint32 state; // bitmap for accelerating queue selection
+    struct task_q q[TASK_PRIORITY_LEVELS];
 };
 
 static struct task_manager manager;
-static task* priority_queue[TASK_PRIORITY_LEVELS][TASK_QLENGTH];
+
 
 void scheduler_init(void) {
+
     manager.state = 0;
-    for (size i = 0; i < TASK_QLENGTH; i++) {
+    for (size i = 0; i < TASK_PRIORITY_LEVELS; i++) {
 	struct task_q* q = &manager.q[i];
-	q->size = 0;
-	q->head = 0;
-	q->tail = 0;
+	q->head = TASK_MAX;
+	q->tail = TASK_MAX;
     }
 
-    task_create(0, TASK_PRIORITY_MIN, task_launcher);
+    // get the party started
+    task_active = 0;
+    task_create(TASK_PRIORITY_MIN, task_launcher);
 }
 
-void scheduler_schedule(task* t) {
-    // always turn the bit in the field on
+void scheduler_schedule(const uint task_index) {
+
+    task* const          t = &tasks[task_index];
+    struct task_q* const q = &manager.q[t->priority];
+
+    // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
 
-    // then, add the job to the correct queue
-    struct task_q* curr = &manager.q[t->priority];
-    curr->size++;
-    priority_queue[t->priority][curr->head] = t;
-    curr->head = (curr->head + 1) & (TASK_QLENGTH - 1);
+    // if the queue was off, set the head
+    if (q->head == TASK_MAX)
+	q->head = task_index;
+
+    // else there was something in the queue, so append to it
+    else
+	tasks[q->tail].next = task_index;
+
+    // then we set the tail pointer
+    q->tail = task_index;
+
+    // mark the end of the queue
+    t->next = TASK_MAX;
 }
 
 // scheduler_consume
 int scheduler_get_next(void) {
+
     // find the msb and add it
-    uint qid = short_lg(manager.state) - 1;
-    if (qid > TASK_PRIORITY_LEVELS) {
+    uint priority = lg(manager.state);
+    if (!priority)
 	return -1;
-    }
+    priority--;
 
-    struct task_q* curr = &manager.q[qid];
-    assert(curr->size, "trying to dequeue from empty queue %u", qid);
+    struct task_q* const q = &manager.q[priority];
 
-    // turn off the bit if the queue is now empty
-    if (!(--curr->size))
-	manager.state ^= (1 << qid);
+    task_active = q->head;
+    q->head = tasks[task_active].next;
 
-    task_active = priority_queue[qid][curr->tail];
-    curr->tail = (curr->tail + 1) & (TASK_QLENGTH - 1);
+    // if we hit the end of the list, then turn off the queue
+    if (q->head == TASK_MAX)
+	manager.state ^= (1 << priority);
+
     return 0;
 }
 
 // Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
 int scheduler_activate(void) {
-    // should be able to context switch into task
-    return kernel_exit((void*)task_active->sp);
+    return kernel_exit(tasks[task_active].sp);
 }

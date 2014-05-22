@@ -2,14 +2,16 @@
 #define __TASK_H__
 
 #include <std.h>
+#include <math.h>
 
-#define TASK_MAX 32 // 32 for now, because of implementation reasons
+#define TASK_MAX 64
 
-#define TASK_PRIORITY_LEVELS 16
-#define TASK_PRIORITY_MAX    15
+#define TASK_PRIORITY_LEVELS 32
+#define TASK_PRIORITY_MAX    31
 #define TASK_PRIORITY_MIN     0
 
-typedef uint16 task_id;
+typedef int32 task_id;
+typedef uint8 task_idx;
 typedef uint8 task_pri;
 typedef uint8 task_state;
 
@@ -18,14 +20,24 @@ typedef uint8 task_state;
 
 typedef struct task_descriptor {
     task_id  tid;
-    task_id  p_tid;
+    task_idx p_index;
     task_pri priority;
-    uint8    reserved1;
-    uint16   reserved2;
+    task_idx next;
+    uint8    reserved;
     uint*    sp;
 } task;
 
-extern task* task_active;
+extern task_idx task_active;
+extern task     tasks[TASK_MAX];
+
+static inline uint __attribute__ ((pure)) task_index_from_pointer(task* t) {
+    return mod2(t->tid, TASK_MAX);
+}
+
+static inline uint __attribute__ ((pure)) task_index_from_tid(const int32 tid) {
+    return mod2(tid, TASK_MAX);
+}
+
 
 /**
  * Initialize global state related to tasks
@@ -40,13 +52,11 @@ void debug_task(const task_id tid);
 /**
  * @return tid of new task, or an error code as defined by CreateTask()
  */
-int task_create(const task_id p_tid,
-		const task_pri pri,
-		void (*const start)(void));
+int task_create(const task_pri pri, void (*const start)(void));
 
 /**
  * Mark the task descriptor as being available for reuse.
  */
-void task_destroy(const task* const t);
+void task_destroy();
 
 #endif

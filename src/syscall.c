@@ -4,7 +4,8 @@
 
 #include <syscall.h>
 
-unsigned int  _syscall(int code, void* request) {
+// TODO: what if this fucker gets inlined?
+unsigned int _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
     UNUSED(code);
     UNUSED(request);
