@@ -41,7 +41,7 @@ void shutdown(void) {
     debug_log("Shutting Down");
     vt_goto(DEBUG_END+1, 0);
     vt_flush();
-    
+
     exit_to_redboot(exit_point);
 }
 
@@ -53,10 +53,10 @@ int main(int argc, char* argv[]) {
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    while(!scheduler_get_next()) {
+    while (!scheduler_get_next()) {
         scheduler_activate();
     }
-	    
+
     shutdown();
     return 0;
 }

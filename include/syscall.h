@@ -24,7 +24,7 @@
 #define SAVED_REGISTERS 12
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
-#define OS_OFFSET 0x217000
+#define OS_OFFSET         0x217000
 #define START_ADDRESS(fn) ((uint)fn   + OS_OFFSET)
 #define EXIT_ADDRESS      START_ADDRESS(Exit)
 #define DEFAULT_SPSR      0x10

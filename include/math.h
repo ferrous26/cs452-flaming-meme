@@ -8,8 +8,7 @@ static inline uint __attribute__ ((pure)) mod2(uint top, uint mod) {
     return (top & (mod - 1));
 }
 
-static inline uint lg(uint x)  __attribute__ ((pure));
-static inline uint lg(uint x) {
+static inline uint __attribute__ ((pure)) lg(uint x) {
 
     uint r = 0;
 
@@ -45,8 +44,7 @@ static inline uint lg(uint x) {
     return 0;
 }
 
-static inline uint short_lg(uint x)  __attribute__ ((pure));
-static inline uint short_lg(uint x) {
+static inline uint __attribute__ ((pure)) short_lg(uint x) {
 
     uint r = 0;
 
@@ -77,7 +75,6 @@ static inline uint short_lg(uint x) {
 	return r + 4;
     };
 
-    debug_log("%u", x);
     assert(false, "short_lg bug!");
     return 0;
 }

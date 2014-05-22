@@ -8,7 +8,7 @@ BENCH(ctx);
 void pass_test(void) {
     debug_log("PASS TEST STARTING...");
     vt_flush();
-    
+
     BENCH_START(ctx);
     for (size i = 0; i < 1000000; i++) {
 	Pass();

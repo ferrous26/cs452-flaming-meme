@@ -14,19 +14,26 @@
 #define	OFF	0
 
 // IO buffers
-static char vt_outs[2048];
-static char vt_ins[128];
+struct out {
+    char_buffer o;
+    char buffer[2048];
+};
+
+struct in {
+    char_buffer i;
+    char buffer[128];
+};
 
 // buffer control
-static char_buffer vt_out;
-static char_buffer vt_in;
+static struct out vt_out;
+static struct in vt_in;
 
 
 void uart_init() {
 
     // initialize the buffers
-    cbuf_init(&vt_out, 2048, vt_outs);
-    cbuf_init(&vt_in,   128,  vt_ins);
+    cbuf_init(&vt_out.o, 2048, vt_out.buffer);
+    cbuf_init(&vt_in.i,   128, vt_in.buffer);
 
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
@@ -56,12 +63,12 @@ void vt_write() {
     const int* const flags = (int*)( UART2_BASE + UART_FLAG_OFFSET);
     char* const       data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
-    if (cbuf_can_consume(&vt_out) && !(*flags & (TXFF_MASK|CTS_MASK)))
-	*data = cbuf_consume(&vt_out);
+    if (cbuf_can_consume(&vt_out.o) && !(*flags & (TXFF_MASK|CTS_MASK)))
+	*data = cbuf_consume(&vt_out.o);
 }
 
 void vt_flush() {
-    while (cbuf_can_consume(&vt_out))
+    while (cbuf_can_consume(&vt_out.o))
 	vt_write();
 }
 
@@ -70,15 +77,15 @@ void vt_read() {
     const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     if (*flags & RXFF_MASK)
-	cbuf_produce(&vt_in, *data);
+	cbuf_produce(&vt_in.i, *data);
 }
 
 bool vt_can_get(void) {
-    return cbuf_can_consume(&vt_in);
+    return cbuf_can_consume(&vt_in.i);
 }
 
 int vt_getc(void) {
-    return cbuf_consume(&vt_in);
+    return cbuf_consume(&vt_in.i);
 }
 
 static void kprintf_num_simple(const uint32 num) {
@@ -195,7 +202,7 @@ void kprintf_string(const char* str) {
 }
 
 void kprintf_char(const char c) {
-    cbuf_produce(&vt_out, c);
+    cbuf_produce(&vt_out.o, c);
 }
 
 void kprintf(const char* const fmt, ...) {

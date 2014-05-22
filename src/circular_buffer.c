@@ -1,4 +1,5 @@
 #include <circular_buffer.h>
+#include <math.h>
 
 #define CB_INIT(type)				\
   cb->cb.head   = 0;				\
@@ -9,7 +10,7 @@
 #define CB_PRODUCE				\
   size ptr = cb->cb.head;			\
   cb->buffer[ptr] = value;			\
-  cb->cb.head = (ptr + 1) % cb->cb.length;
+  cb->cb.head = mod2(ptr + 1, cb->cb.length);
 
 #define CB_CAN_CONSUME				\
   return (bool)(cb->cb.head != cb->cb.tail);
@@ -17,7 +18,7 @@
 #define CB_CONSUME(type)			\
   size ptr    = cb->cb.tail;			\
   type value  = cb->buffer[ptr];		\
-  cb->cb.tail = (ptr + 1) % cb->cb.length;	\
+  cb->cb.tail = mod2(ptr + 1, cb->cb.length);	\
   return value;
 
 
@@ -27,7 +28,6 @@ void cbuf_init(char_buffer* const cb,
 void cbuf_produce(char_buffer* const cb, const char value) { CB_PRODUCE; }
 bool cbuf_can_consume(const char_buffer* const cb)         { CB_CAN_CONSUME; }
 char cbuf_consume(char_buffer* const cb)                   { CB_CONSUME(char); }
-
 
 void ibuf_init(uint_buffer* const  cb,
 	       const size          length,

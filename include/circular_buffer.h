@@ -1,3 +1,7 @@
+
+#ifndef __CIRCULAR_BUFFER_H__
+#define __CIRCULAR_BUFFER_H__
+
 #include <std.h>
 
 /**
@@ -49,3 +53,5 @@ bool ibuf_can_consume(const uint_buffer*  const cb);
 
 char   cbuf_consume(char_buffer*  const cb);
 uint32 ibuf_consume(uint_buffer*  const cb);
+
+#endif
