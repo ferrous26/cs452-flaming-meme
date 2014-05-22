@@ -16,12 +16,12 @@
 // IO buffers
 struct out {
     char_buffer o;
-    char buffer[2048];
+    char buffer[4096];
 };
 
 struct in {
     char_buffer i;
-    char buffer[128];
+    char buffer[16];
 };
 
 // buffer control
@@ -32,8 +32,8 @@ static struct in vt_in;
 void uart_init() {
 
     // initialize the buffers
-    cbuf_init(&vt_out.o, 2048, vt_out.buffer);
-    cbuf_init(&vt_in.i,   128, vt_in.buffer);
+    cbuf_init(&vt_out.o, 4096, vt_out.buffer);
+    cbuf_init(&vt_in.i,    16, vt_in.buffer);
 
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
