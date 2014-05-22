@@ -61,12 +61,12 @@ typedef struct circular_buffer_char {
     char* buffer;
 } char_buffer;
 
-static void cbuf_init(char_buffer* const cb,
-		      const size         length,
-		      const char* const  buffer)                  { CB_INIT(char); }
-static void cbuf_produce(char_buffer* const cb, const char value) { CB_PRODUCE; }
-static bool cbuf_can_consume(const char_buffer* const cb)         { CB_CAN_CONSUME; }
-static char cbuf_consume(char_buffer* const cb)                   { CB_CONSUME(char); }
+static inline void cbuf_init(char_buffer* const cb,
+			     const size         length,
+			     const char* const  buffer)                  { CB_INIT(char); }
+static inline void cbuf_produce(char_buffer* const cb, const char value) { CB_PRODUCE; }
+static inline bool cbuf_can_consume(const char_buffer* const cb)         { CB_CAN_CONSUME; }
+static inline char cbuf_consume(char_buffer* const cb)                   { CB_CONSUME(char); }
 
 
 /**
@@ -77,11 +77,11 @@ typedef struct circular_buffer_uint32 {
     uint32* buffer;
 } uint_buffer;
 
-static void ibuf_init(uint_buffer* const  cb,
-		      const size          length,
-		      const uint32* const buffer)                   { CB_INIT(uint32); }
-static void ibuf_produce(uint_buffer* const cb, const uint32 value) { CB_PRODUCE; }
-static bool ibuf_can_consume(const uint_buffer* const cb)           { CB_CAN_CONSUME; }
-static uint32 ibuf_consume(uint_buffer* const cb)                   { CB_CONSUME(uint32); }
+static inline void ibuf_init(uint_buffer* const  cb,
+			     const size          length,
+			     const uint32* const buffer)                   { CB_INIT(uint32); }
+static inline void ibuf_produce(uint_buffer* const cb, const uint32 value) { CB_PRODUCE; }
+static inline bool ibuf_can_consume(const uint_buffer* const cb)           { CB_CAN_CONSUME; }
+static inline uint32 ibuf_consume(uint_buffer* const cb)                   { CB_CONSUME(uint32); }
 
 #endif
