@@ -4,8 +4,9 @@
 
 #include <debug.h>
 
-#define MOD(x, y) (x & (y - 1))
-
+static inline uint __attribute__ ((pure)) mod2(uint top, uint mod) {
+    return (top & (mod - 1));
+}
 
 static inline uint lg(uint x)  __attribute__ ((pure));
 static inline uint lg(uint x) {
