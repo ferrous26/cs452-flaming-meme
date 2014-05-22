@@ -7,7 +7,26 @@
 
 \section*{Overview}
 
-Herp Derp
+Write something about the kernel (tasks) and using the Task Launcher here.
+
+\section*{Operation Instructions}
+
+A pre-compiled kernel exists at
+\ttt{/u/cs452/tftp/ARM/marada/k1.elf}, which can be loaded with
+default RedBoot command given in the course tutorial document:
+
+\begin{center}
+  \ttt{load -b 0x00218000 -h 10.15.167.4 ARM/marada/k1.elf; go}
+\end{center}
+
+The source code for my program exists in \ttt{/u3/marada/kernel1/},
+which has the following list of files:
+
+
+\section*{Kernel1 Task Output}
+
+Kernels can do coolish things
+
 
 \begin{center}
 \begin{tabular}{l|l}
@@ -18,6 +37,73 @@ Herp Derp
 \end{tabular}
 \end{center}
 
+The program can be compiled with the following command:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel1 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the make file.
+
+\section*{Structure}
+
+The kernel is organized into three pieces: scheduler, tasks, and
+support.
+
+\subsection*{Task Descriptors}
+
+Tasks metadata is stored in a static array of task descriptors. We
+allow for up to 64 concurrent tasks. Each task descriptor contains the
+task identifer \ttt{tid}, the parent task's task identifier
+\ttt{p\_tid}, a priority level \ttt{priority}, a task index pointing
+to the \ttt{next} scheduled task, some reserved space \ttt{reserved},
+and the stack pointer for the current task \ttt{sp}.
+
+The \ttt{tid} and \ttt{p\_tid} are stored as \ttt{int} types, while \ttt{priority}
+and \ttt{next} are stored as \ttt{unsigned char} types, which
+necessitates the \ttt{reserved} space of size \ttt{short
+  int} in order to keep memory explicitly aligned. Finally, \ttt{sp}
+is declared as a \ttt{unsigned int*}.
+
+Task identifiers are assigned based on the array index of the task
+descriptor. Each time that a descriptor is reused, the \ttt{tid} for
+the descriptor is incremented by 64. This allows us to calculate the
+array index for a descriptor in a single instruction given a
+\ttt{tid}. It also trivializes the need to make sure two tasks never
+have the same identifier. Ensuring that task identifiers never repeat
+is not possible without infinite memory and computation time, however,
+our strategy for allocating identifiers does maximize the available
+number of identifiers given the constraints of the API. Furthermore,
+task descriptors are allocated in a round robin fashion, using a
+circular buffer for a free list, so that the entire 31 bit space is used.
+
+The \ttt{p\_tid} identier is set at task allocation time as it is the
+only time that the parent is guaranteed to be alive. The parent of a
+task is always the task that was active when we entered the kernel to
+handle the system call.
+
+Tasks have 32 priority levels. Level 0 is the lowest priority, level
+31 is the highest priority. The range of priority levels fits nicely
+into a bit field that is one word in length. This allows us to
+optimize the scheduler selection process by checking for the highest
+set bit in the bit field, which can be done reasonably efficiently by
+calculating the logarithm with base 2 of the bit field (and
+subtracting 1). The range of levels is also more than enough for what
+professor suggested in class.
+
+The \ttt{next} index of the descriptor is used as part of the
+scheduler for maintaining the priority queue list. Storing the
+priority queue within the descriptor table saves memory space
+and will hopefully let the cache perform better when it is evetually
+enabled.
+
+The \ttt{sp} is a pointer to the user stack where the task trap frame
+is currently being stored. The \ttt{sp} is the minimum runtime
+information that the descriptor needs to store. All other information
+is stored on the user stack in the trap frame.
+
+\subsection*{Scheduling}
 
 \end{document}
 
