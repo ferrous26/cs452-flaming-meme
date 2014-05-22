@@ -1,0 +1,17 @@
+1: Welcome to ferOS build 23
+2: Built May 21 2014 19:34:56
+3: Welcome to Task Launcher (h for help)
+4: Created: 2
+5: Created: 3
+6: Id: 4 Parent: 1
+7: Id: 4 Parent: 1
+8: Created: 4
+9: Id: 36 Parent: 1
+10: Id: 36 Parent: 1
+11: Created: 36
+12: First: exiting
+13: Id: 2 Parent: 1
+14: Id: 3 Parent: 1
+15: Id: 2 Parent: 1
+16: Id: 3 Parent: 1
+
