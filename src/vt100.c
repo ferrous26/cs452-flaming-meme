@@ -62,4 +62,3 @@ void vt_colour(const colour c) {
     kprintf_char('0' + c);
     kprintf_char('m');
 }
-

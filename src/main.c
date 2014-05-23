@@ -23,6 +23,14 @@ static inline void _init(void* dp) {
     task_init();
     scheduler_init();
 
+    // When on the rPi, we want to block startup until we have a
+    // terminal attached to the wire
+#if PI
+    uart_init();
+    while (!vt_can_get())
+	vt_read();
+#endif
+
     debug_log("Welcome to ferOS build %u", __BUILD__);
     debug_log("Built %s %s", __DATE__, __TIME__);
     vt_flush();
@@ -53,9 +61,9 @@ int main(int argc, char* argv[]) {
     asm("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    while (!scheduler_get_next()) {
-        scheduler_activate();
-    }
+    //    while (!scheduler_get_next()) {
+    //        scheduler_activate();
+    //    }
 
     shutdown();
     return 0;

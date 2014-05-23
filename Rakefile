@@ -23,6 +23,10 @@ task release_bench: :increment_version do
   sh 'RELEASE=3 BENCHMARK=yes make remote'
 end
 
+task :pi do
+  sh 'make pi'
+end
+
 namespace :md5 do
   def make_md5_for report
     files = ['Makefile', 'Rakefile', 'orex.ld'] +

@@ -5,9 +5,14 @@
  *
  */
 
+#ifdef PI
+#include <pi.h>
+#else
+#include <ts7200.h>
+#endif
+
 #include <io.h>
 #include <vt100.h>
-#include <ts7200.h>
 #include <circular_buffer.h>
 
 #define ON	1
@@ -28,8 +33,83 @@ struct in {
 static struct out vt_out;
 static struct in vt_in;
 
+#if PI
+static inline void mmio_write(size reg, size data) {
+    size* ptr = (size*)reg;
+    asm volatile("str %[data], [%[reg]]"
+		 :
+		 : [reg]"r"(ptr), [data]"r"(data));
+}
+
+static inline size mmio_read(size reg) {
+    size* ptr = (size*)reg;
+    size data;
+    asm volatile("ldr %[data], [%[reg]]"
+		 : [data]"=r"(data) : [reg]"r"(ptr));
+    return data;
+}
+
+/*
+ * delay function
+ * int32_t delay: number of cycles to delay
+ *
+ * This just loops <delay> times in a way that the compiler
+ * wont optimize away.
+ */
+static void delay(int32 count) {
+    asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
+		 : : [count]"r"(count) : "cc");
+}
+#endif
+
 
 void uart_init() {
+#ifdef PI
+    /* Reference material:
+     * http://www.raspberrypi.org/wp-content/uploads/2012/02/BCM2835-ARM-Peripherals.pdf
+     * Chapter 13: UART
+     */
+
+    // Disable UART0.
+    mmio_write(UART0_CR, 0x00000000);
+    // Setup the GPIO pin 14 && 15.
+
+    // Disable pull up/down for all GPIO pins & delay for 150 cycles.
+    mmio_write(GPPUD, 0x00000000);
+    delay(150);
+
+    // Disable pull up/down for pin 14,15 & delay for 150 cycles.
+    mmio_write(GPPUDCLK0, (1 << 14) | (1 << 15));
+    delay(150);
+
+    // Write 0 to GPPUDCLK0 to make it take effect.
+    mmio_write(GPPUDCLK0, 0x00000000);
+
+    // Clear pending interrupts.
+    mmio_write(UART0_ICR, 0x7FF);
+
+    // Set integer & fractional part of baud rate.
+    // Divider = UART_CLOCK/(16 * Baud)
+    // Fraction part register = (Fractional part * 64) + 0.5
+    // UART_CLOCK = 3000000; Baud = 115200.
+
+    // Divider = 3000000/(16 * 115200) = 1.627 = ~1.
+    // Fractional part register = (.627 * 64) + 0.5 = 40.6 = ~40.
+    mmio_write(UART0_IBRD, 1);
+    mmio_write(UART0_FBRD, 40);
+
+    // Enable FIFO & 8 bit data transmissio (1 stop bit, no parity).
+    mmio_write(UART0_LCRH, (1 << 4) | (1 << 5) | (1 << 6));
+
+    // Mask all interrupts.
+    mmio_write(UART0_IMSC, (1 << 1) | (1 << 4) | (1 << 5) |
+	       (1 << 6) | (1 << 7) | (1 << 8) |
+	       (1 << 9) | (1 << 10));
+
+    // Enable UART0, receive & transfer part of UART.
+    mmio_write(UART0_CR, (1 << 0) | (1 << 8) | (1 << 9));
+
+#else
 
     // initialize the buffers
     cbuf_init(&vt_out.o, 2048, vt_out.buffer);
@@ -57,14 +137,21 @@ void uart_init() {
     // disable fifo for vt100
     int* const line = (int*)(UART2_BASE + UART_LCRH_OFFSET);
     *line = *line & ~FEN_MASK;
+#endif
 }
 
+
 void vt_write() {
+#if PI
+    if (!(mmio_read(UART0_FR) & (1 << 5)))
+	mmio_write(UART0_DR, cbuf_consume(&vt_out.o));
+#else
     const int* const flags = (int*)( UART2_BASE + UART_FLAG_OFFSET);
     char* const       data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     if (cbuf_can_consume(&vt_out.o) && !(*flags & (TXFF_MASK|CTS_MASK)))
 	*data = cbuf_consume(&vt_out.o);
+#endif
 }
 
 void vt_flush() {
@@ -73,11 +160,16 @@ void vt_flush() {
 }
 
 void vt_read() {
+#if PI
+    if (!(mmio_read(UART0_FR) & (1 << 4)))
+	cbuf_produce(&vt_in.i, mmio_read(UART0_DR));
+#else
     const int*  const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
     const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     if (*flags & RXFF_MASK)
 	cbuf_produce(&vt_in.i, *data);
+#endif
 }
 
 bool vt_can_get(void) {

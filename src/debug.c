@@ -102,7 +102,7 @@ static inline bool cc_s(const uint status) { return (status & FLAG_STICKY_OVERFL
  * http://www.heyrick.co.uk/armwiki/The_Status_register
  */
 void debug_cpsr(void) {
-    const uint status;
+    uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 
     debug_log("CPSR Information");
@@ -120,7 +120,7 @@ void debug_cpsr(void) {
 }
 
 void debug_spsr(void) {
-    const uint status;
+    uint status;
     asm("mrs %0, spsr" : "=r" (status));
 
     debug_log("SPSR Information");
@@ -137,8 +137,8 @@ void debug_spsr(void) {
 	      cc_s(status) ? 'S' : '_');
 }
 
-inline pmode debug_processor_mode() {
-    const uint status;
+pmode debug_processor_mode() {
+    uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 
     return (status & CPU_MODE_MASK);

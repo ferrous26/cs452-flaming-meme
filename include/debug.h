@@ -35,7 +35,7 @@ typedef enum {
     SYSTEM     = 0x1f
 } pmode;
 
-inline pmode debug_processor_mode(void);
+pmode debug_processor_mode(void);
 void debug_cpsr(void);
 void debug_spsr(void);
 

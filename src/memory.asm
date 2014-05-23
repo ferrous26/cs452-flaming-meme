@@ -10,7 +10,7 @@
 	.type	memcmp,   %function
 	.type	memcmp4,  %function
 
-memcpy32:
+/*memcpy32:
 	subs r2, r2, #32
 	ldmplia r1!, {r3-r10}
 	stmplia r0!, {r3-r10}
@@ -75,3 +75,4 @@ memcmp4:
 	mov r0, #0
 	mov pc, lr
 	.size   memcmp4, .-memcmp4
+*/
