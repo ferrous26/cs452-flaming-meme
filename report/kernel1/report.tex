@@ -1,5 +1,6 @@
 \documentclass[pdftex,10pt,a4paper]{article}
 \usepackage{../cs452}
+\usepackage{verbatim}
 
 \begin{document}
 
@@ -22,12 +23,49 @@ default RedBoot command given in the course tutorial document:
 The source code for my program exists in \ttt{/u3/marada/kernel1/},
 which has the following list of files:
 
-
+\newpage
 \section*{Kernel1 Task Output}
 
-Kernels can do coolish things
+Running a task that performs the operations outlined by the kernel1 assignment
+specification produces the following output:
 
+\verbatiminput{k1_task_out.txt}
 
+\begin{description}
+\item[Lines 1-3:] \hfill \\
+Standard output created by the initialization sequence of the kernel
+
+\item[Lines 4,5:] \hfill \\
+The main task reported that it had created sub tasks with ids 2 and 3 respectively.
+since these tasks have a lower priority than the main task the kernel continues
+to schedule the main task and holds the current children tasks in the ready
+queue of their respective priority level.
+
+\item[Lines 6-8:] \hfill \\
+The main task creates a subtask with id 4. This task has a higher priority than
+the main task causing the kernel to this task to run next. Since task 4 has the
+highest priority in the system it runs until its execution is complete. After
+Task 4 completes execution, The kernel schedules the main task and the main task
+was notified it created task 4 and outputs outputs its task creation message.
+
+\item[Lines 9-11:] \hfill \\
+Output is similar to lines 6-8 however the created subtask has an id of 5.
+
+\item[Line 12:] \hfill \\
+The main task has performed all of its duties so it shuts itself down.
+
+\item[Lines 13-16:] \hfill \\
+The first 2 tasks created by now zombified main task are the the highest
+priority tasks in the scheduling queue. Since these 2 tasks are at the same
+priority level they will interleave their execution. This causes the output to
+flip messages between the two tasks until they reach the end of their execution
+at which point all of the non system tasks have finished execution and the kernel
+will reschedule the task launcher.
+
+\end{description}
+
+\newpage
+\section*{Submitted Files}
 \begin{center}
 \begin{tabular}{l|l}
   \bfseries File & \bfseries MD5 Hash
@@ -46,6 +84,139 @@ The program can be compiled with the following command:
 Which will produce a \ttt{kernel.elf} file in the same directory as
 the make file.
 
+\section*{Structure}
+
+The kernel is organized into three pieces: scheduler, tasks, and
+support.
+
+\subsection*{Task Descriptors}
+
+Tasks metadata is stored in a static array of task descriptors. We
+allow for up to 64 concurrent tasks. Each task descriptor contains the
+task identifer \ttt{tid}, the parent task's task identifier
+\ttt{p\_tid}, a priority level \ttt{priority}, a task index pointing
+to the \ttt{next} scheduled task, some reserved space \ttt{reserved},
+and the stack pointer for the current task \ttt{sp}.
+
+The \ttt{tid} and \ttt{p\_tid} are stored as \ttt{int} types, while \ttt{priority}
+and \ttt{next} are stored as \ttt{unsigned char} types, which
+necessitates the \ttt{reserved} space of size \ttt{short
+  int} in order to keep memory explicitly aligned. Finally, \ttt{sp}
+is declared as a \ttt{unsigned int*}.
+
+Task identifiers are assigned based on the array index of the task
+descriptor. Each time that a descriptor is reused, the \ttt{tid} for
+the descriptor is incremented by 64. This allows us to calculate the
+array index for a descriptor in a single instruction given a
+\ttt{tid}. It also trivializes the need to make sure two tasks never
+have the same identifier. Ensuring that task identifiers never repeat
+is not possible without infinite memory and computation time, however,
+our strategy for allocating identifiers does maximize the available
+number of identifiers given the constraints of the API. Furthermore,
+task descriptors are allocated in a round robin fashion, using a
+circular buffer for a free list, so that the entire 31 bit space is used.
+
+The \ttt{p\_tid} identier is set at task allocation time as it is the
+only time that the parent is guaranteed to be alive. The parent of a
+task is always the task that was active when we entered the kernel to
+handle the system call.
+
+Tasks have 32 priority levels. Level 0 is the lowest priority, level
+31 is the highest priority. The range of priority levels fits nicely
+into a bit field that is one word in length. This allows us to
+optimize the scheduler selection process by checking for the highest
+set bit in the bit field, which can be done reasonably efficiently by
+calculating the logarithm with base 2 of the bit field (and
+subtracting 1). The range of levels is also more than enough for what
+professor suggested in class.
+
+The \ttt{next} index of the descriptor is used as part of the
+scheduler for maintaining the priority queue list. Storing the
+priority queue within the descriptor table saves memory space
+and will hopefully let the cache perform better when it is evetually
+enabled.
+
+The \ttt{sp} is a pointer to the user stack where the task trap frame
+is currently being stored. The \ttt{sp} is the minimum runtime
+information that the descriptor needs to store. All other information
+is stored on the user stack in the trap frame.
+
+When a task is created, we setup the initial stack for the user
+process so that if the task falls off the end (does not \ttt{return}
+explicitly), the \ttt{Exit()} function will implicitly be called. An
+initial CPSR value is also setup on the stack such that the context
+switch into the process will cause the CPSR to be correctly
+initialized.
+
+\subsection*{Scheduling}
+
+The scheduler is implemented as a bit field, which maps bits to
+priority levels, and an array of \ttt{head} and \ttt{tail} pointers
+which are indicies into the descriptor array.
+
+The rest of the priority queue is stored within the task descriptors
+as described above.
+
+When a task is scheduled, the scheduler is given the descriptor table
+index so that the descriptor can be looked up.
+
+Using the descriptor, the \ttt{priority} level can be looked up, and
+the correct bit in the bit field can be updated. Then the correct pair
+of \ttt{head} and \ttt{tail} pointers can be looked up.
+
+Using the values of the \ttt{tail} pointer, the descritor that is
+currently at the end of the list can have its \ttt{next} pointer
+updated to point to the task being scheduled. If there is no other
+task in the queue, then the \ttt{head} pointer is set instead.
+
+The task being scheduled will always have its \ttt{next} pointer set
+to \ttt{TASK\_MAX}. \ttt{TASK\_MAX} is set to 64, which is just
+outside of the valid descriptor index range. This value is checked for
+later during scheduling to signal that the queue is empty and should
+have the appropriate bit in the bit field turned off.
+
+The scheduler will also be asked to find the next task to be
+activated during a context switch. To find the next task, the
+scheduler simply looks at the bit field to find the first bit set. The
+set bit corresponds to a priority level which will have at least one
+task waiting.
+
+The \ttt{head} and \ttt{tail} pointers are looked up using the
+priority index and then the correct descriptor can be looked up. Using
+all this information, the appropriate pointers can be updated. Note
+that if the task to be activated had \ttt{TASK\_MAX} as its \ttt{next}
+pointer that the \ttt{head} pointer for the queue will be updated to
+\ttt{TASK\_MAX}. If a \ttt{head} pointer is not a valid value then the
+appropriate bit will be turned off in the bit field.
+
+Once all pointers are updated, the \ttt{task\_active} pointer, which
+points at the task to be activate when context switching back to user
+space, is set to correct new task.
+
+Finally, the scheduler can activate a task by performing a context
+switch into user space.
+
+\subsection*{Context Switch}
+
+Context switching for system calls is done by \ldots
+
+The immediate value associated with the \ttt{swi} instruction is not
+used. Instead, we pass the system call number via \ttt{r0}. Additional
+arguments for the system call are stored in a \ttt{kernel\_req}uest
+structure on the task's stack and a pointer to the structure is left
+in \ttt{r1}.
+
+\subsection*{System Calls}
+
+We added an \ttt{int myPriority()} system call to allow tasks to query
+for their priority level. We imagine that some tasks will have the
+same priority level in every instantiation of the task, while other
+tasks may have a dynamic priority level for different
+instantiations. As a task is not given its priority level during
+instantiation, we needed a way to expose the information to tasks that
+were interested. The \ttt{myPriority()} system call has the same
+semantics as \ttt{myTid()} in that it will simply return a value
+stored somewhere in the kernel and never fail.
 
 \end{document}
 

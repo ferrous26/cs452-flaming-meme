@@ -19,8 +19,7 @@ inline static void ksyscall_tid(uint* const result) {
 }
 
 inline static void ksyscall_ptid(uint* const result) {
-    // TODO: hmmm....
-    *result = (uint)tasks[tasks[task_active].p_index].tid;
+    *result = (uint)tasks[task_active].p_tid;
     scheduler_schedule(task_active);
 }
 

@@ -8,6 +8,10 @@ static inline uint __attribute__ ((const)) mod2(uint top, uint mod) {
     return (top & (mod - 1));
 }
 
+/**
+ * This function was imported from
+ * http://stackoverflow.com/questions/2589096/find-most-significant-bit-left-most-that-is-set-in-a-bit-array
+ */
 static inline uint __attribute__ ((const)) lg(uint x) {
 
     uint r = 0;
@@ -44,6 +48,9 @@ static inline uint __attribute__ ((const)) lg(uint x) {
     return 0;
 }
 
+/**
+ * Same as above, but optimized for short integers
+ */
 static inline uint __attribute__ ((const)) short_lg(uint x) {
 
     uint r = 0;

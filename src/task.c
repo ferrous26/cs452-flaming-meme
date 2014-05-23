@@ -40,7 +40,7 @@ void debug_task(const task_id tid) {
 
     debug_log("Task:");
     debug_log("             ID: %u", tsk->tid);
-    debug_log("      Parent ID: %u", tasks[tsk->p_index].tid);
+    debug_log("      Parent ID: %u", tsk->p_tid);
     debug_log("       Priority: %u", tsk->priority);
     debug_log("           Next: %u", tsk->next);
     debug_log("  Stack Pointer: %p", tsk->sp);
@@ -64,7 +64,7 @@ int task_create(const task_pri pri, void (*const start)(void)) {
 
     task* tsk     = &tasks[task_index];
     tsk->tid     += TASK_MAX; // TODO: handle overflow (trololol)
-    tsk->p_index  = task_active; // task_active is _always_ the parent
+    tsk->p_tid    = tasks[task_active].tid; // task_active is always the parent
     tsk->priority = pri;
 
     // setup the default trap frame for the new task
