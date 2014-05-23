@@ -16,11 +16,11 @@ task debug: :increment_version do
 end
 
 task release: :increment_version do
-  sh 'RELEASE=3 make remote'
+  sh 'RELEASE=2 make remote'
 end
 
 task release_bench: :increment_version do
-  sh 'RELEASE=3 BENCHMARK=yes make remote'
+  sh 'RELEASE=2 BENCHMARK=yes make remote'
 end
 
 namespace :md5 do

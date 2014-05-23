@@ -18,7 +18,7 @@ ifdef RELEASE
 #-ffast-math -ftree-vectorize -fmerge-all-constants -ftree-loop-linear -ftracer
 # -fmodulo-sched -fgcse-sm -fgcse-las -fgcse-after-reload -ftree-loop-linear
 # -ftree-loop-im
-CFLAGS  = -O$(RELEASE) -fpeel-loops -ftracer -floop-optimize2
+CFLAGS  = -O$(RELEASE) -fpeel-loops -floop-optimize2
 else
 CFLAGS  = -g -D ASSERT -D DEBUG
 # -mapcs: always generate a complete stack frame
@@ -30,7 +30,7 @@ CFLAGS += -D BENCHMARK
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
-CFLAGS += -c -fPIC -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
+CFLAGS += -c -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
 CFLAGS += -Wswitch-enum

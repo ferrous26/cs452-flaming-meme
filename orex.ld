@@ -27,8 +27,6 @@ SECTIONS
   .text : /* The actual instructions. */
   {
     *(.text)
-    *(.got)
-    *(.got.plt)
     *(.rodata)
     *(.rodata.str1.4)
     *(.glue_7)

@@ -35,8 +35,9 @@ int parse_argument(const char* const cmd,
         break;
     case 'c':
         if( cmd[*index] == '\0' ) {
-            kprintf("died at position %d(%d)\n", *index, cmd[*index]);
-            return -1;
+	    // TODO: the compiler complains about these lines...why?
+            // kprintf("died at position %d(%d)\n", *index, cmd[*index]);
+            // return -1;
         }
         *arg = cmd[*index];
         *index += 1;
