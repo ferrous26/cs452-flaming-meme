@@ -34,7 +34,7 @@ static inline void _init(void* dp) {
 
 void shutdown(void) {
     vt_log("Shutting Down");
-    vt_flush();
+    vt_deinit();
 
     exit_to_redboot(exit_point);
 }
