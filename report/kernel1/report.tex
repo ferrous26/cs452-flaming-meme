@@ -141,7 +141,64 @@ is currently being stored. The \ttt{sp} is the minimum runtime
 information that the descriptor needs to store. All other information
 is stored on the user stack in the trap frame.
 
+When a task is created, we setup the initial stack for the user
+process so that if the task falls off the end (does not \ttt{return}
+explicitly), the \ttt{Exit()} function will implicitly be called. An
+initial CPSR value is also setup on the stack such that the context
+switch into the process will cause the CPSR to be correctly
+initialized.
+
 \subsection*{Scheduling}
+
+The scheduler is implemented as a bit field, which maps bits to
+priority levels, and an array of \ttt{head} and \ttt{tail} pointers
+which are indicies into the descriptor array.
+
+The rest of the priority queue is stored within the task descriptors
+as described above.
+
+When a task is scheduled, the scheduler is given the descriptor table
+index so that the descriptor can be looked up.
+
+Using the descriptor, the \ttt{priority} level can be looked up, and
+the correct bit in the bit field can be updated. Then the correct pair
+of \ttt{head} and \ttt{tail} pointers can be looked up.
+
+Using the values of the \ttt{tail} pointer, the descritor that is
+currently at the end of the list can have its \ttt{next} pointer
+updated to point to the task being scheduled. If there is no other
+task in the queue, then the \ttt{head} pointer is set instead.
+
+The task being scheduled will always have its \ttt{next} pointer set
+to \ttt{TASK\_MAX}. \ttt{TASK\_MAX} is set to 64, which is just
+outside of the valid descriptor index range. This value is checked for
+later during scheduling to signal that the queue is empty and should
+have the appropriate bit in the bit field turned off.
+
+The scheduler will also be asked to find the next task to be
+activated during a context switch. To find the next task, the
+scheduler simply looks at the bit field to find the first bit set. The
+set bit corresponds to a priority level which will have at least one
+task waiting.
+
+The \ttt{head} and \ttt{tail} pointers are looked up using the
+priority index and then the correct descriptor can be looked up. Using
+all this information, the appropriate pointers can be updated. Note
+that if the task to be activated had \ttt{TASK\_MAX} as its \ttt{next}
+pointer that the \ttt{head} pointer for the queue will be updated to
+\ttt{TASK\_MAX}. If a \ttt{head} pointer is not a valid value then the
+appropriate bit will be turned off in the bit field.
+
+Once all pointers are updated, the \ttt{task\_active} pointer, which
+points at the task to be activate when context switching back to user
+space, is set to correct new task.
+
+Finally, the scheduler can activate a task by performing a context
+switch into user space.
+
+\subsection*{Context Switch}
+
+Context switching for system calls is done by \ldots
 
 \end{document}
 
