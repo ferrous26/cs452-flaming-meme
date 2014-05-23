@@ -25,9 +25,14 @@
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
 #define OS_OFFSET         0
-#define START_ADDRESS(fn) ((uint)fn   + OS_OFFSET)
+#define START_ADDRESS(fn) ((uint)fn) //   + OS_OFFSET
 #define EXIT_ADDRESS      START_ADDRESS(Exit)
-#define DEFAULT_SPSR      0x10
+#define DEFAULT_SPSR      0xD0 // TODO: change back to 0x10 for IRQ
+
+typedef enum {
+    NO_DESCRIPTORS   = -1,
+    INVALID_PRIORITY = -2
+} task_err;
 
 typedef struct {
     int priority;

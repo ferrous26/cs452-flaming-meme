@@ -3,6 +3,7 @@
 #define __DEBUG_H__
 
 #include <std.h>
+#include <vt100.h>
 
 #ifdef ASSERT
 #define assert(expr, msg, ...)						\

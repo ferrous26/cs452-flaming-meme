@@ -3,14 +3,12 @@
  */
 
 #include <std.h>
-#include <io.h>
 #include <debug.h>
 #include <vt100.h>
 #include <clock.h>
 #include <syscall.h>
 #include <memory.h>
 #include <scheduler.h>
-#include <task.h>
 #include <kernel.h>
 
 static void* exit_point = NULL;
@@ -19,7 +17,6 @@ static inline void _init(void* dp) {
     clock_t4enable();
     uart_init();
     vt_init();
-    task_init();
     scheduler_init();
 
     vt_goto(2, 40);
