@@ -25,15 +25,15 @@ void vt_scroll_down(void);
 
 // coloured output
 typedef enum {
-  BLACK   = 0,
-  RED     = 1,
-  GREEN   = 2,
-  YELLOW  = 3,
-  BLUE    = 4,
-  MAGENTA = 5,
-  CYAN    = 6,
-  WHITE   = 7,
-  DEFAULT = 7
+    BLACK   = 0,
+    RED     = 1,
+    GREEN   = 2,
+    YELLOW  = 3,
+    BLUE    = 4,
+    MAGENTA = 5,
+    CYAN    = 6,
+    WHITE   = 7,
+    DEFAULT = 7
 } colour;
 
 void vt_colour_reset(void);
