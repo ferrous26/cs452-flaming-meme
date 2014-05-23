@@ -200,6 +200,24 @@ switch into user space.
 
 Context switching for system calls is done by \ldots
 
+The immediate value associated with the \ttt{swi} instruction is not
+used. Instead, we pass the system call number via \ttt{r0}. Additional
+arguments for the system call are stored in a \ttt{kernel\_req}uest
+structure on the task's stack and a pointer to the structure is left
+in \ttt{r1}.
+
+\subsection*{System Calls}
+
+We added an \ttt{int myPriority()} system call to allow tasks to query
+for their priority level. We imagine that some tasks will have the
+same priority level in every instantiation of the task, while other
+tasks may have a dynamic priority level for different
+instantiations. As a task is not given its priority level during
+instantiation, we needed a way to expose the information to tasks that
+were interested. The \ttt{myPriority()} system call has the same
+semantics as \ttt{myTid()} in that it will simply return a value
+stored somewhere in the kernel and never fail.
+
 \end{document}
 
 %%% Local Variables:
