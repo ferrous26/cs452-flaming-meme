@@ -2,7 +2,7 @@ ENTRY (main)
 
 MEMORY
 {
-  ram : ORIGIN = 0x00001000, LENGTH = 32M
+  ram : ORIGIN = 0x00200000, LENGTH = 30M
   rom : ORIGIN = 0x60000000, LENGTH = 8M
 }
 
