@@ -25,8 +25,10 @@ void task_init(void) {
 
     ibuf_init(&free_list.list, TASK_MAX*2, free_list.buffer);
 
+    // TODO: pin tasks array to the cache
+
     for (size i = 0; i < TASK_MAX; i++) {
-	tasks[i].tid = -TASK_MAX + i;
+	tasks[i].tid = i;
 	ibuf_produce(&free_list.list, i);
     }
 
@@ -61,7 +63,6 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     const task_idx task_index = ibuf_consume(&free_list.list);
 
     task* tsk     = &tasks[task_index];
-    tsk->tid     += TASK_MAX; // TODO: handle overflow (trololol)
     tsk->p_tid    = tasks[task_active].tid; // task_active is always the parent
     tsk->priority = pri;
 
@@ -78,6 +79,8 @@ int task_create(const task_pri pri, void (*const start)(void)) {
 }
 
 void task_destroy() {
+    // TODO: handle overflow (trololol)
+    tasks[task_active].tid += TASK_MAX;
     // put the task back into the allocation pool
     ibuf_produce(&free_list.list, task_active);
 }
