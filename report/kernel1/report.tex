@@ -141,6 +141,13 @@ is currently being stored. The \ttt{sp} is the minimum runtime
 information that the descriptor needs to store. All other information
 is stored on the user stack in the trap frame.
 
+The task \ttt{state} is not currently stored in a task descriptor
+because we believe that for the states; \ttt{ACTIVE}, \ttt{READY},
+\ttt{BLOCKED}, and \ttt{ZOMBIE}; that our scheduling and allocation
+logic will never actually need check the state. If this turns out to
+not be the case we can use our reserved task descriptor space to store
+task state later.
+
 When a task is created, we setup the initial stack for the user
 process so that if the task falls off the end (does not \ttt{return}
 explicitly), the \ttt{Exit()} function will implicitly be called. An
@@ -217,6 +224,14 @@ instantiation, we needed a way to expose the information to tasks that
 were interested. The \ttt{myPriority()} system call has the same
 semantics as \ttt{myTid()} in that it will simply return a value
 stored somewhere in the kernel and never fail.
+
+\subsection*{Bootstrap Task}
+
+The bootstrap task actually uses the same code path for creating
+itself as other tasks. The only trick required was that we had to set
+an active task before any task is launched so that our task
+initialization function could assign a parent task correctly. In our
+system, the first task's parent task is itself.
 
 \end{document}
 
