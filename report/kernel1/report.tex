@@ -8,7 +8,10 @@
 
 \section*{Overview}
 
-Write something about the kernel (tasks) and using the Task Launcher here.
+Our kernel implements a simple, constant time scheduler and task
+descriptor system. The kernel handles system calls from tasks via
+software interrupts and can run up to 64 tasks concurrently at 32
+priority levels.
 
 \section*{Operation Instructions}
 
@@ -20,8 +23,28 @@ default RedBoot command given in the course tutorial document:
   \ttt{load -b 0x00218000 -h 10.15.167.4 ARM/marada/k1.elf; go}
 \end{center}
 
-The source code for my program exists in \ttt{/u3/marada/kernel1/},
-which has the following list of files:
+The source code for the kernel exists in \ttt{/u3/marada/kernel1/},
+and can be compiled with the following command chani:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel1 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the makefile.
+
+The kernel project currently consists of the following files:
+
+\subsection*{Submitted Files}
+\begin{center}
+\begin{tabular}{l|l}
+  \bfseries File & \bfseries MD5 Hash
+  \\\hline
+  \csvreader[head to column names]{md5_info.csv}{}%
+  {\\\file & \ttt{\hash}}%
+\end{tabular}
+\end{center}
+
 
 \newpage
 \section*{Kernel1 Task Output}
@@ -64,26 +87,8 @@ will reschedule the task launcher.
 
 \end{description}
 
+
 \newpage
-\section*{Submitted Files}
-\begin{center}
-\begin{tabular}{l|l}
-  \bfseries File & \bfseries MD5 Hash
-  \\\hline
-  \csvreader[head to column names]{md5_info.csv}{}%
-  {\\\file & \ttt{\hash}}%
-\end{tabular}
-\end{center}
-
-The program can be compiled with the following command:
-
-\begin{center}
-  \ttt{cd /u3/marada/kernel1 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
-\end{center}
-
-Which will produce a \ttt{kernel.elf} file in the same directory as
-the make file.
-
 \section*{Structure}
 
 The kernel is organized into three pieces: scheduler, tasks, and
