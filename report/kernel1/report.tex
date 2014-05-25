@@ -212,21 +212,20 @@ task.
 
 \subsection*{Scheduling}
 
-The scheduler is implemented as a bit field, which maps bits to
+The task scheduler is implemented as a bit field, which maps bits to
 priority levels, and an array of \ttt{head} and \ttt{tail} pointers
-which are indicies into the descriptor array.
-
-The rest of the priority queue is stored within the task descriptors
-as described above.
+which are indicies into the descriptor array. Technically, the rest of
+the priority queue is stored within the task descriptors as described
+above, but we do not duplicate explanations here.
 
 When a task is scheduled, the scheduler is given the descriptor table
 index so that the descriptor can be looked up.
 
 Using the descriptor, the \ttt{priority} level can be looked up, and
-the correct bit in the bit field can be updated. Then the correct pair
-of \ttt{head} and \ttt{tail} pointers can be looked up.
+the correct bit in the bit field can be turned on. Then the correct
+pair of \ttt{head} and \ttt{tail} pointers can be looked up.
 
-Using the values of the \ttt{tail} pointer, the descritor that is
+Using the values of the \ttt{tail} pointer, the descriptor that is
 currently at the end of the list can have its \ttt{next} pointer
 updated to point to the task being scheduled. If there is no other
 task in the queue, then the \ttt{head} pointer is set instead.
@@ -234,31 +233,29 @@ task in the queue, then the \ttt{head} pointer is set instead.
 The task being scheduled will always have its \ttt{next} pointer set
 to \ttt{TASK\_MAX}. \ttt{TASK\_MAX} is set to 64, which is just
 outside of the valid descriptor index range. This value is checked for
-later during scheduling to signal that the queue is empty and should
-have the appropriate bit in the bit field turned off.
+later when selecting the next task to activate as a signal that the
+queue is empty and should have the appropriate bit in the bit field
+turned off.
 
-The scheduler will also be asked to find the next task to be
-activated during a context switch. To find the next task, the
-scheduler simply looks at the bit field to find the first bit set. The
-set bit corresponds to a priority level which will have at least one
-task waiting.
+\subsubsection*{Activation Selection}
 
-The \ttt{head} and \ttt{tail} pointers are looked up using the
-priority index and then the correct descriptor can be looked up. Using
-all this information, the appropriate pointers can be updated. Note
-that if the task to be activated had \ttt{TASK\_MAX} as its \ttt{next}
-pointer that the \ttt{head} pointer for the queue will be updated to
-\ttt{TASK\_MAX}. If a \ttt{head} pointer is not a valid value then the
-appropriate bit will be turned off in the bit field.
+When the scheduler is asked to find the next task to be activated
+during a system call, it will simply look for the highest bit set in
+the bit field to select the priority queue and look up the \ttt{head}
+pointer for that queue and then retrieve the correct task descriptor.
+
+Then \ttt{head} is updated with \ttt{head->next}. If \ttt{head->next}
+is \ttt{TASK\_MAX} then we know that the queue is empty and the bit
+in the bit field should be turned off. This means that we can be sure
+that the \ttt{head} pointer will be valid if the bit was turned on.
+
+\subsubsection*{Activation}
 
 Once all pointers are updated, the \ttt{task\_active} pointer, which
-points at the task to be activate when context switching back to user
-space, is set to correct new task.
+is the index of the active task, is set to the correct task. Once this
+is done, a context switch will enter the newly activated task.
 
-Finally, the scheduler can activate a task by performing a context
-switch into task space.
-
-\subsection*{Context Switch}
+\subsection*{System Calls}
 
 Context switching for system calls is done by \ldots
 
@@ -267,8 +264,6 @@ used. Instead, we pass the system call number via \ttt{r0}. Additional
 arguments for the system call are stored in a \ttt{kernel\_req}uest
 structure on the task's stack and a pointer to the structure is left
 in \ttt{r1}.
-
-\subsection*{System Calls}
 
 We added an \ttt{int myPriority()} system call to allow tasks to query
 for their priority level. We imagine that some tasks will have the
@@ -282,7 +277,8 @@ stored somewhere in the kernel and never fail.
 
 \section*{Task Structure}
 
-Herp derp \ldots
+Maybe a few sentences about the required tasks and task launcher
+\ldots
 
 \subsection*{Bootstrap Task}
 
