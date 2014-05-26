@@ -21,6 +21,10 @@
 #define SYS_EXIT     5
 #define SYS_PRIORITY 6
 
+#define SYS_SEND     7
+#define SYS_REPLY    8
+#define SYS_RECEIVE  9
+
 #define SAVED_REGISTERS 12
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
@@ -35,9 +39,29 @@ typedef enum {
 } task_err;
 
 typedef struct {
-    int priority;
+    int  priority;
     void (*code) (void);
 } kreq_create;
+
+typedef struct {
+    int   tid;
+    char* msg;
+    int   msglen;
+    char* reply;
+    int   replylen;
+} kreq_send;
+
+typedef struct {
+    int   tid;
+    char* reply;
+    int   replylen;
+} kreq_reply;
+
+typedef struct {
+    int*  tid;
+    char* msg;
+    int   msglen;
+} kreq_recv;
 
 void kernel_enter(unsigned int code);  /* found in context.asm */
 int  kernel_exit(unsigned int *sp);    /* found in context.asm */
@@ -50,5 +74,9 @@ int myPriority(void);
 
 void Pass(void);
 void Exit(void);
+
+int Send(int tid, char *msg, int msglen, char *reply, int replylen);
+int Reply(int tid, char *reply, int replylen);
+int Receive(int *tid, char *msg, int msglen); 
 
 #endif
