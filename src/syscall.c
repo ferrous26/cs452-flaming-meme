@@ -4,6 +4,8 @@
 
 #include <syscall.h>
 
+task_id name_server_tid;
+
 // TODO: what if this fucker gets inlined?
 unsigned int _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
@@ -18,7 +20,7 @@ unsigned int _syscall(int code, void* request) {
 
 int Create( int priority, void (*code) () ) {
     kreq_create req;
-    req.code = code;
+    req.code     = code;
     req.priority = priority;
 
     if (priority > TASK_PRIORITY_MAX) {
@@ -46,3 +48,33 @@ void Pass() {
 void Exit() {
     _syscall(SYS_EXIT, NULL);
 }
+
+int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
+    kreq_send req;
+    req.tid      = tid;
+    req.msg      = msg;
+    req.reply    = reply;
+    req.msglen   = msglen;
+    req.replylen = replylen;
+
+    return _syscall(SYS_SEND, &req);
+}
+
+int Reply(int tid, char *reply, int replylen) {
+    kreq_reply req;
+    req.tid      = tid;
+    req.reply    = reply;
+    req.replylen = replylen;
+
+    return _syscall(SYS_REPLY, &req);
+}
+
+int Receive(int *tid, char *msg, int msglen) {
+    kreq_recv req;
+    req.tid    = tid;
+    req.msg    = msg;
+    req.msglen = msglen;
+
+    return _syscall(SYS_RECEIVE, &req);
+}
+
