@@ -25,7 +25,8 @@ static inline void _init(void* dp) {
     kprintf("Built %s %s", __DATE__, __TIME__);
     vt_flush();
 
-    *SWI_HANDLER = START_ADDRESS(kernel_enter);
+    *SWI_HANDLER = 0xea000000 | (((int)kernel_enter >> 2) - 4);
+
     exit_point   = dp;
 }
 
