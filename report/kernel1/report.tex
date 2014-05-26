@@ -24,7 +24,7 @@ default RedBoot command given in the course tutorial document:
 \end{center}
 
 The source code for the kernel exists in \ttt{/u3/marada/kernel1/},
-and can be compiled with the following command chani:
+and can be compiled with the following command chain:
 
 \begin{center}
   \ttt{cd /u3/marada/kernel1 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
@@ -50,8 +50,8 @@ The kernel and tasks consist of the following files:
 \section*{Kernel1 Task Output}
 
 When the kernel boots up, a very simple shell, simply named ``Task
-Launcher'', is run as the default task. Pressing the \ttt{1} key on
-the keyboard will run the task that performs the operations outlined by
+Launcher'', is run as the initial task. Pressing the \ttt{1} key on
+the keyboard will run a task that performs the operations outlined by
 the kernel1 assignment specification. Other tasks, meant for
 profiling and testing the kernel, can be run using some of the other
 keys. Pressing \ttt{h} will list all other available commands.
@@ -88,13 +88,13 @@ The output on screen should look like the following:
   The main task has performed all of its duties so it \ttt{Exit()}s.
 
 \item[Lines 13-16:] \hfill \\
-  The first 2 tasks created by the now zombified main task are the
-  highest priority tasks in the scheduling queue. Since these 2 tasks
+  The first two tasks created by the now zombified main task are the
+  highest priority tasks in the scheduling queue. Since these tasks
   are at the same priority level they will interleave their
   execution. This causes the output to flip messages between the two
-  tasks until they reach the end of their execution at which point all
+  tasks until they reach the end of their execution. at this point all
   of the non-system tasks have finished execution and the kernel
-  schedules the task launcher to activate once again.
+  schedules the task launcher to execute once again.
 
 \end{description}
 
@@ -107,16 +107,20 @@ scheduling, and system calls.
 
 \subsection*{Task Descriptors}
 
-Tasks metadata is stored in a static array of task descriptors. We
+Task metadata is stored in a static array of task descriptors. We
 allow for up to 64 concurrent tasks. Each task descriptor contains the
-task identifer \ttt{tid}, the parent task's task identifier
-\ttt{p\_tid}, a priority level \ttt{priority}, a task index pointing
-to the \ttt{next} scheduled task, some reserved space \ttt{reserved},
-and the stack pointer for the current task \ttt{sp}.
+following:
+\begin{itemize}
+  \item Task Identifier (\ttt{tid})
+  \item Parent Task Identifier (\ttt{p\_tid})
+  \item Task's priority level (\ttt{priority})
+  \item Task's stack pointer (\ttt{sp})
+  \item An index for the next scheduled task (\ttt{next})
+  \item Some reserved space (\ttt{reserved})
+\end{itemize}
 
-The \ttt{tid} and \ttt{p\_tid} are stored as \ttt{int} types, simply
-because it makes life easier in keeping with the required API for
-\ttt{Create()}.
+The \ttt{tid} and \ttt{p\_tid} are stored as \ttt{int} types in order to
+maintain consistency with required API for \ttt{Create()}.
 
 \ttt{priority} and \ttt{next} are stored as \ttt{unsigned char} types,
 adding up to 16 bits, which necessitates the \ttt{reserved} space of
@@ -126,8 +130,8 @@ descriptor in the hopes of leaving more cache space for other things
 later. Explicit memory alignment is required by one of the many
 warning flags we have enabled for GCC, and would have implicitly been
 added to the structure when compiling with \ttt{-O2} or higher, which
-we are using. Currently, a task descirptor requires four words of
-memory, so we can fit two task descirptors on a single cache line with
+we are using. Currently, a task descriptor requires four words of
+memory, so we can fit two task descriptors on a single cache line with
 our given architecture.
 
 Finally, \ttt{sp} is declared as a \ttt{unsigned int*}; we avoided
@@ -158,7 +162,7 @@ descriptors are allocated in a round robin fashion, using a circular
 buffer for a free list, so that the entire 31 bit space of valid
 identifiers is used.
 
-The \ttt{p\_tid} identier is set at task allocation time as that is
+The \ttt{p\_tid} identifier is set at task allocation time as that is
 the only time that the parent is guaranteed to be alive. The parent of
 a task is always the task that was active when we entered the kernel
 to handle the system call and so this value is trivial to find.
@@ -193,7 +197,7 @@ blocking, we can use the same \ttt{next} field of the descriptor, as
 the task will only be in one queue at a time.
 
 The memory savings will hopefully let the cache perform better when it
-is evetually enabled by making more space for other things.
+is eventually enabled by making more space for other things.
 
 \subsubsection*{Task Context}
 
@@ -203,7 +207,7 @@ information that the descriptor needs to store. All other information
 is stored on the user stack in the trap frame.
 
 When a task is created, we setup the initial stack for the user
-process so that if the task falls off the end (does not \ttt{return}
+process so that if the task falls off the end (does not call \ttt{Exit()}
 explicitly), the \ttt{Exit()} function will implicitly be called. An
 initial CPSR value is also setup on the stack such that the context
 switch into the process will cause the CPSR to be correctly
@@ -214,7 +218,7 @@ task.
 
 The task scheduler is implemented as a bit field, which maps bits to
 priority levels, and an array of \ttt{head} and \ttt{tail} pointers
-which are indicies into the descriptor array. Technically, the rest of
+which are indices into the descriptor array. Technically, the rest of
 the priority queue is stored within the task descriptors as described
 above, but we do not duplicate explanations here.
 
@@ -257,13 +261,32 @@ is done, a context switch will enter the newly activated task.
 
 \subsection*{System Calls}
 
-Context switching for system calls is done by \ldots
+Software system calls are invoked via the wrapper function \ttt{\_syscall()}.
+The reason we use this is so we can ensure the the parameters are placed in the
+correct registers when the \ttt{swi} call is performed. Another advantage to this
+is that GCC will ensure that any registers r0 to r3 that need going
+forward have their contents backed up.
+
+When the user task is rescheduled it takes value in r0 and returns.
 
 The immediate value associated with the \ttt{swi} instruction is not
 used. Instead, we pass the system call number via \ttt{r0}. Additional
 arguments for the system call are stored in a \ttt{kernel\_req}uest
 structure on the task's stack and a pointer to the structure is left
 in \ttt{r1}.
+
+When the system call jump is performed the spsr and lr are placed into
+r3 and r2 respectively. after this all registers except for r1 and the sp
+are saved onto the calling task's stack. The reason only r1 is omitted is
+because the r0 location is used by the kernel to write back return value of
+the system call and r2 and r3 now hold information required to restore the user
+back to its current state. After this the saved kernel registers are loaded back
+in except for registers r0 to r3 and then a branch link instruction calls 
+\ttt{syscall\_handle()} so the values placed into r0 to r3 can be used directly.
+
+When \ttt{syscall\_handle()} has completed execution the kernel will return to right
+after it performed the \ttt{scheduler\_activate()}. When activate is called all of the
+above steps are performed in reverse entering the currently scheduled user task.
 
 We added an \ttt{int myPriority()} system call to allow tasks to query
 for their priority level. We imagine that some tasks will have the
@@ -277,16 +300,16 @@ stored somewhere in the kernel and never fail.
 
 \section*{Task Structure}
 
-Maybe a few sentences about the required tasks and task launcher
-\ldots
+When the operating system has initialized the first task scheduled is a simple
+task launcher. This allows us to statically compile in a couple tasks that we
+can use for testing and run them all dynamically.
 
-\subsection*{Bootstrap Task}
+The task launcher is set to the lowest priority level so that it will only be
+scheduled when there are no other tasks in the system to be run. The Task launcher
+works by just calling the system call \ttt{Create()}.
 
-The bootstrap task actually uses the same code path for creating
-itself as other tasks. The only trick required was that we had to set
-an active task before any task is launched so that our task
-initialization function could assign a parent task correctly. In our
-system, the first task's parent task is itself.
+The only difference that the task launcher has to any other task in the system
+is that since it is the first task we also assign it to be its own parent.
 
 \end{document}
 
