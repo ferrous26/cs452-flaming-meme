@@ -110,13 +110,14 @@ scheduling, and system calls.
 Task metadata is stored in a static array of task descriptors. We
 allow for up to 64 concurrent tasks. Each task descriptor contains the
 following:
+
 \begin{itemize}
-  \item Task Identifier (\ttt{tid})
-  \item Parent Task Identifier (\ttt{p\_tid})
-  \item Task's priority level (\ttt{priority})
-  \item Task's stack pointer (\ttt{sp})
-  \item An index for the next scheduled task (\ttt{next})
-  \item Some reserved space (\ttt{reserved})
+  \item Task Identifier (\ttt{int tid})
+  \item Parent Task Identifier (\ttt{int p\_tid})
+  \item Task's priority level (\ttt{unsigned char priority})
+  \item An index for the next scheduled task (\ttt{unsigned char next})
+  \item Some reserved space (\ttt{short reserved})
+  \item Task's stack pointer (\ttt{unsigned int* sp})
 \end{itemize}
 
 The \ttt{tid} and \ttt{p\_tid} are stored as \ttt{int} types in order to
@@ -261,13 +262,15 @@ is done, a context switch will enter the newly activated task.
 
 \subsection*{System Calls}
 
-Software system calls are invoked via the wrapper function \ttt{\_syscall()}.
-The reason we use this is so we can ensure the the parameters are placed in the
-correct registers when the \ttt{swi} call is performed. Another advantage to this
-is that GCC will ensure that any registers r0 to r3 that need going
-forward have their contents backed up.
+Software system calls are invoked via the wrapper function
+\ttt{\_syscall()}. The reason we use this is so we can ensure the the
+parameters are placed in the correct registers when the \ttt{swi} call
+is performed. Another advantage to this is that GCC will ensure that
+any registers \ttt{r0-r3} we that need going forward have their
+contents backed up.
 
-When the user task is rescheduled it takes value in r0 and returns.
+When the user task is rescheduled, the return value from the system
+call will be in \ttt{r0}, which follows the correct calling convention.
 
 The immediate value associated with the \ttt{swi} instruction is not
 used. Instead, we pass the system call number via \ttt{r0}. Additional
@@ -275,18 +278,25 @@ arguments for the system call are stored in a \ttt{kernel\_req}uest
 structure on the task's stack and a pointer to the structure is left
 in \ttt{r1}.
 
-When the system call jump is performed the spsr and lr are placed into
-r3 and r2 respectively. after this all registers except for r1 and the sp
-are saved onto the calling task's stack. The reason only r1 is omitted is
-because the r0 location is used by the kernel to write back return value of
-the system call and r2 and r3 now hold information required to restore the user
-back to its current state. After this the saved kernel registers are loaded back
-in except for registers r0 to r3 and then a branch link instruction calls 
-\ttt{syscall\_handle()} so the values placed into r0 to r3 can be used directly.
+When the system call jump is performed the \ttt{spsr} and \ttt{lr} are
+placed into \ttt{r3} and \ttt{r2} respectively. After this all
+registers except for \ttt{r1} and the \ttt{sp} are saved onto the
+calling task's stack. The reason only \ttt{r1} is omitted is because
+the \ttt{r0} location is used by the kernel to write back return value
+of the system call and \ttt{r2} and \ttt{r3} now hold information
+required to restore the user back to its current state. After this the
+saved kernel registers are loaded back in, except for registers
+\ttt{r0-r3}, and then a branch link instruction calls
+\ttt{syscall\_handle()} so the values placed into \ttt{r0-r3} can be
+used directly.
 
-When \ttt{syscall\_handle()} has completed execution the kernel will return to right
-after it performed the \ttt{scheduler\_activate()}. When activate is called all of the
-above steps are performed in reverse entering the currently scheduled user task.
+When \ttt{syscall\_handle()} has completed execution the kernel will
+return to right after it performed the
+\ttt{scheduler\_activate()}. When activate is called all of the above
+steps are performed in reverse, entering the currently scheduled user
+task.
+
+\subsubsection*{Priority}
 
 We added an \ttt{int myPriority()} system call to allow tasks to query
 for their priority level. We imagine that some tasks will have the
@@ -297,6 +307,8 @@ instantiation, we needed a way to expose the information to tasks that
 were interested. The \ttt{myPriority()} system call has the same
 semantics as \ttt{myTid()} in that it will simply return a value
 stored somewhere in the kernel and never fail.
+
+\subsubsection*{Parent Task Identifier}
 
 Since a task descriptor stores the parent task identifier at creation
 time, the semantics of \ttt{myParentTid()} in our implementation is
@@ -309,16 +321,19 @@ calls that will be added for message passing.
 
 \section*{Task Structure}
 
-When the operating system has initialized the first task scheduled is a simple
-task launcher. This allows us to statically compile in a couple tasks that we
-can use for testing and run them all dynamically.
+When the operating system has initialized the first task scheduled is
+a simple task launcher. This allows us to statically compile in a
+couple tasks that we can use for testing and run them all
+dynamically.
 
-The task launcher is set to the lowest priority level so that it will only be
-scheduled when there are no other tasks in the system to be run. The Task launcher
-works by just calling the system call \ttt{Create()}.
+The task launcher is set to the lowest priority level so that it will
+only be scheduled when there are no other tasks in the system to be
+run. The Task launcher works by just calling the system call
+\ttt{Create()}.
 
-The only difference that the task launcher has to any other task in the system
-is that since it is the first task we also assign it to be its own parent.
+The most significant difference between the Task Launcher and other
+tasks is that it is the first task, and so its parent task identifier
+will be its own task identifier.
 
 \end{document}
 
