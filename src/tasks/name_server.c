@@ -54,7 +54,7 @@ void name_server() {
             reply = loc < 0 ? -3 : loc; 
 	    break;
 	default:
-	    debug_log("Invalid Request from %d, Ignoring....", tasks[insert]);
+	    debug_log("Invalid Request from %d, Ignoring....", tid);
 	    vt_flush();
 	    reply = -42;
 	}

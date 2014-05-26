@@ -19,7 +19,6 @@ typedef struct {
     } payload;
 } ns_req;
 
-
 void name_server(void);
 
 #endif

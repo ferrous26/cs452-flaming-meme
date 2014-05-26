@@ -4,8 +4,12 @@
 
 #include <tasks/a1_task.h>
 #include <tasks/pass_test.h>
-#include <tasks/name_server.h>
 #include <tasks/memcpy_bench.h>
+
+#include <tasks/echo_server.h>
+#include <tasks/name_server.h>
+
+
 #include <tasks/task_launcher.h>
 
 extern task_id name_server_tid;
@@ -41,7 +45,8 @@ static void tl_action(char input) {
 }
 
 static void tl_startup() {
-    name_server_tid = Create(TASK_PRIORITY_MIN, name_server);
+    name_server_tid = Create(TASK_PRIORITY_MIN, echo_server);
+
     if( name_server_tid < 0 ) {
         vt_log("failed starting name server! goodbye cruel world");
 	vt_flush();
