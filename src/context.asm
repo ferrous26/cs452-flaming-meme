@@ -12,8 +12,8 @@ kernel_enter:
 	mov	r2, sp
 	msr	cpsr, #0x93 		/* supervisor */
 	ldmfd   sp!, {r4-r12, lr}
-/*	mov     sp, #0x1000 */
-	b	syscall_handle
+/*	mov     sp, #0x100000 */
+	b	syscall_handle 
 	.size	kernel_enter, .-kernel_enter
 
 	.align	2
