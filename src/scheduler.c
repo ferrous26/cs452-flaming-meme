@@ -80,13 +80,13 @@ void scheduler_schedule(task* t) {
 
     // else there was something in the queue, so append to it
     else
-	q->tail->next = t;
+	q->tail->sched_next = t;
 
     // then we set the tail pointer
     q->tail = t;
 
     // mark the end of the queue
-    t->next = NULL;
+    t->sched_next = NULL;
 }
 
 // scheduler_consume
@@ -101,7 +101,7 @@ int scheduler_get_next(void) {
     struct task_q* const q = &manager.q[priority];
 
     task_active = q->head;
-    q->head = task_active->next;
+    q->head = task_active->sched_next;
 
     // if we hit the end of the list, then turn off the queue
     if (!q->head)
@@ -135,7 +135,7 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     tsk->sp[2]    = DEFAULT_SPSR;
     tsk->sp[12]   = EXIT_ADDRESS; // set link register to auto-call Exit()
 
-    // set tsk->next
+    // set tsk->sched_next
     scheduler_schedule(tsk);
 
     return tsk->tid;
@@ -158,7 +158,7 @@ void debug_task(const task_id tid) {
     debug_log("             ID: %u", tsk->tid);
     debug_log("      Parent ID: %u", tsk->p_tid);
     debug_log("       Priority: %u", tsk->priority);
-    debug_log("           Next: %u", tsk->next);
+    debug_log("           Next: %u", tsk->sched_next);
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
 #endif

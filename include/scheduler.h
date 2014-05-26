@@ -13,14 +13,17 @@ typedef int32  task_id;
 typedef uint32 task_pri;
 typedef uint8  task_idx;
 
+struct task_descriptor;
+typedef struct task_descriptor task;
+
 // this acts like a mask, just like the scheduler queue
-typedef struct task_descriptor {
-    task_id                 tid;
-    task_id                 p_tid;
-    task_pri                priority;
-    struct task_descriptor* next;
-    uint*                   sp;
-} task;
+struct task_descriptor {
+    task_id  tid;
+    task_id  p_tid;
+    task_pri priority;
+    task*    sched_next;
+    uint*    sp;
+};
 
 extern task* task_active;
 
