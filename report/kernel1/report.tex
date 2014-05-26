@@ -298,6 +298,15 @@ were interested. The \ttt{myPriority()} system call has the same
 semantics as \ttt{myTid()} in that it will simply return a value
 stored somewhere in the kernel and never fail.
 
+Since a task descriptor stores the parent task identifier at creation
+time, the semantics of \ttt{myParentTid()} in our implementation is
+that the call will never fail and will always return the correct task
+identifier for the parent task. Since we map a task identifier to a
+specific descriptor in the descriptor array, it will be trivial to
+check if the parent task is actually still alive for other system
+calls that will be added for message passing.
+
+
 \section*{Task Structure}
 
 When the operating system has initialized the first task scheduled is a simple
