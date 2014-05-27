@@ -43,14 +43,14 @@ void stress_msg() {
 	    Reply(tid, buf, 4);
 	}
     }
-    return;
-    /* const char* msg = "hey"; */
-    /* char recv[4]; */
-    /* for (size j = 0; j < 1; j++) { */
-    /* 	//	for (size i = 0; i < 8; i++) { */
-    /* 	    int resp = Send(stressors[0], (char*)msg, 4, recv, 4); */
-    /* 	    vt_log("Got reply status %d saying %s", resp, recv); */
-    /* 	    vt_flush(); */
-    /* 	    //} */
-    /* } */
+
+    const char* msg = "hey";
+    char recv[4];
+    for (;;) {
+	for (size i = 0; i < 8; i++) {
+    	    int resp = Send(stressors[i], (char*)msg, 4, recv, 4);
+    	    vt_log("Got reply status %d saying %s", resp, recv);
+    	    vt_flush();
+	}
+    }
 }

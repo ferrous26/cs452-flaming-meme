@@ -50,11 +50,12 @@ static void tl_action(char input) {
         Create(4, memcpy_bench);
 	break;
     case 'n': {
+	int tid = WhoIs("echo");
 	const char* send = "hey";
 	char recv[4];
 	BENCH_START(msg);
-	for(size i = 100000; i; i--) {
-	    Send( WhoIs("echo"), (char*)send, 4, recv, 4);
+	for(size i = 1000000; i; i--) {
+	    Send( tid, (char*)send, 4, recv, 4);
 	    BENCH_LAP(msg);
 	}
 	BENCH_PRINT_WORST(msg);

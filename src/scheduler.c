@@ -138,7 +138,6 @@ void task_destroy() {
     ibuf_produce(&free_list.list, mod2(task_active->tid, TASK_MAX));
 }
 
-
 #if DEBUG
 void debug_task(const task_id tid) {
 

@@ -10,22 +10,19 @@ void echo_server() {
 
     if( RegisterAs("echo") ) {
         debug_log( "echo server register failiure" );
-        vt_flush();
 	return;
     }
     debug_log( "echo server registered!" );
-    vt_flush();
 
     for(;;) {
-        size siz = Receive(&tid, buffer, sizeof(buffer));
+        Receive(&tid, buffer, sizeof(buffer));
 
-	vt_log("ECHO: Received message From %d of length %u saying %s",
-		       tid,
-		       siz,
-		       buffer);
+	debug_log("ECHO: Received message From %d of length %u saying %s",
+		  tid,
+		  siz,
+		  buffer);
 
-	Reply(tid, buffer, siz);
-	vt_log("ECHO: reply status was %u", siz);
-	vt_flush();
+	Reply(tid, buffer, 4);
+	debug_log("ECHO: reply status was %u", siz);
     }
 }
