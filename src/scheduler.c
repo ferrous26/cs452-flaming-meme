@@ -135,7 +135,7 @@ void task_destroy() {
     // empty the receive buffer
     recv_q[task_index_from_tid(task_active->tid)].head = NULL;
     // put the task back into the allocation pool
-    ibuf_produce(&free_list.list, task_active->tid);
+    ibuf_produce(&free_list.list, mod2(task_active->tid, TASK_MAX));
 }
 
 
