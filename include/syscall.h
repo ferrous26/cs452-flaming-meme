@@ -25,7 +25,8 @@
 #define SYS_REPLY    8
 #define SYS_RECEIVE  9
 
-#define SAVED_REGISTERS 12
+
+#define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
 #define OS_OFFSET         0
