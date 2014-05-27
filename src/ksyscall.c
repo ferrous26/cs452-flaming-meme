@@ -103,7 +103,7 @@ inline static void ksyscall_recv(const kreq_recv* const req, uint* const result)
 	task* sender = q->head;
 	q->head = q->head->next; // consume
 
-	kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
+	kreq_send* const sender_req = (kreq_send* const)sender->sp[1];
 
 	// validate that there is enough space in the receiver buffer
 	if (sender_req->msglen > req->msglen) {
@@ -163,8 +163,9 @@ inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
     // at this point, it is smooth sailing
     memcpy(sender_req->reply, req->reply, req->replylen);
 
-    // according to spec, we should schedule the sender first, in the case
-    // where they are the same priority level we want the sender to run first
+    // according to spec, we should schedule the sender first, because, in
+    // the case where they are the same priority level we want the sender
+    // to run first
     scheduler_schedule(sender);
     scheduler_schedule(task_active);
 }

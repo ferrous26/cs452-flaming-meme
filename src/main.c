@@ -15,20 +15,20 @@ static void* exit_point = NULL;
 
 static inline void _init_hardware() {
     // Invalidate the I/D-Cache
-    asm volatile ("\n\tmov\tr0, #0"
-                  "\n\tmcr\tp15, 0, r0, c7, c7, 0"
-		  "\n\tmcr\tp15, 0, r0, c8, c7, 0"
+    asm volatile ("mov r0, #0                \n"
+                  "mcr p15, 0, r0, c7, c7, 0 \n"
+		  "mcr p15, 0, r0, c8, c7, 0 \n"
 	         :
 	         :
-	         :"r0");
+	         : "r0");
     // Turn on the I-Cache
-    asm volatile ("\n\tmrc\tp15, 0, r0, c1, c0, 0" //get cache control
-                  "\n\torr\tr0, r0, #0x1000"       //turn I-Cache
-		  "\n\torr\tr0, r0, #5"            //turn on mmu and dcache #b0101
-	          "\n\tmcr\tp15, 0, r0, c1, c0, 0"
+    asm volatile ("mrc p15, 0, r0, c1, c0, 0 \n" //get cache control
+                  "orr r0, r0, #0x1000       \n" //turn I-Cache
+		  "orr r0, r0, #5            \n" //turn on mmu and dcache #b0101
+	          "mcr p15, 0, r0, c1, c0, 0 \n"
 	         :
 	         :
-	         :"r0");
+	         : "r0");
 }
 
 static inline void _init(void* dp) {
@@ -52,7 +52,6 @@ static inline void _init(void* dp) {
 void shutdown(void) {
     vt_log("Shutting Down");
     vt_deinit();
-
     exit_to_redboot(exit_point);
 }
 

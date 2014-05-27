@@ -6,6 +6,7 @@
 #include <tasks/pass_test.h>
 #include <tasks/memcpy_bench.h>
 #include <tasks/papers.h>
+#include <tasks/stress_msg.h>
 #include <tasks/echo_server.h>
 #include <tasks/name_server.h>
 
@@ -26,6 +27,7 @@ inline static void print_help() {
     vt_log("\tn ~ Msg Test");
     vt_log("\tp ~ Pass Test Benchmark Task");
     vt_log("\th ~ Print this Help Message");
+    vt_log("\ts - Stress the Message System");
     vt_log("\tq ~ Quit");
     vt_flush();
 }
@@ -61,7 +63,10 @@ static void tl_action(char input) {
 	break;
     }
     case 'e':
-	debug_log("ECHO_SERVER %d", WhoIs("echo") );
+        debug_log("ECHO_SERVER %d", WhoIs("echo"));
+        break;
+    case 's':
+        Create(31, stress_msg);
         break;
     case 'h':
     default:
