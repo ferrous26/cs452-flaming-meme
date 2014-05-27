@@ -9,38 +9,23 @@
 #define TASK_HEAP_BOT 0x0300000 //  3 MB
 #define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
 
-#define TASK_MAX 64
-
 // force grouping by putting them into a struct
 struct task_free_list {
     uint_buffer list;
     uint32 buffer[TASK_MAX*2];
 };
 
-struct task_q {
-    task* head;
-    task* tail;
-};
-
 struct task_manager {
     uint32 state; // bitmap for accelerating queue selection
-    struct task_q q[TASK_PRIORITY_LEVELS];
+    task_q q[TASK_PRIORITY_LEVELS];
 };
 
-static struct task_descriptor  tasks[TASK_MAX];
-       struct task_descriptor* task_active;
-static struct task_free_list   free_list;
+task_q recv_q[TASK_MAX];
+struct task_descriptor  tasks[TASK_MAX];
+struct task_descriptor* task_active;
 
-static struct task_manager manager;
-
-
-static inline uint __attribute__ ((const)) task_index_from_pointer(task* t) {
-    return mod2(t->tid, TASK_MAX);
-}
-
-static inline uint __attribute__ ((const)) task_index_from_tid(const int32 tid) {
-    return mod2(tid, TASK_MAX);
-}
+static struct task_free_list free_list;
+static struct task_manager   manager;
 
 static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
     return (uint*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
@@ -57,7 +42,11 @@ void scheduler_init(void) {
 
     manager.state = 0;
     for (size i = 0; i < TASK_PRIORITY_LEVELS; i++) {
-	struct task_q* q = &manager.q[i];
+	task_q* q = &manager.q[i];
+	q->head = NULL;
+	q->tail = NULL;
+
+	q = &recv_q[i];
 	q->head = NULL;
 	q->tail = NULL;
     }
@@ -69,7 +58,7 @@ void scheduler_init(void) {
 
 void scheduler_schedule(task* t) {
 
-    struct task_q* const q = &manager.q[t->priority];
+    task_q* const q = &manager.q[t->priority];
 
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
@@ -77,16 +66,15 @@ void scheduler_schedule(task* t) {
     // if the queue was off, set the head
     if (!q->head)
 	q->head = t;
-
     // else there was something in the queue, so append to it
     else
-	q->tail->sched_next = t;
+	q->tail->next = (void*)t;
 
     // then we set the tail pointer
     q->tail = t;
 
     // mark the end of the queue
-    t->sched_next = NULL;
+    t->next = NULL;
 }
 
 // scheduler_consume
@@ -98,10 +86,10 @@ int scheduler_get_next(void) {
 	return -1;
     priority--;
 
-    struct task_q* const q = &manager.q[priority];
+    task_q* const q = &manager.q[priority];
 
     task_active = q->head;
-    q->head = task_active->sched_next;
+    q->head = (task*)(task_active->next);
 
     // if we hit the end of the list, then turn off the queue
     if (!q->head)
@@ -125,9 +113,9 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     // actually take the task descriptor and load it up
     const task_idx task_index = ibuf_consume(&free_list.list);
 
-    task* tsk     = &tasks[task_index];
-    tsk->p_tid    = task_active->tid; // task_active is _always_ the parent
-    tsk->priority = pri;
+    task* tsk      = &tasks[task_index];
+    tsk->p_tid     = task_active->tid; // task_active is _always_ the parent
+    tsk->priority  = pri;
 
     // setup the default trap frame for the new task
     tsk->sp        = task_stack(task_index) - TRAP_FRAME_SIZE;
@@ -135,7 +123,7 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     tsk->sp[3]     = DEFAULT_SPSR;
     tsk->sp[13]    = EXIT_ADDRESS; // set link register to auto-call Exit()
 
-    // set tsk->sched_next
+    // set tsk->next
     scheduler_schedule(tsk);
 
     return tsk->tid;
@@ -144,6 +132,8 @@ int task_create(const task_pri pri, void (*const start)(void)) {
 void task_destroy() {
     // TODO: handle overflow (trololol)
     task_active->tid += TASK_MAX;
+    // empty the receive buffer
+    recv_q[task_index_from_tid(task_active->tid)].head = NULL;
     // put the task back into the allocation pool
     ibuf_produce(&free_list.list, task_active->tid);
 }
@@ -158,7 +148,19 @@ void debug_task(const task_id tid) {
     debug_log("             ID: %u", tsk->tid);
     debug_log("      Parent ID: %u", tsk->p_tid);
     debug_log("       Priority: %u", tsk->priority);
-    debug_log("           Next: %u", tsk->sched_next);
+    switch ((uint)tsk->next) {
+    case (uint)SEND_BLOCKED:
+	debug_log("           Next: SEND BLOCKED");
+	break;
+    case (uint)RECV_BLOCKED:
+	debug_log("           Next: RECEIVE BLOCKED");
+	break;
+    case (uint)RPLY_BLOCKED:
+	debug_log("           Next: REPLY BLOCKED");
+	break;
+    default:
+	debug_log("           Next: %p", tsk->next);
+    }
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
 #endif

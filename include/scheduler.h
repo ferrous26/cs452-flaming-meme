@@ -4,10 +4,14 @@
 
 #include <std.h>
 #include <math.h>
+#include <syscall.h>
 
 #define TASK_PRIORITY_LEVELS 32
 #define TASK_PRIORITY_MAX    31
 #define TASK_PRIORITY_MIN     0
+
+#define TASK_MAX 64
+
 
 typedef int32  task_id;
 typedef uint32 task_pri;
@@ -21,11 +25,34 @@ struct task_descriptor {
     task_id  tid;
     task_id  p_tid;
     task_pri priority;
-    task*    sched_next;
     uint*    sp;
+    void*    next;
 };
 
-extern task* task_active;
+struct task_q_pointers;
+typedef struct task_q_pointers task_q;
+
+struct task_q_pointers {
+    task* head;
+    task* tail;
+};
+
+// choose small values so they can be instruction immediates
+#define SEND_BLOCKED (void*)0xA
+#define RECV_BLOCKED (void*)0xB
+#define RPLY_BLOCKED (void*)0xC
+
+extern task_q recv_q[TASK_MAX];
+extern task*  task_active;
+extern task   tasks[TASK_MAX];
+
+static inline uint __attribute__ ((const)) task_index_from_pointer(task* t) {
+    return mod2(t->tid, TASK_MAX);
+}
+
+static inline uint __attribute__ ((const)) task_index_from_tid(const int32 tid) {
+    return mod2(tid, TASK_MAX);
+}
 
 
 void scheduler_init(void);

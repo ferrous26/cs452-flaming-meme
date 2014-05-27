@@ -1,7 +1,6 @@
 #include <io.h>
 #include <debug.h>
 #include <scheduler.h>
-
 #include <syscall.h>
 
 task_id name_server_tid;
@@ -60,6 +59,15 @@ int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
     return _syscall(SYS_SEND, &req);
 }
 
+int Receive(int *tid, char *msg, int msglen) {
+    kreq_recv req;
+    req.tid    = tid;
+    req.msg    = msg;
+    req.msglen = msglen;
+
+    return _syscall(SYS_RECV, &req);
+}
+
 int Reply(int tid, char *reply, int replylen) {
     kreq_reply req;
     req.tid      = tid;
@@ -68,13 +76,3 @@ int Reply(int tid, char *reply, int replylen) {
 
     return _syscall(SYS_REPLY, &req);
 }
-
-int Receive(int *tid, char *msg, int msglen) {
-    kreq_recv req;
-    req.tid    = tid;
-    req.msg    = msg;
-    req.msglen = msglen;
-
-    return _syscall(SYS_RECEIVE, &req);
-}
-

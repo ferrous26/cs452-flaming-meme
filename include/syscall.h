@@ -22,8 +22,8 @@
 #define SYS_PRIORITY 6
 
 #define SYS_SEND     7
-#define SYS_REPLY    8
-#define SYS_RECEIVE  9
+#define SYS_RECV     8
+#define SYS_REPLY    9
 
 
 #define SAVED_REGISTERS 13
@@ -39,30 +39,42 @@ typedef enum {
     INVALID_PRIORITY = -2
 } task_err;
 
+typedef enum {
+    IMPOSSIBLE_TASK = -1, // task id is negative
+    INVALID_TASK    = -2, // task no longer alive (or has not yet been created)
+    INCOMPLETE      = -3,
+    INVALID_RECVER  = -3,
+    NOT_ENUF_MEMORY = -4
+} msg_err;
+
 typedef struct {
     int  priority;
     void (*code) (void);
 } kreq_create;
 
-typedef struct {
+
+struct msg_send;
+typedef struct msg_send kreq_send;
+
+struct msg_send {
     int   tid;
     char* msg;
     int   msglen;
     char* reply;
     int   replylen;
-} kreq_send;
-
-typedef struct {
-    int   tid;
-    char* reply;
-    int   replylen;
-} kreq_reply;
+};
 
 typedef struct {
     int*  tid;
     char* msg;
     int   msglen;
 } kreq_recv;
+
+typedef struct {
+    int   tid;
+    char* reply;
+    int   replylen;
+} kreq_reply;
 
 void kernel_enter(unsigned int code);  /* found in context.asm */
 int  kernel_exit(unsigned int *sp);    /* found in context.asm */
@@ -77,7 +89,7 @@ void Pass(void);
 void Exit(void);
 
 int Send(int tid, char *msg, int msglen, char *reply, int replylen);
+int Receive(int *tid, char *msg, int msglen);
 int Reply(int tid, char *reply, int replylen);
-int Receive(int *tid, char *msg, int msglen); 
 
 #endif
