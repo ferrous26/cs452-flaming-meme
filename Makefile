@@ -18,7 +18,7 @@ ifdef RELEASE
 #-ffast-math -fmerge-all-constants -ftree-loop-linear
 # -fmodulo-sched -fgcse-sm -fgcse-las -fgcse-after-reload -ftree-loop-linear
 # -ftree-loop-im
-CFLAGS  = -O$(RELEASE) -ftracer -fpeel-loops -floop-optimize2
+CFLAGS  = -O$(RELEASE) -ftracer -fpeel-loops -floop-optimize2 -fomit-frame-pointer
 CFLAGS += -funswitch-loops -ftree-vectorize # other experimental flags
 else
 CFLAGS  = -g -D ASSERT -D DEBUG
