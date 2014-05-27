@@ -56,7 +56,7 @@ struct benchmark {
 #define BENCH(name)
 #define BENCH_EXTERN(name)
 #define BENCH_START(name)
-#define BENCH_LAP(name, threshold)
+#define BENCH_LAP(name)
 #define BENCH_PRINT_WORST(name)
 #define BENCH_PRINT_AVERAGE(name)
 
