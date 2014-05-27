@@ -51,7 +51,7 @@ struct benchmark {
     vt_log(#name ".worst: %u", name.worst);
 
 #define BENCH_PRINT_AVERAGE(name)				\
-    vt_log(#name ".avg: %u", name.total / name.count);
+    vt_log(#name ".avg: %u / (%u * 983.04)", name.total, name.count);
 
 #else
 
