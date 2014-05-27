@@ -31,6 +31,11 @@ inline static void ksyscall_priority(uint* const result) {
     scheduler_schedule(task_active);
 }
 
+inline static void ksyscall_change_priority(const uint new_priority) {
+    task_active->priority = new_priority;
+    scheduler_schedule(task_active);
+}
+
 inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 
     if (req->tid < 0) {
@@ -196,6 +201,9 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
 	break;
     case SYS_REPLY:
 	ksyscall_reply((const kreq_reply* const)req, sp);
+	break;
+    case SYS_CHANGE:
+	ksyscall_change_priority((uint)req);
 	break;
     default:
         assert(false, "Task %d, called invalid system call %d",

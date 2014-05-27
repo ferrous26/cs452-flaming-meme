@@ -43,6 +43,10 @@ int myPriority() {
     return _syscall(SYS_PRIORITY, NULL);
 }
 
+void ChangePriority(uint new_priority) {
+    _syscall(SYS_CHANGE, (uint*)new_priority);
+}
+
 void Pass() {
     _syscall(SYS_PASS, NULL);
 }

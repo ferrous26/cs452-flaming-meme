@@ -25,6 +25,8 @@
 #define SYS_RECV     8
 #define SYS_REPLY    9
 
+#define SYS_CHANGE   10
+
 
 #define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
@@ -84,6 +86,7 @@ int Create(int priority, void (*code) (void));
 int myTid(void);
 int myParentTid(void);
 int myPriority(void);
+void ChangePriority(uint);
 
 void Pass(void);
 void Exit(void);
