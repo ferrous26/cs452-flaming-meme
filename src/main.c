@@ -13,6 +13,24 @@
 
 static void* exit_point = NULL;
 
+static inline void _init_hardware() {
+    // Invalidate the I/D-Cache
+    asm volatile ("\n\tmov\tr0, #0"
+                  "\n\tmcr\tp15, 0, r0, c7, c7, 0"
+		  "\n\tmcr\tp15, 0, r0, c8, c7, 0"
+	         :
+	         :
+	         :"r0");
+    // Turn on the I-Cache
+    asm volatile ("\n\tmrc\tp15, 0, r0, c1, c0, 0" //get cache control
+                  "\n\torr\tr0, r0, #0x1000"       //turn I-Cache
+		  "\n\torr\tr0, r0, #5"            //turn on mmu and dcache #b0101
+	          "\n\tmcr\tp15, 0, r0, c1, c0, 0"
+	         :
+	         :
+	         :"r0");
+}
+
 static inline void _init(void* dp) {
     clock_t4enable();
     uart_init();
@@ -26,8 +44,9 @@ static inline void _init(void* dp) {
     vt_flush();
 
     *SWI_HANDLER = 0xea000000 | (((int)kernel_enter >> 2) - 4);
-
     exit_point   = dp;
+
+    _init_hardware();
 }
 
 void shutdown(void) {
@@ -42,7 +61,7 @@ int main(int argc, char* argv[]) {
     UNUSED(argv);
 
     void* dp;
-    asm("mov %0, lr" : "=r" (dp));
+    asm volatile ("mov %0, lr" : "=r" (dp));
     _init(dp);
 
     while (!scheduler_get_next()) {
