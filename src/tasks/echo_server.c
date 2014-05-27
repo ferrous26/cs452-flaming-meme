@@ -7,16 +7,19 @@
 
 void echo_server() {
     int tid = 99;
-    char buffer[256];
+    char buffer[4];
 
     for(;;) {
-        int siz = Receive(&tid, buffer, sizeof(buffer));
+        Receive(&tid, buffer, 4);
 
-	debug_log("ECHO: Received message From %d saying %s",
-                  tid,
-                  buffer);
-	vt_flush();
+	//vt_log("ECHO: Received message From %d of length %u saying %s",
+	//	       tid,
+	//	       siz,
+	//	       buffer);
+	//vt_flush();
 
-	Reply(tid, buffer, siz);
+	Reply(tid, buffer, 4);
+	//vt_log("ECHO: reply status was %u", siz);
+	//vt_flush();
     }
 }

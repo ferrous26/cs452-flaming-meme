@@ -30,37 +30,37 @@ void memcpy_bench(void) {
    BENCH_START(mem8);
    for (count = 10000; count; count--) {
        memcpy(copy, str, 8);
-       BENCH_LAP(mem8, 0);
+       BENCH_LAP(mem8);
    }
 
    BENCH_START(mem16);
    for (count = 10000; count; count--) {
        memcpy(copy, str, 16);
-       BENCH_LAP(mem16, 0);
+       BENCH_LAP(mem16);
    }
 
    BENCH_START(mem32);
    for (count = 10000; count; count--) {
        memcpy(copy, str, 32);
-       BENCH_LAP(mem32, 0);
+       BENCH_LAP(mem32);
    }
 
    BENCH_START(mem64);
    for (count = 10000; count; count--) {
        memcpy(copy, str, 64);
-       BENCH_LAP(mem64, 0);
+       BENCH_LAP(mem64);
    }
 
    BENCH_START(mem3);
    for (count = 10000; count; count--) {
        memcpy(copy, str, 3);
-       BENCH_LAP(mem3, 0);
+       BENCH_LAP(mem3);
    }
 
    BENCH_START(mema);
    for (count = 10000; count; count--) {
        memcpy(copy+3, str, 32);
-       BENCH_LAP(mema, 0);
+       BENCH_LAP(mema);
    }
 
    BENCH_PRINT_WORST(mem8);

@@ -34,17 +34,15 @@ struct benchmark {
     name.prev  = clock_t4tick();
 
 /* (╯°□°）╯︵ ┻━┻ */
-#define BENCH_LAP(name, threshold)					\
+#define BENCH_LAP(name)							\
     {									\
         name.curr = clock_t4tick();					\
         uint name ## _diff = name.curr - name.prev;			\
-        if (name ## _diff > threshold) {				\
-	    name.prev = name.curr;					\
-	    name.total += name ## _diff;				\
-	    name.count++;						\
-	    if (name ## _diff > name.worst)				\
-		name.worst = name ## _diff;				\
-        }								\
+	name.prev = name.curr;						\
+	name.total += name ## _diff;					\
+	name.count++;							\
+	if (name ## _diff > name.worst)					\
+	    name.worst = name ## _diff;					\
     }
 
 #define BENCH_PRINT_WORST(name)			\

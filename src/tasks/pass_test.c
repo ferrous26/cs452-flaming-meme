@@ -12,7 +12,7 @@ void pass_test(void) {
     BENCH_START(ctx);
     for (size i = 0; i < 1000000; i++) {
 	Pass();
-	BENCH_LAP(ctx, 0);
+	BENCH_LAP(ctx);
     }
 
     BENCH_PRINT_WORST(ctx);
