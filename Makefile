@@ -71,7 +71,7 @@ remote:
 
 clean:
 	-rm -f src/kernel.elf src/kernel.map
-	-rm -f src/*.s
-	-rm -f src/*.a
-	-rm -f src/*.o
-	-rm -f lib/*.a
+	-rm -f src/**/*.s
+	-rm -f src/**/*.a
+	-rm -f src/**/*.o
+	-rm -f lib/**/*.a
