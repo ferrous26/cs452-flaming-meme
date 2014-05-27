@@ -38,11 +38,11 @@ void debug_spsr(void);
 
 #else
 
-#define debug_log
+#define debug_log( ... ) 
 #define debug_assert_fail
-#define debug_processor_mode
-#define debug_cpsr
-#define debug_spsr
+#define debug_processor_mode()
+#define debug_cpsr()
+#define debug_spsr()
 
 #endif
 
