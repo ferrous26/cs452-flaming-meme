@@ -9,26 +9,24 @@
 #include <tasks/echo_server.h>
 #include <tasks/name_server.h>
 
-
 #include <tasks/task_launcher.h>
-
 #include <benchmark.h>
 
 
 BENCH(msg);
 
-
-
 extern task_id name_server_tid;
 
 inline static void print_help() {
-    vt_log( "\t1 - Kernel 1 Test Task" );
-    vt_log( "\tp - Pass Test Benchmark Task" );
-    vt_log( "\tm - memcpy Benchmark Task" );
-    vt_log( "\tn - msg test" );
-    vt_log( "\tb - benchmark self-measure" );
-    vt_log( "\th - Print this Help Message" );
-    vt_log( "\tq - Quit" );
+    vt_log("\t1 ~ Kernel 1 Test Task");
+    vt_log("\t2 ~ Kernel 2 Rock/Paper/Scissors");
+    vt_log("\tb ~ Benchmark Self-Measure");
+    vt_log("\te ~ Perform WhoIs Lookup on echo server");
+    vt_log("\tm ~ Memcpy Benchmark Task");
+    vt_log("\tn ~ Msg Test");
+    vt_log("\tp ~ Pass Test Benchmark Task");
+    vt_log("\th ~ Print this Help Message");
+    vt_log("\tq ~ Quit");
     vt_flush();
 }
 
@@ -54,16 +52,17 @@ static void tl_action(char input) {
 	char recv[4];
 	BENCH_START(msg);
 	for(size i = 100000; i; i--) {
-	    Send(1, (char*)send, 4, recv, 4);
+	    Send( WhoIs("echo"), (char*)send, 4, recv, 4);
 	    BENCH_LAP(msg);
-	    //	    UNUSED(resp);
-	    //debug_log("Send returned %u with %s", resp, recv);
 	}
 	BENCH_PRINT_WORST(msg);
 	BENCH_PRINT_AVERAGE(msg);
 	vt_flush();
 	break;
     }
+    case 'e':
+	debug_log("ECHO_SERVER %d", WhoIs("echo") );
+        break;
     case 'h':
     default:
         print_help();
@@ -72,14 +71,14 @@ static void tl_action(char input) {
 }
 
 static void tl_startup() {
-    name_server_tid = Create(TASK_PRIORITY_MIN, echo_server);
-
+    name_server_tid = Create(TASK_PRIORITY_MIN, name_server);
     if( name_server_tid < 0 ) {
         vt_log("failed starting name server! goodbye cruel world");
 	vt_flush();
 	Exit();
     }
 
+    Create(TASK_PRIORITY_MIN, echo_server);
 }
 
 void task_launcher() {
