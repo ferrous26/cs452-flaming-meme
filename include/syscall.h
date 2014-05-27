@@ -77,7 +77,7 @@ typedef struct {
 } kreq_reply;
 
 void kernel_enter(unsigned int code);  /* found in context.asm */
-int  kernel_exit(unsigned int *sp);    /* found in context.asm */
+int  kernel_exit(unsigned int* sp);    /* found in context.asm */
 
 int Create(int priority, void (*code) (void));
 
@@ -88,8 +88,11 @@ int myPriority(void);
 void Pass(void);
 void Exit(void);
 
-int Send(int tid, char *msg, int msglen, char *reply, int replylen);
-int Receive(int *tid, char *msg, int msglen);
-int Reply(int tid, char *reply, int replylen);
+int Send(int tid, char* msg, int msglen, char* reply, int replylen);
+int Receive(int* tid, char* msg, int msglen);
+int Reply(int tid, char* reply, int replylen);
+
+int WhoIs(char* name);
+int RegisterAs(char* name);
 
 #endif

@@ -6,14 +6,13 @@
 
 #include <tasks/name_server.h>
 
-static int __attribute__((const)) find_loc(char names[][NAME_MAX_SIZE],
-                                           const char value[NAME_MAX_SIZE],
+static int __attribute__((const)) find_loc(uint32 directory[][NAME_OVERLAY_SIZE],
+                                           const uint32 value[NAME_OVERLAY_SIZE],
                                            const int stored ) {
-    for(int i = 0; i < stored; i++) {
-        for(int j = 0;;j++) {
-	    if(j == NAME_MAX_SIZE) return i;
-            if(names[i][j] != value[j]) break;
-	    if(value[j] == '\0') return i;
+    for (int i = 0; i < stored; i++) {
+	for (int j = 0;;j++) {
+	    if(j == NAME_OVERLAY_SIZE) return i;
+            if(directory[i][j] != value[j]) break;
 	}
     }
     return -1;
@@ -33,7 +32,7 @@ void name_server() {
 
     for(;;) {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
-        int loc = find_loc(lookup.name, buffer.payload.text, insert);
+        int loc = find_loc(lookup.overlay, buffer.payload.overlay, insert);
 
         switch(buffer.type) {
         case REGISTER:
@@ -51,14 +50,12 @@ void name_server() {
 	    }
             break;
         case LOOKUP:
-            reply = loc < 0 ? -3 : loc; 
+            reply = loc < 0 ? -3 : tasks[loc]; 
 	    break;
 	default:
-	    debug_log("Invalid Request from %d, Ignoring....", tid);
-	    vt_flush();
+	    debug_log("NameServer: task %d gave me garbage!", tid);
 	    reply = -42;
 	}
-
         Reply(tid, (char*)&reply, sizeof(reply));
     }
 }
