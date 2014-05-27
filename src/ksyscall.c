@@ -2,6 +2,7 @@
 #include <scheduler.h>
 #include <syscall.h>
 #include <memory.h>
+#include <kernel.h>
 
 inline static void ksyscall_pass() {
     scheduler_schedule(task_active);
@@ -36,6 +37,37 @@ inline static void ksyscall_change_priority(const uint new_priority) {
     scheduler_schedule(task_active);
 }
 
+inline static void ksyscall_recv(task* receiver) {
+
+    task_q* q = &recv_q[receiver->tid];
+
+    if (q->head) {
+	task* sender = q->head;
+	q->head = q->head->next; // consume
+
+	kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
+	kreq_recv* const receiver_req = (kreq_recv* const)receiver->sp[1];
+
+	// validate that there is enough space in the receiver buffer
+	if (sender_req->msglen > receiver_req->msglen) {
+	    sender->sp[0] = NOT_ENUF_MEMORY; // TODO: maybe use INCOMPLETE?
+	    scheduler_schedule(sender); // schedule this mofo
+	    return;
+	}
+
+	// all is good, copy the message over and get back to work!
+	*receiver_req->tid = sender->tid;
+	receiver->sp[0]    = sender_req->msglen;
+	sender->next       = RPLY_BLOCKED;
+
+	memcpy(receiver_req->msg, sender_req->msg, sender_req->msglen);
+	scheduler_schedule(receiver); // schedule this mofo
+	return;
+    }
+
+    receiver->next = RECV_BLOCKED;
+}
+
 inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 
     if (req->tid < 0) {
@@ -67,62 +99,11 @@ inline static void ksyscall_send(kreq_send* const req, uint* const result) {
     task_active->next = NULL;
 
     /**
-     * Now, if the task is receive blocked, then we need to wake it up
+     * Now, if the receiving task is receive blocked, then we need to wake it up
      * and schedule it again.
      */
-    if (receiver->next == RECV_BLOCKED) {
-
-	task* sender = q->head;
-	q->head = q->head->next; // consume
-
-	kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
-	kreq_recv* const receiver_req = (kreq_recv* const)receiver->sp[1];
-
-	// validate that there is enough space in the receiver buffer
-	if (sender_req->msglen > receiver_req->msglen) {
-	    sender->sp[0] = NOT_ENUF_MEMORY; // TODO: maybe use INCOMPLETE?
-	    scheduler_schedule(sender); // schedule this mofo
-	    return;
-	}
-
-	// all is good, copy the message over and get back to work!
-	*receiver_req->tid = sender->tid;
-	receiver->sp[0]    = sender_req->msglen;
-	sender->next       = RPLY_BLOCKED;
-
-	memcpy(receiver_req->msg, sender_req->msg, sender_req->msglen);
-	scheduler_schedule(receiver); // schedule this mofo
-    }
-}
-
-inline static void ksyscall_recv(const kreq_recv* const req, uint* const result) {
-
-    task_q* q = &recv_q[task_active->tid];
-
-    if (q->head) {
-	task* sender = q->head;
-	q->head = q->head->next; // consume
-
-	kreq_send* const sender_req = (kreq_send* const)sender->sp[1];
-
-	// validate that there is enough space in the receiver buffer
-	if (sender_req->msglen > req->msglen) {
-	    sender->sp[0] = NOT_ENUF_MEMORY; // TODO: maybe use INCOMPLETE?
-	    scheduler_schedule(sender); // schedule this mofo
-	    return; // peace out, homies
-	}
-
-	// all valid, copy the message over and get back to work!
-	*req->tid    = sender->tid;
-	*result      = sender_req->msglen;
-	sender->next = RPLY_BLOCKED;
-
-	memcpy(req->msg, sender_req->msg, sender_req->msglen);
-	scheduler_schedule(task_active); // schedule this mofo
-	return;
-    }
-
-    task_active->next = RECV_BLOCKED;
+    if (receiver->next == RECV_BLOCKED)
+	ksyscall_recv(receiver);
 }
 
 inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
@@ -198,7 +179,7 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
 	ksyscall_send((kreq_send* const)req, sp);
 	break;
     case SYS_RECV:
-	ksyscall_recv((const kreq_recv* const)req, sp);
+	ksyscall_recv(task_active);
 	break;
     case SYS_REPLY:
 	ksyscall_reply((const kreq_reply* const)req, sp);
@@ -211,4 +192,8 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
 	       task_active->tid,
 	       code);
     }
+
+    if (!scheduler_get_next())
+        scheduler_activate();
+    shutdown();
 }
