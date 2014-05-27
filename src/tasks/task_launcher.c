@@ -18,6 +18,7 @@ inline static void print_help() {
     vt_log( "\t1 - Kernel 1 Test Task" );
     vt_log( "\tp - Pass Test Benchmark Task" );
     vt_log( "\tm - memcpy Benchmark Task" );
+    vt_log( "\tn - msg test" );
     vt_log( "\th - Print this Help Message" );
     vt_log( "\tq - Quit" );
     vt_flush();
@@ -37,6 +38,13 @@ static void tl_action(char input) {
     case 'm':
         Create(4, memcpy_bench);
 	break;
+    case 'n': {
+	const char* send = "hey";
+	char recv[4];
+	int resp = Send(1, (char*)send, 4, recv, 4);
+	debug_log("Send returned %u with %s", resp, recv);
+	break;
+    }
     case 'h':
     default:
         print_help();

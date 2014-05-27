@@ -6,18 +6,17 @@
 
 
 void echo_server() {
-    int tid;
+    int tid = 99;
     char buffer[256];
 
     for(;;) {
-        Receive(&tid, buffer, sizeof(buffer));
+        int siz = Receive(&tid, buffer, sizeof(buffer));
 
-	debug_log("ECHO: Received message From %d starting with %c",
+	debug_log("ECHO: Received message From %d saying %s",
                   tid,
-                  buffer[0]);
+                  buffer);
 	vt_flush();
-        
-	Reply(tid, buffer, sizeof(buffer));
+
+	Reply(tid, buffer, siz);
     }
 }
-
