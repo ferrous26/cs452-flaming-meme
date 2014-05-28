@@ -15,7 +15,8 @@ void echo_server() {
     debug_log( "echo server registered!" );
 
     for(;;) {
-        Receive(&tid, buffer, sizeof(buffer));
+        int siz = Receive(&tid, buffer, sizeof(buffer));
+	UNUSED(siz);
 
 	debug_log("ECHO: Received message From %d of length %u saying %s",
 		  tid,
