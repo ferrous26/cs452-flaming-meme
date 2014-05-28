@@ -10,8 +10,9 @@ BENCH(mem16);
 BENCH(mem32);
 BENCH(mem64);
 BENCH(mem128);
+BENCH(mem28);
 BENCH(mem3);
-BENCH(mema);
+//BENCH(mema);
 
 static char copy[256];
 static const char* str =
@@ -74,18 +75,19 @@ void memcpy_bench(void) {
     MEMTEST(mem64, 64);
     MEMTEST(mem128, 128);
     MEMTEST(mem3, 3);
+    MEMTEST(mem28, 28);
 
-    reset();
-    BENCH_START(mema);
-    for (count = 10000; count; count--) {
-	memcpy(copy+3, str, 32);
-	BENCH_LAP(mema);
-    }
-    BENCH_PRINT_WORST(mema);
-    BENCH_PRINT_AVERAGE(mema);
-    vt_log("copy = %s", copy);
-    vt_log("");
-    vt_flush();
+    /* reset(); */
+    /* BENCH_START(mema); */
+    /* for (count = 10000; count; count--) { */
+    /* 	memcpy(copy+3, str, 32); */
+    /* 	BENCH_LAP(mema); */
+    /* } */
+    /* BENCH_PRINT_WORST(mema); */
+    /* BENCH_PRINT_AVERAGE(mema); */
+    /* vt_log("copy = %s", copy); */
+    /* vt_log(""); */
+    /* vt_flush(); */
 
     vt_log("MEMCPY BENCH DONE!");
     vt_flush();

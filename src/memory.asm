@@ -17,13 +17,14 @@ memcpy:
 	beq    .fastcpy
 
 	/* If we got here, we want to try and align the addresses */
-.align_it:
+  sub  r2, r2, r3
+.align:
 	ldrb r3, [r1]
 	add  r1, r1, #1
-	subs r2, r2, #1   /* set condition flags here */
+	subs r3, r3, #1   /* set condition flags here */
 	strb r3, [r0]
 	add  r0, r0, #1
-	bne .align_it
+	bne .align
 
 	/* check alignment again */
 	ands    r3, r0, #3
@@ -33,16 +34,14 @@ memcpy:
 /* fall through to the fastcpy case! */
 
 .fastcpy:
-  /* more than 32? */
 
+/* more than 32? */
 32:
-  subs  r2, r2, #32
+  subs r2, r2, #32
   ldmplia r1!, {r3-r10}
   stmplia r0!, {r3-r10}
   bpl 32 /* if there is something left, go back to start */
-
-  /* more than 16? */
-	/*mov  pc, lr*/
+  beq .done
 
   add r2, r2, #32
 
@@ -54,6 +53,7 @@ memcpy:
 	add r0, r0, #1
 	bne .slowcpy
 
+.done:
 	ldmfd sp!, {r0, r4-r10}
 	mov  pc, lr
 

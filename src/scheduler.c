@@ -61,7 +61,6 @@ void scheduler_init(void) {
 	tasks[i].tid = i;
 	ibuf_produce(&free_list.list, i);
     }
-
 }
 
 void scheduler_schedule(task* t) {
