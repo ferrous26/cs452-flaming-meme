@@ -12,7 +12,7 @@
 // force grouping by putting them into a struct
 struct task_free_list {
     uint_buffer list;
-    uint32 buffer[TASK_MAX*2];
+    uint32 buffer[TASK_MAX];
 };
 
 struct task_manager {
@@ -33,15 +33,10 @@ static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
 
 void scheduler_init(void) {
 
-    ibuf_init(&free_list.list, TASK_MAX*2, free_list.buffer);
-
-    for (size i = 0; i < TASK_MAX; i++) {
-	tasks[i].tid = i;
-	ibuf_produce(&free_list.list, i);
-    }
+    size i = 0;
 
     manager.state = 0;
-    for (size i = 0; i < TASK_PRIORITY_LEVELS; i++) {
+    for (; i < TASK_PRIORITY_LEVELS; i++) {
 	task_q* q = &manager.q[i];
 	q->head = NULL;
 	q->tail = NULL;
@@ -51,9 +46,22 @@ void scheduler_init(void) {
 	q->tail = NULL;
     }
 
+    ibuf_init(&free_list.list, TASK_MAX, free_list.buffer);
+
+    for (i = 0; i < 16; i++) {
+	tasks[i].tid = i;
+	ibuf_produce(&free_list.list, i);
+    }
+
     // get the party started
     task_active = &tasks[0];
     task_create(TASK_PRIORITY_MIN, task_launcher);
+
+    for (; i < TASK_MAX; i++) {
+	tasks[i].tid = i;
+	ibuf_produce(&free_list.list, i);
+    }
+
 }
 
 void scheduler_schedule(task* t) {
