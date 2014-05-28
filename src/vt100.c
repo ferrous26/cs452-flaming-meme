@@ -1,5 +1,9 @@
-#include <vt100.h>
+
 #include <io.h>
+#include <syscall.h>
+
+#include <vt100.h>
+
 
 static inline void vt_reset_scroll_region();
 static inline void vt_set_scroll_region(uint start, uint end);
@@ -151,4 +155,13 @@ void vt_log(const char* fmt, ...) {
     vt_log_end();
 
     va_end(args);
+}
+
+char vt_waitget() {
+    while( !vt_can_get() ) {
+        vt_read();
+        Pass();
+    }
+
+    return vt_getc();
 }

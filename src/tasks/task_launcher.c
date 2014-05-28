@@ -3,6 +3,7 @@
 #include <scheduler.h>
 
 #include <tasks/a1_task.h>
+
 #include <tasks/pass_test.h>
 #include <tasks/memcpy_bench.h>
 #include <tasks/papers.h>
@@ -12,7 +13,6 @@
 
 #include <tasks/task_launcher.h>
 #include <benchmark.h>
-
 
 BENCH(msg);
 
@@ -39,6 +39,8 @@ static void tl_action(char input) {
         break;
     case '1':
         Create(4, a1_task);
+        break;
+    case '2':
         break;
     case 'b':
 	Create(TASK_PRIORITY_MAX, papers);
@@ -77,14 +79,15 @@ static void tl_action(char input) {
 }
 
 static void tl_startup() {
-    name_server_tid = Create(TASK_PRIORITY_MIN, name_server);
+    name_server_tid = Create(TASK_PRIORITY_MAX, name_server);
     if( name_server_tid < 0 ) {
         vt_log("failed starting name server! goodbye cruel world");
 	vt_flush();
 	Exit();
     }
 
-    Create(TASK_PRIORITY_MIN, echo_server);
+    // Create(TASK_PRIORITY_MAX-3, k2_server);
+    Create(TASK_PRIORITY_MAX-3, echo_server);
 }
 
 void task_launcher() {
@@ -94,11 +97,6 @@ void task_launcher() {
         vt_log( "Welcome to Task Launcher (h for help)" );
         vt_flush();
 
-        while( !vt_can_get() ) {
-	    vt_read();
-	    Pass();
-	}
-
-	tl_action(vt_getc());
+	tl_action(vt_waitget());
     }
 }

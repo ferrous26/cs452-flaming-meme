@@ -52,4 +52,6 @@ void vt_log_start(void);
 void vt_log_end(void);
 void vt_log(const char* fmt, ...);
 
+char vt_waitget(void);
+
 #endif
