@@ -19,10 +19,10 @@ memcpy:
 	/* If we got here, we want to try and align the addresses */
   sub  r2, r2, r3
 .align:
-	ldrb r3, [r1]
+	ldrb r4, [r1]
 	add  r1, r1, #1
 	subs r3, r3, #1   /* set condition flags here */
-	strb r3, [r0]
+	strb r4, [r0]
 	add  r0, r0, #1
 	bne .align
 
@@ -36,14 +36,33 @@ memcpy:
 .fastcpy:
 
 /* more than 32? */
-32:
+.big:
   subs r2, r2, #32
   ldmplia r1!, {r3-r10}
   stmplia r0!, {r3-r10}
-  bpl 32 /* if there is something left, go back to start */
   beq .done
+  bpl .big /* if there is something left, go back to start */
 
   add r2, r2, #32
+
+.medium:
+  subs r2, r2, #8
+  ldmplia r1!, {r3-r4}
+  stmplia r0!, {r3-r4}
+  beq .done
+  bpl .medium /* if there is something left, go back to start */
+
+  add r2, r2, #8
+
+.small:
+  subs r2, r2, #4
+  ldmplia r1!, {r3}
+  stmplia r0!, {r3}
+  beq .done
+  bpl .small /* if there is something left, go back to start */
+
+  add r2, r2, #4
+
 
 .slowcpy:
 	ldrb r3, [r1]
