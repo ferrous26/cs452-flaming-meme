@@ -140,6 +140,7 @@ int task_create(const task_pri pri, void (*const start)(void)) {
 void task_destroy() {
     // TODO: handle overflow (trololol)
     task_active->tid += TASK_MAX;
+    task_active->next = NULL;
     // empty the receive buffer
     recv_q[task_index_from_tid(task_active->tid)].head = NULL;
     // put the task back into the allocation pool
