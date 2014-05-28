@@ -38,7 +38,7 @@ memcpy:
 32:
   subs  r2, r2, #32
   ldmplia r1!, {r3-r10}
-  stmplia r1!, {r3-r10}
+  stmplia r0!, {r3-r10}
   bpl 32 /* if there is something left, go back to start */
 
   /* more than 16? */

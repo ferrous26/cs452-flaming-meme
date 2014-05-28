@@ -4,82 +4,89 @@
 #include <vt100.h>
 #include <memory.h>
 
+BENCH(mem4);
 BENCH(mem8);
 BENCH(mem16);
 BENCH(mem32);
 BENCH(mem64);
+BENCH(mem128);
 BENCH(mem3);
 BENCH(mema);
 
 static char copy[256];
 static const char* str =
-    "this is a very long string that is "
-    "at least 256 characters long...I think, "
-    "but I can always make it longer by droning on and on and on "
-    "about something or rather...maybe, or maybe not."
-    "this is harder than I thought it was. I probably should have "
-    "just used the lorem ipsum generator to get a giant block of "
-    "text to futz with for this benchmark";
+    "this is a very l"
+    "ong string that "
+    "is at least 256 "
+    "characters long."
+    "..I think, but I"
+    " can always make"
+    " it longer by dr"
+    "oning on and on "
+    "and on about som"
+    "ething or rather"
+    "...maybe, or may"
+    "be not. this is "
+    "harder than I th"
+    "ought it was. I "
+    "probably should "
+    "have just used t"
+    "he lorem ipsum g"
+    "enerator to get "
+    "a giant block of"
+    " text to futz wi"
+    "th for this benc"
+    "hmark.........:)";
+
+void reset() {
+    // TODO: implement memset
+    for (size i = 0; i < 256; i++) {
+	copy[i] = '\0';
+    }
+}
 
 void memcpy_bench(void) {
     vt_log("MEMCPY BENCH STARTING...");
     vt_flush();
 
-   uint count = 0;
+    uint count = 0;
 
-   BENCH_START(mem8);
-   for (count = 10000; count; count--) {
-       memcpy(copy, str, 8);
-       BENCH_LAP(mem8);
-   }
+    vt_log("copy  (%p)", copy);
+    vt_log("str   (%p)", str);
 
-   BENCH_START(mem16);
-   for (count = 10000; count; count--) {
-       memcpy(copy, str, 16);
-       BENCH_LAP(mem16);
-   }
+#define MEMTEST(name, siz)			\
+    reset();					\
+    BENCH_START(name);				\
+    for (count = 10000; count; count--) {	\
+	memcpy(copy, str, siz);			\
+	BENCH_LAP(name);			\
+    }						\
+    BENCH_PRINT_WORST(name);			\
+    BENCH_PRINT_AVERAGE(name);			\
+    vt_log("copy = %s", copy);			\
+    vt_log("");					\
+    vt_flush();
 
-   BENCH_START(mem32);
-   for (count = 10000; count; count--) {
-       memcpy(copy, str, 32);
-       BENCH_LAP(mem32);
-   }
+    MEMTEST(mem4, 4);
+    MEMTEST(mem8,8);
+    MEMTEST(mem16, 16);
+    MEMTEST(mem32, 32);
+    MEMTEST(mem64, 64);
+    MEMTEST(mem128, 128);
+    MEMTEST(mem3, 3);
 
-   BENCH_START(mem64);
-   for (count = 10000; count; count--) {
-       memcpy(copy, str, 64);
-       BENCH_LAP(mem64);
-   }
+    reset();
+    BENCH_START(mema);
+    for (count = 10000; count; count--) {
+	memcpy(copy+3, str, 32);
+	BENCH_LAP(mema);
+    }
+    BENCH_PRINT_WORST(mema);
+    BENCH_PRINT_AVERAGE(mema);
+    vt_log("copy = %s", copy);
+    vt_log("");
+    vt_flush();
 
-   BENCH_START(mem3);
-   for (count = 10000; count; count--) {
-       memcpy(copy, str, 3);
-       BENCH_LAP(mem3);
-   }
-
-   BENCH_START(mema);
-   for (count = 10000; count; count--) {
-       memcpy(copy+3, str, 32);
-       BENCH_LAP(mema);
-   }
-
-   BENCH_PRINT_WORST(mem8);
-   BENCH_PRINT_WORST(mem16);
-   BENCH_PRINT_WORST(mem32);
-   BENCH_PRINT_WORST(mem64);
-   BENCH_PRINT_WORST(mem3);
-   BENCH_PRINT_WORST(mema);
-
-   BENCH_PRINT_AVERAGE(mem8);
-   BENCH_PRINT_AVERAGE(mem16);
-   BENCH_PRINT_AVERAGE(mem32);
-   BENCH_PRINT_AVERAGE(mem64);
-   BENCH_PRINT_AVERAGE(mem3);
-   BENCH_PRINT_AVERAGE(mema);
-
-   vt_log("copy (%p) = %s", copy, copy);
-   vt_log("str (%p)  = %s", str, str);
-
-   vt_log("MEMCPY BENCH DONE!");
-   vt_flush();
+    vt_log("MEMCPY BENCH DONE!");
+    vt_flush();
 }
