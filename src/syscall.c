@@ -85,13 +85,13 @@ int Reply(int tid, char *reply, int replylen) {
 }
 
 int WhoIs(char* name) {
+
     ns_req req;
-    for(unsigned int i = 1; i < sizeof(req)/WORD_SIZE; i++) {
-        ((uint32*)&req)[i] = 0;
-    }
     req.type = LOOKUP;
-    for(unsigned int i = 0; name[i] != '\0'; i++) {
-        if( i == NAME_MAX_SIZE ) return -1;
+    memset((void*)&req.payload, 0, sizeof(ns_payload));
+
+    for(uint i = 0; name[i] != '\0'; i++) {
+        if (i == NAME_MAX_SIZE) return -1;
 	req.payload.text[i] = name[i];
     }
 
@@ -105,13 +105,11 @@ int WhoIs(char* name) {
 
 int RegisterAs(char* name) {
     ns_req req;
-    
-    for(unsigned int i = 1; i < sizeof(req)/WORD_SIZE; i++) {
-        ((uint32*)&req)[i] = 0;
-    }
     req.type = REGISTER;
-    for(int i = 0; name[i] != '\0'; i++) {
-        if( i == NAME_MAX_SIZE ) return -1;
+    memset((void*)&req.payload, 0, sizeof(ns_payload));
+
+    for(uint i = 0; name[i] != '\0'; i++) {
+        if (i == NAME_MAX_SIZE) return -1;
 	req.payload.text[i] = name[i];
     }
 
@@ -119,8 +117,8 @@ int RegisterAs(char* name) {
     int res = Send(name_server_tid,
                    (char*)&req, sizeof(req),
                    (char*)&ret, sizeof(int));
+
     if(res < 0) return res;
     if(ret < 0) return ret;
     return 0;
 }
-
