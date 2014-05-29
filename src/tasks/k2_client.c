@@ -16,9 +16,6 @@ void k2_computer() {
     }
 
     for(;;) {
-        vt_log("RPS Computer %d has played to %d", id, s_id);
-        vt_flush();
-        
         k2_signup(s_id);
 
         vt_log("RPS Computer %d has played to %d", id, s_id);

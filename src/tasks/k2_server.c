@@ -36,8 +36,9 @@ static int   _queue_consume(k2_queue* q);
 static bool  _can_play(k2_queue* q, k2_game* g);
 static void  _start_game(k2_queue* q, k2_game* g);
 static char* _mtoa(k2rps_move move);
-static void _reset_game(k2_game* g);
-static void _play(k2_game* g);
+static void  _reset_game(k2_game* g);
+static void  _play(k2_game* g);
+
 static void _print(char* s) {
     vt_log("K2_RPS:\t%s", s);
     vt_flush();
@@ -160,7 +161,8 @@ static int _queue_consume(k2_queue *q) {
 }
 
 static bool _can_play(k2_queue *q, k2_game *g) {
-    return q->siz > 1 && g->p1 != g->p2;
+    // vt_log("%d %d %d", q->siz, g->p1, g->p2);
+    return q->siz > 1 && g->p1 == g->p2;
 }
 
 static void _play(k2_game* g) {
