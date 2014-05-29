@@ -1,7 +1,6 @@
+
 #ifndef __STD_H__
 #define __STD_H__
-
-#include <limits.h>
 
 #define UNUSED(x) (void)(x)
 #define NULL 0
@@ -25,5 +24,8 @@ int abs(const int val);
 bool isspace(const char c);
 bool isdigit(const char c);
 bool ishexdigit(const char c);
+
+#include <limits.h>
+#include <memory.h>
 
 #endif
