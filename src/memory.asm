@@ -74,16 +74,62 @@ memcpy:
 	ldmfd sp!, {r0, r4-r10}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
-/*
+
+
 	.global memset
 	.type	memset,   %function
 memset:
-	stmfd sp!, {r0, r4-r10}
+	/** r0 = dest, r1 = new_val, r2 = len **/
+	/* Back up r0, since we must return it */
+	stmfd sp!, {r0, r4}
 
-	ldmfd sp!, {r0, r4-r10}
+	/* If already word aligned, skip to accelerated case */
+	ands   r3, r0, #3
+	beq    .fastset
+
+	/* If we got here, we want to try and align the addresses */
+	sub  r2, r2, r3
+.alignset:
+	strb r1, [r0]
+	add  r0, r0, #1
+	subs r3, r3, #1   /* set condition flags here */
+	bne .alignset
+
+	/* check alignment again */
+	ands r3, r0, #3
+	bne .slowset /* if still not aligned, then give up */
+
+.fastset:
+	/* make a nice register for setting */
+	orr r1, r1, r1, LSL #8
+	orr r1, r1, r1, LSL #16
+	mov r4, r1
+
+.bigset: /* multiple of 8? */
+	subs r2, r2, #8
+	stmplia r0!, {r1, r4}
+	beq .doneset
+	bpl .bigset /* if there is something left, go back to start */
+	add r2, r2, #8
+
+/* at this point we have less than 8 bytes left */
+	subs r2, r2, #4
+	stmplia r0!, {r3}
+	beq .doneset
+	addmi r2, r2, #4
+
+.slowset:
+	strb r1, [r0]
+	add  r0, r0, #1
+	subs r2, r2, #1   /* set condition flags here */
+	bne .slowset
+
+.doneset:
+	ldmfd sp!, {r0, r4}
 	mov pc, lr
 	.size   memset, .-memset
 
+/*
 	.global memcmp
 	.type	memcmp,   %function
 memcmp:
