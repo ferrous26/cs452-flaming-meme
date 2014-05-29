@@ -54,17 +54,13 @@ typedef struct {
     void (*code) (void);
 } kreq_create;
 
-
-struct msg_send;
-typedef struct msg_send kreq_send;
-
-struct msg_send {
+typedef struct {
     int   tid;
     char* msg;
     int   msglen;
     char* reply;
     int   replylen;
-};
+} kreq_send;
 
 typedef struct {
     int*  tid;
