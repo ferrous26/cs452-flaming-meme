@@ -1,7 +1,6 @@
 	.file	"memory.asm"
 	.text
 	.align	2
-
 	.global memcpy
 	.type	memcpy,   %function
 memcpy:
@@ -58,13 +57,12 @@ memcpy:
 	ldmfd sp!, {r0, r4-r10}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
-
-	/*
+/*
 	.global memset
 	.type	memset,   %function
 memset:
 	stmfd sp!, {r0, r4-r10}
-	// do shit
+
 	ldmfd sp!, {r0, r4-r10}
 	mov pc, lr
 	.size   memset, .-memset
@@ -88,4 +86,4 @@ memcmp:
 	mov r0, #0
 	mov pc, lr
 	.size   memcmp, .-memcmp
-	*/
+*/
