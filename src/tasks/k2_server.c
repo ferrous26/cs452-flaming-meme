@@ -161,7 +161,6 @@ static int _queue_consume(k2_queue *q) {
 }
 
 static bool _can_play(k2_queue *q, k2_game *g) {
-    // vt_log("%d %d %d", q->siz, g->p1, g->p2);
     return q->siz > 1 && g->p1 == g->p2;
 }
 
@@ -182,11 +181,14 @@ static void _play(k2_game* g) {
     }
 
     _print("ROCK PAPER SCISSORS!");
-    vt_log("%d: %s", g->p1, _mtoa(g->m1));
-    vt_log("%d: %s", g->p2, _mtoa(g->m2));
+    vt_log("K2_RPS:\t%d: %s", g->p1, _mtoa(g->m1));
+    vt_log("K2_RPS:\t%d: %s", g->p2, _mtoa(g->m2));
+    vt_log("press any key to continue...");
     vt_flush();
+    vt_waitget();
 
-    _reset_game(g);
+    g->m1 = INVALID;
+    g->m2 = INVALID;
 }
 
 static void _start_game(k2_queue* q, k2_game* g) {

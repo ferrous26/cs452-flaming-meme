@@ -45,6 +45,7 @@ static void tl_action(char input) {
         break;
     case '2':
         Create(4, k2_computer);
+        Create(4, k2_human);
         break;
     case 'b':
 	Create(TASK_PRIORITY_MAX, papers);
