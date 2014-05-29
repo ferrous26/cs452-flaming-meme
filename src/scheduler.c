@@ -137,11 +137,19 @@ int task_create(const task_pri pri, void (*const start)(void)) {
 }
 
 void task_destroy() {
+
     // TODO: handle overflow (trololol)
     task_active->tid += TASK_MAX;
     task_active->sp   = NULL;
+
     // empty the receive buffer
-    recv_q[task_index_from_tid(task_active->tid)].head = NULL;
+    task_q* q = &recv_q[task_index_from_tid(task_active->tid)];
+    while (q->head) {
+	q->head->sp[0] = INCOMPLETE;
+	scheduler_schedule(q->head);
+	q->head = q->head->next;
+    }
+
     // put the task back into the allocation pool
     ibuf_produce(&free_list.list, mod2(task_active->tid, TASK_MAX));
 }
