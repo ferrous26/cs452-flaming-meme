@@ -11,6 +11,9 @@
 #include <tasks/echo_server.h>
 #include <tasks/name_server.h>
 
+#include <tasks/k2_server.h>
+#include <tasks/k2_client.h>
+
 #include <tasks/task_launcher.h>
 #include <benchmark.h>
 
@@ -41,6 +44,7 @@ static void tl_action(char input) {
         Create(4, a1_task);
         break;
     case '2':
+        Create(4, k2_computer);
         break;
     case 'b':
 	Create(TASK_PRIORITY_MAX, papers);
@@ -86,8 +90,8 @@ static void tl_startup() {
 	Exit();
     }
 
-    // Create(TASK_PRIORITY_MAX-3, k2_server);
-    Create(TASK_PRIORITY_MAX-3, echo_server);
+    Create(TASK_PRIORITY_MAX-2, k2_server);
+    Create(TASK_PRIORITY_MAX-2, echo_server);
 }
 
 void task_launcher() {
@@ -96,7 +100,6 @@ void task_launcher() {
     for(;;) {
         vt_log( "Welcome to Task Launcher (h for help)" );
         vt_flush();
-
 	tl_action(vt_waitget());
     }
 }

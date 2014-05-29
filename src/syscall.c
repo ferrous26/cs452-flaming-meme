@@ -106,7 +106,6 @@ int WhoIs(char* name) {
 int RegisterAs(char* name) {
     ns_req req;
     
-    debug_log( "SIZE req %d", sizeof(req) );
     for(unsigned int i = 1; i < sizeof(req)/WORD_SIZE; i++) {
         ((uint32*)&req)[i] = 0;
     }
