@@ -24,13 +24,14 @@ extern task_id name_server_tid;
 inline static void print_help() {
     vt_log("\t1 ~ Kernel 1 Test Task");
     vt_log("\t2 ~ Kernel 2 Rock/Paper/Scissors");
+    vt_log("\tr ~ Kernel 2 Rock/Paper/Scissors (2 Computers)");
     vt_log("\tb ~ Benchmark Self-Measure");
     vt_log("\te ~ Perform WhoIs Lookup on echo server");
     vt_log("\tm ~ Memcpy Benchmark Task");
     vt_log("\tn ~ Msg Test");
     vt_log("\tp ~ Pass Test Benchmark Task");
     vt_log("\th ~ Print this Help Message");
-    vt_log("\ts - Stress the Message System");
+    vt_log("\ts ~ Stress the Message System");
     vt_log("\tq ~ Quit");
     vt_flush();
 }
@@ -44,6 +45,11 @@ static void tl_action(char input) {
         Create(4, a1_task);
         break;
     case '2':
+        Create(4, k2_computer);
+        Create(4, k2_human);
+        break;
+    case 'r':
+        Create(4, k2_computer);
         Create(4, k2_computer);
         break;
     case 'b':
@@ -84,6 +90,7 @@ static void tl_action(char input) {
 
 static void tl_startup() {
     name_server_tid = Create(TASK_PRIORITY_MAX, name_server);
+
     if( name_server_tid < 0 ) {
         vt_log("failed starting name server! goodbye cruel world");
 	vt_flush();

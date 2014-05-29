@@ -3,6 +3,7 @@
 
 #include <io.h>
 #include <vt100.h>
+#include <debug.h>
 
 #include <tasks/k2_server.h>
 
@@ -36,8 +37,9 @@ static int   _queue_consume(k2_queue* q);
 static bool  _can_play(k2_queue* q, k2_game* g);
 static void  _start_game(k2_queue* q, k2_game* g);
 static char* _mtoa(k2rps_move move);
-static void _reset_game(k2_game* g);
-static void _play(k2_game* g);
+static void  _reset_game(k2_game* g);
+static void  _play(k2_game* g);
+
 static void _print(char* s) {
     vt_log("K2_RPS:\t%s", s);
     vt_flush();
@@ -160,7 +162,7 @@ static int _queue_consume(k2_queue *q) {
 }
 
 static bool _can_play(k2_queue *q, k2_game *g) {
-    return q->siz > 1 && g->p1 != g->p2;
+    return q->siz > 1 && g->p1 == g->p2;
 }
 
 static void _play(k2_game* g) {
@@ -172,19 +174,26 @@ static void _play(k2_game* g) {
         Reply(g->p1, (char*)&tie, sizeof(int));
         Reply(g->p2, (char*)&tie, sizeof(int));
     } else if (g->m1 == (g->m2+1)%3) {
-        Reply(g->p1, (char*)&lose, sizeof(int));
-        Reply(g->p2, (char*)&win,  sizeof(int));
-    } else {
         Reply(g->p1, (char*)&win,  sizeof(int));
         Reply(g->p2, (char*)&lose, sizeof(int));
+    } else {
+        Reply(g->p1, (char*)&lose, sizeof(int));
+        Reply(g->p2, (char*)&win,  sizeof(int));
     }
 
+    vt_log("");
+    vt_log("");
+    vt_log("");
+    vt_log("");
     _print("ROCK PAPER SCISSORS!");
-    vt_log("%d: %s", g->p1, _mtoa(g->m1));
-    vt_log("%d: %s", g->p2, _mtoa(g->m2));
+    vt_log("K2_RPS:\t%d: %s", g->p1, _mtoa(g->m1));
+    vt_log("K2_RPS:\t%d: %s", g->p2, _mtoa(g->m2));
+    vt_log("Press Any Key To Continue....");
     vt_flush();
+    vt_waitget();
 
-    _reset_game(g);
+    g->m1 = INVALID;
+    g->m2 = INVALID;
 }
 
 static void _start_game(k2_queue* q, k2_game* g) {
@@ -218,6 +227,8 @@ static char* _mtoa(k2rps_move move) {
 	return "Scissors";
     case INVALID:
     default:
+        debug_log("K2_RPS:\t%d is invalid", move);
+
         return "";
     }
 }
