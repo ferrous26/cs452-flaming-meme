@@ -18,6 +18,11 @@ void stress_msg() {
 	    int tid = Create(i, stress_msg);
 	    vt_log("Created %u", tid);
 	    vt_flush();
+	    if (tid < 0) {
+		for (size j = 0; j < 8; j++)
+		    stressors[j] = 0;
+		return;
+	    }
 	}
 
 	return;
@@ -29,6 +34,11 @@ void stress_msg() {
 	    int tid = Create(20, stress_msg);
 	    vt_log("created child %u", tid);
 	    vt_flush();
+	    if (tid < 0) {
+		for (size j = 0; j < 8; j++)
+		    stressors[j] = 0;
+		return;
+	    }
 	}
 
 	ChangePriority(19);
@@ -49,7 +59,10 @@ void stress_msg() {
     for (;;) {
 	for (size i = 0; i < 8; i++) {
     	    int resp = Send(stressors[i], (char*)msg, 4, recv, 4);
-    	    vt_log("Got reply status %d saying %s", resp, recv);
+	    if (resp > 0)
+		vt_log("Got reply status %d saying %s", resp, recv);
+	    else
+		vt_log("Got reply status %d", resp);
     	    vt_flush();
 	}
     }
