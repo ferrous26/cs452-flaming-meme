@@ -1,5 +1,6 @@
 \documentclass[pdftex,10pt,a4paper]{article}
 \usepackage{../cs452}
+\usepackage{verbatim}
 
 \begin{document}
 
@@ -66,6 +67,33 @@ a longer operating time is of little consequence.
   {\\\file & \ttt{\hash}}%
 \end{tabular}
 \end{center}
+
+
+\section*{Rock Paper Scissors Output}
+
+\verbatiminput{k2_task_out.txt}
+(Note some blank lines have been removed)
+
+\begin{description}
+\item[Lines 1,2:] \hfill \\
+As part of the Task Launchers initalization it calls \ttt{Create()} to start
+up the RPS server. Since the RPS server has a higher priority than the task
+launcher it then starts execution until it hits its \ttt{Receive()} call. At this
+point the task launcher is the only ready task in the system and it continues on
+until it busy waits for user input
+
+\item[Lines 7-12:] \hfill \\
+First Game
+
+\item[Lines 17-22:] \hfill \\
+Second Game
+
+\item[Lines 27-32:] \hfill \\
+Third Game
+
+\item[Lines 37-42:] \hfill \\
+Fourth Game
+\end{description}
 
 
 \end{document}
