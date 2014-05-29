@@ -50,8 +50,8 @@ inline static void ksyscall_recv(task* receiver) {
 
 	// validate that there is enough space in the receiver buffer
 	if (sender_req->msglen > receiver_req->msglen) {
-	    sender->sp[0] = NOT_ENUF_MEMORY; // TODO: maybe use INCOMPLETE?
-	    scheduler_schedule(sender); // schedule this mofo
+	    sender->sp[0] = NOT_ENUF_MEMORY;
+	    scheduler_schedule(sender);
 	    return;
 	}
 
@@ -118,7 +118,7 @@ inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
 
     task* sender = &tasks[task_index_from_tid(req->tid)];
 
-    if (sender->tid != req->tid) {
+    if (sender->tid != req->tid || !sender->next) {
 	*result = (uint)INVALID_TASK;
 	scheduler_schedule(task_active);
 	return;
