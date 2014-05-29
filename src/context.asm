@@ -11,8 +11,7 @@ kernel_enter:
 	stmfd	sp!, {r0-r12, lr}
 	mov	r2, sp
 	msr	cpsr, #0x93 		/* supervisor */
-/*	ldmfd   sp!, {r4-r12, lr} */
-	mov     sp, #0x300000
+	ldmfd   sp!, {r4-r12, lr}
 	b	syscall_handle
 	.size	kernel_enter, .-kernel_enter
 
@@ -21,7 +20,7 @@ kernel_enter:
 	.type	kernel_exit, %function
 kernel_exit:
 	@ r0 holds address of user stack
-/*	stmfd	sp!, {r4-r12, lr} */
+	stmfd	sp!, {r4-r12, lr}
 
 	msr	cpsr, #0x9F		/* System */
 	mov	sp, r0
