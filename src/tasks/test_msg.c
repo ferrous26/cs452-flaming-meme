@@ -74,6 +74,7 @@ void test_msg() {
     // -1 impossible task
     // -2 invalid task (not allocated)
     // -2 invalid task (dead task)
+    // -3 send, receiver quits while sender blocked, should unblock
     // -4 not enuf memory
 
     // test the recv error cases
