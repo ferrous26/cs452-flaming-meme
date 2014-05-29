@@ -1,4 +1,5 @@
 
+#include <rand.h>
 #include <vt100.h>
 #include <syscall.h>
 
@@ -8,7 +9,6 @@
 void k2_computer() {
     int id   = myTid();
     int s_id = WhoIs(K2_RPS_LOOK);
-
     if(s_id < 0) {
         vt_log("RPS Computer Cant Get RPS SERVER!!!", id);
         vt_flush();
@@ -17,7 +17,10 @@ void k2_computer() {
 
     k2_signup(s_id);
     for(;;) {
-        switch( k2_play(s_id, ROCK) ) {
+
+        k2rps_move move = (k2rps_move) abs(rand()%3);
+
+        switch( k2_play(s_id, move) ) {
         case K2_RPS_WIN:
             vt_log("RPS-C(%d):\tI ARE WINRAR!", id);
             break;
@@ -27,13 +30,12 @@ void k2_computer() {
         case K2_RPS_TIE:
             vt_log("RPS-C(%d):\tgame tie...", id);
             break;
-        case 'q':
-            vt_log("RPS-C(%d):\tExiting!", id);
+        case K2_RPS_QUIT:
+            vt_log("RPS-C(%d):\tQuitting!", id);
             return;
         default:
             vt_log("RPS-C(%d):\tUnexpected!", id);
         }
-
         vt_flush();
     }
 }
@@ -67,7 +69,7 @@ void k2_human() {
 
             char input = vt_waitget();
             if(input == 'q') {
-                vt_log("RPS-H(%d)\tCalled Exit", id);
+                vt_log("RPS-H(%d):\tCalled Exit", id);
                 vt_flush();
                 k2_quit(s_id);
                 return;
@@ -78,24 +80,21 @@ void k2_human() {
         switch(k2_play(s_id, move)) {
         case K2_RPS_WIN:
             vt_log("RPS-H(%d):\tYOU'RE WINNER", id);
-            vt_flush();
             break;
         case K2_RPS_TIE:
             vt_log("RPS-H(%d):\tTie, so everyone loses", id);
-            vt_flush();
             break;
         case K2_RPS_LOSE:
             vt_log("RPS-H(%d):\tYOU ARE A FAILURE!", id);
-            vt_flush();
             break;
         case K2_RPS_QUIT:
             vt_log("RPS-H(%d):\tGame Over", id);
-            vt_flush();
             return;
         default:
-            vt_log("RPS Human %d UNEXPECTED", id);
-            return;
+            vt_log("RPS-H(%d):\tUNEXPECTED", id);
+            break;
         }
+        vt_flush();
     }
 }
 

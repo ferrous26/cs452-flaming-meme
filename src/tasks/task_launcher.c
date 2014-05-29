@@ -24,6 +24,7 @@ extern task_id name_server_tid;
 inline static void print_help() {
     vt_log("\t1 ~ Kernel 1 Test Task");
     vt_log("\t2 ~ Kernel 2 Rock/Paper/Scissors");
+    vt_log("\tr ~ Kernel 2 Rock/Paper/Scissors (2 Computers)");
     vt_log("\tb ~ Benchmark Self-Measure");
     vt_log("\te ~ Perform WhoIs Lookup on echo server");
     vt_log("\tm ~ Memcpy Benchmark Task");
@@ -46,6 +47,10 @@ static void tl_action(char input) {
     case '2':
         Create(4, k2_computer);
         Create(4, k2_human);
+        break;
+    case 'r':
+        Create(4, k2_computer);
+        Create(4, k2_computer);
         break;
     case 'b':
 	Create(TASK_PRIORITY_MAX, papers);

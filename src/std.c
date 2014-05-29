@@ -5,7 +5,6 @@ int abs(const int val) {
 }
 
 bool isspace(const char c) {
-
     switch( c ) {
     case ' ':
     case '\t':
