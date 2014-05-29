@@ -78,7 +78,7 @@ inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 
     task* receiver = &tasks[task_index_from_tid(req->tid)];
 
-    if (receiver->tid != req->tid || !receiver->next) {
+    if (receiver->tid != req->tid || !receiver->sp) {
 	*result = (uint)INVALID_TASK;
 	scheduler_schedule(task_active);
 	return;
@@ -118,7 +118,7 @@ inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
 
     task* sender = &tasks[task_index_from_tid(req->tid)];
 
-    if (sender->tid != req->tid || !sender->next) {
+    if (sender->tid != req->tid || !sender->sp) {
 	*result = (uint)INVALID_TASK;
 	scheduler_schedule(task_active);
 	return;

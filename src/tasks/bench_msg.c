@@ -76,8 +76,10 @@ void bench_msg() {
 	    return;
 	}
 
-	vt_log("Starting message passing benchmark!");
+	vt_log("Child is %u", child);
+	vt_flush();
 
+	vt_log("Starting message passing benchmark!");
 
 	vt_log("Baseline measurement!");
 	baseline();
@@ -85,10 +87,12 @@ void bench_msg() {
 	vt_log("Send before receive");
 	send_it(child);
 
-	ChangePriority(2);
-
 	vt_log("Receive before send");
+	ChangePriority(2);
+	Pass(); // ensure the child gets ahead
 	send_it(child);
+
+	return;
     }
 
     int tid = 99;
