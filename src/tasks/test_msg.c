@@ -1,3 +1,4 @@
+#include <tasks/test_msg.h>
 #include <vt100.h>
 #include <std.h>
 #include <syscall.h>
@@ -41,12 +42,14 @@ static void stress_msg() {
 
 	ChangePriority(19);
 
+	int mTid = myTid();
 	int tid;
 	char buf[4];
 
 	for (size i = 100000; i; i--) {
 	    int siz = Receive(&tid, buf, 4);
-	    vt_log("Got message from %d of size %d saying %s", tid, siz, buf);
+	    vt_log("%u got msg from %d of size %d saying %s",
+		   mTid, tid, siz, buf);
 	    vt_flush();
 	    Reply(tid, buf, 4);
 	}

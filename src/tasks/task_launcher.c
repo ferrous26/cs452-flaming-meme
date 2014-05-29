@@ -16,7 +16,8 @@ extern task_id name_server_tid;
 
 inline static void print_help() {
 
-    vt_log("1 ~ Benchmark memcpy\n\t"
+    vt_log("\n\t"
+	   "1 ~ Benchmark memcpy\n\t"
 	   "2 ~ Kernel 2 Rock/Paper/Scissors\n\t"
 	   "r ~ Kernel 2 Rock/Paper/Scissors (2 Computers)\n\t"
 	   "3 ~ Benchmark message passing\n\t"
