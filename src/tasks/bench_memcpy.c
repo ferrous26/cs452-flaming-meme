@@ -10,6 +10,7 @@ BENCH(mem64);
 BENCH(mem28);
 BENCH(mem3);
 BENCH(mema);
+BENCH(memse);
 
 static char copy[256];
 static const char* str =
@@ -86,5 +87,19 @@ void bench_memcpy(void) {
     vt_flush();
 
     vt_log("MEMCPY BENCH DONE!");
+    vt_flush();
+
+
+    vt_log("MEMSET BENCH STARTING...");
+    reset();
+    BENCH_START(memse);
+    for (count = 10000; count; count--) {
+	memset(copy, 97, 16);
+	BENCH_LAP(memse);
+    }
+    BENCH_PRINT_WORST(memse);
+    BENCH_PRINT_AVERAGE(memse);
+    vt_log("copy = %s", copy);
+    vt_log("MEMSET BENCH DONE!");
     vt_flush();
 }
