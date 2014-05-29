@@ -29,7 +29,10 @@ memcpy:
 	bne     .slowcpy /* if still not aligned, then give up */
 
 .fastcpy: /* fall through to the fastcpy case! */
-.big: /* more than 32? */
+	cmp r2, #4 /* jump right to the word case */
+	beq .small
+
+.big: /* multiple of 32? */
 	subs r2, r2, #32
 	ldmplia r1!, {r3-r10}
 	stmplia r0!, {r3-r10}
@@ -37,18 +40,32 @@ memcpy:
 	bpl .big /* if there is something left, go back to start */
 	add r2, r2, #32
 
+/* at this point, we have less than 32 bytes left to copy */
+/* so we can make some assumptions to avoid branching */
+
+	subs r2, r2, #16
+	ldmplia r1!, {r3-r6}
+	stmplia r0!, {r3-r6}
+	beq .done
+	addmi r2, r2, #16
+
+	subs r2, r2, #8
+	ldmplia r1!, {r3-r4}
+	stmplia r0!, {r3-r4}
+	beq .done
+	addmi r2, r2, #8
+
 .small:
 	subs r2, r2, #4
 	ldmplia r1!, {r3}
 	stmplia r0!, {r3}
 	beq .done
-	bpl .small /* if there is something left, go back to start */
-	add r2, r2, #4
+	addmi r2, r2, #4
 
 .slowcpy:
 	ldrb r3, [r1]
 	add r1, r1, #1
-	subs r2, r2, #1
+	subs r2, r2, #1  /* set condition flags here */
 	strb r3, [r0]
 	add r0, r0, #1
 	bne .slowcpy
