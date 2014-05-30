@@ -83,15 +83,19 @@ void bench_msg() {
 
 	vt_log("Baseline measurement!");
 	baseline();
+	vt_log("");
 
 	vt_log("Send before receive");
 	send_it(child);
+	vt_log("");
 
 	vt_log("Receive before send");
 	ChangePriority(2);
 	Pass(); // ensure the child gets ahead
 	send_it(child);
+	vt_log("");
 
+	vt_flush();
 	return;
     }
 
