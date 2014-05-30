@@ -26,12 +26,7 @@ static void send_it(int child) {
 
     BENCH_START(bench);
     for (size i = 100000; i; i--) {
-	int siz = Send(child, (char*)msg, 4, rply, 4);
-	if (siz != 4) {
-	    vt_log("Send Failure %d", siz);
-	    vt_flush();
-	    return;
-	}
+	Send(child, (char*)msg, 4, rply, 4);
 	BENCH_LAP(bench);
     }
 
@@ -50,12 +45,7 @@ static void send_it(int child) {
 
     BENCH_START(bench);
     for (size i = 100000; i; i--) {
-	int siz = Send(child, (char*)big_msg, 64, big_rply, 64);
-	if (siz != 64) {
-	    vt_log("Send Failure %d", siz);
-	    vt_flush();
-	    return;
-	}
+	Send(child, (char*)big_msg, 64, big_rply, 64);
 	BENCH_LAP(bench);
     }
 
@@ -101,13 +91,9 @@ void bench_msg() {
 
     int tid = 99;
     char buffer[64];
-    for(;;) {
+
+    for (;;) {
         int siz = Receive(&tid, buffer, 64);
-	siz = Reply(tid, buffer, siz);
-	if (siz < 0) {
-	    vt_log("Reply Failure %d", siz);
-	    vt_flush();
-	    return;
-	}
+	Reply(tid, buffer, siz);
     }
 }
