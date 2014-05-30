@@ -181,4 +181,8 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
 	       task_active->tid,
 	       code);
     }
+
+    if (!scheduler_get_next())
+	scheduler_activate();
+    shutdown();
 }

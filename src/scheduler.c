@@ -150,7 +150,7 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     tsk->sp        = task_stack(task_index) - TRAP_FRAME_SIZE;
     tsk->sp[2]     = START_ADDRESS(start);
     tsk->sp[3]     = DEFAULT_SPSR;
-    tsk->sp[13]    = EXIT_ADDRESS; // set link register to auto-call Exit()
+    tsk->sp[12]    = EXIT_ADDRESS; // set link register to auto-call Exit()
 
     // set tsk->next
     scheduler_schedule(tsk);

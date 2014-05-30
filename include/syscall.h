@@ -28,7 +28,7 @@
 #define SYS_CHANGE   10
 
 
-#define SAVED_REGISTERS 13
+#define SAVED_REGISTERS 12
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
 #define START_ADDRESS(fn) ((uint)fn)
