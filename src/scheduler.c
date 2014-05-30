@@ -195,9 +195,6 @@ void debug_task(const task_id tid) {
     debug_log("      Parent ID: %u", tsk->p_tid);
     debug_log("       Priority: %u", tsk->priority);
     switch ((uint)tsk->next) {
-    case (uint)SEND_BLOCKED:
-	debug_log("           Next: SEND BLOCKED");
-	break;
     case (uint)RECV_BLOCKED:
 	debug_log("           Next: RECEIVE BLOCKED");
 	break;

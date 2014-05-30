@@ -37,9 +37,8 @@ struct task_q_pointers {
 };
 
 // choose small values so they can be instruction immediates
-#define SEND_BLOCKED (task*)0xA
-#define RECV_BLOCKED (task*)0xB
-#define RPLY_BLOCKED (task*)0xC
+#define RECV_BLOCKED (task*)0xA
+#define RPLY_BLOCKED (task*)0xB
 
 extern task_q recv_q[TASK_MAX];
 extern task*  task_active;
