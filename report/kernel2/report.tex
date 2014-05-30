@@ -8,12 +8,61 @@
 
 \section*{Overview}
 
-Herp Derp
+This kernel development milestone includes performant message
+passing additions, as well as a name server used for task
+co-operation. This milestone also includes a rock-paper-scissors
+client and server that can be used to play games of the same name.
+
+\section*{Operation Instructions}
+
+A pre-compiled kernel exists at
+\ttt{/u/cs452/tftp/ARM/marada/k2.elf}, which can be loaded with
+default RedBoot command given in the course tutorial document:
+
+\begin{center}
+  \ttt{load -h 10.15.167.4 ARM/marada/k2.elf; go}
+\end{center}
+
+The source code for the kernel exists in \ttt{/u3/marada/kernel2/},
+and can be compiled with the following command chain:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel2 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the makefile.
+
+The kernel and tasks consist of the following files:
+
+\subsection*{Submitted Files}
+\begin{center}
+\begin{tabular}{l|l}
+  \bfseries File & \bfseries MD5 Hash
+  \\\hline
+  \csvreader[head to column names]{md5_info.csv}{}%
+  {\\\file & \ttt{\hash}}%
+\end{tabular}
+\end{center}
 
 
+\newpage
 \section*{Kernel Design}
 
 Kernel do thing and stuff. put the new stuff here!
+
+\subsection*{Message Passing}
+
+\subsubsection*{Send}
+
+\subsubsection*{Receive}
+
+\subsubsection*{Reply}
+
+\ttt{Send}ing a message follows the required API with the addition of
+\ttt{IMPOSSIBLE\_TASK} maps to a return code of \ttt{-1}, and is used
+when the message being sent \ttt{NOT\_ENUF\_MEMORY}.
+
 
 \subsection*{Name Server}
 
@@ -46,7 +95,7 @@ the \ttt{Send()} system call and has the same error codes but also contains
 the error -69 which means that the lookup doesn’t lead to a valid task id.
 \end{description}
 
-The Nameserver stores all of the names into a single unsorted array and all of 
+The Nameserver stores all of the names into a single unsorted array and all of
 the tasks that each name into a separate array such the the index of both arrays
 correspond to the same element. Since the name size is 8 characters or less the
 server does word comparison though the name array until a match is found or all
@@ -59,17 +108,8 @@ while important should only require use during the initialization or when having
 a longer operating time is of little consequence.
 
 
-\begin{center}
-\begin{tabular}{l|l}
-  \bfseries File & \bfseries MD5 Hash
-  \\\hline
-  \csvreader[head to column names]{md5_info.csv}{}%
-  {\\\file & \ttt{\hash}}%
-\end{tabular}
-\end{center}
-
-
 \section*{Rock Paper Scissors Output}
+
 
 \verbatiminput{k2_task_out.txt}
 (Note some blank lines have been removed)
