@@ -43,14 +43,14 @@ void name_server() {
 		    lookup.overlay[insert][1] = buffer.payload.overlay[1];
 		    tasks[insert++] = tid;
 	        } else {
-                    reply = -3;
+                    reply = -69;
 	        }
 	    } else {
                 tasks[loc] = tid;
 	    }
             break;
         case LOOKUP:
-            reply = loc < 0 ? -3 : tasks[loc]; 
+            reply = loc < 0 ? -69 : tasks[loc]; 
 	    break;
 	default:
 	    debug_log("NameServer: task %d gave me garbage!", tid);
