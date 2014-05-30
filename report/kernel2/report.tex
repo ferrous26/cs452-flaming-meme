@@ -23,7 +23,7 @@ default RedBoot command given in the course tutorial document:
   \ttt{load -h 10.15.167.4 ARM/marada/k2.elf; go}
 \end{center}
 
-Notice that no offset should be specified for the load instruction. 
+Notice that no offset should be specified for the load instruction.
 
 The source code for the kernel exists in \ttt{/u3/marada/kernel2/},
 and can be compiled with the following command chain:
@@ -39,7 +39,7 @@ After Initialization the kernel will respond with the message ``\ttt{Welcome to
 Task Launcher}''.
 At this point the key \ttt{2} will start a game where you can use the RPS server
 to play against the computer. the \ttt{q} key can be used to close the game.
-Alternately, the Key \ttt{r} will start up two computers that play against each 
+Alternately, the Key \ttt{r} will start up two computers that play against each
 other forever.
 
 \subsection*{Submitted Files}
@@ -228,8 +228,8 @@ operating time is of little consequence.
 \section*{Rock Paper Scissors Task Priorities}
 \begin{description}
 \item[Name Server] \hfill \\
-The Name Server is given max priority in our system. This is because looking 
-up a name is a requirement of most tasks initialization and causing a task to 
+The Name Server is given max priority in our system. This is because looking
+up a name is a requirement of most tasks initialization and causing a task to
 block for other tasks of a lessor priority.
 
 \item[RPS Server] \hfill \\
@@ -244,6 +244,7 @@ run without having to end the OS. They are Lower than the server because we beli
 that the provider of data shouldn't block a task unless the data can't be provided.
 \end{description}
 
+\newpage
 \section*{Rock Paper Scissors Output}
 
 \verbatiminput{k2_task_out.txt}
@@ -269,6 +270,7 @@ The tasks both received that the game had resulted in a tie.
 Second Game, procedure looks the same as above but both computers had thrown paper
 instead of rock.
 
+\newpage
 \item[Lines 27-32:] \hfill \\
 Third Game, Process is similar to above however this time task 3 threw a scissors
 and task 4 threw a rock. Task 3 has noticed that it has lost the round and task 4
@@ -278,6 +280,32 @@ is happy that it had won.
 Fourth Game, Process is same as above but with a rock and paper for tasks 3 and 4
 respectively.
 \end{description}
+
+
+\section*{Benchmarking}
+
+\begin{center}
+\pgfplotstabletypeset[
+    col sep=comma,
+    string type,
+    every head row/.style={%
+        after row=\hline
+    },
+    every last row/.style={after row=\hline},
+    columns/name/.style={column name=Message Length, column type=l},
+    columns/surname/.style={column name=Caches, column type=l},
+    columns/age/.style={column name=Send Before Receive, column type=l},
+    columns/age/.style={column name=Optimizations, column type=l},
+    columns/age/.style={column name=Time (microseconds), column type=l},
+    ]{messaging.csv}
+\end{center}
+
+From past benchmarking of context switch time using \ttt{Pass()}, we know that
+in the optimized case, with caches turned on, that most of the time required
+for the messaging passing loop will be spent in the context switch and scheduler.
+
+When the caches are turned off, we spend an enormous amount of time
+waiting for instructions and data to be fetched from main memory.
 
 
 \end{document}
