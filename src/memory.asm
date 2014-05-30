@@ -16,11 +16,9 @@ memcpy:
 	/* If we got here, we want to try and align the addresses */
 	sub  r2, r2, r3
 .align:
-	ldrb r4, [r1]
-	add  r1, r1, #1
+	ldrb r4, [r1], #1
 	subs r3, r3, #1   /* set condition flags here */
-	strb r4, [r0]
-	add  r0, r0, #1
+	strb r4, [r0], #1
 	bne .align
 
 	/* check alignment again */
@@ -63,11 +61,9 @@ memcpy:
 	addmi r2, r2, #4
 
 .slowcpy:
-	ldrb r3, [r1]
-	add r1, r1, #1
+	ldrb r3, [r1], #1
 	subs r2, r2, #1  /* set condition flags here */
-	strb r3, [r0]
-	add r0, r0, #1
+	strb r3, [r0], #1
 	bne .slowcpy
 
 .done:
