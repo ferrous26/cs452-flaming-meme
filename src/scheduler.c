@@ -11,14 +11,17 @@
 
 // force grouping by putting them into a struct
 struct task_free_list {
-    uint_buffer list;
-    uint32 buffer[TASK_MAX];
+    char_buffer list;
+    int8 buffer[TASK_MAX];
 };
 
 struct task_manager {
     uint32 state; // bitmap for accelerating queue selection
     task_q q[TASK_PRIORITY_LEVELS];
 };
+
+// TODO: benchmark!
+static int8 table[256];
 
 task_q recv_q[TASK_MAX];
 struct task_descriptor  tasks[TASK_MAX];
@@ -27,11 +30,39 @@ struct task_descriptor* task_active;
 static struct task_free_list free_list;
 static struct task_manager   manager;
 
+static inline int32 __attribute__ ((pure)) choose_priority(const uint v) {
+    int32 result;
+    uint  t;
+    uint  tt;
+
+    if ((tt = v >> 16))
+	result = (t = tt >> 8) ? 24 + table[t] : 16 + table[tt];
+    else
+	result = (t = v >> 8) ? 8 + table[t] : table[v];
+
+    return result;
+}
+
 static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
     return (uint*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
 }
 
 void scheduler_init(void) {
+
+    table[0] = table[1] = 0;
+    for (int i = 2; i < 256; i++)
+	table[i] = 1 + table[i >> 1];
+    table[0] = -1; // if you want log(0) to return -1
+
+    for (size i = 0; i < 32; i++)
+	debug_log("%p | p = %u \t lg = %u",
+		  (1 << i),
+		  choose_priority(1 << i),
+		  lg(1 << i));
+    debug_log("%p | p = %u \t lg = %u",
+	      0,
+	      choose_priority(0),
+	      lg(0));
 
     size i = 0;
 
@@ -46,11 +77,11 @@ void scheduler_init(void) {
 	q->tail = NULL;
     }
 
-    ibuf_init(&free_list.list, TASK_MAX, free_list.buffer);
+    cbuf_init(&free_list.list, TASK_MAX, free_list.buffer);
 
     for (i = 0; i < 16; i++) {
 	tasks[i].tid = i;
-	ibuf_produce(&free_list.list, i);
+	cbuf_produce(&free_list.list, i);
     }
 
     // get the party started
@@ -59,7 +90,7 @@ void scheduler_init(void) {
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid = i;
-	ibuf_produce(&free_list.list, i);
+	cbuf_produce(&free_list.list, i);
     }
 }
 
@@ -115,10 +146,10 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
     // make sure we have something to allocate
-    if (!ibuf_can_consume(&free_list.list)) return NO_DESCRIPTORS;
+    if (!cbuf_can_consume(&free_list.list)) return NO_DESCRIPTORS;
 
     // actually take the task descriptor and load it up
-    const task_idx task_index = ibuf_consume(&free_list.list);
+    const task_idx task_index = cbuf_consume(&free_list.list);
 
     task* tsk      = &tasks[task_index];
     tsk->p_tid     = task_active->tid; // task_active is _always_ the parent
@@ -151,7 +182,7 @@ void task_destroy() {
     }
 
     // put the task back into the allocation pool
-    ibuf_produce(&free_list.list, mod2(task_active->tid, TASK_MAX));
+    cbuf_produce(&free_list.list, mod2(task_active->tid, TASK_MAX));
 }
 
 #if DEBUG
