@@ -10,6 +10,7 @@
 #include <memory.h>
 #include <scheduler.h>
 #include <kernel.h>
+#include <rand.h>
 
 static void* exit_point = NULL;
 
@@ -47,6 +48,8 @@ static inline void _init(void* dp) {
 
     *SWI_HANDLER = 0xea000000 | (((int)kernel_enter >> 2) - 4);
     exit_point   = dp;
+
+    srand(__BUILD__);
 }
 
 void shutdown(void) {
