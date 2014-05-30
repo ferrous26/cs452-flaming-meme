@@ -23,6 +23,8 @@ default RedBoot command given in the course tutorial document:
   \ttt{load -h 10.15.167.4 ARM/marada/k2.elf; go}
 \end{center}
 
+Notice that no offset should be specified for the load instruction. 
+
 The source code for the kernel exists in \ttt{/u3/marada/kernel2/},
 and can be compiled with the following command chain:
 
@@ -33,7 +35,12 @@ and can be compiled with the following command chain:
 Which will produce a \ttt{kernel.elf} file in the same directory as
 the makefile.
 
-The kernel and tasks consist of the following files:
+After Initialization the kernel will respond with the message ``\ttt{Welcome to
+Task Launcher}''.
+At this point the key \ttt{2} will start a game where you can use the RPS server
+to play against the computer. the \ttt{q} key can be used to close the game.
+Alternately, the Key \ttt{r} will start up two computers that play against each 
+other forever.
 
 \subsection*{Submitted Files}
 \begin{center}
@@ -44,7 +51,6 @@ The kernel and tasks consist of the following files:
   {\\\file & \ttt{\hash}}%
 \end{tabular}
 \end{center}
-
 
 \newpage
 \section*{Message Passing}
@@ -77,8 +83,6 @@ If all the checks pass, then we add the descriptor of the \ttt{Send}er
 to the receive queue of the message receiver. We then check to see if
 the receiver is \ttt{RECV\_BLOCKED}, and if it is, then we wake up the
 receiver and effectively call \ttt{Receive} for the receiver.
-
-
 
 Sending to yourself is undefined. Under the current implementation it
 will cause the task to queue its message into its own receive queue,
@@ -124,13 +128,12 @@ queue, the receive queue is emptied by waking up each task in the
 queue and causing each tasks \ttt{Send} call to return with
 \ttt{INCOMPLETE} (\ttt{-3}) error code.
 
-Additionaly, if the buffer given with \ttt{Receive} does not have
+Additionally, if the buffer given with \ttt{Receive} does not have
 enough space for the message at the front of the receive queue, then
 the we wake up the \ttt{Send}er and return to it the
 \ttt{NOT\_ENUF\_MEMORY} (\ttt{-4}) error code. In this case, the
 receiver will recursively try to pop another message from the receive
 queue or enter the \ttt{RECV\_BLOCKED} state.
-
 
 \subsection*{Reply}
 
@@ -150,14 +153,14 @@ receiver of the reply does not have enough space, then the
 (\ttt{-4}) error code.
 
 If all checks pass, then the reply is copied to the reply buffer and
-then both the receiver of the reply and the replyer will be scheduled
+then both the receiver of the reply and the replier will be scheduled
 again (in that order).
 
 \section*{Kernel Changes}
 
 Task descriptors and the scheduling priority queues now use pointers
-instead of descriptor indicies for lookups. We found that we were
-using the indicies to find pointers anyways, so this made the code a
+instead of descriptor indices for lookups. We found that we were
+using the indices to find pointers anyways, so this made the code a
 bit easier to read. Though, this does have an impact on our descriptor
 size and we will measure the performance trade off once the data cache
 can be exercised more thoroughly.
@@ -171,7 +174,6 @@ send/receiver/reply loop.
 
 We have implemented a less naive \ttt{memcpy} and \ttt{memset} in ARM
 assembly to replace the default implementation given by GCC.
-
 
 \section*{Name Server}
 
@@ -223,33 +225,58 @@ to its simplicity and the Nameserver while important should only
 require use during the initialization or when having a longer
 operating time is of little consequence.
 
+\section*{Rock Paper Scissors Task Priorities}
+\begin{description}
+\item[Name Server] \hfill \\
+The Name Server is given max priority in our system. This is because looking 
+up a name is a requirement of most tasks initialization and causing a task to 
+block for other tasks of a lessor priority.
+
+\item[RPS Server] \hfill \\
+The RPS Server is also given max priority in the system. Since it is designed
+such that only 1 game can be played at a time so we just want the server to block
+off clients or get the clients that are allowed to play as soon as possible.
+
+\item[RPS Client] \hfill \\
+The RPS Clients are given a priority of 4. One of the important things is that
+the client are given a higher priority than the task launcher so they can actually
+run without having to end the OS. They are Lower than the server because we believe
+that the provider of data shouldn't block a task unless the data can't be provided.
+\end{description}
 
 \section*{Rock Paper Scissors Output}
-
 
 \verbatiminput{k2_task_out.txt}
 (Note some blank lines have been removed)
 
 \begin{description}
 \item[Lines 1,2:] \hfill \\
-As part of the Task Launchers initalization it calls \ttt{Create()} to
+As part of the Task Launchers initialization it calls \ttt{Create()} to
 start up the RPS server. Since the RPS server has a higher priority
 than the task launcher it then starts execution until it hits its
 \ttt{Receive()} call. At this point the task launcher is the only
 ready task in the system and it continues on until it busy waits for
 user input.
 
-\item[Lines 7-12:] \hfill \\
-First Game
+\item[Lines 7-10:] \hfill \\
+The Server receives input from 2 client tasks and start up a game
+both client tasks have registered with the server
+
+\item[Lines 11,12:] \hfill \\
+The tasks both received that the game had resulted in a tie.
 
 \item[Lines 17-22:] \hfill \\
-Second Game
+Second Game, procedure looks the same as above but both computers had thrown paper
+instead of rock.
 
 \item[Lines 27-32:] \hfill \\
-Third Game
+Third Game, Process is similar to above however this time task 3 threw a scissors
+and task 4 threw a rock. Task 3 has noticed that it has lost the round and task 4
+is happy that it had won.
 
 \item[Lines 37-42:] \hfill \\
-Fourth Game
+Fourth Game, Process is same as above but with a rock and paper for tasks 3 and 4
+respectively.
 \end{description}
 
 
