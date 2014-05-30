@@ -4,7 +4,6 @@
 
 #include <std.h>
 #include <math.h>
-#include <syscall.h>
 
 #define TASK_PRIORITY_LEVELS 32
 #define TASK_PRIORITY_MAX    31
@@ -14,7 +13,7 @@
 
 
 typedef int32  task_id;
-typedef uint32 task_pri;
+typedef int32 task_pri;
 typedef uint8  task_idx;
 
 struct task_descriptor;

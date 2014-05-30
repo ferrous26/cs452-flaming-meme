@@ -1,6 +1,6 @@
 #include <scheduler.h>
-#include <math.h>
 #include <circular_buffer.h>
+#include <math.h>
 #include <syscall.h>
 #include <debug.h>
 #include <tasks/task_launcher.h>
@@ -70,12 +70,12 @@ void scheduler_schedule(task* const t) {
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
 
-    // if the queue was off, set the head
-    if (!q->head)
-	q->head = t;
-    // else there was something in the queue, so append to it
-    else
+    // if there was something in the queue, append to it
+    if (q->head)
 	q->tail->next = t;
+    // else the queue was off, so set the head
+    else
+	q->head = t;
 
     // then we set the tail pointer
     q->tail = t;
@@ -96,7 +96,7 @@ int scheduler_get_next(void) {
     task_q* const q = &manager.q[priority];
 
     task_active = q->head;
-    q->head = task_active->next;
+    q->head = q->head->next;
 
     // if we hit the end of the list, then turn off the queue
     if (!q->head)
