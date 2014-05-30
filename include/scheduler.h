@@ -26,7 +26,7 @@ struct task_descriptor {
     task_id  p_tid;
     task_pri priority;
     uint*    sp;
-    void*    next;
+    task*    next;
 };
 
 struct task_q_pointers;
@@ -38,9 +38,9 @@ struct task_q_pointers {
 };
 
 // choose small values so they can be instruction immediates
-#define SEND_BLOCKED (void*)0xA
-#define RECV_BLOCKED (void*)0xB
-#define RPLY_BLOCKED (void*)0xC
+#define SEND_BLOCKED (task*)0xA
+#define RECV_BLOCKED (task*)0xB
+#define RPLY_BLOCKED (task*)0xC
 
 extern task_q recv_q[TASK_MAX];
 extern task*  task_active;
@@ -53,7 +53,7 @@ static inline uint __attribute__ ((const)) task_index_from_tid(const int32 tid) 
 
 void scheduler_init(void);
 
-void scheduler_schedule(task* t);
+void scheduler_schedule(task* const t);
 
 int  scheduler_get_next(void);
 

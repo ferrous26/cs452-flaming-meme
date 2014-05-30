@@ -37,12 +37,12 @@ inline static void ksyscall_change_priority(const uint new_priority) {
     scheduler_schedule(task_active);
 }
 
-inline static void ksyscall_recv(task* receiver) {
+inline static void ksyscall_recv(task* const receiver) {
 
-    task_q* q = &recv_q[receiver->tid];
+    task_q* const q = &recv_q[receiver->tid];
 
     if (q->head) {
-	task* sender = q->head;
+	task* const sender = q->head;
 	q->head = q->head->next; // consume
 
 	kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
@@ -68,9 +68,9 @@ inline static void ksyscall_recv(task* receiver) {
     receiver->next = RECV_BLOCKED;
 }
 
-inline static void ksyscall_send(kreq_send* const req, uint* const result) {
+inline static void ksyscall_send(const kreq_send* const req, uint* const result) {
 
-    task* receiver = &tasks[task_index_from_tid(req->tid)];
+    task* const receiver = &tasks[task_index_from_tid(req->tid)];
 
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
@@ -83,7 +83,7 @@ inline static void ksyscall_send(kreq_send* const req, uint* const result) {
      * What we want to do is find the receive q and append to it, as we
      * did in the scheduler.
      */
-    task_q* q = &recv_q[receiver->tid];
+    task_q* const q = &recv_q[receiver->tid];
 
     if (!q->head)
 	q->head = task_active;
@@ -101,9 +101,9 @@ inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 	ksyscall_recv(receiver);
 }
 
-inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
+inline static void ksyscall_reply(const kreq_reply* const req, uint* const result) {
 
-    task* sender = &tasks[task_index_from_tid(req->tid)];
+    task* const sender = &tasks[task_index_from_tid(req->tid)];
 
     // first, validation of the request arguments
     if (sender->tid != req->tid || !sender->sp) {
@@ -118,7 +118,7 @@ inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
 	return;
     }
 
-    const kreq_send* sender_req = (const kreq_send*)sender->sp[1];
+    const kreq_send* const sender_req = (const kreq_send* const)sender->sp[1];
 
     if (req->replylen > sender_req->replylen) {
 	*result = (uint)NOT_ENUF_MEMORY;
@@ -164,7 +164,7 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
 	ksyscall_priority(sp);
 	break;
     case SYS_SEND:
-	ksyscall_send((kreq_send* const)req, sp);
+	ksyscall_send((const kreq_send* const)req, sp);
 	break;
     case SYS_RECV:
 	ksyscall_recv(task_active);

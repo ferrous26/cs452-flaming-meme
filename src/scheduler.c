@@ -63,7 +63,7 @@ void scheduler_init(void) {
     }
 }
 
-void scheduler_schedule(task* t) {
+void scheduler_schedule(task* const t) {
 
     task_q* const q = &manager.q[t->priority];
 
@@ -75,7 +75,7 @@ void scheduler_schedule(task* t) {
 	q->head = t;
     // else there was something in the queue, so append to it
     else
-	q->tail->next = (void*)t;
+	q->tail->next = t;
 
     // then we set the tail pointer
     q->tail = t;
@@ -96,7 +96,7 @@ int scheduler_get_next(void) {
     task_q* const q = &manager.q[priority];
 
     task_active = q->head;
-    q->head = (task*)(task_active->next);
+    q->head = task_active->next;
 
     // if we hit the end of the list, then turn off the queue
     if (!q->head)
