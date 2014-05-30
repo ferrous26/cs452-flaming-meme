@@ -70,16 +70,11 @@ inline static void ksyscall_recv(task* receiver) {
 
 inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 
-    if (req->tid < 0) {
-	*result = (uint)IMPOSSIBLE_TASK;
-	scheduler_schedule(task_active);
-	return;
-    }
-
     task* receiver = &tasks[task_index_from_tid(req->tid)];
 
+    // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
-	*result = (uint)INVALID_TASK;
+	*result = (uint)(req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK);
 	scheduler_schedule(task_active);
 	return;
     }
@@ -100,7 +95,7 @@ inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 
     /**
      * Now, if the receiving task is receive blocked, then we need to wake it up
-     * and schedule it again.
+     * and schedule it so that it can receive the message.
      */
     if (receiver->next == RECV_BLOCKED)
 	ksyscall_recv(receiver);
@@ -108,18 +103,11 @@ inline static void ksyscall_send(kreq_send* const req, uint* const result) {
 
 inline static void ksyscall_reply(const kreq_reply* req, uint* const result) {
 
-    // first, validation
-
-    if (req->tid < 0) {
-	*result = (uint)IMPOSSIBLE_TASK;
-	scheduler_schedule(task_active);
-	return;
-    }
-
     task* sender = &tasks[task_index_from_tid(req->tid)];
 
+    // first, validation of the request arguments
     if (sender->tid != req->tid || !sender->sp) {
-	*result = (uint)INVALID_TASK;
+	*result = (uint)(req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK);
 	scheduler_schedule(task_active);
 	return;
     }
