@@ -101,6 +101,8 @@ memset:
 
 .fastset:
 	/* make a nice register for setting */
+	orr r1, r1, r1, LSL #8
+	orr r1, r1, r1, LSL #16
 	mov r4, r1
 
 .bigset: /* multiple of 8? */
