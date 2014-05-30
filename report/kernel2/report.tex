@@ -156,7 +156,21 @@ again (in that order).
 \section*{Kernel Changes}
 
 Task descriptors and the scheduling priority queues now use pointers
-instead of descriptor indicies.
+instead of descriptor indicies for lookups. We found that we were
+using the indicies to find pointers anyways, so this made the code a
+bit easier to read. Though, this does have an impact on our descriptor
+size and we will measure the performance trade off once the data cache
+can be exercised more thoroughly.
+
+The logarithm algorithm used for choosing the priority queue during
+scheduling has been changed. While both algorithms are constant time
+calculations, the new algorithm uses a lookup table to replace two
+extra calculations that the previous algorithm was performing. The
+performance gain is approximately $0.2 \mu seconds$ for the
+send/receiver/reply loop.
+
+We have implemented a less naive \ttt{memcpy} and \ttt{memset} in ARM
+assembly to replace the default implementation given by GCC.
 
 
 \section*{Name Server}
