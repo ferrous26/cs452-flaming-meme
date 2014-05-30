@@ -13,7 +13,7 @@
 
 
 typedef int32  task_id;
-typedef int32 task_pri;
+typedef uint32 task_pri;
 typedef uint8  task_idx;
 
 struct task_descriptor;

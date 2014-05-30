@@ -32,7 +32,7 @@ inline static void ksyscall_priority(uint* const result) {
     scheduler_schedule(task_active);
 }
 
-inline static void ksyscall_change_priority(const uint new_priority) {
+inline static void ksyscall_change_priority(const uint32 new_priority) {
     task_active->priority = new_priority;
     scheduler_schedule(task_active);
 }
