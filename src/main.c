@@ -32,6 +32,8 @@ static inline void _init_hardware() {
 }
 
 static inline void _init(void* dp) {
+    _init_hardware();
+
     clock_t4enable();
     uart_init();
     vt_init();
@@ -45,8 +47,6 @@ static inline void _init(void* dp) {
 
     *SWI_HANDLER = 0xea000000 | (((int)kernel_enter >> 2) - 4);
     exit_point   = dp;
-
-    _init_hardware();
 }
 
 void shutdown(void) {
@@ -63,11 +63,10 @@ int main(int argc, char* argv[]) {
     asm volatile ("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    while (!scheduler_get_next()) {
+    if (!scheduler_get_next())
         scheduler_activate();
-    }
 
-    shutdown();
+    assert(false, "failed to launch first task");
 
     return 0;
 }
