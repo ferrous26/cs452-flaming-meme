@@ -77,7 +77,7 @@ memcpy:
 memset:
 	/** r0 = dest, r1 = new_val, r2 = len **/
 	/* Back up r0, since we must return it */
-	stmfd sp!, {r0, r4}
+	stmfd sp!, {r0}
 
 	/* If already word aligned, skip to accelerated case */
 	ands   r3, r0, #3
@@ -86,8 +86,7 @@ memset:
 	/* If we got here, we want to try and align the addresses */
 	sub  r2, r2, r3
 .alignset:
-	strb r1, [r0]
-	add  r0, r0, #1
+	strb r1, [r0], #1
 	subs r3, r3, #1   /* set condition flags here */
 	bne .alignset
 
@@ -99,11 +98,11 @@ memset:
 	/* make a nice register for setting */
 	orr r1, r1, r1, LSL #8
 	orr r1, r1, r1, LSL #16
-	mov r4, r1
+	mov r12, r1
 
 .bigset: /* multiple of 8? */
 	subs r2, r2, #8
-	stmplia r0!, {r1, r4}
+	stmplia r0!, {r1, r12}
 	beq .doneset
 	bpl .bigset /* if there is something left, go back to start */
 	add r2, r2, #8
@@ -115,13 +114,12 @@ memset:
 	addmi r2, r2, #4
 
 .slowset:
-	strb r1, [r0]
-	add  r0, r0, #1
+	strb r1, [r0], #1
 	subs r2, r2, #1   /* set condition flags here */
 	bne .slowset
 
 .doneset:
-	ldmfd sp!, {r0, r4}
+	ldmfd sp!, {r0}
 	mov pc, lr
 	.size   memset, .-memset
 
