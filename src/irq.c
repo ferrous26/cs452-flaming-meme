@@ -21,11 +21,11 @@ void irq_disable_user_protection() {
 }
 
 void irq_simulate_interrupt(const uint v, const uint i) {
-    VIC(v, VIC_SOFT_ENABLE_OFFSET) = VIC(v, VIC_SOFT_ENABLE_OFFSET) | i;
+    VIC(v, VIC_SOFT_ENABLE_OFFSET) = i;
 }
 
 void irq_clear_simulated_interrupt(const uint v, const uint i) {
-    VIC(v, VIC_SOFT_DISABLE_OFFSET) = VIC(v, VIC_SOFT_ENABLE_OFFSET) | ~i;
+    VIC(v, VIC_SOFT_DISABLE_OFFSET) = i;
 }
 
 #if DEBUG

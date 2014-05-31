@@ -23,10 +23,14 @@ inline static void print_help() {
 	   "r ~ Kernel 2 Rock/Paper/Scissors (2 Computers)\n\t"
 	   "3 ~ Benchmark message passing\n\t"
 	   "4 ~ Test message passing\n\t"
-	   "5 ~ Test name server\n\t"
+	   "5 ~ Test name server\n\n\n\t"
+
 	   "i ~ Print the interrupt table status\n\t"
-	   "t ~ Trigger software interrupt\n\t"
-	   "c ~ Clear software interrupt\n\t"
+	   "a ~ Trigger software interrupt\n\t"
+	   "s ~ Trigger different software interrupt\n\t"
+	   "z ~ Clear software interrupt\n\t"
+	   "x ~ Clear different software interrupt\n\n\n\t"
+
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
 
@@ -55,15 +59,23 @@ static void tl_action(char input) {
     case '5':
         Create(TASK_PRIORITY_MAX, test_ns);
 	break;
+
     case 'i':
 	debug_interrupt_table();
 	break;
-    case 't':
+    case 'a':
 	irq_simulate_interrupt(VIC1_BASE, 0x8);
 	break;
-    case 'c':
+    case 's':
 	irq_clear_simulated_interrupt(VIC1_BASE, 0x8);
 	break;
+    case 'z':
+	irq_simulate_interrupt(VIC1_BASE, 0xf000);
+	break;
+    case 'x':
+	irq_clear_simulated_interrupt(VIC1_BASE, 0xf000);
+	break;
+
     case 'q':
         Exit();
         break;
