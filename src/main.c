@@ -11,6 +11,7 @@
 #include <scheduler.h>
 #include <kernel.h>
 #include <rand.h>
+#include <irq.h>
 
 static void* exit_point = NULL;
 
@@ -49,6 +50,7 @@ static inline void _init(void* dp) {
 // Create a branch instruction
 #define B(addr) (0xea000000 | (((int)addr >> 2) - 4))
     *SWI_HANDLER = B(kernel_enter);
+
     exit_point   = dp;
 
     srand(__BUILD__);
@@ -68,6 +70,7 @@ int main(int argc, char* argv[]) {
     asm volatile ("mov %0, lr" : "=r" (dp));
     _init(dp);
 
+    debug_interrupt_table();
     if (!scheduler_get_next())
         scheduler_activate();
 
