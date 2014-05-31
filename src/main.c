@@ -46,7 +46,9 @@ static inline void _init(void* dp) {
     kprintf("Built %s %s", __DATE__, __TIME__);
     vt_flush();
 
-    *SWI_HANDLER = 0xea000000 | (((int)kernel_enter >> 2) - 4);
+// Create a branch instruction
+#define B(addr) (0xea000000 | (((int)addr >> 2) - 4))
+    *SWI_HANDLER = B(kernel_enter);
     exit_point   = dp;
 
     srand(__BUILD__);
