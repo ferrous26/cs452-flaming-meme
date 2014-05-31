@@ -6,7 +6,7 @@
 memcpy:
 	/** r0 = dest, r1 = src, r2 = len **/
 	/* Back up r0, since we must return it */
-	stmfd sp!, {r0, r4-r10}
+	stmfd sp!, {r0, r4-r9}
 
 	/* If already word aligned, skip to accelerated case */
 	ands   r3, r0, #3
@@ -32,8 +32,8 @@ memcpy:
 
 .big: /* multiple of 32? */
 	subs r2, r2, #32
-	ldmplia r1!, {r3-r10}
-	stmplia r0!, {r3-r10}
+	ldmplia r1!, {r3-r9, r12}
+	stmplia r0!, {r3-r9, r12}
 	beq .done
 	bpl .big /* if there is something left, go back to start */
 	add r2, r2, #32
@@ -67,7 +67,7 @@ memcpy:
 	bne .slowcpy
 
 .done:
-	ldmfd sp!, {r0, r4-r10}
+	ldmfd sp!, {r0, r4-r9}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
 
