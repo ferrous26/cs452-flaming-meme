@@ -3,6 +3,7 @@
 #include <vt100.h>
 #include <syscall.h>
 #include <scheduler.h>
+#include <irq.h>
 
 #include <tasks/name_server.h>
 #include <tasks/k2_server.h>
@@ -23,6 +24,7 @@ inline static void print_help() {
 	   "3 ~ Benchmark message passing\n\t"
 	   "4 ~ Test message passing\n\t"
 	   "5 ~ Test name server\n\t"
+	   "i ~ Print the interrupt table status\n\t"
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
 
@@ -50,6 +52,9 @@ static void tl_action(char input) {
 	break;
     case '5':
         Create(TASK_PRIORITY_MAX, test_ns);
+	break;
+    case 'i':
+	debug_interrupt_table();
 	break;
     case 'q':
         Exit();

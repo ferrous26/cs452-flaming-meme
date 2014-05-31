@@ -11,7 +11,6 @@
 #include <scheduler.h>
 #include <kernel.h>
 #include <rand.h>
-#include <irq.h>
 
 static void* exit_point = NULL;
 
@@ -70,7 +69,6 @@ int main(int argc, char* argv[]) {
     asm volatile ("mov %0, lr" : "=r" (dp));
     _init(dp);
 
-    debug_interrupt_table();
     if (!scheduler_get_next())
         scheduler_activate();
 
