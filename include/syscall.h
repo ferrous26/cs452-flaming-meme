@@ -73,6 +73,7 @@ typedef struct {
     int   replylen;
 } kreq_reply;
 
+void syscall_init();
 void kernel_enter(unsigned int code);  /* found in context.asm */
 int  kernel_exit(unsigned int* sp);    /* found in context.asm */
 

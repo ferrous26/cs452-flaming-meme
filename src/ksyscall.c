@@ -4,6 +4,10 @@
 #include <memory.h>
 #include <kernel.h>
 
+void syscall_init() {
+    *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
+}
+
 inline static void ksyscall_pass() {
     scheduler_schedule(task_active);
 }

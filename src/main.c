@@ -33,27 +33,22 @@ static inline void _init_hardware() {
 		  : "r0");
 }
 
-static inline void _init(void* dp) {
-    _init_hardware();
+static inline void _init() {
+    _init_hardware(); // we want to flush caches immediately
+
+    srand(__BUILD__); // TODO: make a rand server task
 
     clock_t4enable();
     uart_init();
     vt_init();
     scheduler_init();
+    syscall_init();
 
     vt_goto(2, 40);
     kprintf("Welcome to ferOS build %u", __BUILD__);
     vt_goto(3, 40);
     kprintf("Built %s %s", __DATE__, __TIME__);
     vt_flush();
-
-// Create a branch instruction
-#define B(addr) (0xea000000 | (((int)addr >> 2) - 4))
-    *SWI_HANDLER = B(kernel_enter);
-
-    exit_point   = dp;
-
-    srand(__BUILD__);
 }
 
 void shutdown(void) {
@@ -66,9 +61,8 @@ int main(int argc, char* argv[]) {
     UNUSED(argc);
     UNUSED(argv);
 
-    void* dp;
-    asm volatile ("mov %0, lr" : "=r" (dp));
-    _init(dp);
+    asm volatile ("mov %0, lr" : "=r" (exit_point));
+    _init();
 
     if (!scheduler_get_next())
         scheduler_activate();
