@@ -33,7 +33,7 @@ CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
 CFLAGS += -c -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
-CFLAGS += -Wswitch-enum
+CFLAGS += -Wswitch-enum -Wdisabled-optimization
 
 ASFLAGS	+= -mcpu=arm920t
 

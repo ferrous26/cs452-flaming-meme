@@ -44,8 +44,8 @@ extern task_q recv_q[TASK_MAX];
 extern task*  task_active;
 extern task   tasks[TASK_MAX];
 
-static inline uint __attribute__ ((const)) task_index_from_tid(const int32 tid) {
-    return mod2(tid, TASK_MAX);
+static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
+    return mod2((uint32)tid, TASK_MAX);
 }
 
 
