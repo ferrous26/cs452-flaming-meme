@@ -16,9 +16,9 @@ memcpy:
 	/* If we got here, we want to try and align the addresses */
 	sub  r2, r2, r3
 .align:
-	ldrb r4, [r1], #1
+	ldrb r12, [r1], #1
 	subs r3, r3, #1   /* set condition flags here */
-	strb r4, [r0], #1
+	strb r12, [r0], #1
 	bne .align
 
 	/* check alignment again */
@@ -48,8 +48,8 @@ memcpy:
 	addmi r2, r2, #16
 
 	subs r2, r2, #8
-	ldmplia r1!, {r3-r4}
-	stmplia r0!, {r3-r4}
+	ldmplia r1!, {r3, r12}
+	stmplia r0!, {r3, r12}
 	beq .done
 	addmi r2, r2, #8
 
