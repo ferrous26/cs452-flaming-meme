@@ -11,6 +11,7 @@
 #include <scheduler.h>
 #include <kernel.h>
 #include <rand.h>
+#include <irq.h>
 
 static void* exit_point = NULL;
 
@@ -43,6 +44,7 @@ static inline void _init() {
     vt_init();
     scheduler_init();
     syscall_init();
+    irq_init();
 
     vt_goto(2, 40);
     kprintf("Welcome to ferOS build %u", __BUILD__);

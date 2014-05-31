@@ -5,7 +5,7 @@
 #include <std.h>
 #include <debug.h>
 
-void irq_handle(const uint codehi, const uint codelo, uint* const sp);
+void irq_init();
 
 #define VIC1_BASE 0x800B0000
 #define VIC2_BASE 0x800C0000
@@ -14,42 +14,29 @@ void irq_handle(const uint codehi, const uint codelo, uint* const sp);
 #define VIC_FIQ_STATUS_OFFSET    0x04
 #define VIC_RAW_STATUS_OFFSET    0x08
 #define VIC_IRQ_MODE_OFFSET      0x0C
-#define VIC_IRQ_ENABLED_OFFSET   0x10
+#define VIC_IRQ_ENABLE_OFFSET    0x10
 #define VIC_IRQ_DISABLE_OFFSET   0x14
-#define VIC_SOFT_ENABLED_OFFSET  0x18
+#define VIC_SOFT_ENABLE_OFFSET   0x18
 #define VIC_SOFT_DISABLE_OFFSET  0x1C
 #define VIC_PROTECTION_OFFSET    0x20
 #define VIC_VECTOR_ADDRESS       0x30
 
-#define READ_VIC(vic, offset) *((uint32*)(vic|offset))
+#define VIC(vic, offset) (*((uint*)(vic|offset)))
 
-static inline uint32 irq_status(const uint vic) {
-    return READ_VIC(vic, VIC_IRQ_STATUS_OFFSET);
-}
+static inline uint irq_status(const uint v)          { return VIC(v, VIC_IRQ_STATUS_OFFSET);   }
+static inline uint fiq_status(const uint v)          { return VIC(v, VIC_FIQ_STATUS_OFFSET);   }
+static inline uint irq_raw_status(const uint v)      { return VIC(v, VIC_RAW_STATUS_OFFSET);   }
+static inline uint irq_mode_status(const uint v)     { return VIC(v, VIC_IRQ_MODE_OFFSET);     }
+static inline uint irq_enabled_status(const uint v)  { return VIC(v, VIC_IRQ_ENABLE_OFFSET);   }
+static inline uint irq_software_status(const uint v) { return VIC(v, VIC_SOFT_ENABLE_OFFSET);  }
+static inline bool irq_is_user_protected(const uint v) { return VIC(v, VIC_PROTECTION_OFFSET); }
 
-static inline uint32 fiq_status(const uint vic) {
-    return READ_VIC(vic, VIC_FIQ_STATUS_OFFSET);
-}
+void irq_enable_user_protection();
+void irq_disable_user_protection();
 
-static inline uint32 irq_raw_status(const uint vic) {
-    return READ_VIC(vic, VIC_RAW_STATUS_OFFSET);
-}
+void irq_simulate_interrupt(const uint v, const uint i);
+void irq_clear_simulated_interrupt(const uint v, const uint i);
 
-static inline uint32 irq_mode_status(const uint vic) {
-    return READ_VIC(vic, VIC_IRQ_MODE_OFFSET);
-}
-
-static inline uint32 irq_enabled_status(const uint vic) {
-    return READ_VIC(vic, VIC_IRQ_ENABLED_OFFSET);
-}
-
-static inline uint32 irq_software_enabled_status(const uint vic) {
-    return READ_VIC(vic, VIC_SOFT_ENABLED_OFFSET);
-}
-
-static inline bool irq_is_user_protected(const uint vic) {
-    return READ_VIC(vic, VIC_PROTECTION_OFFSET);
-}
 
 #if DEBUG
 void debug_interrupt_table();

@@ -25,6 +25,8 @@ inline static void print_help() {
 	   "4 ~ Test message passing\n\t"
 	   "5 ~ Test name server\n\t"
 	   "i ~ Print the interrupt table status\n\t"
+	   "t ~ Trigger software interrupt\n\t"
+	   "c ~ Clear software interrupt\n\t"
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
 
@@ -55,6 +57,12 @@ static void tl_action(char input) {
 	break;
     case 'i':
 	debug_interrupt_table();
+	break;
+    case 't':
+	irq_simulate_interrupt(VIC1_BASE, 0x8);
+	break;
+    case 'c':
+	irq_clear_simulated_interrupt(VIC1_BASE, 0x8);
 	break;
     case 'q':
         Exit();
