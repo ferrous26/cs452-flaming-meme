@@ -10,9 +10,9 @@ void irq_init();
 #define VIC1_BASE 0x800B0000
 #define VIC2_BASE 0x800C0000
 
-#define VIC_IRQ_STATUS_OFFSET    0x00
+#define VIC_IRQ_STATUS_OFFSET    0x00 // asserted when enabled and RAW are asserted
 #define VIC_FIQ_STATUS_OFFSET    0x04
-#define VIC_RAW_STATUS_OFFSET    0x08
+#define VIC_RAW_STATUS_OFFSET    0x08 // RAW means hardware is actually asserting
 #define VIC_IRQ_MODE_OFFSET      0x0C
 #define VIC_IRQ_ENABLE_OFFSET    0x10
 #define VIC_IRQ_DISABLE_OFFSET   0x14
@@ -34,8 +34,13 @@ static inline bool irq_is_user_protected(const uint v) { return VIC(v, VIC_PROTE
 void irq_enable_user_protection();
 void irq_disable_user_protection();
 
+// For simulating interrupts
 void irq_simulate_interrupt(const uint v, const uint i);
 void irq_clear_simulated_interrupt(const uint v, const uint i);
+
+// For dealing with real interrupts
+void irq_enable_interrupt(const uint v, const uint i);
+void irq_clear_interrupt(const uint v, const uint i);
 
 
 #if DEBUG

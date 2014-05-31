@@ -30,6 +30,14 @@ void irq_disable_user_protection() {
     VIC(VIC2_BASE, VIC_PROTECTION_OFFSET) = 0x0;
 }
 
+void irq_enable_interrupt(const uint v, const uint i) {
+    VIC(v, VIC_IRQ_ENABLE_OFFSET) = i;
+}
+
+void irq_clear_interrupt(const uint v, const uint i) {
+    VIC(v, VIC_IRQ_DISABLE_OFFSET) = i;
+}
+
 void irq_simulate_interrupt(const uint v, const uint i) {
     VIC(v, VIC_SOFT_ENABLE_OFFSET) = i;
 }
