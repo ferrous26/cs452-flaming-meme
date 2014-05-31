@@ -19,17 +19,18 @@ static inline void _init_hardware() {
     asm volatile ("mov r0, #0                \n"
                   "mcr p15, 0, r0, c7, c7, 0 \n"
 		  "mcr p15, 0, r0, c8, c7, 0 \n"
-	         :
-	         :
-	         : "r0");
+		  :
+		  :
+		  : "r0");
+
     // Turn on the I-Cache
     asm volatile ("mrc p15, 0, r0, c1, c0, 0 \n" //get cache control
                   "orr r0, r0, #0x1000       \n" //turn I-Cache
 		  "orr r0, r0, #5            \n" //turn on mmu and dcache #b0101
 	          "mcr p15, 0, r0, c1, c0, 0 \n"
-	         :
-	         :
-	         : "r0");
+		  :
+		  :
+		  : "r0");
 }
 
 static inline void _init(void* dp) {
