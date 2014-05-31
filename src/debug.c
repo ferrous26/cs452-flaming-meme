@@ -74,20 +74,21 @@ static inline bool cc_c(const uint status) { return (status & FLAG_CARRY_MASK); 
 static inline bool cc_v(const uint status) { return (status & FLAG_OVERFLOW_MASK);        }
 static inline bool cc_s(const uint status) { return (status & FLAG_STICKY_OVERFLOW_MASK); }
 
-/**
- * http://www.heyrick.co.uk/armwiki/The_Status_register
- */
-void debug_cpsr(void) {
-    const uint status;
-    asm("mrs %0, cpsr" : "=r" (status));
+static void _debug_psr(const char* const name, const uint status) {
 
-    debug_log("CPSR Information");
-    debug_log("       Current Mode: %s", processor_mode_string(status));
-    debug_log("        Thumb State: %s", thumb_state(status) ? 'Yes' : 'No');
-    debug_log("        FIQ Enabled: %s", fiq_state(status)   ? 'Yes' : 'No');
-    debug_log("        IRQ Enabled: %s", irq_state(status)   ? 'No'  : 'Yes');
-    debug_log("      Abort Enabled: %s", abort_state(status) ? 'No'  : 'Yes');
-    debug_log("    Condition Codes: %c %c %c %c %c",
+    debug_log("%s Information\n"
+	      "       Current Mode: %s\n"
+	      "        Thumb State: %s\n"
+	      "        FIQ Enabled: %s\n"
+	      "        IRQ Enabled: %s\n"
+	      "      Abort Enabled: %s\n"
+	      "    Condition Codes: %c %c %c %c %c",
+	      name,
+	      processor_mode_string(status),
+	      thumb_state(status) ? "Yes" : "No",
+	      fiq_state(status)   ? "No"  : "Yes",
+	      irq_state(status)   ? "No"  : "Yes",
+	      abort_state(status) ? "No"  : "Yes",
 	      cc_n(status) ? 'N' : '_',
 	      cc_z(status) ? 'Z' : '_',
 	      cc_c(status) ? 'C' : '_',
@@ -95,22 +96,19 @@ void debug_cpsr(void) {
 	      cc_s(status) ? 'S' : '_');
 }
 
+/**
+ * http://www.heyrick.co.uk/armwiki/The_Status_register
+ */
+void debug_cpsr(void) {
+    const uint status;
+    asm("mrs %0, cpsr" : "=r" (status));
+    _debug_psr("CPSR", status);
+}
+
 void debug_spsr(void) {
     const uint status;
     asm("mrs %0, spsr" : "=r" (status));
-
-    debug_log("SPSR Information");
-    debug_log("       Current Mode: %s", processor_mode_string(status));
-    debug_log("        Thumb State: %s", thumb_state(status) ? 'Yes' : 'No');
-    debug_log("        FIQ Enabled: %s", fiq_state(status)   ? 'Yes' : 'No');
-    debug_log("        IRQ Enabled: %s", irq_state(status)   ? 'No'  : 'Yes');
-    debug_log("      Abort Enabled: %s", abort_state(status) ? 'No'  : 'Yes');
-    debug_log("    Condition Codes: %c %c %c %c %c",
-	      cc_n(status) ? 'N' : '_',
-	      cc_z(status) ? 'Z' : '_',
-	      cc_c(status) ? 'C' : '_',
-	      cc_v(status) ? 'V' : '_',
-	      cc_s(status) ? 'S' : '_');
+    _debug_psr("SPSR", status);
 }
 
 inline pmode debug_processor_mode() {
