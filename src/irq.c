@@ -2,12 +2,22 @@
 
 void irq_init() {
 
-    // TODO: turn on bits for appropriate hardware
+    // TODO: turn on bits for appropriate hardware, for now
+    //       just make sure everything is being turned off
+    VIC(VIC1_BASE, VIC_IRQ_ENABLE_OFFSET) = 0;
+    VIC(VIC2_BASE, VIC_IRQ_ENABLE_OFFSET) = 0;
 
-    // TODO: install handler address
+    // make sure everything goes through IRQ and not FIQ
+    VIC(VIC1_BASE, VIC_IRQ_MODE_OFFSET)   = 0;
+    VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET)   = 0;
+
+    // TODO: install handler address (note: -4 is not correct)
+    // *HWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 
     // TODO: find out why user protection breaks things...
     // irq_enable_user_protection();
+
+    // TODO: turn on interrupts for CPSR
 }
 
 void irq_enable_user_protection() {
