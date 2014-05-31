@@ -27,5 +27,6 @@ bool ishexdigit(const char c);
 
 #include <limits.h>
 #include <memory.h>
+#include <math.h>
 
 #endif

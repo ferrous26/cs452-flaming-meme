@@ -49,7 +49,7 @@ typedef enum {
 } msg_err;
 
 typedef struct {
-    int  priority;
+    uint  priority;
     void (*code) (void);
 } kreq_create;
 
