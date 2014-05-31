@@ -25,9 +25,9 @@ int Create( int priority, void (*code) () ) {
     req.code     = code;
     req.priority = priority;
 
-    if (priority > TASK_PRIORITY_MAX) {
+    if (priority > TASK_PRIORITY_MAX)
         return INVALID_PRIORITY;
-    }
+
     return _syscall(SYS_CREATE, &req);
 }
 

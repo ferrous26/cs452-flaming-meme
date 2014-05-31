@@ -48,7 +48,6 @@ static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
     return (uint*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
 }
 
-
 void scheduler_init(void) {
 
     size i;
@@ -57,7 +56,7 @@ void scheduler_init(void) {
     table[0] = table[1] = 0;
     for (i = 2; i < 256; i++)
 	table[i] = 1 + table[i >> 1];
-    table[0] = 32; // if you want log(0) to return -1
+    table[0] = 32; // if you want log(0) to return -1, change to -1
 
     manager.state = 0;
     for (i = 0; i < TASK_PRIORITY_LEVELS; i++) {
@@ -113,7 +112,7 @@ int scheduler_get_next(void) {
 
     // find the msb and add it
     uint32 priority = choose_priority(manager.state);
-    if (priority == 32)	return -1;
+    if (priority == 32) return 1;
 
     task_q* const q = &manager.q[priority];
 
