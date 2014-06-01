@@ -41,6 +41,7 @@ inline static void ksyscall_change_priority(const uint32 new_priority) {
     scheduler_schedule(task_active);
 }
 
+// this function is far to big to be considered inlineable
 inline static void ksyscall_recv(task* const receiver) {
 
     task_q* const q = &recv_q[receiver->tid];
@@ -150,6 +151,10 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
     task_active->sp = sp;
 
     switch(code) {
+    case SYS_IRQ:
+        debug_log("IRQ!");
+        vt_flush();
+        break;
     case SYS_CREATE:
         ksyscall_create((const kreq_create* const)req, sp);
         break;

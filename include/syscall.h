@@ -4,15 +4,9 @@
 #include <std.h>
 #include <limits.h>
 
-/**
- * The notes very clearly state that we want address 0x08. If that value
- * is wrong then something is euchered or we should tell/ask the professor
- * about the problem.
- *
- * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/s14/notes/l05.html
- */
 #define SWI_HANDLER ((uint*)0x08)
-#define HWI_HANDLER ((uint*)0x18)
+
+#define SYS_IRQ      0
 
 #define SYS_CREATE   1
 #define SYS_TID      2
@@ -24,16 +18,14 @@
 #define SYS_SEND     7
 #define SYS_RECV     8
 #define SYS_REPLY    9
-
 #define SYS_CHANGE   10
 
-
-#define SAVED_REGISTERS 12
+#define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
 #define START_ADDRESS(fn) ((uint)fn)
 #define EXIT_ADDRESS      START_ADDRESS(Exit)
-#define DEFAULT_SPSR      0xD0 // TODO: change back to 0x10 for IRQ
+#define DEFAULT_SPSR      0x50  //no fiq
 
 typedef enum {
     NO_DESCRIPTORS   = -1,
@@ -74,8 +66,8 @@ typedef struct {
 } kreq_reply;
 
 void syscall_init();
-void kernel_enter(unsigned int code);  /* found in context.asm */
-int  kernel_exit(unsigned int* sp);    /* found in context.asm */
+void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
+int  kernel_exit(unsigned int* sp);               /* found in context.asm */
 
 int Create(int priority, void (*code) (void));
 
@@ -95,3 +87,4 @@ int WhoIs(char* name);
 int RegisterAs(char* name);
 
 #endif
+

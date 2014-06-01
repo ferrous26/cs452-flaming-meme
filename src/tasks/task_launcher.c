@@ -1,8 +1,8 @@
-#include <tasks/task_launcher.h>
 
 #include <vt100.h>
 #include <syscall.h>
 #include <scheduler.h>
+#include <debug.h>
 #include <irq.h>
 
 #include <tasks/name_server.h>
@@ -13,23 +13,24 @@
 #include <tasks/test_msg.h>
 #include <tasks/test_ns.h>
 
+#include <tasks/task_launcher.h>
+
 extern task_id name_server_tid;
 
 inline static void print_help() {
-
     vt_log("\n\t"
 	   "1 ~ Benchmark memcpy\n\t"
 	   "2 ~ Kernel 2 Rock/Paper/Scissors\n\t"
 	   "r ~ Kernel 2 Rock/Paper/Scissors (2 Computers)\n\t"
 	   "3 ~ Benchmark message passing\n\t"
 	   "4 ~ Test message passing\n\t"
-	   "5 ~ Test name server\n\n\n\t"
+	   "5 ~ Test name server\n\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt\n\t"
 	   "s ~ Trigger different software interrupt\n\t"
 	   "z ~ Clear software interrupt\n\t"
-	   "x ~ Clear different software interrupt\n\n\n\t"
+	   "x ~ Clear different software interrupt\n\n\t"
 
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
@@ -87,7 +88,6 @@ static void tl_action(char input) {
 }
 
 static void tl_startup() {
-
     name_server_tid = Create(TASK_PRIORITY_MAX, name_server);
     if (name_server_tid < 0) {
         vt_log("Failed starting name server! Goodbye cruel world");
@@ -103,8 +103,11 @@ static void tl_startup() {
     }
 }
 
+
 void task_launcher() {
     tl_startup();
+
+    debug_cpsr();
 
     for(;;) {
         vt_log("Welcome to Task Launcher (h for help)");
