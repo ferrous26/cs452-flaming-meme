@@ -11,11 +11,16 @@ void irq_init() {
     VIC(VIC1_BASE, VIC_IRQ_MODE_OFFSET)   = 0;
     VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET)   = 0;
 
-    // TODO: install handler address (note: -4 is not correct)
-    *HWI_HANDLER = (0xea000000 | (((int)hwi_enter >> 2) - 4));
+    // *HWI_HANDLER = (0xea000000 | (((int)hwi_enter >> 2) - 4));
+    *(void**)0x38 = hwi_enter;
 
     // TODO: find out why user protection breaks things...
+    // task launcher is a user task so it cant start up interrupts 
+    // without a syscall
     // irq_enable_user_protection();
+  
+
+    irq_enable_interrupt(VIC1_BASE, 0xF000);
 }
 
 void irq_enable_user_protection() {
@@ -65,7 +70,6 @@ void debug_interrupt_table() {
 		  irq_enabled_status(base),
 		  irq_software_status(base),
 		  irq_is_user_protected(base) ? "Yes" : "No");
-
 	base += 0x10000;
     }
 }

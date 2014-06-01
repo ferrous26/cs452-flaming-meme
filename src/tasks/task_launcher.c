@@ -71,12 +71,13 @@ static void tl_action(char input) {
 	irq_clear_simulated_interrupt(VIC1_BASE, 0x8);
 	break;
     case 'z':
+        debug_cpsr();
 	irq_simulate_interrupt(VIC1_BASE, 0xf000);
+        debug_cpsr();
 	break;
     case 'x':
 	irq_clear_simulated_interrupt(VIC1_BASE, 0xf000);
 	break;
-
     case 'q':
         Exit();
         break;
@@ -107,7 +108,6 @@ static void tl_startup() {
 void task_launcher() {
     tl_startup();
 
-    debug_cpsr();
 
     for(;;) {
         vt_log("Welcome to Task Launcher (h for help)");

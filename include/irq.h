@@ -50,7 +50,9 @@ void irq_clear_interrupt(const uint v, const uint i);
 
 
 #if DEBUG
-void debug_interrupt_table();
+    void debug_interrupt_table();
+#else
+    #define debug_interrupt_table()
 #endif
 
 #endif

@@ -1,8 +1,11 @@
 #include <debug.h>
-#include <scheduler.h>
 #include <syscall.h>
 #include <memory.h>
 #include <kernel.h>
+
+#include <irq.h>
+#include <scheduler.h>
+
 
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
@@ -146,14 +149,15 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
 }
 
 void syscall_handle(const uint code, const void* const req, uint* const sp) {
-
     // save it, save it real good
     task_active->sp = sp;
 
     switch(code) {
     case SYS_IRQ:
-        debug_log("IRQ!");
+        ksyscall_pass();
+        vt_log("IRQ!");
         vt_flush();
+        irq_clear_simulated_interrupt(VIC1_BASE, 0xf000);
         break;
     case SYS_CREATE:
         ksyscall_create((const kreq_create* const)req, sp);
