@@ -11,8 +11,6 @@ void irq_init();
 
 void hwi_enter(void);   /* found in context.asm */
 
-
-
 #define VIC1_BASE 0x800B0000
 #define VIC2_BASE 0x800C0000
 
@@ -27,7 +25,8 @@ void hwi_enter(void);   /* found in context.asm */
 #define VIC_PROTECTION_OFFSET    0x20
 #define VIC_VECTOR_ADDRESS       0x30
 
-#define VIC(vic, offset) (*((uint*)(vic|offset)))
+#define VIC(vic, offset) (*(uint*)(vic|offset))
+#define VIC_PTR(vic, offset) (*(void**)(vic|offset))
 
 static inline uint irq_status(const uint v)          { return VIC(v, VIC_IRQ_STATUS_OFFSET);   }
 static inline uint fiq_status(const uint v)          { return VIC(v, VIC_FIQ_STATUS_OFFSET);   }
@@ -41,13 +40,12 @@ void irq_enable_user_protection();
 void irq_disable_user_protection();
 
 // For simulating interrupts
-void irq_simulate_interrupt(const uint v, const uint i);
-void irq_clear_simulated_interrupt(const uint v, const uint i);
+void irq_simulate_interrupt(const uint i);
+void irq_clear_simulated_interrupt(const uint i);
 
 // For dealing with real interrupts
-void irq_enable_interrupt(const uint v, const uint i);
-void irq_clear_interrupt(const uint v, const uint i);
-
+void irq_enable_interrupt(const uint i);
+void irq_clear_interrupt(const uint i);
 
 #if DEBUG
     void debug_interrupt_table();

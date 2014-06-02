@@ -27,10 +27,9 @@ inline static void print_help() {
 	   "5 ~ Test name server\n\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
-	   "a ~ Trigger software interrupt\n\t"
-	   "s ~ Trigger different software interrupt\n\t"
-	   "z ~ Clear software interrupt\n\t"
-	   "x ~ Clear different software interrupt\n\n\t"
+	   "a ~ Trigger software interrupt 0\n\t"
+	   "z ~ Trigger software interrupt 1\n\t"
+           "s ~ Trigger software interrupt 63\n\t"
 
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
@@ -65,18 +64,13 @@ static void tl_action(char input) {
 	debug_interrupt_table();
 	break;
     case 'a':
-	irq_simulate_interrupt(VIC1_BASE, 0x8);
-	break;
-    case 's':
-	irq_clear_simulated_interrupt(VIC1_BASE, 0x8);
+	irq_simulate_interrupt(0);
 	break;
     case 'z':
-        debug_cpsr();
-	irq_simulate_interrupt(VIC1_BASE, 0xf000);
-        debug_cpsr();
+	irq_simulate_interrupt(1);
 	break;
-    case 'x':
-	irq_clear_simulated_interrupt(VIC1_BASE, 0xf000);
+    case 's':
+	irq_simulate_interrupt(63);
 	break;
     case 'q':
         Exit();
@@ -107,7 +101,6 @@ static void tl_startup() {
 
 void task_launcher() {
     tl_startup();
-
 
     for(;;) {
         vt_log("Welcome to Task Launcher (h for help)");

@@ -6,7 +6,6 @@
 #include <irq.h>
 #include <scheduler.h>
 
-
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 }
@@ -44,9 +43,7 @@ inline static void ksyscall_change_priority(const uint32 new_priority) {
     scheduler_schedule(task_active);
 }
 
-// this function is far to big to be considered inlineable
-inline static void ksyscall_recv(task* const receiver) {
-
+static void ksyscall_recv(task* const receiver) {
     task_q* const q = &recv_q[receiver->tid];
 
     if (q->head) {
@@ -78,7 +75,6 @@ inline static void ksyscall_recv(task* const receiver) {
 }
 
 inline static void ksyscall_send(const kreq_send* const req, uint* const result) {
-
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
 
     // validate the request arguments
@@ -111,7 +107,6 @@ inline static void ksyscall_send(const kreq_send* const req, uint* const result)
 }
 
 inline static void ksyscall_reply(const kreq_reply* const req, uint* const result) {
-
     task* const sender = &tasks[task_index_from_tid(req->tid)];
 
     // first, validation of the request arguments
@@ -153,12 +148,16 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
     task_active->sp = sp;
 
     switch(code) {
-    case SYS_IRQ:
+    case SYS_IRQ: {
+        void(*handle)() = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
+        
         ksyscall_pass();
-        vt_log("IRQ!");
-        vt_flush();
-        irq_clear_simulated_interrupt(VIC1_BASE, 0xf000);
-        break;
+        handle();
+
+        register void** r0 asm("r0");
+        VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
+        break; 
+    }
     case SYS_CREATE:
         ksyscall_create((const kreq_create* const)req, sp);
         break;
