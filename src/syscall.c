@@ -8,8 +8,7 @@
 
 task_id name_server_tid;
 
-// TODO: what if this fucker gets inlined?
-unsigned int _syscall(int code, void* request) {
+uint __attribute__ ((noinline)) _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
     UNUSED(code);
     UNUSED(request);
