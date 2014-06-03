@@ -2,6 +2,8 @@
 #ifndef __STD_H__
 #define __STD_H__
 
+#define FOREVER for (;;)
+
 #define UNUSED(x) (void)(x)
 #define NULL 0
 
