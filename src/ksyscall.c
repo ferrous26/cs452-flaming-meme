@@ -84,6 +84,9 @@ inline static void ksyscall_send(const kreq_send* const req, uint* const result)
 	return;
     }
 
+    assert(task_active->tid != req->tid,
+	   "Tried to Send to self! (%u)", task_active->tid);
+
     /**
      * What we want to do is find the receive q and append to it, as we
      * did in the scheduler.
