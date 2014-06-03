@@ -2,9 +2,7 @@
 #include <ts7200.h>
 
 #include <clock.h>
-
-//TODO: temp for testing, should be handled by some user task
-uint ticks;
+#include <scheduler.h>
 
 void clock_t4enable(void) {
     *(int*)(TIMER4_BASE | TIMER4_CONTROL) = 0x100;
@@ -28,9 +26,14 @@ void irq_clock() {
     register uint r0 asm("r0");
     *(uint*)(TIMER3_BASE | CLR_OFFSET) = r0;
 
-    ticks++;
-    vt_goto_home();
-    kprintf("CLOCK: %d", ticks);
+    task* t = task_events[CLOCK_TICK];
+
+    if (t) {
+	t->sp[0] = 0;
+	scheduler_schedule(t);
+	return;
+    }
+
+    vt_log("Missed a clock tick");
     vt_flush();
 }
-
