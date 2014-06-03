@@ -4,7 +4,7 @@
 
 #include <std.h>
 
-void exit_to_redboot(void* ep);
-void shutdown(void);
+void exit_to_redboot(void* ep) __attribute__ ((noreturn));
+void shutdown(void) __attribute__((noreturn));
 
 #endif

@@ -3,21 +3,18 @@
 
 #include <irq.h>
 
-void irq1() {
+void __attribute__ ((used)) irq1() {
     vt_log("IRQ1");
-    vt_flush();
     irq_clear_simulated_interrupt(1);
 }
 
-void irq0() {
+void __attribute__ ((used)) irq0() {
     vt_log("IRQ0");
-    vt_flush();
     irq_clear_simulated_interrupt(0);
 }
 
-void irq63() {
+void __attribute__ ((used)) irq63() {
     vt_log("IRQ63");
-    vt_flush();
     irq_clear_simulated_interrupt(63);
 }
 
@@ -27,11 +24,11 @@ void irq_init() {
     VIC(VIC2_BASE, VIC_IRQ_DISABLE_OFFSET) = 0xFFFFFFFFul;
 
     // make sure everything goes through IRQ and not FIQ
-    VIC(VIC1_BASE, VIC_IRQ_MODE_OFFSET)   = 0;
-    VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET)   = 0;
+    VIC(VIC1_BASE, VIC_IRQ_MODE_OFFSET)    = 0;
+    VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET)    = 0;
 
     // *HWI_HANDLER = (0xea000000 | (((int)hwi_enter >> 2) - 4));
-    *(void**)0x38 = hwi_enter;
+    *(void*volatile*)0x38 = hwi_enter;
 
     // irq_enable_user_protection();
     irq_enable_interrupt(0);  // Soft Interrupt
@@ -40,18 +37,18 @@ void irq_init() {
 
     irq_enable_interrupt(51); // Timer 3
 
-    *(void**)0x800B0100 = irq0;
-    *(uint*) 0x800B0200 = 0x20;
+    *(void*volatile*)0x800B0100 = irq0;
+    *(volatile uint*)0x800B0200 = 0x20;
 
-    *(void**)0x800B0104 = irq1;
-    *(uint*) 0x800B0204 = 0x21;
+    *(void*volatile*)0x800B0104 = irq1;
+    *(volatile uint*)0x800B0204 = 0x21;
 
-    *(void**)0x800C0100 = irq_clock;
-    *(uint*) 0x800C0200 = 0x33;
+    *(void*volatile*)0x800C0100 = irq_clock;
+    *(volatile uint*)0x800C0200 = 0x33;
 
-    *(void**)0x800C0104 = irq63;
-    *(uint*) 0x800C0204 = 0x3F;
-
+    *(void*volatile*)0x800C0104 = irq63;
+    *(volatile uint*)0x800C0204 = 0x3F;
+    
     /*
     irq_enable_interrupt(23); // UART1 recv
     irq_enable_interrupt(24); // UART1 send
@@ -65,12 +62,9 @@ void irq_init() {
 }
 
 inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
-    uint shift = interrupt & 0x1F;
-    if ( interrupt >> 5 ) {
-        VIC(VIC2_BASE, cmd) = 1 << shift;
-    } else {
-        VIC(VIC1_BASE, cmd) = 1 << shift;
-    }
+    const uint base  = interrupt >> 5 ? VIC2_BASE : VIC1_BASE;
+    const uint shift = interrupt & 0x1F;
+    VIC(base, cmd)   = 1 << shift;
 }
 
 void irq_enable_user_protection() {

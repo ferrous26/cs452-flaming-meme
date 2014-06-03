@@ -10,11 +10,14 @@
 task_id name_server_tid;
 task_id clock_server_tid;
 
-uint __attribute__ ((noinline)) _syscall(int code, void* request) {
+inline uint _syscall(int code, volatile void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
-    UNUSED(code);
-    UNUSED(request);
-    asm("swi 0");
+    asm volatile ("mov\tr0, %0\n\t"
+                  "mov\tr1, %1\n\t"
+                  "swi\t0"
+                 :
+                 :"r"(code), "r"(request)
+                 :"r0", "r1", "r2", "r3");
 
     // r0 will have the return value of the operation
     register unsigned int ret asm ("r0");
@@ -22,13 +25,13 @@ uint __attribute__ ((noinline)) _syscall(int code, void* request) {
 }
 
 int Create( int priority, void (*code) () ) {
-    kreq_create req;
-    req.code     = code;
-    req.priority = priority;
-
     if (priority > TASK_PRIORITY_MAX)
         return INVALID_PRIORITY;
-
+    
+    volatile kreq_create req = {
+        .code     = code,
+        .priority = priority
+    };
     return _syscall(SYS_CREATE, &req);
 }
 
@@ -57,36 +60,35 @@ void Exit() {
 }
 
 int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
-    kreq_send req;
-    req.tid      = tid;
-    req.msg      = msg;
-    req.reply    = reply;
-    req.msglen   = msglen;
-    req.replylen = replylen;
-
+    volatile kreq_send req = {
+        .tid      = tid,
+        .msg      = msg,
+        .reply    = reply,
+        .msglen   = msglen,
+        .replylen = replylen
+    };
     return _syscall(SYS_SEND, &req);
 }
 
 int Receive(int *tid, char *msg, int msglen) {
-    kreq_recv req;
-    req.tid    = tid;
-    req.msg    = msg;
-    req.msglen = msglen;
-
+    volatile kreq_recv req = {
+        .tid    = tid,
+        .msg    = msg,
+        .msglen = msglen
+    };
     return _syscall(SYS_RECV, &req);
 }
 
 int Reply(int tid, char *reply, int replylen) {
-    kreq_reply req;
-    req.tid      = tid;
-    req.reply    = reply;
-    req.replylen = replylen;
-
+    volatile kreq_reply req = {
+        .tid      = tid,
+        .reply    = reply,
+        .replylen = replylen
+    };
     return _syscall(SYS_REPLY, &req);
 }
 
 int WhoIs(char* name) {
-
     ns_req req;
     req.type = LOOKUP;
     memset((void*)&req.payload, 0, sizeof(ns_payload));
@@ -125,11 +127,11 @@ int RegisterAs(char* name) {
 }
 
 int AwaitEvent(int eventid, char* event, int eventlen) {
-    kwait_req req;
-    req.eventid  = eventid;
-    req.event    = event;
-    req.eventlen = eventlen;
-
+    volatile kwait_req req = {
+        .eventid  = eventid,
+        .event    = event,
+        .eventlen = eventlen
+    };
     return _syscall(SYS_AWAIT, &req);
 }
 

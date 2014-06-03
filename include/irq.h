@@ -25,8 +25,8 @@ void hwi_enter(void);   /* found in context.asm */
 #define VIC_PROTECTION_OFFSET    0x20
 #define VIC_VECTOR_ADDRESS       0x30
 
-#define VIC(vic, offset) (*(uint*)(vic|offset))
-#define VIC_PTR(vic, offset) (*(void**)(vic|offset))
+#define VIC(vic, offset) (*(volatile uint*)(vic|offset))
+#define VIC_PTR(vic, offset) (*(void*volatile*)(vic|offset))
 
 static inline uint irq_status(const uint v)          { return VIC(v, VIC_IRQ_STATUS_OFFSET);   }
 static inline uint fiq_status(const uint v)          { return VIC(v, VIC_FIQ_STATUS_OFFSET);   }

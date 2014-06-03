@@ -1,7 +1,7 @@
 #include <tasks/clock_server.h>
 #include <tasks/clock_notifier.h>
 #include <syscall.h>
-#include <priority_queue.h>
+//#include <priority_queue.h>
 #include <std.h>
 #include <debug.h>
 #include <scheduler.h>

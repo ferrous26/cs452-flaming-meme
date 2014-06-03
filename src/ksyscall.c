@@ -43,7 +43,7 @@ inline static void ksyscall_change_priority(const uint32 new_priority) {
     scheduler_schedule(task_active);
 }
 
-static void ksyscall_recv(task* const receiver) {
+inline static void ksyscall_recv(task* const receiver) {
     task_q* const q = &recv_q[receiver->tid];
 
     if (q->head) {
@@ -159,7 +159,8 @@ static inline void ksyscall_await(const kwait_req* const req, uint* const result
 
 }
 
-void syscall_handle(const uint code, const void* const req, uint* const sp) {
+void __attribute__ ((naked, noreturn))
+syscall_handle(const uint code, const void* const req, uint* const sp) {
     // save it, save it real good
     task_active->sp = sp;
 

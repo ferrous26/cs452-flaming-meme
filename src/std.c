@@ -25,3 +25,4 @@ bool isdigit(const char c) {
 bool ishexdigit(const char c) {
     return isdigit( c ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' );
 }
+
