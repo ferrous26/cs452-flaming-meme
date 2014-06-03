@@ -143,6 +143,19 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
     scheduler_schedule(task_active);
 }
 
+static inline void ksyscall_await(const kwait_req* const req, uint* const result) {
+
+    switch (req->eventid) {
+    case CLOCK_TICK:
+	task_events[CLOCK_TICK] = task_active;
+	break;
+    default:
+	*result = INVALID_EVENT;
+	scheduler_schedule(task_active);
+    }
+
+}
+
 void syscall_handle(const uint code, const void* const req, uint* const sp) {
     // save it, save it real good
     task_active->sp = sp;
@@ -187,6 +200,9 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
 	break;
     case SYS_CHANGE:
 	ksyscall_change_priority((uint)req);
+	break;
+    case SYS_AWAIT:
+	ksyscall_await((const kwait_req* const)req, sp);
 	break;
     default:
         assert(false, "Task %d, called invalid system call %d",

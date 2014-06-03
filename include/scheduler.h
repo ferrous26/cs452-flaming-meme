@@ -43,6 +43,7 @@ struct task_q_pointers {
 
 extern task_q recv_q[TASK_MAX];
 extern task*  task_active;
+extern task*  task_events[TASK_EVENTS];
 extern task   tasks[TASK_MAX];
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {

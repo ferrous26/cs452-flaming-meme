@@ -25,6 +25,7 @@ static uint8 table[256];
 task_q recv_q[TASK_MAX];
 struct task_descriptor  tasks[TASK_MAX];
 struct task_descriptor* task_active;
+struct task_descriptor* task_events[TASK_EVENTS];
 
 static struct task_free_list free_list;
 static struct task_manager   manager;
@@ -84,6 +85,8 @@ void scheduler_init(void) {
 	tasks[i].tid = i;
 	cbuf_produce(&free_list.list, i);
     }
+
+    memset(task_events, 0, sizeof(task_events));
 }
 
 void scheduler_schedule(task* const t) {
