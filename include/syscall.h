@@ -14,11 +14,11 @@
 #define SYS_PASS     4
 #define SYS_EXIT     5
 #define SYS_PRIORITY 6
-
 #define SYS_SEND     7
 #define SYS_RECV     8
 #define SYS_REPLY    9
 #define SYS_CHANGE   10
+#define SYS_AWAIT    11
 
 #define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
@@ -86,5 +86,34 @@ int Reply(int tid, char* reply, int replylen);
 int WhoIs(char* name);
 int RegisterAs(char* name);
 
-#endif
 
+typedef enum {
+    UNUSED = 0,
+    CLOCK_TICK = 1,
+    UART1_READ,
+    UART2_READ,
+    UART1_WRITE,
+    UART2_WRITE,
+} event_id;
+
+#define TASK_EVENTS 6
+
+typedef enum {
+    EVENT_OK = 0,
+    INVALID_EVENT = -1,
+    CORRUPT_DATA  = -2
+} event_err;
+
+typedef struct {
+    int eventid;
+    char* event;
+    int eventlen;
+} kwait_req;
+
+int AwaitEvent(int eventid, char* event, int eventlen);
+
+int Delay(int ticks); // TODO: implement me!
+int Time();
+int DelayUntil(int ticks); // TODO: implement me!
+
+#endif

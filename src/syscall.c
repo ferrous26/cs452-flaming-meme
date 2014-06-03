@@ -3,10 +3,12 @@
 #include <limits.h>
 #include <scheduler.h>
 #include <tasks/name_server.h>
+#include <tasks/clock_server.h>
 
 #include <syscall.h>
 
 task_id name_server_tid;
+task_id clock_server_tid;
 
 uint __attribute__ ((noinline)) _syscall(int code, void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
@@ -120,4 +122,28 @@ int RegisterAs(char* name) {
     if(res < 0) return res;
     if(ret < 0) return ret;
     return 0;
+}
+
+int AwaitEvent(int eventid, char* event, int eventlen) {
+    kwait_req req;
+    req.eventid  = eventid;
+    req.event    = event;
+    req.eventlen = eventlen;
+
+    return _syscall(SYS_AWAIT, &req);
+}
+
+int Time() {
+    clock_req req;
+    req.type = CLOCK_TIME;
+
+    int ticks;
+    int result = Send(clock_server_tid,
+		      (char*)&req, sizeof(clock_req_type),
+		      (char*)&ticks, sizeof(ticks));
+
+    // Note: since we return _result_ in error cases, we inherit
+    // additional error codes not in the kernel spec for this function
+    if (result) return result;
+    return ticks;
 }

@@ -4,6 +4,7 @@
 
 #include <std.h>
 #include <math.h>
+#include <syscall.h>
 
 #define TASK_PRIORITY_LEVELS 32
 #define TASK_PRIORITY_MAX    31
