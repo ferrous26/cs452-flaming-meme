@@ -3,6 +3,7 @@
 
 #include <clock.h>
 #include <scheduler.h>
+#include <kernel.h>
 
 void clock_t4enable(void) {
     *(int*)(TIMER4_BASE | TIMER4_CONTROL) = 0x100;
@@ -27,6 +28,7 @@ void irq_clock() {
     *(uint*)(TIMER3_BASE | CLR_OFFSET) = r0;
 
     task* t = task_events[CLOCK_TICK];
+    task_events[CLOCK_TICK] = NULL;
 
     if (t) {
 	t->sp[0] = 0;

@@ -166,13 +166,13 @@ void syscall_handle(const uint code, const void* const req, uint* const sp) {
     switch(code) {
     case SYS_IRQ: {
         void(*handle)() = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-        
+
         ksyscall_pass();
         handle();
 
         register void** r0 asm("r0");
         VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
-        break; 
+        break;
     }
     case SYS_CREATE:
         ksyscall_create((const kreq_create* const)req, sp);

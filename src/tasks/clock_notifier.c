@@ -15,7 +15,7 @@ void clock_notifier() {
     }
 
     // TODO: make this configurable
-    char* msg = (char*)CLOCK_NOTIFY;
+    int msg = CLOCK_NOTIFY;
 
     FOREVER {
 	int result = AwaitEvent(CLOCK_TICK, NULL, 0);
@@ -26,8 +26,10 @@ void clock_notifier() {
 	// We don't actually need to send anything to the clock
 	// server, but sending 0 bytes is going to go down a bad path
 	// in memcpy, so send the most optimal case (one word).
-	result = Send(clock, msg, sizeof(msg), msg, sizeof(msg));
-	if (result) {
+	result = Send(clock,
+		      (char*)&msg, sizeof(msg),
+		      (char*)&msg, sizeof(msg));
+	if (result < 0) {
 	    vt_log("Failed to send to clock (%d)", result);
 	    vt_flush();
 	    return;

@@ -13,7 +13,7 @@ void clock_server() {
 	   "Clock server should not be top priority");
 
     int result = RegisterAs("clock");
-    if (!result) {
+    if (result) {
 	vt_log("Failed to register clock server name (%d)", result);
 	vt_flush();
 	return;
@@ -41,16 +41,22 @@ void clock_server() {
 	    time++;
 	    vt_goto(1, CLOCK_HOME);
 	    kprintf_uint(time);
+	    vt_flush(); // hmmmm
 	    // can we pop someone off the queue?
 	    // then do it
 	    // recurse until we can't pop someone off the queue
+	    result = Reply(tid, (char*)&req, siz);
+	    if (result) {
+		vt_log("Failed to reply to clock_notifier (%d)", result);
+		vt_flush();
+	    }
 	    break;
 	case CLOCK_DELAY:
 	    // calculate absolute time and add to queue
 	    break;
 	case CLOCK_TIME:
 	    result = Reply(tid, (char*)&time, sizeof(time));
-	    if (!siz) {
+	    if (!result) {
 		vt_log("Failed to reply to %u (%d)", tid, result);
 		vt_flush();
 	    }
@@ -60,7 +66,7 @@ void clock_server() {
 	    // add to queue
 	    break;
 	default:
-	    assert(false, "Invalid clock request %d", req.type);
+	    assert(false, "Invalid clock request %d from %d", req.type, tid);
 	}
     }
 }
