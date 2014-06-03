@@ -8,19 +8,19 @@ task :increment_version do
 end
 
 task bench: :increment_version do
-  sh 'BENCHMARK=yes make remote'
+  sh 'STRICT=yes BENCHMARK=yes make remote'
 end
 
 task debug: :increment_version do
-  sh 'make remote'
+  sh 'STRICT=yes make remote'
 end
 
 task release: :increment_version do
-  sh 'RELEASE=2 make remote'
+  sh 'STRICT=yes RELEASE=2 make remote'
 end
 
 task release_bench: :increment_version do
-  sh 'RELEASE=2 BENCHMARK=yes make remote'
+  sh 'STRICT=yes RELEASE=2 BENCHMARK=yes make remote'
 end
 
 task super_release_bench: :increment_version do

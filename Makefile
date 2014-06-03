@@ -15,7 +15,7 @@ OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
 ifdef RELEASE
 # Flags to look into trying:
-CFLAGS  = -O$(RELEASE) -unswitch-loops -fpeel-loops -floop-optimize2 -fomit-frame-pointer
+CFLAGS   = -O$(RELEASE) -unswitch-loops -fpeel-loops -floop-optimize2 -fomit-frame-pointer
 #CFLAGS += --param max-gcse-memory=1073741824 -fmerge-all-constants -fmodulo-sched -ffast-math
 #CFLAGS += -ftree-loop-linear
 #CFLAGS += -fgcse-after-reload -fgcse-sm -fgcse-las -ftree-loop-im
@@ -31,16 +31,20 @@ endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
 CFLAGS += -c -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
-CFLAGS += -Wall -Wextra -Werror -Wshadow -Wcast-align -Wredundant-decls
+CFLAGS += -Wall -Wextra -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
 CFLAGS += -Wswitch-enum -Wdisabled-optimization
+
+ifdef STRICT
+CFLAGS += -Werror
+endif
 
 ASFLAGS	+= -mcpu=arm920t
 
 ARFLAGS = rcs
 
 LDFLAGS  = -init main -Map kernel.map -N -T orex.ld
-LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -Llib
+LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2
 
 # TODO: proper separation of kernel and user code
 KERN_CODE = src/main.o src/context.o src/syscall.o
@@ -65,7 +69,7 @@ kernel.elf: $(OBJS)
 
 remote:
 	rsync -trulip --exclude '.git/' --exclude './measurement' ./ uw:$(UW_HOME)/trains
-	ssh uw "cd trains/ && make clean && touch Makefile && RELEASE=$(RELEASE) BENCHMARK=$(BENCHMARK) make -s -j16"
+	ssh uw "cd trains/ && make clean && touch Makefile && STRICT=$(STRICT) RELEASE=$(RELEASE) BENCHMARK=$(BENCHMARK) make -s -j16"
 	ssh uw "cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/$(UW_USER)/k3.elf"
 
 clean:
