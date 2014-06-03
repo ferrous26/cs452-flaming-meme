@@ -6,6 +6,7 @@
 #include <irq.h>
 
 #include <tasks/name_server.h>
+#include <tasks/clock_server.h>
 #include <tasks/k2_server.h>
 #include <tasks/k2_client.h>
 #include <tasks/bench_memcpy.h>
@@ -16,6 +17,7 @@
 #include <tasks/task_launcher.h>
 
 extern task_id name_server_tid;
+extern task_id clock_server_tid;
 
 inline static void print_help() {
     vt_log("\n\t"
@@ -82,22 +84,29 @@ static void tl_action(char input) {
     }
 }
 
-static void tl_startup() {
-    name_server_tid = Create(TASK_PRIORITY_MAX, name_server);
-    if (name_server_tid < 0) {
-        vt_log("Failed starting name server! Goodbye cruel world");
+static int _create(int priority, void (*code) (void), const char* const name) {
+
+    int tid = Create(priority, code);
+    if (tid < 0) {
+        vt_log("Failed starting %s! Goodbye cruel world", name);
 	vt_flush();
 	Exit();
     }
 
-    int rps = Create(TASK_PRIORITY_MAX-2, k2_server);
-    if (rps < 0) {
-        vt_log("Failed starting the RPS server! Goodbye cruel world");
-	vt_flush();
-	Exit();
-    }
+    return tid;
 }
 
+static void tl_startup() {
+    name_server_tid  = _create(TASK_PRIORITY_MAX-2,
+			       name_server,
+			       "name server");
+
+    clock_server_tid = _create(TASK_PRIORITY_MAX-1,
+			       clock_server,
+			       "clock server");
+
+    _create(TASK_PRIORITY_MAX-2, k2_server, "RPS server");
+}
 
 void task_launcher() {
     tl_startup();
