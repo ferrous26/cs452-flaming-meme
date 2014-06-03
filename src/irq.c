@@ -1,5 +1,7 @@
-#include <irq.h>
 #include <vt100.h>
+#include <clock.h>
+
+#include <irq.h>
 
 void irq1() {
     vt_log("IRQ1");
@@ -44,8 +46,11 @@ void irq_init() {
     *(void**)0x800B0104 = irq1;
     *(uint*) 0x800B0204 = 0x21;
 
-    *(void**)0x800C0100 = irq63;
-    *(uint*) 0x800C0200 = 0x3F;
+    *(void**)0x800C0100 = irq_clock;
+    *(uint*) 0x800C0200 = 0x33;
+
+    *(void**)0x800C0104 = irq63;
+    *(uint*) 0x800C0204 = 0x3F;
 
     /*
     irq_enable_interrupt(23); // UART1 recv

@@ -39,6 +39,8 @@ static inline void _init() {
     srand(__BUILD__); // TODO: make a rand server task
 
     clock_t4enable();
+    clock_enable();
+
     uart_init();
     vt_init();
     scheduler_init();
