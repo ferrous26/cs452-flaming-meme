@@ -14,7 +14,7 @@ uint clock_t4tick(void) {
 }
 
 void clock_enable(void) {
-    *(uint*)(TIMER3_BASE | LDR_OFFSET) = 5080;
+    *(uint*)(TIMER3_BASE | LDR_OFFSET) = 10160;
 
     const uint ctrl = ENABLE_MASK | MODE_MASK | CLKSEL_MASK;
     *(uint*)(TIMER3_BASE | CRTL_OFFSET) = ctrl;
