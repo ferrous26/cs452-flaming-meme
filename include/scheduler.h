@@ -55,7 +55,7 @@ void scheduler_init(void);
 
 void scheduler_schedule(task* const t);
 
-int  scheduler_get_next(void);
+void scheduler_get_next(void);
 
 /**
  * Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8

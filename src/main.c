@@ -67,8 +67,8 @@ int main(int argc, char* argv[]) {
     asm volatile ("mov %0, lr" : "=r" (exit_point));
     _init();
 
-    if (!scheduler_get_next())
-        scheduler_activate();
+    scheduler_get_next();
+    scheduler_activate();
 
     assert(false, "failed to launch first task");
 

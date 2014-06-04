@@ -159,7 +159,7 @@ static inline void ksyscall_await(const kwait_req* const req, uint* const result
 
 }
 
-void __attribute__ ((naked, noreturn))
+void __attribute__ ((naked))
 syscall_handle(const uint code, const void* const req, uint* const sp) {
     // save it, save it real good
     task_active->sp = sp;
@@ -214,7 +214,6 @@ syscall_handle(const uint code, const void* const req, uint* const sp) {
 	       code);
     }
 
-    if (!scheduler_get_next())
-	scheduler_activate();
-    shutdown();
+    scheduler_get_next();
+    scheduler_activate(); // TODO: make this call implicit
 }

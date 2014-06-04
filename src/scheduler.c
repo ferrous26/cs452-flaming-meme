@@ -111,11 +111,11 @@ void scheduler_schedule(task* const t) {
 }
 
 // scheduler_consume
-int scheduler_get_next(void) {
+void scheduler_get_next(void) {
 
     // find the msb and add it
     uint32 priority = choose_priority(manager.state);
-    if (priority == 32) return 1;
+    assert(priority != 32, "Ran out of tasks to run");
 
     task_q* const q = &manager.q[priority];
 
@@ -125,8 +125,6 @@ int scheduler_get_next(void) {
     // if we hit the end of the list, then turn off the queue
     if (!q->head)
 	manager.state ^= (1 << priority);
-
-    return 0;
 }
 
 void scheduler_activate(void) {
