@@ -59,6 +59,7 @@ static inline void _init() {
 void shutdown(void) {
     vt_log("Shutting Down");
     vt_deinit();
+    _flush_caches();
     asm volatile ("mov	pc, %0" : : "r" (exit_point));
 }
 
