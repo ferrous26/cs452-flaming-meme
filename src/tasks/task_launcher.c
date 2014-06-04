@@ -97,6 +97,8 @@ static int _create(int priority, void (*code) (void), const char* const name) {
 }
 
 static void tl_startup() {
+    _create(TASK_PRIORITY_MIN, idle, "idle task");
+
     name_server_tid  = _create(TASK_PRIORITY_MAX-2,
 			       name_server,
 			       "name server");

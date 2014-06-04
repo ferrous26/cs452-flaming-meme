@@ -79,7 +79,7 @@ void scheduler_init(void) {
 
     // get the party started
     task_active = &tasks[0];
-    task_create(TASK_PRIORITY_MIN, task_launcher);
+    task_create(TASK_PRIORITY_MIN + 1, task_launcher);
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid = i;
