@@ -6,6 +6,12 @@
 #include <irq.h>
 #include <scheduler.h>
 
+#if DEBUG
+#define NAKED
+#else
+#define NAKED __attribute__ ((naked))
+#endif
+
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 }
@@ -146,8 +152,8 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
     scheduler_schedule(task_active);
 }
 
-static inline void ksyscall_await(const kwait_req* const req, uint* const result) {
-
+static inline void
+ksyscall_await(const kwait_req* const req, uint* const result) {
     switch (req->eventid) {
     case CLOCK_TICK:
 	task_events[CLOCK_TICK] = task_active;
@@ -156,25 +162,28 @@ static inline void ksyscall_await(const kwait_req* const req, uint* const result
 	*result = INVALID_EVENT;
 	scheduler_schedule(task_active);
     }
-
 }
 
-void __attribute__ ((naked))
-syscall_handle(const uint code, const void* const req, uint* const sp) {
+static inline void ksyscall_irq() {
+    ksyscall_pass();
+    
+    voidf handler = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
+    handler();
+
+    register void** r0 asm("r0");
+    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
+}
+
+void NAKED syscall_handle(const uint code,
+                          const void* const req,
+                          uint* const sp) {
     // save it, save it real good
     task_active->sp = sp;
 
     switch(code) {
-    case SYS_IRQ: {
-        void(*handle)() = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-
-        ksyscall_pass();
-        handle();
-
-        register void** r0 asm("r0");
-        VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
+    case SYS_IRQ:
+        ksyscall_irq();
         break;
-    }
     case SYS_CREATE:
         ksyscall_create((const kreq_create* const)req, sp);
         break;
@@ -215,5 +224,10 @@ syscall_handle(const uint code, const void* const req, uint* const sp) {
     }
 
     scheduler_get_next();
-    scheduler_activate(); // TODO: make this call implicit
+    //everythings done, just leave
+    asm volatile ("mov\tr0, %0    \n\t"
+                  "b\tkernel_exit \n\t"
+                 : 
+                 :"r" (task_active->sp)
+                 :"r0");
 }

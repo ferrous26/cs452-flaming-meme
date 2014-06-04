@@ -19,6 +19,8 @@ typedef signed   short int16;
 typedef unsigned char  uint8;
 typedef          char  int8;
 
+typedef void (*voidf)(void);
+
 typedef uint32 size;
 typedef int32  ssize;
 
