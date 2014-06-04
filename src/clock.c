@@ -5,6 +5,8 @@
 #include <scheduler.h>
 #include <kernel.h>
 
+#define TIMER3_TICKS_PER_OS_TICK 5080
+
 void clock_t4enable(void) {
     *(int*)(TIMER4_BASE | TIMER4_CONTROL) = 0x100;
 }
@@ -15,7 +17,7 @@ uint clock_t4tick(void) {
 
 void clock_enable(void) {
     // TODO: move magic number elsewhere
-    *(uint*)(TIMER3_BASE | LDR_OFFSET) = 25400;
+    *(uint*)(TIMER3_BASE | LDR_OFFSET) = TIMER3_TICKS_PER_OS_TICK;
 
     const uint ctrl = ENABLE_MASK | MODE_MASK | CLKSEL_MASK;
     *(uint*)(TIMER3_BASE | CRTL_OFFSET) = ctrl;
@@ -37,6 +39,7 @@ void irq_clock() {
 	return;
     }
 
+    // TODO: turn this into an assert
     vt_log("Missed a clock tick");
     vt_flush();
 }

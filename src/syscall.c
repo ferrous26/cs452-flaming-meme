@@ -173,3 +173,7 @@ int DelayUntil(int ticks) {
     if (result < 0) return result;
     return 0;
 }
+
+void Shutdown() {
+    _syscall(SYS_SHUTDOWN, NULL);
+}

@@ -6,12 +6,6 @@
 #include <irq.h>
 #include <scheduler.h>
 
-#if DEBUG
-#define NAKED
-#else
-#define NAKED __attribute__ ((naked))
-#endif
-
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 }
@@ -178,8 +172,8 @@ ksyscall_await(const kwait_req* const req, uint* const result) {
 }
 
 static inline void ksyscall_irq() {
-    ksyscall_pass();
-    
+    scheduler_schedule(task_active);
+
     voidf handler = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
     handler();
 
@@ -187,9 +181,9 @@ static inline void ksyscall_irq() {
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
 }
 
-void NAKED syscall_handle(const uint code,
-                          const void* const req,
-                          uint* const sp) {
+void  __attribute__ ((naked)) syscall_handle(const uint code,
+					     const void* const req,
+					     uint* const sp) {
     // save it, save it real good
     task_active->sp = sp;
 
@@ -230,6 +224,9 @@ void NAKED syscall_handle(const uint code,
     case SYS_AWAIT:
 	ksyscall_await((const kwait_req* const)req, sp);
 	break;
+    case SYS_SHUTDOWN:
+	shutdown();
+	break;
     default:
         assert(false, "Task %d, called invalid system call %d",
 	       task_active->tid,
@@ -240,7 +237,7 @@ void NAKED syscall_handle(const uint code,
     //everythings done, just leave
     asm volatile ("mov\tr0, %0    \n\t"
                   "b\tkernel_exit \n\t"
-                 : 
+                 :
                  :"r" (task_active->sp)
                  :"r0");
 }

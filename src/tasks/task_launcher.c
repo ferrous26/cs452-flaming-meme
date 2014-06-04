@@ -59,7 +59,7 @@ static void tl_action(char input) {
 	break;
 
     case 'q':
-        Exit();
+        Shutdown();
         break;
     case 'h':
     default:

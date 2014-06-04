@@ -193,4 +193,6 @@ void debug_task(const task_id tid) {
     }
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
+#else
+#define debug_task(x)
 #endif

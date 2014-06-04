@@ -158,14 +158,15 @@ void clock_server() {
 	switch (req.type) {
 
 	case CLOCK_NOTIFY:
-	    time++;
-
 	    // reset notifier ASAP
 	    result = Reply(tid, (char*)&req, siz);
 	    if (result) {
 		vt_log("Failed to reply to clock_notifier (%d)", result);
 		vt_flush();
 	    }
+
+	    // tick-tock
+	    time++;
 
 	    // print the clock to the screen
 	    vt_goto(1, CLOCK_HOME);
