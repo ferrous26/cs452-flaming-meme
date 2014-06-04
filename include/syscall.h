@@ -112,8 +112,13 @@ typedef struct {
 
 int AwaitEvent(int eventid, char* event, int eventlen);
 
-int Delay(int ticks); // TODO: implement me!
+// Note: if you send a negative value for the number of ticks
+//       then you will be woken up immediately
+int Delay(int ticks);
 int Time();
-int DelayUntil(int ticks); // TODO: implement me!
+
+// Note: if you send a value of time that is before the current
+//       time then you will be woken up immediately
+int DelayUntil(int ticks);
 
 #endif

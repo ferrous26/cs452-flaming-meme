@@ -27,7 +27,7 @@ inline uint _syscall(int code, volatile void* request) {
 int Create( int priority, void (*code) () ) {
     if (priority > TASK_PRIORITY_MAX)
         return INVALID_PRIORITY;
-    
+
     volatile kreq_create req = {
         .code     = code,
         .priority = priority
@@ -135,6 +135,18 @@ int AwaitEvent(int eventid, char* event, int eventlen) {
     return _syscall(SYS_AWAIT, &req);
 }
 
+int Delay(int ticks) {
+    clock_req req;
+    req.type  = CLOCK_DELAY;
+    req.ticks = ticks;
+
+    int result = Send(clock_server_tid,
+		      (char*)&req, sizeof(clock_req),
+		      (char*)&req, sizeof(clock_req));
+    if (result < 0) return result;
+    return 0;
+}
+
 int Time() {
     clock_req req;
     req.type = CLOCK_TIME;
@@ -146,6 +158,18 @@ int Time() {
 
     // Note: since we return _result_ in error cases, we inherit
     // additional error codes not in the kernel spec for this function
-    if (result) return result;
+    if (result < 0) return result;
     return ticks;
+}
+
+int DelayUntil(int ticks) {
+    clock_req req;
+    req.type  = CLOCK_DELAY_UNTIL;
+    req.ticks = ticks;
+
+    int result = Send(clock_server_tid,
+		      (char*)&req, sizeof(clock_req),
+		      (char*)&req, sizeof(clock_req));
+    if (result < 0) return result;
+    return 0;
 }

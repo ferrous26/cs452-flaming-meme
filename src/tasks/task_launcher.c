@@ -7,6 +7,7 @@
 
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
+#include <tasks/idle.h>
 #include <tasks/k2_server.h>
 #include <tasks/k2_client.h>
 #include <tasks/bench_memcpy.h>
@@ -31,7 +32,9 @@ inline static void print_help() {
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
 	   "z ~ Trigger software interrupt 1\n\t"
-           "s ~ Trigger software interrupt 63\n\t"
+           "s ~ Trigger software interrupt 63\n\n\t"
+
+	   "p ~ Delay until the moon (+ 50 ticks)\n\t"
 
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
@@ -74,6 +77,11 @@ static void tl_action(char input) {
     case 's':
 	irq_simulate_interrupt(63);
 	break;
+
+    case 'p':
+	Delay(50);
+	break;
+
     case 'q':
         Exit();
         break;
@@ -99,9 +107,9 @@ static int _create(int priority, void (*code) (void), const char* const name) {
 static void tl_startup() {
     _create(TASK_PRIORITY_MIN, idle, "idle task");
 
-    name_server_tid  = _create(TASK_PRIORITY_MAX-2,
-			       name_server,
-			       "name server");
+    name_server_tid = _create(TASK_PRIORITY_MAX-2,
+			      name_server,
+			      "name server");
 
     clock_server_tid = _create(TASK_PRIORITY_MAX-1,
 			       clock_server,
