@@ -14,8 +14,8 @@ uint clock_t4tick(void) {
 }
 
 void clock_enable(void) {
-    *(uint*)(TIMER3_BASE | LDR_OFFSET) = 10160;
     // TODO: move magic number elsewhere
+    *(uint*)(TIMER3_BASE | LDR_OFFSET) = 25400;
 
     const uint ctrl = ENABLE_MASK | MODE_MASK | CLKSEL_MASK;
     *(uint*)(TIMER3_BASE | CRTL_OFFSET) = ctrl;
