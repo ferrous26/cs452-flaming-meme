@@ -5,10 +5,11 @@
 #include <debug.h>
 #include <irq.h>
 
+#include <tasks/idle.h>
+#include <tasks/k3_demo.h>
+#include <tasks/bench_msg.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
-#include <tasks/idle.h>
-#include <tasks/bench_msg.h>
 #include <tasks/task_launcher.h>
 
 extern task_id name_server_tid;
@@ -17,6 +18,7 @@ extern task_id clock_server_tid;
 inline static void print_help() {
     vt_log("\n\t"
 	   "3 ~ Benchmark message passing\n\t"
+           "1 ~ K3 assignent demo\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
@@ -33,10 +35,12 @@ inline static void print_help() {
 
 static void tl_action(char input) {
     switch(input) {
+    case '1':
+        Create(14, k3_root);
+        break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
 	break;
-
     case 'i':
 	debug_interrupt_table();
 	break;

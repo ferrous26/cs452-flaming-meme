@@ -11,6 +11,9 @@
 
 #define TASK_MAX 64
 
+#define TASK_HEAP_TOP 0x1F00000 // 31 MB
+#define TASK_HEAP_BOT 0x0300000 //  3 MB
+#define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
 
 typedef int32  task_id;
 typedef uint32 task_pri;

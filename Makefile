@@ -20,7 +20,7 @@ CFLAGS   = -O$(RELEASE) -unswitch-loops -fpeel-loops -floop-optimize2 -fomit-fra
 #CFLAGS += -ftree-loop-linear
 #CFLAGS += -fgcse-after-reload -fgcse-sm -fgcse-las -ftree-loop-im
 else
-CFLAGS  = -g -D ASSERT -D DEBUG
+CFLAGS  = -g -D ASSERT -D DEBUG -fverbose-asm
 # -mapcs: always generate a complete stack frame
 ASFLAGS = -mapcs-32
 endif

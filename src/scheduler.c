@@ -3,9 +3,6 @@
 #include <debug.h>
 #include <tasks/task_launcher.h>
 
-#define TASK_HEAP_TOP 0x1F00000 // 31 MB
-#define TASK_HEAP_BOT 0x0300000 //  3 MB
-#define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
 
 // force grouping by putting them into a struct
 struct task_free_list {
@@ -72,6 +69,7 @@ void scheduler_init(void) {
 
     for (i = 0; i < 16; i++) {
 	tasks[i].tid = i;
+        tasks[i].sp  = NULL;
 	cbuf_produce(&free_list.list, i);
     }
 
@@ -81,6 +79,7 @@ void scheduler_init(void) {
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid = i;
+        tasks[i].sp  = NULL;
 	cbuf_produce(&free_list.list, i);
     }
 
