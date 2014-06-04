@@ -19,6 +19,7 @@
 #define SYS_REPLY    9
 #define SYS_CHANGE   10
 #define SYS_AWAIT    11
+#define SYS_SHUTDOWN 12
 
 #define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
@@ -120,5 +121,7 @@ int Time();
 // Note: if you send a value of time that is before the current
 //       time then you will be woken up immediately
 int DelayUntil(int ticks);
+
+void Shutdown();
 
 #endif

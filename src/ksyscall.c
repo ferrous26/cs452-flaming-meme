@@ -208,6 +208,9 @@ syscall_handle(const uint code, const void* const req, uint* const sp) {
     case SYS_AWAIT:
 	ksyscall_await((const kwait_req* const)req, sp);
 	break;
+    case SYS_SHUTDOWN:
+	shutdown();
+	break;
     default:
         assert(false, "Task %d, called invalid system call %d",
 	       task_active->tid,
