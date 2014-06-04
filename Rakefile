@@ -12,7 +12,7 @@ task bench: :increment_version do
 end
 
 task debug: :increment_version do
-  sh 'STRICT=yes make remote'
+  sh 'make remote'
 end
 
 task release: :increment_version do
