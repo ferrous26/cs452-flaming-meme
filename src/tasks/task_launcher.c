@@ -8,13 +8,7 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/idle.h>
-#include <tasks/k2_server.h>
-#include <tasks/k2_client.h>
-#include <tasks/bench_memcpy.h>
 #include <tasks/bench_msg.h>
-#include <tasks/test_msg.h>
-#include <tasks/test_ns.h>
-
 #include <tasks/task_launcher.h>
 
 extern task_id name_server_tid;
@@ -22,12 +16,7 @@ extern task_id clock_server_tid;
 
 inline static void print_help() {
     vt_log("\n\t"
-	   "1 ~ Benchmark memcpy\n\t"
-	   "2 ~ Kernel 2 Rock/Paper/Scissors\n\t"
-	   "r ~ Kernel 2 Rock/Paper/Scissors (2 Computers)\n\t"
 	   "3 ~ Benchmark message passing\n\t"
-	   "4 ~ Test message passing\n\t"
-	   "5 ~ Test name server\n\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
@@ -44,25 +33,8 @@ inline static void print_help() {
 
 static void tl_action(char input) {
     switch(input) {
-    case '1':
-        Create(TASK_PRIORITY_MAX, bench_memcpy);
-	break;
-    case '2':
-        Create(4, k2_computer);
-        Create(4, k2_human);
-        break;
-    case 'r':
-        Create(4, k2_computer);
-        Create(4, k2_computer);
-        break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
-	break;
-    case '4':
-        Create(TASK_PRIORITY_MAX, test_msg);
-	break;
-    case '5':
-        Create(TASK_PRIORITY_MAX, test_ns);
 	break;
 
     case 'i':
@@ -114,8 +86,6 @@ static void tl_startup() {
     clock_server_tid = _create(TASK_PRIORITY_MAX-1,
 			       clock_server,
 			       "clock server");
-
-    _create(TASK_PRIORITY_MAX-2, k2_server, "RPS server");
 }
 
 void task_launcher() {
