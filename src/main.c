@@ -62,9 +62,7 @@ void shutdown(void) {
     exit_to_redboot(exit_point);
 }
 
-int main(int argc, char* argv[]) {
-    UNUSED(argc);
-    UNUSED(argv);
+int main() {
 
     asm volatile ("mov %0, lr" : "=r" (exit_point));
     _init();
