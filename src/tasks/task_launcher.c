@@ -11,6 +11,7 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/task_launcher.h>
+#include <tasks/seppuku.h>
 
 extern task_id name_server_tid;
 extern task_id clock_server_tid;
@@ -40,6 +41,9 @@ static void tl_action(char input) {
         break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
+	break;
+    case '5':
+        vt_log("%d", Create(TASK_PRIORITY_MAX, seppuku));
 	break;
     case 'i':
 	debug_interrupt_table();
