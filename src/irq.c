@@ -48,7 +48,7 @@ void irq_init() {
 
     *(void*volatile*)0x800C0104 = irq63;
     *(volatile uint*)0x800C0204 = 0x3F;
-    
+
     /*
     irq_enable_interrupt(23); // UART1 recv
     irq_enable_interrupt(24); // UART1 send
@@ -57,7 +57,7 @@ void irq_init() {
     */
     /*
     irq_enable_interrupt(52); // UART1 general
-    irq_enable_interrupt(54); // UART2 general 
+    irq_enable_interrupt(54); // UART2 general
     */
 }
 
@@ -117,4 +117,3 @@ void debug_interrupt_table() {
     }
 }
 #endif
-
