@@ -59,7 +59,7 @@ static inline void _init() {
 void shutdown(void) {
     vt_log("Shutting Down");
     vt_deinit();
-    exit_to_redboot(exit_point);
+    asm volatile ("mov	pc, %0" : : "rm" (exit_point));
 }
 
 int main() {
