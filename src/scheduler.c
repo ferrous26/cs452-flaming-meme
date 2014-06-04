@@ -1,7 +1,5 @@
 #include <scheduler.h>
 #include <circular_buffer.h>
-#include <math.h>
-#include <syscall.h>
 #include <debug.h>
 #include <tasks/task_launcher.h>
 

@@ -3,7 +3,6 @@
 #define __CIRCULAR_BUFFER_H__
 
 #include <std.h>
-#include <math.h>
 
 /**
  * A circular buffer is simply an array buffer which wraps around

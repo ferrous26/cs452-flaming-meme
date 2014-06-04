@@ -10,7 +10,6 @@
 #include <memory.h>
 #include <scheduler.h>
 #include <kernel.h>
-#include <rand.h>
 #include <irq.h>
 
 static void* exit_point = NULL;
@@ -36,7 +35,6 @@ static inline void _init_hardware() {
 
 static inline void _init() {
     _init_hardware(); // we want to flush caches immediately
-    srand(__BUILD__); // TODO: make a rand server task
 
     clock_t4enable();
     clock_enable();

@@ -3,7 +3,6 @@
 #define __SCHEDULER_H__
 
 #include <std.h>
-#include <math.h>
 #include <syscall.h>
 
 #define TASK_PRIORITY_LEVELS 32
