@@ -66,9 +66,8 @@ inline static void ksyscall_recv(task* const receiver) {
 	receiver->sp[0]    = sender_req->msglen;
 	sender->next       = RPLY_BLOCKED;
 
-        if(0 != sender_req->msglen) {
+        if (sender_req->msglen)
 	    memcpy(receiver_req->msg, sender_req->msg, sender_req->msglen);
-        }
 	scheduler_schedule(receiver); // schedule this mofo
 	return;
     }
@@ -78,9 +77,9 @@ inline static void ksyscall_recv(task* const receiver) {
 
 inline static void ksyscall_send(const kreq_send* const req, uint* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
-    
-    assert(receiver->tid >= 0 && receiver->tid < TASK_MAX,
-           "Send: Invalid Sender %d", receiver->tid);
+
+    assert(task_index_from_tid(req->tid) < TASK_MAX,
+           "Reply: Invalid Sender %d", req->tid);
     assert((uint)receiver->sp > TASK_HEAP_BOT && (uint)receiver->sp < TASK_HEAP_TOP,
            "Send: Sender %d has Invlaid heap %p", receiver->tid, receiver->sp);
 
@@ -119,8 +118,8 @@ inline static void ksyscall_send(const kreq_send* const req, uint* const result)
 inline static void ksyscall_reply(const kreq_reply* const req, uint* const result) {
     task* const sender = &tasks[task_index_from_tid(req->tid)];
 
-    assert(sender->tid >= 0 && sender->tid < TASK_MAX,
-           "Reply: Invalid Sender %d", sender->tid);
+    assert(task_index_from_tid(req->tid) < TASK_MAX,
+           "Reply: Invalid Sender %d", req->tid);
     assert((uint)sender->sp > TASK_HEAP_BOT && (uint)sender->sp < TASK_HEAP_TOP,
             "Reply: Sender %d has Invlaid heap %p", sender->tid, sender->sp);
 
@@ -149,9 +148,9 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
     sender->sp[0]      = req->replylen;
 
     // at this point, it is smooth sailing
-    if (0 != req->replylen) {
+    if (req->replylen)
         memcpy(sender_req->reply, req->reply, req->replylen);
-    }
+
     // according to spec, we should schedule the sender first, because, in
     // the case where they are the same priority level we want the sender
     // to run first
