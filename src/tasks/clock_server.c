@@ -7,7 +7,7 @@
 #include <vt100.h>
 
 
-#define CLOCK_HOME 7
+#define CLOCK_HOME 67
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)
 #define PARENT(i) (i >> 1)
@@ -144,7 +144,7 @@ void clock_server() {
 	return;
     }
 
-    vt_goto_home();
+    vt_goto(1, 60);
     kprintf_string("CLOCK ");
 
     uint time = 0;
