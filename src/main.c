@@ -12,6 +12,11 @@
 #include <kernel.h>
 #include <irq.h>
 
+extern void* _BssStart;
+extern void* _BssEnd;
+extern void* _DataStart;
+extern void* _DataEnd;
+
 static void* exit_point = NULL;
 
 static inline void _flush_caches() {
@@ -66,7 +71,13 @@ void shutdown(void) {
 int main() {
 
     asm volatile ("mov %0, lr" : "=r" (exit_point));
+
+
+    memset(_BssStart, 0, _BssEnd - _BssStart);
+    memset(_DataStart, 0, _DataEnd - _DataStart);
+
     _init();
+
 
     scheduler_get_next();
     scheduler_activate();
