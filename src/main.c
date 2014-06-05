@@ -16,6 +16,8 @@ extern void* _BssStart;
 extern void* _BssEnd;
 extern void* _DataStart;
 extern void* _DataEnd;
+extern void* _TextStart;
+extern void* _TextEnd;
 
 static void* exit_point = NULL;
 
@@ -58,6 +60,14 @@ static inline void _init() {
     kprintf("Welcome to ferOS build %u", __BUILD__);
     vt_goto(3, 40);
     kprintf("Built %s %s", __DATE__, __TIME__);
+
+    vt_goto(2, 5);
+    kprintf("BSS:  %p - %p", &_BssStart, &_BssEnd);
+    vt_goto(3, 5);
+    kprintf("Data: %p - %p", &_DataStart, &_DataEnd);
+    vt_goto(4, 5);
+    kprintf("Text: %p - %p", &_TextStart, &_TextEnd);
+
     vt_flush();
 }
 
@@ -73,8 +83,8 @@ int main() {
     asm volatile ("mov %0, lr" : "=r" (exit_point));
 
 
-    memset(_BssStart, 0, _BssEnd - _BssStart);
-    memset(_DataStart, 0, _DataEnd - _DataStart);
+    // memset(_BssStart, 0, _BssEnd - _BssStart);
+    // memset(_DataStart, 0, _DataEnd - _DataStart);
 
     _init();
 
