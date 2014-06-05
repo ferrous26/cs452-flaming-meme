@@ -20,9 +20,9 @@ inline static void print_help() {
 	   "3 ~ Benchmark message passing\n\t"
 	   "4 ~ Get the current time\n\t"
 	   "5 ~ DelayUntil time + 100\n\t"
-	   "6 ~ Delay 100 ticks\n\n\t"
-	   "7 ~ Delay -100 ticks\n\n\t"
-	   "8 ~ DelayUntil time = 0\n\t"
+	   "6 ~ Delay 100 ticks\n\t"
+	   "7 ~ Delay -100 ticks\n\t"
+	   "8 ~ DelayUntil time = 0\n\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
