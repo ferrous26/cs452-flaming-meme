@@ -13,20 +13,18 @@
 #include <tasks/task_launcher.h>
 #include <tasks/seppuku.h>
 
-extern task_id name_server_tid;
-extern task_id clock_server_tid;
-
 inline static void print_help() {
     vt_log("\n\t"
-	   "3 ~ Benchmark message passing\n\t"
            "1 ~ K3 assignent demo\n\t"
+	   "2 ~ Create a suicidal task\n\t"
+	   "3 ~ Benchmark message passing\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
 	   "z ~ Trigger software interrupt 1\n\t"
            "s ~ Trigger software interrupt 63\n\n\t"
 
-	   "p ~ Delay until the moon (+ 50 ticks)\n\t"
+	   "p ~ Delay until the moon (+ 100 ticks)\n\t"
 
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
@@ -39,12 +37,13 @@ static void tl_action(char input) {
     case '1':
         Create(14, k3_root);
         break;
+    case '2':
+        vt_log("%d", Create(TASK_PRIORITY_MAX, seppuku));
+	break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
 	break;
-    case '5':
-        vt_log("%d", Create(TASK_PRIORITY_MAX, seppuku));
-	break;
+
     case 'i':
 	debug_interrupt_table();
 	break;
@@ -59,7 +58,7 @@ static void tl_action(char input) {
 	break;
 
     case 'p':
-	Delay(50);
+	Delay(10);
 	break;
 
     case 'q':
@@ -98,7 +97,7 @@ static void tl_startup() {
 void task_launcher() {
     tl_startup();
 
-    for(;;) {
+    FOREVER {
         vt_log("Welcome to Task Launcher (h for help)");
         vt_flush();
 	tl_action(vt_waitget());
