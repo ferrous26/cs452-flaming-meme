@@ -53,6 +53,10 @@ void scheduler_init(void) {
 	table[i] = 1 + table[i >> 1];
     table[0] = 32; // if you want log(0) to return -1, change to -1
 
+    memset(&manager, 0, sizeof(manager));
+    memset(&recv_q,  0, sizeof(recv_q));
+    memset(&tasks,   0, sizeof(tasks));
+
     cbuf_init(&free_list.list, TASK_MAX, free_list.buffer);
 
     for (i = 0; i < 16; i++) {
@@ -69,12 +73,14 @@ void scheduler_init(void) {
 	cbuf_produce(&free_list.list, i);
     }
 
+    memset(task_events, 0, sizeof(task_events));
+
     debug_log("TASKS: %p", tasks);
 }
 
 void scheduler_schedule(task* const t) {
     task_q* const q = &manager.q[t->priority];
-
+    
     assert(t >= tasks, "schedule: cant schedule task at %p", t);
     assert(t < &tasks[TASK_MAX], "schedule: cant schedule task at %p", t);
     assert(t->priority <= TASK_PRIORITY_MAX, "schedule: Bad Priority %u", t->priority);
@@ -92,7 +98,7 @@ void scheduler_schedule(task* const t) {
 
     // then we set the tail pointer
     q->tail = t;
-
+    
     // mark the end of the queue
     t->next = NULL;
 }
