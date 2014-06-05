@@ -10,18 +10,18 @@
 task_id name_server_tid;
 task_id clock_server_tid;
 
-inline uint _syscall(int code, volatile void* request) {
+inline static uint _syscall(volatile int code, volatile void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
-    asm volatile ("mov\tr0, %0\n\t"
-                  "mov\tr1, %1\n\t"
-                  "swi\t0"
-                 :
-                 :"r"(code), "r"(request)
-                 :"r0", "r1", "r2", "r3");
+    register int r0 asm ("r0") = code;
+    register volatile void* r1 asm ("r1") = request;
+    
+    asm ("swi\t0"
+        :
+        :"r"(r0), "r"(r1)
+        :"r2", "r3", "ip");
 
     // r0 will have the return value of the operation
-    register unsigned int ret asm ("r0");
-    return ret;
+    return r0;
 }
 
 int Create( int priority, void (*code) () ) {
