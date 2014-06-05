@@ -56,7 +56,7 @@ inline static void ksyscall_recv(task* const receiver) {
 
         assert((uint)sender < 0x200000 && (uint)sender > 0x100000,
                "Receive: %d Invalid head pointer!", receiver->tid);
-        assert((uint) q->head->next < 0x200000 && 
+        assert((uint) q->head->next < 0x200000 &&
                ((uint)q->head->next > 0x100000 || (uint)q->head->next == NULL),
                "Receive: %d Invalid head next! %p", receiver->tid, sender->next);
         q->head = q->head->next; // consume
@@ -88,7 +88,7 @@ inline static void ksyscall_recv(task* const receiver) {
 
 inline static void ksyscall_send(const kreq_send* const req, uint* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
-    
+
     assert(task_index_from_tid(req->tid) < TASK_MAX,
            "Reply: Invalid Sender %d", req->tid);
     assert((uint)receiver->sp > TASK_HEAP_BOT && (uint)receiver->sp < TASK_HEAP_TOP,
