@@ -61,9 +61,9 @@ memcpy:
 	addmi r2, r2, #4
 
 .slowcpy:
-	ldrb r3, [r1], #1
 	subs r2, r2, #1  /* set condition flags here */
-	strb r3, [r0], #1
+	ldrplb r3, [r1], #1
+	strplb r3, [r0], #1
 	bne .slowcpy
 
 .done:
@@ -109,13 +109,13 @@ memset:
 
 /* at this point we have less than 8 bytes left */
 	subs r2, r2, #4
-	stmplia r0!, {r3}
+	stmplia r0!, {r1}
 	beq .doneset
 	addmi r2, r2, #4
 
 .slowset:
-	strb r1, [r0], #1
 	subs r2, r2, #1   /* set condition flags here */
+	strplb r1, [r0], #1
 	bne .slowset
 
 .doneset:
