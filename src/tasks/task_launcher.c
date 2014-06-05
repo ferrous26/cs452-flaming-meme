@@ -58,7 +58,7 @@ static void tl_action(char input) {
     case '7':
 	Delay(-100);
 	break;
-    case '0':
+    case '8':
 	DelayUntil(0);
 	break;
 
