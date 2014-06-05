@@ -4,7 +4,7 @@
 #include <std.h>
 #include <limits.h>
 
-#define SWI_HANDLER ((uint*)0x08)
+#define SWI_HANDLER ((uint*volatile)0x08)
 
 #define SYS_IRQ      0
 
@@ -67,6 +67,7 @@ typedef struct {
 } kreq_reply;
 
 void syscall_init();
+void syscall_deinit();
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
 int  kernel_exit(unsigned int* sp);               /* found in context.asm */
 

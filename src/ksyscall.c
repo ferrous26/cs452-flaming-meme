@@ -10,6 +10,10 @@ void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 }
 
+void syscall_deinit() {
+    *SWI_HANDLER = 0xE59FF018;
+}
+
 inline static void ksyscall_pass() {
     scheduler_schedule((task*)task_active);
 }
@@ -50,7 +54,7 @@ inline static void ksyscall_recv(task* const receiver) {
 #endif
 
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
-   
+
     if (q->head) {
 	task* const sender = q->head;
 
@@ -136,7 +140,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
         ksyscall_pass();
 	return;
     }
-    
+
     assert((uint)sender->sp > TASK_HEAP_BOT && (uint)sender->sp <= TASK_HEAP_TOP,
             "Reply: Sender %d has Invalid heap %p", sender->tid, sender->sp);
 

@@ -14,12 +14,9 @@
 
 extern void* _BssStart;
 extern void* _BssEnd;
-extern void* _DataStart;
-extern void* _DataEnd;
-extern void* _TextStart;
-extern void* _TextEnd;
 
 static void* exit_point = NULL;
+static void* exit_sp    = NULL;
 
 static inline void _flush_caches() {
     // Invalidate the I/D-Cache
@@ -61,33 +58,45 @@ static inline void _init() {
     vt_goto(3, 40);
     kprintf("Built %s %s", __DATE__, __TIME__);
 
-    vt_goto(2, 5);
-    kprintf("BSS:  %p - %p", &_BssStart, &_BssEnd);
-    vt_goto(3, 5);
-    kprintf("Data: %p - %p", &_DataStart, &_DataEnd);
-    vt_goto(4, 5);
-    kprintf("Text: %p - %p", &_TextStart, &_TextEnd);
-
     vt_flush();
 }
 
 void shutdown(void) {
+
+    assert(debug_processor_mode() == SUPERVISOR,
+	   "Trying to shutdown from non-supervisor mode");
+
     vt_log("Shutting Down");
     vt_deinit();
     _flush_caches();
-    asm volatile ("mov	pc, %0" : : "r" (exit_point));
+
+    syscall_deinit();
+    irq_deinit();
+
+    asm volatile ("mov  sp, %0\n"
+		  "mov	pc, %1\n"
+		  :
+		  : "r" (exit_sp),
+		    "r" (exit_point));
 }
 
 int main() {
 
-    asm volatile ("mov %0, lr" : "=r" (exit_point));
+    uint* volatile ep;
+    uint* volatile sp;
 
+    asm volatile ("mov %0, sp\n"
+		  "mov %1, lr\n"
+		  : "=r" (sp),
+		    "=r" (ep));
 
-    // memset(_BssStart, 0, _BssEnd - _BssStart);
-    // memset(_DataStart, 0, _DataEnd - _DataStart);
+    // zero out our base space
+    memset(&_BssStart, 0, (uint)&_BssEnd - (uint)&_BssStart);
+
+    exit_point = ep;
+    exit_sp    = sp - 1;
 
     _init();
-
 
     scheduler_get_next();
     scheduler_activate();

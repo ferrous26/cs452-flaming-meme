@@ -19,16 +19,9 @@ void __attribute__ ((used)) irq63() {
 }
 
 void irq_init() {
-    //EVERYTHING OFF
-    VIC(VIC1_BASE, VIC_IRQ_DISABLE_OFFSET) = 0xFFFFFFFFul;
-    VIC(VIC2_BASE, VIC_IRQ_DISABLE_OFFSET) = 0xFFFFFFFFul;
+    irq_deinit(); // reset!
 
-    // make sure everything goes through IRQ and not FIQ
-    VIC(VIC1_BASE, VIC_IRQ_MODE_OFFSET)    = 0;
-    VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET)    = 0;
-
-    // *HWI_HANDLER = (0xea000000 | (((int)hwi_enter >> 2) - 4));
-    *(void*volatile*)0x38 = hwi_enter;
+    *HWI_HANDLER = (0xea000000 | (((int)hwi_enter >> 2) - 8));
 
     // irq_enable_user_protection();
     irq_enable_interrupt(0);  // Soft Interrupt
@@ -59,6 +52,20 @@ void irq_init() {
     irq_enable_interrupt(52); // UART1 general
     irq_enable_interrupt(54); // UART2 general
     */
+}
+
+void irq_deinit() {
+    //EVERYTHING OFF
+    VIC(VIC1_BASE, VIC_IRQ_DISABLE_OFFSET) = 0xFFFFFFFF;
+    VIC(VIC2_BASE, VIC_IRQ_DISABLE_OFFSET) = 0xFFFFFFFF;
+
+    // make sure everything goes through IRQ and not FIQ
+    VIC(VIC1_BASE, VIC_IRQ_MODE_OFFSET) = 0;
+    VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET) = 0;
+
+    irq_disable_user_protection();
+
+    *HWI_HANDLER = 0xE59FF018;
 }
 
 inline static void _irq_interrupt(const uint cmd, const uint interrupt) {

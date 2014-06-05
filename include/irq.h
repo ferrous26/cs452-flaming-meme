@@ -5,9 +5,10 @@
 #include <std.h>
 #include <debug.h>
 
-#define HWI_HANDLER ((uint*)0x18)
+#define HWI_HANDLER ((uint* volatile)0x18)
 
 void irq_init();
+void irq_deinit();
 
 void hwi_enter(void);   /* found in context.asm */
 
