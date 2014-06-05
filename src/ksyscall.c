@@ -10,46 +10,49 @@ void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 }
 
-inline void ksyscall_pass() {
+inline static void ksyscall_pass() {
     scheduler_schedule((task*)task_active);
 }
 
-inline void ksyscall_create(const kreq_create* const req, uint* const result) {
+inline static void ksyscall_create(const kreq_create* const req, uint* const result) {
     *result = task_create(req->priority, req->code);
     ksyscall_pass();
 }
 
-inline void ksyscall_tid(uint* const result) {
+inline static void ksyscall_tid(uint* const result) {
     *result = (uint)task_active->tid;
     ksyscall_pass();
 }
 
-inline void ksyscall_ptid(uint* const result) {
+inline static void ksyscall_ptid(uint* const result) {
     *result = (uint)task_active->p_tid;
     ksyscall_pass();
 }
 
-inline void ksyscall_exit() {
+inline static void ksyscall_exit() {
     task_destroy();
 }
 
-inline void ksyscall_priority(uint* const result) {
+inline static void ksyscall_priority(uint* const result) {
     *result = (uint)task_active->priority;
     ksyscall_pass();
 }
 
-inline void ksyscall_change_priority(const uint32 new_priority) {
+inline static void ksyscall_change_priority(const uint32 new_priority) {
     task_active->priority = new_priority;
     ksyscall_pass();
 }
 
-inline void ksyscall_recv(task* const receiver) {
+inline static void ksyscall_recv(task* const receiver) {
+#if DEBUG
     register uint sp asm ("sp");
     assert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
+#endif
+
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
    
     if (q->head) {
-	volatile task* const sender = q->head;
+	task* const sender = q->head;
 
         assert((uint)sender < 0x200000 && (uint)sender > 0x100000,
                "Receive: %d Invalid head pointer!", receiver->tid);
@@ -83,7 +86,7 @@ inline void ksyscall_recv(task* const receiver) {
     receiver->next = RECV_BLOCKED;
 }
 
-inline void ksyscall_send(const kreq_send* const req, uint* const result) {
+inline static void ksyscall_send(const kreq_send* const req, uint* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
     
     assert(task_index_from_tid(req->tid) < TASK_MAX,
@@ -124,11 +127,8 @@ inline void ksyscall_send(const kreq_send* const req, uint* const result) {
     }
 }
 
-inline void ksyscall_reply(const kreq_reply* const req, uint* const result) {
+inline static void ksyscall_reply(const kreq_reply* const req, uint* const result) {
     task* const sender = &tasks[task_index_from_tid(req->tid)];
-
-    assert((uint)sender->sp > TASK_HEAP_BOT && (uint)sender->sp < TASK_HEAP_TOP,
-            "Reply: Sender %d has Invlaid heap %p", sender->tid, sender->sp);
 
     // first, validation of the request arguments
     if (sender->tid != req->tid || !sender->sp) {
@@ -136,6 +136,9 @@ inline void ksyscall_reply(const kreq_reply* const req, uint* const result) {
         ksyscall_pass();
 	return;
     }
+    
+    assert((uint)sender->sp > TASK_HEAP_BOT && (uint)sender->sp <= TASK_HEAP_TOP,
+            "Reply: Sender %d has Invalid heap %p", sender->tid, sender->sp);
 
     if (sender->next != RPLY_BLOCKED) {
 	*result = (uint)INVALID_RECVER;
@@ -165,7 +168,7 @@ inline void ksyscall_reply(const kreq_reply* const req, uint* const result) {
     ksyscall_pass();
 }
 
-inline void
+inline static void
 ksyscall_await(const kwait_req* const req, uint* const result) {
     switch (req->eventid) {
     case CLOCK_TICK:
@@ -177,7 +180,7 @@ ksyscall_await(const kwait_req* const req, uint* const result) {
     }
 }
 
-inline void ksyscall_irq() {
+inline static void ksyscall_irq() {
     ksyscall_pass();
 
     voidf handler = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);

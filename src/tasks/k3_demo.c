@@ -14,8 +14,7 @@ static void name() {                            \
         vt_log("K3(%d):%d, %d", tid, delay, i); \
         vt_flush();                             \
     }                                           \
-    int val;                                    \
-    Send(ptid, (char*)&val, 4, (char*)&val, 4); \
+    Send(ptid, NULL, 0, NULL, 0);               \
 }                                               \
 
 K3_TASK(k3_1, 10, 20)
@@ -24,20 +23,47 @@ K3_TASK(k3_3, 33,  6)
 K3_TASK(k3_4, 71,  3)
 
 void k3_root() {
+    int tid;
     int my_tid = myTid();
+    int nchildren = 0;
+
     vt_log("%d K3 Start", my_tid);
 
-    Create(10, k3_1);
-    Create(11, k3_2);
-    Create(12, k3_3);
-    Create(13, k3_4);
+    tid = Create(15, k3_1);
+    if ( tid > 0 ) {
+        vt_log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
+    
+    tid = Create(14, k3_2);
+    if ( tid > 0 ) {
+        vt_log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
+    
+    tid = Create(13, k3_3);
+    if ( tid > 0 ) {
+        vt_log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
+    
+    tid = Create(12, k3_4);
+    if ( tid > 0 ) {
+        vt_log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
 
-    int tid;
-    int value;
-    vt_log("%d K3 Wait For Responce", my_tid);
-    for(int i = 0; i < 4; i++){
-        Receive(&tid, (char*)&value, 4);
-        Reply(tid, (char*)&value, 4);
+    vt_flush();
+    vt_log("K3_Root(%d): Waiting", my_tid);
+    for (int i = 0; i < nchildren; i++) {
+        Receive(&tid, NULL, 0);
+        Reply(tid, NULL, 0);
     }
     vt_log("%d K3 Ending", my_tid);
+    vt_flush();
+
+    if (tid < 100000) {
+        Create(10, k3_root);
+        Create(10, k3_root);
+    }
 }

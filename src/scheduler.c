@@ -19,7 +19,7 @@ static uint8 table[256];
 
 task_q recv_q[TASK_MAX];
 struct task_descriptor  tasks[TASK_MAX];
-volatile struct task_descriptor* task_active;
+struct task_descriptor* task_active;
 struct task_descriptor* task_events[TASK_EVENTS];
 
 static struct task_free_list free_list;

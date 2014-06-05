@@ -121,7 +121,6 @@ int Time();
 // Note: if you send a value of time that is before the current
 //       time then you will be woken up immediately
 int DelayUntil(int ticks);
-
 void Shutdown();
 
 #endif
