@@ -16,7 +16,6 @@ uint clock_t4tick(void) {
 }
 
 void clock_enable(void) {
-    // TODO: move magic number elsewhere
     *(uint*)(TIMER3_BASE | LDR_OFFSET) = TIMER3_TICKS_PER_OS_TICK;
 
     const uint ctrl = ENABLE_MASK | MODE_MASK | CLKSEL_MASK;
@@ -30,8 +29,8 @@ void irq_clock() {
     register uint r0 asm("r0");
     *(uint*)(TIMER3_BASE | CLR_OFFSET) = r0;
 
-    task* t = task_events[CLOCK_TICK];
-    task_events[CLOCK_TICK] = NULL;
+    task* t = task_clock_event;
+    task_clock_event = NULL;
 
     if (t) {
 	t->sp[0] = 0;
