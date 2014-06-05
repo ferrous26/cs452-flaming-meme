@@ -78,9 +78,8 @@ static int _create(int priority, void (*code) (void), const char* const name) {
     if (tid < 0) {
         vt_log("Failed starting %s! Goodbye cruel world", name);
 	vt_flush();
-	Exit();
+	Shutdown();
     }
-
     return tid;
 }
 
