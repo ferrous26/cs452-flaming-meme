@@ -15,12 +15,12 @@ struct task_manager {
     task_q q[TASK_PRIORITY_LEVELS];
 };
 
+
 static uint8 table[256];
 
 task_q recv_q[TASK_MAX];
 struct task_descriptor  tasks[TASK_MAX];
-struct task_descriptor* task_active;
-struct task_descriptor* task_events[TASK_EVENTS];
+struct task_pointers    task_ptrs;
 
 static struct task_free_list free_list;
 static struct task_manager   manager;
@@ -80,7 +80,7 @@ void scheduler_init(void) {
 
 void scheduler_schedule(task* const t) {
     task_q* const q = &manager.q[t->priority];
-    
+
     assert(t >= tasks, "schedule: cant schedule task at %p", t);
     assert(t < &tasks[TASK_MAX], "schedule: cant schedule task at %p", t);
     assert(t->priority <= TASK_PRIORITY_MAX, "schedule: Bad Priority %u", t->priority);
@@ -98,7 +98,7 @@ void scheduler_schedule(task* const t) {
 
     // then we set the tail pointer
     q->tail = t;
-    
+
     // mark the end of the queue
     t->next = NULL;
 }

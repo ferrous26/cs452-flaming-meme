@@ -39,14 +39,21 @@ struct task_q_pointers {
     task* tail;
 };
 
+struct task_pointers {
+    task* task_active;
+    task* task_clock_event;
+};
+
 // choose small values so they can be instruction immediates
 #define RECV_BLOCKED (task*)0xA
 #define RPLY_BLOCKED (task*)0xB
 
 extern task_q recv_q[TASK_MAX];
-extern task*  task_active;
-extern task*  task_events[TASK_EVENTS];
 extern task   tasks[TASK_MAX];
+extern struct task_pointers task_ptrs;
+
+#define task_active task_ptrs.task_active
+#define task_clock_event task_ptrs.task_clock_event
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);

@@ -176,7 +176,7 @@ inline static void
 ksyscall_await(const kwait_req* const req, uint* const result) {
     switch (req->eventid) {
     case CLOCK_TICK:
-	task_events[CLOCK_TICK] = (task*)task_active;
+	task_clock_event = task_active;
 	break;
     default:
 	*result = INVALID_EVENT;
