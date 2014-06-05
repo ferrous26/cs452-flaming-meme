@@ -15,7 +15,7 @@ OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
 
 ifdef RELEASE
 # Flags to look into trying:
-CFLAGS   = -O$(RELEASE) -unswitch-loops -fpeel-loops -floop-optimize2 -fomit-frame-pointer
+CFLAGS   = -O$(RELEASE) -unswitch-loops -fpeel-loops -floop-optimize2
 #CFLAGS += --param max-gcse-memory=1073741824 -fmerge-all-constants -fmodulo-sched -ffast-math
 #CFLAGS += -ftree-loop-linear
 #CFLAGS += -fgcse-after-reload -fgcse-sm -fgcse-las -ftree-loop-im
@@ -29,7 +29,7 @@ ifdef BENCHMARK
 CFLAGS += -D BENCHMARK
 endif
 
-CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99
+CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99 -fomit-frame-pointer
 CFLAGS += -c -I. -Iinclude -mcpu=arm920t -msoft-float --freestanding
 CFLAGS += -Wall -Wextra -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code

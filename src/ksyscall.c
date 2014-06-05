@@ -6,12 +6,6 @@
 #include <irq.h>
 #include <scheduler.h>
 
-#if DEBUG
-#define NAKED
-#else
-#define NAKED __attribute__ ((naked))
-#endif
-
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
 }
@@ -80,9 +74,8 @@ inline void ksyscall_recv(task* const receiver) {
 	receiver->sp[0]    = sender_req->msglen;
 	sender->next       = RPLY_BLOCKED;
 
-        if(0 != sender_req->msglen) {
+        if (sender_req->msglen)
 	    memcpy(receiver_req->msg, sender_req->msg, sender_req->msglen);
-        }
 	scheduler_schedule(receiver); // schedule this mofo
 	return;
     }
@@ -93,6 +86,11 @@ inline void ksyscall_recv(task* const receiver) {
 inline void ksyscall_send(const kreq_send* const req, uint* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
     
+    assert(task_index_from_tid(req->tid) < TASK_MAX,
+           "Reply: Invalid Sender %d", req->tid);
+    assert((uint)receiver->sp > TASK_HEAP_BOT && (uint)receiver->sp < TASK_HEAP_TOP,
+           "Send: Sender %d has Invlaid heap %p", receiver->tid, receiver->sp);
+
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
 	*result = (uint)(req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK);
@@ -129,18 +127,8 @@ inline void ksyscall_send(const kreq_send* const req, uint* const result) {
 inline void ksyscall_reply(const kreq_reply* const req, uint* const result) {
     task* const sender = &tasks[task_index_from_tid(req->tid)];
 
-    /*
-    assert((uint)sender < 0x200000 && (uint)sender > 0x100000,
-           "Reply: %d Invalid head pointer!" );
-    assert((uint)sender->next < 0x200000 && (uint)sender->next > 0x100000,
-           "Reply: %d Invalid head next!", receiver->tid);
-    */
-
-    assert(sender->tid >= 0 && sender->tid < TASK_MAX,
-           "Reply: Invalid Sender %d", sender->tid);
     assert((uint)sender->sp > TASK_HEAP_BOT && (uint)sender->sp < TASK_HEAP_TOP,
             "Reply: Sender %d has Invlaid heap %p", sender->tid, sender->sp);
-
 
     // first, validation of the request arguments
     if (sender->tid != req->tid || !sender->sp) {
@@ -167,9 +155,9 @@ inline void ksyscall_reply(const kreq_reply* const req, uint* const result) {
     sender->sp[0]      = req->replylen;
 
     // at this point, it is smooth sailing
-    if (0 != req->replylen) {
+    if (req->replylen)
         memcpy(sender_req->reply, req->reply, req->replylen);
-    }
+
     // according to spec, we should schedule the sender first, because, in
     // the case where they are the same priority level we want the sender
     // to run first
@@ -191,7 +179,7 @@ ksyscall_await(const kwait_req* const req, uint* const result) {
 
 inline void ksyscall_irq() {
     ksyscall_pass();
-    
+
     voidf handler = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
     handler();
 
@@ -199,9 +187,9 @@ inline void ksyscall_irq() {
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
 }
 
-void NAKED syscall_handle(const uint code,
-                          const void* const req,
-                          uint* const sp) {
+void  __attribute__ ((naked)) syscall_handle(const uint code,
+					     const void* const req,
+					     uint* const sp) {
     // save it, save it real good
     task_active->sp = sp;
 
@@ -242,6 +230,9 @@ void NAKED syscall_handle(const uint code,
     case SYS_AWAIT:
 	ksyscall_await((const kwait_req* const)req, sp);
 	break;
+    case SYS_SHUTDOWN:
+	shutdown();
+	break;
     default:
         assert(false, "Task %d, called invalid system call %d",
 	       task_active->tid,
@@ -252,7 +243,7 @@ void NAKED syscall_handle(const uint code,
     //everythings done, just leave
     asm volatile ("mov\tr0, %0    \n\t"
                   "b\tkernel_exit \n\t"
-                 : 
+                 :
                  :"r" (task_active->sp)
                  :"r0");
 }

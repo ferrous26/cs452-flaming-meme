@@ -53,22 +53,14 @@ void scheduler_init(void) {
 	table[i] = 1 + table[i >> 1];
     table[0] = 32; // if you want log(0) to return -1, change to -1
 
-    manager.state = 0;
-    for (i = 0; i < TASK_PRIORITY_LEVELS; i++) {
-	task_q* q = &manager.q[i];
-	q->head = NULL;
-	q->tail = NULL;
-
-	q = &recv_q[i];
-	q->head = NULL;
-	q->tail = NULL;
-    }
+    memset(&manager, 0, sizeof(manager));
+    memset(&recv_q,  0, sizeof(recv_q));
+    memset(&tasks,   0, sizeof(tasks));
 
     cbuf_init(&free_list.list, TASK_MAX, free_list.buffer);
 
     for (i = 0; i < 16; i++) {
 	tasks[i].tid = i;
-        tasks[i].sp  = NULL;
 	cbuf_produce(&free_list.list, i);
     }
 
@@ -78,7 +70,6 @@ void scheduler_init(void) {
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid = i;
-        tasks[i].sp  = NULL;
 	cbuf_produce(&free_list.list, i);
     }
 
@@ -88,11 +79,12 @@ void scheduler_init(void) {
 }
 
 void scheduler_schedule(task* const t) {
-    assert(t >= tasks, "schedule: cant schedule task at %p", q->head);
-    assert(t < &tasks[TASK_MAX], "schedule: cant schedule task at %p", q->head);
+    task_q* const q = &manager.q[t->priority];
+    
+    assert(t >= tasks, "schedule: cant schedule task at %p", t);
+    assert(t < &tasks[TASK_MAX], "schedule: cant schedule task at %p", t);
     assert(t->priority <= TASK_PRIORITY_MAX, "schedule: Bad Priority %u", t->priority);
 
-    task_q* const q = &manager.q[t->priority];
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
 
@@ -195,4 +187,6 @@ void debug_task(const task_id tid) {
     }
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
+#else
+#define debug_task(x)
 #endif

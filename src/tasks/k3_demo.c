@@ -41,4 +41,3 @@ void k3_root() {
     }
     vt_log("%d K3 Ending", my_tid);
 }
-

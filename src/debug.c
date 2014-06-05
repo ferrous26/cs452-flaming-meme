@@ -3,6 +3,7 @@
 #include <io.h>
 #include <vt100.h>
 #include <kernel.h>
+#include <syscall.h>
 
 #if DEBUG
 
@@ -19,7 +20,9 @@ void debug_assert_fail(const char* const file,
     vt_flush();
 
     va_end(args);
-    shutdown();
+    if (debug_processor_mode() == SUPERVISOR)
+	shutdown();
+    Shutdown();
 }
 
 void debug_log(const char* const msg, ...) {
