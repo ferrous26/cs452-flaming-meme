@@ -19,7 +19,7 @@ static uint8 table[256];
 
 task_q recv_q[TASK_MAX];
 struct task_descriptor  tasks[TASK_MAX];
-struct task_descriptor* task_active;
+volatile struct task_descriptor* task_active;
 struct task_descriptor* task_events[TASK_EVENTS];
 
 static struct task_free_list free_list;
@@ -45,7 +45,6 @@ static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
 }
 
 void scheduler_init(void) {
-
     size i;
 
     // initialize the lookup table for lg()
@@ -84,25 +83,30 @@ void scheduler_init(void) {
     }
 
     memset(task_events, 0, sizeof(task_events));
+
+    debug_log("TASKS: %p", tasks);
 }
 
 void scheduler_schedule(task* const t) {
+    assert(t >= tasks, "schedule: cant schedule task at %p", q->head);
+    assert(t < &tasks[TASK_MAX], "schedule: cant schedule task at %p", q->head);
+    assert(t->priority <= TASK_PRIORITY_MAX, "schedule: Bad Priority %u", t->priority);
 
     task_q* const q = &manager.q[t->priority];
-
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
 
     // if there was something in the queue, append to it
-    if (q->head)
+    if (q->head) {
 	q->tail->next = t;
+    }
     // else the queue was off, so set the head
     else
 	q->head = t;
 
     // then we set the tail pointer
     q->tail = t;
-
+    
     // mark the end of the queue
     t->next = NULL;
 }
@@ -129,7 +133,6 @@ void scheduler_activate(void) {
 }
 
 int task_create(const task_pri pri, void (*const start)(void)) {
-
     // double check that priority was checked in user land
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
@@ -174,7 +177,6 @@ void task_destroy() {
 
 #if DEBUG
 void debug_task(const task_id tid) {
-
     task* tsk = &tasks[task_index_from_tid(tid)];
 
     debug_log("Task:");

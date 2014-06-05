@@ -44,7 +44,7 @@ struct task_q_pointers {
 #define RPLY_BLOCKED (task*)0xB
 
 extern task_q recv_q[TASK_MAX];
-extern task*  task_active;
+extern volatile task*  task_active;
 extern task*  task_events[TASK_EVENTS];
 extern task   tasks[TASK_MAX];
 
