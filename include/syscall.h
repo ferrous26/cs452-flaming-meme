@@ -34,11 +34,13 @@ typedef enum {
 } task_err;
 
 typedef enum {
+    OK              = 0,  // full steam ahead
     IMPOSSIBLE_TASK = -1, // task id is negative
     INVALID_TASK    = -2, // task no longer alive (or has not yet been created)
-    INCOMPLETE      = -3,
-    INVALID_RECVER  = -3,
-    NOT_ENUF_MEMORY = -4
+    INCOMPLETE      = -3, // receiver Exit()'d before receiving the message
+    INVALID_RECVER  = -3, // receiver was not in the RPLY_BLOCKED state
+    NOT_ENUF_MEMORY = -4, // receiver buffer was not big enough
+    INVALID_MESSAGE = -5  // the receiver did not understand the message
 } msg_err;
 
 typedef struct {

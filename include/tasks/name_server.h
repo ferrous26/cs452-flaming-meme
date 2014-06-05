@@ -8,6 +8,8 @@
 #define NAME_OVERLAY_SIZE (NAME_MAX_SIZE/WORD_SIZE)
 #define NAME_MAX      32
 
+extern int name_server_tid;
+
 typedef enum {
     REGISTER,
     LOOKUP

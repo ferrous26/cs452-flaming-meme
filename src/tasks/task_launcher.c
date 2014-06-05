@@ -18,13 +18,16 @@ inline static void print_help() {
            "1 ~ K3 assignent demo\n\t"
 	   "2 ~ Create a suicidal task\n\t"
 	   "3 ~ Benchmark message passing\n\t"
+	   "4 ~ Get the current time\n\t"
+	   "5 ~ DelayUntil time + 100\n\t"
+	   "6 ~ Delay 100 ticks\n\n\t"
+	   "7 ~ Delay -100 ticks\n\n\t"
+	   "8 ~ DelayUntil time = 0\n\t"
 
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
 	   "z ~ Trigger software interrupt 1\n\t"
            "s ~ Trigger software interrupt 63\n\n\t"
-
-	   "p ~ Delay until the moon (+ 100 ticks)\n\t"
 
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
@@ -43,6 +46,21 @@ static void tl_action(char input) {
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
 	break;
+    case '4':
+	vt_log("The time is %u ticks!", Time());
+	break;
+    case '5':
+	DelayUntil(Time() + 100);
+	break;
+    case '6':
+	Delay(100);
+	break;
+    case '7':
+	Delay(-100);
+	break;
+    case '0':
+	DelayUntil(0);
+	break;
 
     case 'i':
 	debug_interrupt_table();
@@ -55,10 +73,6 @@ static void tl_action(char input) {
 	break;
     case 's':
 	irq_simulate_interrupt(63);
-	break;
-
-    case 'p':
-	Delay(10);
 	break;
 
     case 'q':

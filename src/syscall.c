@@ -7,9 +7,6 @@
 
 #include <syscall.h>
 
-task_id name_server_tid;
-task_id clock_server_tid;
-
 inline uint _syscall(int code, volatile void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
     asm volatile ("mov\tr0, %0\n\t"
@@ -98,12 +95,20 @@ int WhoIs(char* name) {
 	req.payload.text[i] = name[i];
     }
 
-    int ret;
-    int res = Send(name_server_tid,
-                   (char*)&req, sizeof(req),
-                   (char*)&ret, sizeof(int));
-    if(res < 0) return res;
-    return ret;
+    int status;
+    int result = Send(name_server_tid,
+		      (char*)&req,    sizeof(req),
+		      (char*)&status, sizeof(int));
+
+    if (result > OK) return status;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	if (Create(TASK_PRIORITY_MAX-2, name_server) > 0)
+	    return WhoIs(name);
+
+    // else, error out
+    return result;
 }
 
 int RegisterAs(char* name) {
@@ -116,14 +121,20 @@ int RegisterAs(char* name) {
 	req.payload.text[i] = name[i];
     }
 
-    int ret;
-    int res = Send(name_server_tid,
-                   (char*)&req, sizeof(req),
-                   (char*)&ret, sizeof(int));
+    int status;
+    int result = Send(name_server_tid,
+		      (char*)&req,    sizeof(req),
+		      (char*)&status, sizeof(int));
 
-    if(res < 0) return res;
-    if(ret < 0) return ret;
-    return 0;
+    if (result > OK) return (status < 0 ? status :  0);
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	if (Create(TASK_PRIORITY_MAX-2, name_server) > 0)
+	    return RegisterAs(name);
+
+    // else, error out
+    return result;
 }
 
 int AwaitEvent(int eventid, char* event, int eventlen) {
@@ -136,15 +147,26 @@ int AwaitEvent(int eventid, char* event, int eventlen) {
 }
 
 int Delay(int ticks) {
+
+    // handle negative/non-delay cases on the task side
+    if (ticks <= 0) return 0;
+
     clock_req req;
     req.type  = CLOCK_DELAY;
-    req.ticks = ticks;
+    req.ticks = (uint)ticks;
 
     int result = Send(clock_server_tid,
 		      (char*)&req, sizeof(clock_req),
 		      (char*)&req, sizeof(clock_req));
-    if (result < 0) return result;
-    return 0;
+
+    if (result == OK) return 0;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	if (Create(TASK_PRIORITY_MAX-1, clock_server) > 0)
+	    return Delay(ticks);
+    // else, error out
+    return result;
 }
 
 int Time() {
@@ -158,20 +180,38 @@ int Time() {
 
     // Note: since we return _result_ in error cases, we inherit
     // additional error codes not in the kernel spec for this function
-    if (result < 0) return result;
-    return ticks;
+    if (result > OK) return ticks;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	if (Create(TASK_PRIORITY_MAX-1, clock_server) > 0)
+	    return Time();
+
+    // else, error out
+    return result;
 }
 
 int DelayUntil(int ticks) {
+
+    // handle negative/non-delay cases on the task side
+    if (ticks <= 0) return 0;
+
     clock_req req;
     req.type  = CLOCK_DELAY_UNTIL;
-    req.ticks = ticks;
+    req.ticks = (uint)ticks;
 
     int result = Send(clock_server_tid,
 		      (char*)&req, sizeof(clock_req),
 		      (char*)&req, sizeof(clock_req));
-    if (result < 0) return result;
-    return 0;
+
+    if (result == OK) return 0;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	if (Create(TASK_PRIORITY_MAX-1, clock_server) > 0)
+	    return DelayUntil(ticks);
+    // else, error out
+    return result;
 }
 
 void Shutdown() {

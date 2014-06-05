@@ -73,9 +73,7 @@ void scheduler_init(void) {
 	cbuf_produce(&free_list.list, i);
     }
 
-    memset(task_events, 0, sizeof(task_events));
-
-    debug_log("TASKS: %p", tasks);
+    memset(&task_ptrs, 0, sizeof(task_ptrs));
 }
 
 void scheduler_schedule(task* const t) {

@@ -1,10 +1,10 @@
-#include <io.h>
-#include <debug.h>
-
 #include <std.h>
 #include <syscall.h>
 
 #include <tasks/name_server.h>
+
+
+int name_server_tid;
 
 static int __attribute__((const)) find_loc(uint32 directory[][NAME_OVERLAY_SIZE],
                                            const uint32 value[NAME_OVERLAY_SIZE],
@@ -30,6 +30,8 @@ void name_server() {
     ns_req buffer;
     uint insert = 0;
 
+    name_server_tid = myTid();
+
     for(;;) {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
         int loc = find_loc(lookup.overlay, buffer.payload.overlay, insert);
@@ -50,13 +52,11 @@ void name_server() {
 	    }
             break;
         case LOOKUP:
-            reply = loc < 0 ? -69 : tasks[loc]; 
+            reply = loc < 0 ? -69 : tasks[loc];
 	    break;
 	default:
-	    debug_log("NameServer: task %d gave me garbage!", tid);
-	    reply = -42;
+	    reply = INVALID_MESSAGE;
 	}
         Reply(tid, (char*)&reply, sizeof(reply));
     }
 }
-

@@ -3,6 +3,9 @@
 #define __CLOCK_SERVER_H__
 
 #include <std.h>
+#include <scheduler.h>
+
+extern int clock_server_tid;
 
 typedef enum {
     CLOCK_NOTIFY = 1,

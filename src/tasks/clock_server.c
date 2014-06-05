@@ -3,14 +3,12 @@
 #include <syscall.h>
 #include <std.h>
 #include <debug.h>
-#include <scheduler.h>
-#include <vt100.h>
 
-
-#define CLOCK_HOME 67
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)
 #define PARENT(i) (i >> 1)
+
+int clock_server_tid;
 
 
 typedef struct {
@@ -106,7 +104,7 @@ static void pq_add(clock_pq* q, uint time, task_id tid) {
 }
 
 #if DEBUG
-static void pq_debug(clock_pq* q) {
+static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
 
     debug_log("Queue size is %u", q->count);
 
@@ -130,6 +128,8 @@ void clock_server() {
     assert(myPriority() < TASK_PRIORITY_MAX,
 	   "Clock server should not be top priority");
 
+    // allow tasks to send messages to the clock server
+    clock_server_tid = myTid();
     int result = RegisterAs("clock");
     if (result) {
 	vt_log("Failed to register clock server name (%d)", result);
@@ -144,12 +144,9 @@ void clock_server() {
 	return;
     }
 
-    vt_goto(1, 60);
-    kprintf_string("CLOCK ");
-
     uint time = 0;
-    clock_req req;
-    clock_pq  q;
+    clock_req req; // store incoming requests
+    clock_pq  q;   // priority queue for tasks waiting for time
     pq_init(&q);
 
     FOREVER {
@@ -168,38 +165,37 @@ void clock_server() {
 	    // tick-tock
 	    time++;
 
-	    // print the clock to the screen
-	    vt_goto(1, CLOCK_HOME);
-	    kprintf_uint(time);
-	    vt_flush(); // hmmmm
-
 	    while (pq_peek(&q) <= time) {
 		tid = pq_delete(&q);
 		result = Reply(tid, (char*)&req, sizeof(clock_req_type));
-		if (result < 0) _error(tid, result);
+		if (result) _error(tid, result);
 	    }
 	    break;
 
 	case CLOCK_DELAY:
-	    // TODO: check against negative values
-	    // TODO: if we missed the deadline, wake task up right away?
 	    pq_add(&q, req.ticks + time, tid);
 	    break;
 
 	case CLOCK_TIME:
 	    result = Reply(tid, (char*)&time, sizeof(time));
-	    if (!result) _error(tid, result);
+	    if (result) _error(tid, result);
 	    break;
 
 	case CLOCK_DELAY_UNTIL:
-	    // TODO: check against negative values
-	    // TODO: if we missed the deadline, wake task up right away?
-	    pq_add(&q, req.ticks, tid);
-	    pq_debug(&q);
+	    // if we missed the deadline, wake task up right away?
+	    if (req.ticks <= time) {
+		result = Reply(tid, (char*)&req, sizeof(clock_req_type));
+		if (result) _error(tid, result);
+	    }
+	    else {
+		pq_add(&q, req.ticks, tid);
+	    }
 	    break;
 
 	default:
-	    assert(false, "Invalid clock request %d from %d", req.type, tid);
+	    req.type = INVALID_MESSAGE;
+	    result = Reply(tid, (char*)&req, sizeof(clock_req_type));
+	    if (result) _error(tid, result);
 	}
     }
 }
