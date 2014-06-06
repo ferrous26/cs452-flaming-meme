@@ -51,6 +51,25 @@ which are available to demonstrate features added in this milestone.
 \end{center}
 
 \newpage
+\section*{Hardware Interrupts}
+
+\subsection*{AwaitEvent()}
+
+The signature we chose for events is
+\ttt{int AwaitEvent(int eventid, char* event, int eventlen)}. We chose
+this in anticipation of handling UART FIFO I/O in the next
+milestone.
+
+We have optimized this for clock events, which will receive a result
+code of 0 when the event goes off.
+
+\section*{Clock Server}
+
+\section*{Kernel Changes}
+
+Fixed bugs in task descriptor reuse.
+
+\section*{Demonstration Output}
 
 
 \end{document}
