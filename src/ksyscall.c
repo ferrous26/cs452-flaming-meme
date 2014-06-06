@@ -190,12 +190,11 @@ ksyscall_await(const kwait_req* const req, int* const result) {
 }
 
 inline static void ksyscall_irq() {
-    ksyscall_pass();
-
     voidf handler = (void(*volatile)())VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-    handler();
-
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = handler;
+
+    handler();
+    ksyscall_pass();
 }
 
 void syscall_handle(const uint code,
