@@ -1,9 +1,11 @@
 	.file	"context.asm"
 	.text
 
+
 	.align	2
-	.global	hwi_enter
-	.type	hwi_enter, %function
+	.section .text.kern
+	.global	 hwi_enter
+	.type	 hwi_enter, %function
 hwi_enter:
 	msr	cpsr, #0xDF	/* System */
 	sub	sp, sp, #4
@@ -53,6 +55,4 @@ kernel_exit:
 	
 	ldmfd	r0, {r0,r2,r3,r12,pc}^	/* ^ acts like movs when pc is in list */
 	.size	kernel_exit, .-kernel_exit
-
-
 
