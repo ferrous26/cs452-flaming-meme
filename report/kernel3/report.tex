@@ -7,8 +7,40 @@
 
 \section*{Overview}
 
-Herp Derp
+This kernel development milestone adds handling for hardware
+interrupts, a clock server, and system calls for event handling and
+communication with the clock server. This milestone also includes a
+task that demonstrates the clock servers abilities.
 
+\section*{Operation Instructions}
+
+A pre-compiled kernel exists at
+\ttt{/u/cs452/tftp/ARM/marada/k3.elf}, which can be loaded with
+RedBoot using the following command:
+
+\begin{center}
+  \ttt{load -h 10.15.167.4 ARM/marada/k3.elf; go}
+\end{center}
+
+Notice that no offset should be specified for the load instruction.
+
+The source code for the kernel exists in \ttt{/u3/marada/kernel2/},
+and can be compiled with the following command chain:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel2 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the makefile built in debug mode with minimal optimizations enabled.
+
+After Initialization the kernel will respond with the message ``\ttt{Welcome to
+Task Launcher}''.
+At this point the key \ttt{1} will start the clock server
+demonstration. The \ttt{h} key will print a list of other commands
+which are available to demonstrate features added in this milestone.
+
+\subsection*{Submitted Files}
 \begin{center}
 \begin{tabular}{l|l}
   \bfseries File & \bfseries MD5 Hash
@@ -17,6 +49,8 @@ Herp Derp
   {\\\file & \ttt{\hash}}%
 \end{tabular}
 \end{center}
+
+\newpage
 
 
 \end{document}
