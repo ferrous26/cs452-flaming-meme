@@ -18,12 +18,13 @@ static void stress_sub() {
     
     for (int i = 1; i < iter; i++) {
         Delay(delay);
-        vt_log("STR_T(%d): Delay:%d, Iter:%d", tid, delay, i);
+        vt_log("STR_T(%d): Delay:%d Iter:%d/%d", tid, delay, i, iter-1);
         vt_flush();
     }
 
     int ret = Send(ptid, NULL, 0, NULL, 0);
     assert(ret == 0, "Parent Died Before Task Could Return");
+    UNUSED(ret);
 }
 
 void stress_root() {
@@ -46,7 +47,9 @@ void stress_root() {
     for (int i = 0; i < nchildren; i++) {
         Receive(&tid, NULL, 0);
         int ret = Reply(tid, NULL, 0);
+
         assert(ret == 0, "Child Died before parent could send back message");
+        UNUSED(ret);
     }
 
     if (tid < 10000) {
