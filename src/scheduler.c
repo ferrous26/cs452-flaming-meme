@@ -4,26 +4,22 @@
 #include <tasks/task_launcher.h>
 
 
-// force grouping by putting them into a struct
-struct task_free_list {
-    char_buffer list;
-    int8 buffer[TASK_MAX];
-};
-
-struct task_manager {
-    uint32 state; // bitmap for accelerating queue selection
-    task_q q[TASK_PRIORITY_LEVELS];
-};
-
-
 static uint8 table[256];
 
-task_q recv_q[TASK_MAX];
-struct task_descriptor  tasks[TASK_MAX];
-struct task_pointers    task_ptrs;
+// force grouping by putting them into a struct
+static struct task_free_list {
+    char_buffer list;
+    int8 buffer[TASK_MAX];
+} free_list DATA_HOT;
 
-static struct task_free_list free_list;
-static struct task_manager   manager;
+static struct task_manager {
+    uint32 state; // bitmap for accelerating queue selection
+    task_q q[TASK_PRIORITY_LEVELS];
+} manager DATA_HOT;
+
+task_q recv_q[TASK_MAX] DATA_HOT;
+struct task_descriptor  tasks[TASK_MAX] DATA_HOT;
+struct task_pointers    task_ptrs DATA_HOT;
 
 // This algorithm is borrowed from
 // http://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogLookup

@@ -3,6 +3,7 @@
 #define __SCHEDULER_H__
 
 #include <std.h>
+#include <kernel.h>
 #include <syscall.h>
 
 #define TASK_PRIORITY_LEVELS 32
@@ -62,9 +63,8 @@ static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid
 
 void scheduler_init(void);
 
-void scheduler_schedule(task* const t);
-
-void scheduler_get_next(void);
+void scheduler_schedule(task* const t) TEXT_HOT;
+void scheduler_get_next(void) TEXT_HOT;
 
 /**
  * Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
@@ -74,9 +74,8 @@ void scheduler_activate(void);
 /**
  * @return tid of new task, or an error code as defined by CreateTask()
  */
-int task_create(const task_pri pri, void (*const start)(void));
-
-void task_destroy(void);
+int  task_create(const task_pri pri, void (*const start)(void)) TEXT_HOT;
+void task_destroy(void) TEXT_HOT;
 
 /**
  * Print debug info about the given task to the debug console.

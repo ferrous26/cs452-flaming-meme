@@ -6,10 +6,6 @@
 #include <irq.h>
 #include <scheduler.h>
 
-void __attribute__ ((naked)) syscall_handle(const uint code,
-					    const void* const req,
-					    int* const sp);
-
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 }
@@ -198,9 +194,10 @@ inline static void ksyscall_irq() {
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = handler;
 }
 
-void syscall_handle(const uint code,
-		    const void* const req,
-		    int* const sp) {
+void syscall_handle(const uint code, const void* const req, int* const sp)
+    __attribute__ ((naked)) TEXT_HOT;
+
+void syscall_handle(const uint code, const void* const req, int* const sp) {
     // save it, save it real good
     task_active->sp = sp;
 

@@ -34,7 +34,7 @@ typedef enum {
 } task_err;
 
 typedef enum {
-    OK              = 0,  // full steam ahead
+    OK              =  0, // full steam ahead
     IMPOSSIBLE_TASK = -1, // task id is negative
     INVALID_TASK    = -2, // task no longer alive (or has not yet been created)
     INCOMPLETE      = -3, // receiver Exit()'d before receiving the message

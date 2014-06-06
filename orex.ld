@@ -11,6 +11,8 @@ SECTIONS
   .data : /* Initialized data. */
   {
     _DataStart = . ;
+    *(.data.kern)
+    _DataKernEnd = . ;
     *(.data)
     *(.data.rel.local)
     _DataEnd = . ;
@@ -27,6 +29,8 @@ SECTIONS
   .text : /* The actual instructions. */
   {
     _TextStart = . ;
+    *(.text.kern)
+    _TextKernEnd = . ;
     *(.text)
     *(.rodata)
     *(.rodata.str1.4)

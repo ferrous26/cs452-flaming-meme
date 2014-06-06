@@ -2,12 +2,13 @@
 #define __CLOCK_H__
 
 #include <std.h>
+#include <kernel.h>
 #include <ts7200.h>
 
 void clock_enable(void);
 void clock_t4enable(void);
 
 uint clock_t4tick(void);
-void irq_clock(void);
+void irq_clock(void) TEXT_HOT;
 
 #endif
