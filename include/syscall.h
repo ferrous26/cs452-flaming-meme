@@ -71,9 +71,6 @@ typedef struct {
 void syscall_init(void);
 void syscall_deinit(void);
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
-void __attribute__ ((naked)) syscall_handle(const uint code,
-					    const void* const req,
-					    int* const sp);
 void kernel_exit(int* sp);                        /* found in context.asm */
 
 int Create(int priority, void (*code) (void));

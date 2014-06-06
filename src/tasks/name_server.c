@@ -4,7 +4,6 @@
 
 #include <tasks/name_server.h>
 
-
 int name_server_tid;
 
 static int __attribute__((const)) find_loc(uint32 directory[][NAME_OVERLAY_SIZE],
@@ -32,6 +31,8 @@ void name_server() {
     int insert = 0;
 
     name_server_tid = myTid();
+    vt_log("Name Server started at %d", name_server_tid);
+    vt_flush();
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
