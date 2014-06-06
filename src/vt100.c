@@ -45,11 +45,11 @@ void vt_goto_home() {
     kprintf_char('H');
 }
 
-static void vt_set_location(const uint8 first, const uint8 second) {
-    const char first_high  = (first / 10) + 48;
-    const char first_low   = (first % 10) + 48;
-    const char second_high = (second / 10) + 48;
-    const char second_low  = (second % 10) + 48;
+static void vt_set_location(const uint first, const uint second) {
+    const char first_high  = (char)(first / 10) + 48;
+    const char first_low   = (char)(first % 10) + 48;
+    const char second_high = (char)(second / 10) + 48;
+    const char second_low  = (char)(second % 10) + 48;
 
     vt_esc();
     if (first_high > 48) kprintf_char(first_high);

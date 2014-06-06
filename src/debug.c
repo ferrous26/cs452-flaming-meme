@@ -44,7 +44,6 @@ void debug_log(const char* const msg, ...) {
 #define FIQ_STATUS_MASK           0x00000040
 #define IRQ_STATUS_MASK           0x00000080
 #define ABORT_STATUS_MASK         0x00000100
-#define ENDIANESS_STATUS_MASK     0x00000200
 
 #define FLAG_NEGATIVE_MASK        0x80000000
 #define FLAG_ZERO_MASK            0x40000000
@@ -69,7 +68,6 @@ static inline bool thumb_state(const uint status) { return (status & THUMB_STATU
 static inline bool   fiq_state(const uint status) { return (status & FIQ_STATUS_MASK);       }
 static inline bool   irq_state(const uint status) { return (status & IRQ_STATUS_MASK);       }
 static inline bool abort_state(const uint status) { return (status & ABORT_STATUS_MASK);     }
-static inline bool   endianess(const uint status) { return (status & ENDIANESS_STATUS_MASK); }
 
 static inline bool cc_n(const uint status) { return (status & FLAG_NEGATIVE_MASK);        }
 static inline bool cc_z(const uint status) { return (status & FLAG_ZERO_MASK);            }
@@ -114,7 +112,7 @@ void debug_spsr(void) {
     _debug_psr("SPSR", status);
 }
 
-inline pmode debug_processor_mode() {
+pmode debug_processor_mode() {
     const uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 

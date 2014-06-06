@@ -3,17 +3,17 @@
 
 #include <irq.h>
 
-void __attribute__ ((used)) irq1() {
+static void __attribute__ ((used)) irq1() {
     vt_log("IRQ1");
     irq_clear_simulated_interrupt(1);
 }
 
-void __attribute__ ((used)) irq0() {
+static void __attribute__ ((used)) irq0() {
     vt_log("IRQ0");
     irq_clear_simulated_interrupt(0);
 }
 
-void __attribute__ ((used)) irq63() {
+static void __attribute__ ((used)) irq63() {
     vt_log("IRQ63");
     irq_clear_simulated_interrupt(63);
 }
@@ -21,7 +21,7 @@ void __attribute__ ((used)) irq63() {
 void irq_init() {
     irq_deinit(); // reset!
 
-    *HWI_HANDLER = (0xea000000 | (((int)hwi_enter >> 2) - 8));
+    *HWI_HANDLER = (0xea000000 | (((uint)hwi_enter >> 2) - 8));
 
     // irq_enable_user_protection();
     irq_enable_interrupt(0);  // Soft Interrupt
@@ -30,16 +30,16 @@ void irq_init() {
 
     irq_enable_interrupt(51); // Timer 3
 
-    *(void*volatile*)0x800B0100 = irq0;
+    *(void*volatile*)0x800B0100 = (void*volatile)irq0;
     *(volatile uint*)0x800B0200 = 0x20;
 
-    *(void*volatile*)0x800B0104 = irq1;
+    *(void*volatile*)0x800B0104 = (void*volatile)irq1;
     *(volatile uint*)0x800B0204 = 0x21;
 
-    *(void*volatile*)0x800C0100 = irq_clock;
+    *(void*volatile*)0x800C0100 = (void*volatile)irq_clock;
     *(volatile uint*)0x800C0200 = 0x33;
 
-    *(void*volatile*)0x800C0104 = irq63;
+    *(void*volatile*)0x800C0104 = (void*volatile)irq63;
     *(volatile uint*)0x800C0204 = 0x3F;
 
     /*

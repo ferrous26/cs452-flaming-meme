@@ -16,7 +16,7 @@
 #define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
 
 typedef int32  task_id;
-typedef uint32 task_pri;
+typedef int32  task_pri;
 typedef uint8  task_idx;
 
 struct task_descriptor;
@@ -27,7 +27,7 @@ struct task_descriptor {
     task_id  tid;
     task_id  p_tid;
     task_pri priority;
-    uint*    sp;
+    int*     sp;
     task*    next;
 };
 
@@ -40,8 +40,8 @@ struct task_q_pointers {
 };
 
 struct task_pointers {
-    task* task_active;
-    task* task_clock_event;
+    task* active;
+    task* clock_event;
 };
 
 // choose small values so they can be instruction immediates
@@ -52,8 +52,8 @@ extern task_q recv_q[TASK_MAX];
 extern task   tasks[TASK_MAX];
 extern struct task_pointers task_ptrs;
 
-#define task_active task_ptrs.task_active
-#define task_clock_event task_ptrs.task_clock_event
+#define task_active task_ptrs.active
+#define task_clock_event task_ptrs.clock_event
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);
@@ -76,7 +76,7 @@ void scheduler_activate(void);
  */
 int task_create(const task_pri pri, void (*const start)(void));
 
-void task_destroy();
+void task_destroy(void);
 
 /**
  * Print debug info about the given task to the debug console.

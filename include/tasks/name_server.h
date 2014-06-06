@@ -25,6 +25,6 @@ typedef struct {
     ns_payload payload;
 } ns_req;
 
-void name_server(void);
+void __attribute__ ((noreturn)) name_server(void);
 
 #endif

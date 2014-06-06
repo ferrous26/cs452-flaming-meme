@@ -8,7 +8,7 @@
 #include <std.h>
 #include <stdarg.h>
 
-void uart_init();
+void uart_init(void);
 
 // actually doing I/O
 void vt_write(void);
@@ -16,7 +16,7 @@ void vt_read(void);
 void vt_flush(void); // flush the entire output buffer
 
 // buffered I/O
-int  vt_getc(void);
+char vt_getc(void);
 bool vt_can_get(void);
 
 // general number printing, reasonably fast, but special case
@@ -40,9 +40,6 @@ void kprintf_char(const char c);
  * %s - string (safely non-recursive)
  * %c - char
  * %% - literal `%'
- *
- * Note that "\n" characters are automatically translated into "\r\n" in order
- * to handle serial I/O correctly.
  */
 void kprintf(const char* const fmt, ...);
 void kprintf_va(const char* const fmt, va_list args);

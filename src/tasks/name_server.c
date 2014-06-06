@@ -1,5 +1,6 @@
 #include <std.h>
 #include <syscall.h>
+#include <debug.h>
 
 #include <tasks/name_server.h>
 
@@ -8,7 +9,7 @@ int name_server_tid;
 
 static int __attribute__((const)) find_loc(uint32 directory[][NAME_OVERLAY_SIZE],
                                            const uint32 value[NAME_OVERLAY_SIZE],
-                                           const int stored ) {
+                                           const int stored) {
     for (int i = 0; i < stored; i++) {
 	for (int j = 0;;j++) {
 	    if(j == NAME_OVERLAY_SIZE) return i;
@@ -28,13 +29,16 @@ void name_server() {
     int reply;
     int32 tid;
     ns_req buffer;
-    uint insert = 0;
+    int insert = 0;
 
     name_server_tid = myTid();
 
-    for(;;) {
+    FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
         int loc = find_loc(lookup.overlay, buffer.payload.overlay, insert);
+
+	assert(buffer.type == REGISTER || buffer.type == LOOKUP,
+	       "NS: Invalid message type from %u (%d)", buffer.type, tid);
 
         switch(buffer.type) {
         case REGISTER:
@@ -54,8 +58,6 @@ void name_server() {
         case LOOKUP:
             reply = loc < 0 ? -69 : tasks[loc];
 	    break;
-	default:
-	    reply = INVALID_MESSAGE;
 	}
         Reply(tid, (char*)&reply, sizeof(reply));
     }

@@ -130,7 +130,7 @@ void clock_server() {
 
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
-    int result = RegisterAs("clock");
+    int result = RegisterAs((char*)"clock");
     if (result) {
 	vt_log("Failed to register clock server name (%d)", result);
 	vt_flush();
@@ -150,10 +150,14 @@ void clock_server() {
     pq_init(&q);
 
     FOREVER {
-	int  tid;
-	size siz = Receive(&tid, (char*)&req, sizeof(req));
-	switch (req.type) {
+	int tid;
+	int siz = Receive(&tid, (char*)&req, sizeof(req));
 
+	assert(req.type >= CLOCK_NOTIFY && req.type <= CLOCK_DELAY_UNTIL,
+	       "CS: Invalid message type from %u (%d) size = %u",
+	       tid, req.type, siz);
+
+	switch (req.type) {
 	case CLOCK_NOTIFY:
 	    // reset notifier ASAP
 	    result = Reply(tid, (char*)&req, siz);
@@ -191,11 +195,6 @@ void clock_server() {
 		pq_add(&q, req.ticks, tid);
 	    }
 	    break;
-
-	default:
-	    req.type = INVALID_MESSAGE;
-	    result = Reply(tid, (char*)&req, sizeof(clock_req_type));
-	    if (result) _error(tid, result);
 	}
     }
 }

@@ -7,11 +7,11 @@
 
 #include <syscall.h>
 
-inline static uint _syscall(volatile int code, volatile void* request) {
+inline static int _syscall(volatile int code, volatile void* request) {
     // on init code will be in r0 so we can easily pass it to the handler
     register int r0 asm ("r0") = code;
     register volatile void* r1 asm ("r1") = request;
-    
+
     asm ("swi\t0"
         :
         :"r"(r0), "r"(r1)

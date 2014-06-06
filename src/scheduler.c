@@ -40,12 +40,12 @@ static inline uint32 __attribute__ ((pure)) choose_priority(const uint32 v) {
     return result;
 }
 
-static inline uint* __attribute__ ((const)) task_stack(const task_idx idx) {
-    return (uint*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
+static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
+    return (int*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
 }
 
 void scheduler_init(void) {
-    size i;
+    int i;
 
     // initialize the lookup table for lg()
     table[0] = table[1] = 0;
@@ -61,7 +61,7 @@ void scheduler_init(void) {
 
     for (i = 0; i < 16; i++) {
 	tasks[i].tid = i;
-	cbuf_produce(&free_list.list, i);
+	cbuf_produce(&free_list.list, (char)i);
     }
 
     // get the party started
@@ -70,7 +70,7 @@ void scheduler_init(void) {
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid = i;
-	cbuf_produce(&free_list.list, i);
+	cbuf_produce(&free_list.list, (char)i);
     }
 
     memset(&task_ptrs, 0, sizeof(task_ptrs));
@@ -162,7 +162,7 @@ void task_destroy() {
     }
 
     // put the task back into the allocation pool
-    cbuf_produce(&free_list.list, mod2(task_active->tid, TASK_MAX));
+    cbuf_produce(&free_list.list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
 
 #if DEBUG
@@ -173,16 +173,14 @@ void debug_task(const task_id tid) {
     debug_log("             ID: %u", tsk->tid);
     debug_log("      Parent ID: %u", tsk->p_tid);
     debug_log("       Priority: %u", tsk->priority);
-    switch ((uint)tsk->next) {
-    case (uint)RECV_BLOCKED:
+
+    if (tsk->next == RECV_BLOCKED)
 	debug_log("           Next: RECEIVE BLOCKED");
-	break;
-    case (uint)RPLY_BLOCKED:
+    else if (tsk->next == RPLY_BLOCKED)
 	debug_log("           Next: REPLY BLOCKED");
-	break;
-    default:
+    else
 	debug_log("           Next: %p", tsk->next);
-    }
+
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
 #else

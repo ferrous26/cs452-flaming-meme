@@ -10,9 +10,6 @@
 #include <ts7200.h>
 #include <circular_buffer.h>
 
-#define ON	1
-#define	OFF	0
-
 // IO buffers
 struct out {
     char_buffer o;
@@ -84,7 +81,7 @@ bool vt_can_get(void) {
     return cbuf_can_consume(&vt_in.i);
 }
 
-int vt_getc(void) {
+char vt_getc(void) {
     return cbuf_consume(&vt_in.i);
 }
 
@@ -152,10 +149,10 @@ void kprintf_hex(const uint32 num) {
     // build the string in reverse order to be used like a stack
     size  i = 0;
     uint8 nums[8];
-    uint8 nom = num;
+    uint  nom = num;
 
     for (; i < 8; i++) {
-	nums[i] = nom & 0xf; // take the lower four bits
+	nums[i] = (uint8)(nom & 0xf); // take the lower four bits
 	nom     = nom >> 4;  // shift last three off the end
     }
 

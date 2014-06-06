@@ -7,7 +7,7 @@
 #include <scheduler.h>
 
 void syscall_init() {
-    *SWI_HANDLER = (0xea000000 | (((int)kernel_enter >> 2) - 4));
+    *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 }
 
 void syscall_deinit() {
@@ -18,18 +18,18 @@ inline static void ksyscall_pass() {
     scheduler_schedule((task*)task_active);
 }
 
-inline static void ksyscall_create(const kreq_create* const req, uint* const result) {
+inline static void ksyscall_create(const kreq_create* const req, int* const result) {
     *result = task_create(req->priority, req->code);
     ksyscall_pass();
 }
 
-inline static void ksyscall_tid(uint* const result) {
-    *result = (uint)task_active->tid;
+inline static void ksyscall_tid(int* const result) {
+    *result = task_active->tid;
     ksyscall_pass();
 }
 
-inline static void ksyscall_ptid(uint* const result) {
-    *result = (uint)task_active->p_tid;
+inline static void ksyscall_ptid(int* const result) {
+    *result = task_active->p_tid;
     ksyscall_pass();
 }
 
@@ -37,19 +37,20 @@ inline static void ksyscall_exit() {
     task_destroy();
 }
 
-inline static void ksyscall_priority(uint* const result) {
-    *result = (uint)task_active->priority;
+inline static void ksyscall_priority(int* const result) {
+    *result = task_active->priority;
     ksyscall_pass();
 }
 
-inline static void ksyscall_change_priority(const uint32 new_priority) {
+inline static void ksyscall_change_priority(const int32 new_priority) {
     task_active->priority = new_priority;
     ksyscall_pass();
 }
 
 inline static void ksyscall_recv(task* const receiver) {
 #if DEBUG
-    register uint sp asm ("sp");
+    uint sp;
+    asm volatile ("mov %0, sp" : "=r" (sp));
     assert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
 #endif
 
@@ -70,8 +71,8 @@ inline static void ksyscall_recv(task* const receiver) {
 
 	// validate that there is enough space in the receiver buffer
 	if (sender_req->msglen > receiver_req->msglen) {
-	    sender->sp[0] = (uint)NOT_ENUF_MEMORY;
-	    scheduler_schedule((task*)sender);
+	    sender->sp[0] = NOT_ENUF_MEMORY;
+	    scheduler_schedule(sender);
 	    ksyscall_recv(receiver); // DANGER: recursive call
 	    return;
 	}
@@ -82,7 +83,7 @@ inline static void ksyscall_recv(task* const receiver) {
 	sender->next       = RPLY_BLOCKED;
 
         if (sender_req->msglen)
-	    memcpy(receiver_req->msg, sender_req->msg, sender_req->msglen);
+	    memcpy(receiver_req->msg, sender_req->msg, (uint)sender_req->msglen);
 	scheduler_schedule(receiver); // schedule this mofo
 	return;
     }
@@ -90,7 +91,7 @@ inline static void ksyscall_recv(task* const receiver) {
     receiver->next = RECV_BLOCKED;
 }
 
-inline static void ksyscall_send(const kreq_send* const req, uint* const result) {
+inline static void ksyscall_send(const kreq_send* const req, int* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
 
     assert(task_index_from_tid(req->tid) < TASK_MAX,
@@ -100,7 +101,7 @@ inline static void ksyscall_send(const kreq_send* const req, uint* const result)
 
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
-	*result = (uint)(req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK);
+	*result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
 	ksyscall_pass();
         return;
     }
@@ -131,12 +132,12 @@ inline static void ksyscall_send(const kreq_send* const req, uint* const result)
     }
 }
 
-inline static void ksyscall_reply(const kreq_reply* const req, uint* const result) {
+inline static void ksyscall_reply(const kreq_reply* const req, int* const result) {
     task* const sender = &tasks[task_index_from_tid(req->tid)];
 
     // first, validation of the request arguments
     if (sender->tid != req->tid || !sender->sp) {
-	*result = (uint)(req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK);
+	*result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
         ksyscall_pass();
 	return;
     }
@@ -145,7 +146,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
             "Reply: Sender %d has Invalid heap %p", sender->tid, sender->sp);
 
     if (sender->next != RPLY_BLOCKED) {
-	*result = (uint)INVALID_RECVER;
+	*result = INVALID_RECVER;
         ksyscall_pass();
 	return;
     }
@@ -153,7 +154,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
     const kreq_send* const sender_req = (const kreq_send* const)sender->sp[1];
 
     if (req->replylen > sender_req->replylen) {
-	*result = (uint)NOT_ENUF_MEMORY;
+	*result = NOT_ENUF_MEMORY;
         ksyscall_pass();
 	return;
     }
@@ -163,7 +164,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
 
     // at this point, it is smooth sailing
     if (req->replylen)
-        memcpy(sender_req->reply, req->reply, req->replylen);
+        memcpy(sender_req->reply, req->reply, (uint)req->replylen);
 
     // according to spec, we should schedule the sender first, because, in
     // the case where they are the same priority level we want the sender
@@ -173,7 +174,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, uint* const resul
 }
 
 inline static void
-ksyscall_await(const kwait_req* const req, uint* const result) {
+ksyscall_await(const kwait_req* const req, int* const result) {
     switch (req->eventid) {
     case CLOCK_TICK:
 	task_clock_event = task_active;
@@ -187,16 +188,15 @@ ksyscall_await(const kwait_req* const req, uint* const result) {
 inline static void ksyscall_irq() {
     ksyscall_pass();
 
-    voidf handler = VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
+    voidf handler = (void(*volatile)())VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
     handler();
 
-    register void** r0 asm("r0");
-    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = r0;
+    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = handler;
 }
 
-void  __attribute__ ((naked)) syscall_handle(const uint code,
-					     const void* const req,
-					     uint* const sp) {
+void syscall_handle(const uint code,
+		    const void* const req,
+		    int* const sp) {
     // save it, save it real good
     task_active->sp = sp;
 
@@ -232,7 +232,7 @@ void  __attribute__ ((naked)) syscall_handle(const uint code,
 	ksyscall_reply((const kreq_reply* const)req, sp);
 	break;
     case SYS_CHANGE:
-	ksyscall_change_priority((uint)req);
+	ksyscall_change_priority((int)req);
 	break;
     case SYS_AWAIT:
 	ksyscall_await((const kwait_req* const)req, sp);

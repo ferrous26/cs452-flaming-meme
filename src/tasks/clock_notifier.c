@@ -7,7 +7,7 @@
 
 void clock_notifier() {
 
-    int clock = WhoIs("clock");
+    int clock = WhoIs((char*)"clock");
     if (clock < 0) {
 	vt_log("Clock server not found (%d)", clock);
 	vt_flush();

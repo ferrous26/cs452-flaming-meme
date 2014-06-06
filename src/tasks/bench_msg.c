@@ -4,16 +4,16 @@
 #include <syscall.h>
 #include <scheduler.h>
 
-BENCH(bench);
+BENCH(bench)
 
 static void baseline() {
 
-    BENCH_START(bench);
+    BENCH_START(bench)
     for (size i = 100000; i; i--)
-	BENCH_LAP(bench);
+	BENCH_LAP(bench)
 
-    BENCH_PRINT_WORST(bench);
-    BENCH_PRINT_AVERAGE(bench);
+    BENCH_PRINT_WORST(bench)
+    BENCH_PRINT_AVERAGE(bench)
     vt_flush();
 }
 
@@ -24,14 +24,14 @@ static void send_it(int child) {
     const char* msg = "hey";
     char rply[4];
 
-    BENCH_START(bench);
+    BENCH_START(bench)
     for (size i = 100000; i; i--) {
 	Send(child, (char*)msg, 4, rply, 4);
-	BENCH_LAP(bench);
+	BENCH_LAP(bench)
     }
 
-    BENCH_PRINT_WORST(bench);
-    BENCH_PRINT_AVERAGE(bench);
+    BENCH_PRINT_WORST(bench)
+    BENCH_PRINT_AVERAGE(bench)
     vt_flush();
 
 
@@ -43,14 +43,14 @@ static void send_it(int child) {
 	"0123456789 ";
     char big_rply[64];
 
-    BENCH_START(bench);
+    BENCH_START(bench)
     for (size i = 100000; i; i--) {
 	Send(child, (char*)big_msg, 64, big_rply, 64);
-	BENCH_LAP(bench);
+	BENCH_LAP(bench)
     }
 
-    BENCH_PRINT_WORST(bench);
-    BENCH_PRINT_AVERAGE(bench);
+    BENCH_PRINT_WORST(bench)
+    BENCH_PRINT_AVERAGE(bench)
     vt_flush();
 }
 

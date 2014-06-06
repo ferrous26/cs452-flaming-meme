@@ -24,7 +24,7 @@
 #define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
 
-#define START_ADDRESS(fn) ((uint)fn)
+#define START_ADDRESS(fn) ((int)fn)
 #define EXIT_ADDRESS      START_ADDRESS(Exit)
 #define DEFAULT_SPSR      0x50  //no fiq
 
@@ -44,8 +44,8 @@ typedef enum {
 } msg_err;
 
 typedef struct {
-    uint  priority;
-    void (*code) (void);
+    int  priority;
+    void (*code)(void);
 } kreq_create;
 
 typedef struct {
@@ -68,10 +68,13 @@ typedef struct {
     int   replylen;
 } kreq_reply;
 
-void syscall_init();
-void syscall_deinit();
+void syscall_init(void);
+void syscall_deinit(void);
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
-int  kernel_exit(unsigned int* sp);               /* found in context.asm */
+void __attribute__ ((naked)) syscall_handle(const uint code,
+					    const void* const req,
+					    int* const sp);
+void kernel_exit(int* sp);                        /* found in context.asm */
 
 int Create(int priority, void (*code) (void));
 
@@ -94,13 +97,11 @@ int RegisterAs(char* name);
 typedef enum {
     UNUSED = 0,
     CLOCK_TICK = 1,
-    UART1_READ,
-    UART2_READ,
-    UART1_WRITE,
-    UART2_WRITE,
+    //    UART1_READ,
+    //    UART2_READ,
+    //    UART1_WRITE,
+    //    UART2_WRITE,
 } event_id;
-
-#define TASK_EVENTS 6
 
 typedef enum {
     EVENT_OK = 0,
@@ -119,11 +120,11 @@ int AwaitEvent(int eventid, char* event, int eventlen);
 // Note: if you send a negative value for the number of ticks
 //       then you will be woken up immediately
 int Delay(int ticks);
-int Time();
+int Time(void);
 
 // Note: if you send a value of time that is before the current
 //       time then you will be woken up immediately
 int DelayUntil(int ticks);
-void Shutdown();
+void Shutdown(void);
 
 #endif

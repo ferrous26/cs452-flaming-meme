@@ -21,13 +21,13 @@ void clock_enable(void) {
     const uint ctrl = ENABLE_MASK | MODE_MASK | CLKSEL_MASK;
     *(uint*)(TIMER3_BASE | CRTL_OFFSET) = ctrl;
 
-    register uint r0 asm("r0");
-    *(uint*)(TIMER3_BASE | CLR_OFFSET) = r0;
+    const uint clear_addr = TIMER3_BASE | CLR_OFFSET;
+    *(uint*)clear_addr = clear_addr;
 }
 
 void irq_clock() {
-    register uint r0 asm("r0");
-    *(uint*)(TIMER3_BASE | CLR_OFFSET) = r0;
+    const uint clear_addr = TIMER3_BASE | CLR_OFFSET;
+    *(uint*)clear_addr = clear_addr;
 
     task* t = task_clock_event;
     task_clock_event = NULL;

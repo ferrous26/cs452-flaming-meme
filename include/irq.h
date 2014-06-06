@@ -7,8 +7,8 @@
 
 #define HWI_HANDLER ((uint* volatile)0x18)
 
-void irq_init();
-void irq_deinit();
+void irq_init(void);
+void irq_deinit(void);
 
 void hwi_enter(void);   /* found in context.asm */
 
@@ -37,8 +37,8 @@ static inline uint irq_enabled_status(const uint v)  { return VIC(v, VIC_IRQ_ENA
 static inline uint irq_software_status(const uint v) { return VIC(v, VIC_SOFT_ENABLE_OFFSET);  }
 static inline bool irq_is_user_protected(const uint v) { return VIC(v, VIC_PROTECTION_OFFSET); }
 
-void irq_enable_user_protection();
-void irq_disable_user_protection();
+void irq_enable_user_protection(void);
+void irq_disable_user_protection(void);
 
 // For simulating interrupts
 void irq_simulate_interrupt(const uint i);
@@ -46,10 +46,10 @@ void irq_clear_simulated_interrupt(const uint i);
 
 // For dealing with real interrupts
 void irq_enable_interrupt(const uint i);
-void irq_clear_interrupt(const uint i);
+void irq_disable_interrupt(const uint i);
 
 #if DEBUG
-    void debug_interrupt_table();
+    void debug_interrupt_table(void);
 #else
     #define debug_interrupt_table()
 #endif
