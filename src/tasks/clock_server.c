@@ -149,6 +149,9 @@ void clock_server() {
     clock_pq  q;   // priority queue for tasks waiting for time
     pq_init(&q);
 
+    vt_log("Clock Server started at %d", clock_server_tid);
+    vt_flush();
+
     FOREVER {
 	int tid;
 	int siz = Receive(&tid, (char*)&req, sizeof(req));
