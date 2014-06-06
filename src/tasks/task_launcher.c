@@ -6,12 +6,14 @@
 #include <irq.h>
 
 #include <tasks/idle.h>
+#include <tasks/stress.h>
+#include <tasks/seppuku.h>
 #include <tasks/k3_demo.h>
 #include <tasks/bench_msg.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
+
 #include <tasks/task_launcher.h>
-#include <tasks/seppuku.h>
 
 inline static void print_help() {
     vt_log("\n\t"
@@ -24,10 +26,12 @@ inline static void print_help() {
 	   "7 ~ Delay -100 ticks\n\t"
 	   "8 ~ DelayUntil time = 0\n\n\t"
 
+           "s ~ Run Stressing Task\n\n\t"
+
 	   "i ~ Print the interrupt table status\n\t"
 	   "a ~ Trigger software interrupt 0\n\t"
 	   "z ~ Trigger software interrupt 1\n\t"
-           "s ~ Trigger software interrupt 63\n\n\t"
+           "w ~ Trigger software interrupt 63\n\n\t"
 
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
@@ -71,10 +75,12 @@ static void tl_action(char input) {
     case 'z':
 	irq_simulate_interrupt(1);
 	break;
-    case 's':
+    case 'w':
 	irq_simulate_interrupt(63);
 	break;
-
+    case 's':
+        Create(16, stress_root);
+        break;
     case 'q':
         Shutdown();
         break;

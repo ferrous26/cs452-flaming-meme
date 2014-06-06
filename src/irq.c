@@ -3,20 +3,16 @@
 
 #include <irq.h>
 
-static void __attribute__ ((used)) irq1() {
-    vt_log("IRQ1");
-    irq_clear_simulated_interrupt(1);
-}
 
-static void __attribute__ ((used)) irq0() {
-    vt_log("IRQ0");
-    irq_clear_simulated_interrupt(0);
-}
+#define SOFT_IRQ_HANDLE(name, irq)              \
+static void __attribute__ ((used)) name() {     \
+    vt_log("IRQ " #irq);                        \
+    irq_clear_simulated_interrupt(irq);         \
+}                                               \
 
-static void __attribute__ ((used)) irq63() {
-    vt_log("IRQ63");
-    irq_clear_simulated_interrupt(63);
-}
+SOFT_IRQ_HANDLE(irq0, 0);
+SOFT_IRQ_HANDLE(irq1, 1);
+SOFT_IRQ_HANDLE(irq63, 63);
 
 void irq_init() {
     irq_deinit(); // reset!
