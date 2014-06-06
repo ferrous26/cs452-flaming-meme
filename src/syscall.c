@@ -13,12 +13,13 @@ inline static int _syscall(volatile int code, volatile void* request) {
     register volatile void* r1 asm ("r1") = request;
 
     asm ("swi\t0"
-        :
-        :"r"(r0), "r"(r1)
-        :"r2", "r3", "ip");
+	 :
+	 :"r"(r0), "r"(r1)
+	 :"r2", "r3", "ip");
 
     // r0 will have the return value of the operation
-    return r0;
+    register int ret asm ("r0");
+    return ret;
 }
 
 int Create(int priority, void (*code)()) {
