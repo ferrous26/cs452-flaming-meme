@@ -35,7 +35,7 @@ bool ishexdigit(const char c);
 // This is the code the has been used extensively by Prof. Buhr
 // for CS246 and also CS343 since the actual distrubution of the
 // randomness doesn't matter much for any of out purposes it should be fine
-#define rand(seed) ((36969 * (seed & 65535) + (seed >> 16)))
+#define rand(seed) (seed = (36969 * (seed & 65535) + (seed >> 16)))
 
 static inline uint __attribute__ ((const)) mod2(uint top, uint mod) {
     return (top & (mod - 1));

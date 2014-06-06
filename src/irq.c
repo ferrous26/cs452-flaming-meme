@@ -3,44 +3,39 @@
 
 #include <irq.h>
 
-static void __attribute__ ((used)) irq1() {
-    vt_log("IRQ1");
-    irq_clear_simulated_interrupt(1);
-}
+#define SOFT_IRQ_HANDLE(name, irq)              \
+static void __attribute__ ((used)) name() {     \
+    vt_log("IRQ " #irq);                        \
+    irq_clear_simulated_interrupt(irq);         \
+}                                               \
 
-static void __attribute__ ((used)) irq0() {
-    vt_log("IRQ0");
-    irq_clear_simulated_interrupt(0);
-}
+SOFT_IRQ_HANDLE(irq0, 0);
+SOFT_IRQ_HANDLE(irq1, 1);
+SOFT_IRQ_HANDLE(irq63, 63);
 
-static void __attribute__ ((used)) irq63() {
-    vt_log("IRQ63");
-    irq_clear_simulated_interrupt(63);
+inline static void _setup_vector_irq() {
+    *(voidf*)0x800B0100 = irq0;
+    *(volatile uint*)0x800B0200 = 0x20;
+
+    *(voidf*)0x800B0104 = irq1;
+    *(volatile uint*)0x800B0204 = 0x21;
+
+    *(voidf*)0x800C0100 = irq_clock;
+    *(volatile uint*)0x800C0200 = 0x33;
+
+    *(voidf*)0x800C0104 = irq63;
+    *(volatile uint*)0x800C0204 = 0x3F;
 }
 
 void irq_init() {
     irq_deinit(); // reset!
-
     *HWI_HANDLER = (0xea000000 | (((uint)hwi_enter >> 2) - 8));
 
     // irq_enable_user_protection();
     irq_enable_interrupt(0);  // Soft Interrupt
     irq_enable_interrupt(1);  // Soft Interrupt
     irq_enable_interrupt(63); // Soft Interrupt
-
     irq_enable_interrupt(51); // Timer 3
-
-    *(void*volatile*)0x800B0100 = (void*volatile)irq0;
-    *(volatile uint*)0x800B0200 = 0x20;
-
-    *(void*volatile*)0x800B0104 = (void*volatile)irq1;
-    *(volatile uint*)0x800B0204 = 0x21;
-
-    *(void*volatile*)0x800C0100 = (void*volatile)irq_clock;
-    *(volatile uint*)0x800C0200 = 0x33;
-
-    *(void*volatile*)0x800C0104 = (void*volatile)irq63;
-    *(volatile uint*)0x800C0204 = 0x3F;
 
     /*
     irq_enable_interrupt(23); // UART1 recv
@@ -52,6 +47,8 @@ void irq_init() {
     irq_enable_interrupt(52); // UART1 general
     irq_enable_interrupt(54); // UART2 general
     */
+
+    _setup_vector_irq();
 }
 
 void irq_deinit() {
@@ -64,7 +61,6 @@ void irq_deinit() {
     VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET) = 0;
 
     irq_disable_user_protection();
-
     *HWI_HANDLER = 0xE59FF018;
 }
 
