@@ -21,8 +21,8 @@ inline static uint _syscall(volatile int code, volatile void* request) {
     return r0;
 }
 
-int Create( int priority, void (*code) () ) {
-    if (priority > TASK_PRIORITY_MAX)
+int Create(int priority, void (*code)()) {
+    if (priority > TASK_PRIORITY_MAX || priority < TASK_PRIORITY_MIN)
         return INVALID_PRIORITY;
 
     volatile kreq_create req = {
