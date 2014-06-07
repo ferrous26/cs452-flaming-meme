@@ -60,6 +60,9 @@ The signature we chose for events is
 this in anticipation of handling UART FIFO I/O in the next
 milestone.
 
+The only \ttt{eventid} that is supported right now is
+\ttt{CLOCK\_TICK}.
+
 We have optimized this for clock events, which will receive a result
 code of 0 when the event goes off.
 
