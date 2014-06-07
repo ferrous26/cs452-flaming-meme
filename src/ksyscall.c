@@ -48,7 +48,7 @@ inline static void ksyscall_change_priority(const int32 new_priority) {
 }
 
 inline static void ksyscall_recv(task* const receiver) {
-#if DEBUG
+#ifdef DEBUG
     uint sp;
     asm volatile ("mov %0, sp" : "=r" (sp));
     assert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
@@ -187,7 +187,7 @@ ksyscall_await(const kwait_req* const req, int* const result) {
 
 inline static void ksyscall_irq() {
     voidf handler = (void(*volatile)())VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = handler;
+    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*volatile)handler;
 
     handler();
     ksyscall_pass();

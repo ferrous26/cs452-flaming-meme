@@ -5,7 +5,7 @@
 #include <kernel.h>
 #include <syscall.h>
 
-#if DEBUG
+#ifdef DEBUG
 
 void debug_assert_fail(const char* const file,
 		       const uint line,

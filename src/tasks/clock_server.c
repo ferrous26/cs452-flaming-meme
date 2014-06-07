@@ -103,7 +103,7 @@ static void pq_add(clock_pq* q, uint time, task_id tid) {
     }
 }
 
-#if DEBUG
+#ifdef DEBUG
 static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
 
     debug_log("Queue size is %u", q->count);
@@ -113,8 +113,6 @@ static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
     for (size i = 1; i < TASK_MAX; i++)
 	debug_log("q->delays[%u] = %u - %u", i, delays[i].time, delays[i].tid);
 }
-#else
-#define pq_debug(q)
 #endif
 
 static void _error(int tid, int code) {
