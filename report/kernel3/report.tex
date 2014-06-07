@@ -81,14 +81,83 @@ were put into the \ttt{event} buffer.
 
 \section*{Clock Server}
 
+The clock server is implemented in two parts. The first part, the
+\ttt{clock\_notifier}, notifies the second part, the
+\ttt{clock\_server}, on clock ticks.
 
+The \ttt{clock\_notifier} starts by finding out \ttt{WhoIs(``clock'')}
+and caching that \ttt{tid} for later. Then it enters a \ttt{FOREVER}
+loop where it \ttt{Await}s for \ttt{CLOCK\_TICK} events from hardware
+and notifies the \ttt{clock\_server} with a \ttt{Send} message whenever it
+is woken up.
+
+The \ttt{clock\_server} starts by registering itself with the name
+server under the name \ttt{clock}. It then \ttt{Create}s the
+\ttt{clock\_notifier} task at a higher priority level. The
+\ttt{clock\_notifier} is run at the second highest priority level so
+that it can perform its work as quickly as possible. The highest
+priority level is reserved for emergency tasks.
+
+After setting everything up, the \ttt{clock\_server} enters a
+\ttt{FOREVER} loop and begins \ttt{Receive}ing messages from client
+tasks. The primary cilent task is the \ttt{clock\_notifier}, which
+causes the server to increment the \ttt{time} and check if any tasks
+waiting for \ttt{Delay}s need to be woken up.
+
+The server keeps track of tasks that wish to be \ttt{Delay}ed in a
+heap based priority queue. A priority queue allows us to check if any
+task needs to be woken up in constant time. A heap implementation,
+combined with our hypothetical use case for the clock server, also has
+the property that new \ttt{Delay} requests can be inserted into the
+queue in near constant time in the average case, or at least less than
+logarithmic time in many cases.
+
+\subsection*{Delay}
+
+Negative and zero time delay values are checked by the system call
+before context switching into the kernel. This has the added property
+that a negative or zero delay request will not be forced to the back
+of the scheduling queue, and will continue executing.
+
+\subsection*{DelayUntil}
+
+Unlike \ttt{Delay}, this call cannot fully validate its argument until
+the message is received by the \ttt{clock\_server}. However, the
+trivial checks for negative/zero values are still done in the client
+task.
+
+\subsection*{Time}
+
+Simply copy the value from the server via a message pass.
+
+\section*{Idle Task}
+
+The \ttt{idle} task exists to ensure that there is always some task
+ready to be activated by the scheduler. Even if all other live tasks
+are blocked, the \ttt{idle} will still be able to run and waste CPU
+cycles until a hardware interrupt occurs to wake up one of the other
+tasks.
+
+The \ttt{idle} task runs at the lowest possible priority. It is the
+only task that runs at that priority to ensure it only runs when it
+must. The current implementation will simply spin in a \ttt{FOREVER}
+loop incrementing a counter.
 
 
 \section*{Kernel Changes}
 
-Fixed bugs in task descriptor reuse.
+Fixed bugs related to task descriptor reuse.
 
-Zero length messages can now be sent successfully.
+Zero length messages can now be sent successfully and down a more
+optimal path.
+
+Cache pinning.
+
+More tuning to the system call code path. We were able to convince the
+compiler to not generate several redundant load and store operations on
+the critical path for all system calls. Our message loop time is now
+$\sim6.5\mu$seconds when clock interrupts are enabled.
+
 
 \section*{Demonstration Output}
 
