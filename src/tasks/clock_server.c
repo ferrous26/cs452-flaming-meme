@@ -89,17 +89,14 @@ static void pq_add(clock_pq* q, uint time, task_id tid) {
 
     FOREVER {
 	// is it smaller than it's parent?
-	if (delays[curr].time < delays[parent].time) {
-	    delays[curr].time   = delays[parent].time;
-	    delays[curr].tid    = delays[parent].tid;
-	    delays[parent].time = time;
-	    delays[parent].tid  = tid;
-	    curr                = parent;
-	    parent              = PARENT(curr);
-	}
-	else {
-	    break;
-	}
+	if (delays[curr].time >= delays[parent].time) break;
+
+	delays[curr].time   = delays[parent].time;
+	delays[curr].tid    = delays[parent].tid;
+	delays[parent].time = time;
+	delays[parent].tid  = tid;
+	curr                = parent;
+	parent              = PARENT(curr);
     }
 }
 
@@ -120,12 +117,7 @@ static void _error(int tid, int code) {
     vt_flush();
 }
 
-
-void clock_server() {
-
-    assert(myPriority() < TASK_PRIORITY_MAX,
-	   "Clock server should not be top priority");
-
+static void _startup(clock_pq* pq) {
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
     int result = RegisterAs((char*)"clock");
@@ -135,20 +127,27 @@ void clock_server() {
 	return;
     }
 
-    result = Create(TASK_PRIORITY_MAX, clock_notifier);
+    result = Create(TASK_PRIORITY_HIGH, clock_notifier);
     if (result < 0) {
 	vt_log("Failed to create clock_notifier (%d)", result);
 	vt_flush();
 	return;
     }
 
-    uint time = 0;
-    clock_req req; // store incoming requests
-    clock_pq  q;   // priority queue for tasks waiting for time
-    pq_init(&q);
+    pq_init(pq);
 
     vt_log("Clock Server started at %d", clock_server_tid);
     vt_flush();
+}
+
+void clock_server() {
+
+    uint      time = 0;
+    int       result; // used by Reply() calls
+    clock_req req; // store incoming requests
+    clock_pq  q;   // priority queue for tasks waiting for time
+
+    _startup(&q);
 
     FOREVER {
 	int tid;
@@ -178,6 +177,7 @@ void clock_server() {
 	    break;
 
 	case CLOCK_DELAY:
+	    // value is checked on the calling task
 	    pq_add(&q, req.ticks + time, tid);
 	    break;
 
@@ -196,6 +196,7 @@ void clock_server() {
 		pq_add(&q, req.ticks, tid);
 	    }
 	    break;
+
 	}
     }
 }
