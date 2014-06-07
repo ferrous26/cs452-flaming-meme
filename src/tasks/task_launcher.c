@@ -102,16 +102,10 @@ static int _create(int priority, void (*code) (void), const char* const name) {
     return tid;
 }
 
-static void tl_startup() {
-    _create(TASK_PRIORITY_MIN, idle, "idle task");
-
-    _create(TASK_PRIORITY_MAX-2, name_server, "name server");
-
-    _create(TASK_PRIORITY_MAX-1, clock_server, "clock server");
-}
-
 void task_launcher() {
-    tl_startup();
+    _create(TASK_PRIORITY_IDLE,     idle,         "idle task");
+    _create(TASK_PRIORITY_HIGH - 1, name_server,  "name server");
+    _create(TASK_PRIORITY_HIGH - 1, clock_server, "clock server");
 
     FOREVER {
         vt_log("Welcome to Task Launcher (h for help)");
