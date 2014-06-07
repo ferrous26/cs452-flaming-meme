@@ -58,19 +58,34 @@ which are available to demonstrate features added in this milestone.
 The signature we chose for events is
 \ttt{int AwaitEvent(int eventid, char* event, int eventlen)}. We chose
 this in anticipation of handling UART FIFO I/O in the next
-milestone.
+milestone. Using this API, the returned \ttt{int} will be \ttt{0} if
+the event occurred normally and volatile data is now in the
+\ttt{event} buffer that was given in the system call. The return value
+will be \ttt{INVALID\_EVENT} (\ttt{-1}) if the given \ttt{eventid} is
+not valid. No other return values are implemented for this milestone.
 
-The only \ttt{eventid} that is supported right now is
-\ttt{CLOCK\_TICK}.
+The contents of the \ttt{event} buffer after \ttt{AwaitEvent} returns
+will depend on the event. For this milestone, only the
+\ttt{CLOCK\_TICK} event is implemented, and will return once the clock
+timer has signalled the CPU. The \ttt{CLOCK\_TICK} event does not put
+any data into the \ttt{event} buffer as there is no meaningful data to
+include. The \ttt{clock\_notifier} task, which is the notifier for the
+\ttt{clock\_server} task, calls \ttt{AwaitEvent} as
+\ttt{AwaitEvent(CLOCK\_TICK, NULL, 0)}.
 
-We have optimized this for clock events, which will receive a result
-code of 0 when the event goes off.
+Once the UART I/O is implemented, the \ttt{event} buffer will either
+contain some bytes to be written, or be filled with bytes from the
+UART. In the case of incoming data from a UART, the return from
+\ttt{AwaitEvent} will be a positive value indicating how many bytes
+were put into the \ttt{event} buffer.
 
 \section*{Clock Server}
 
 \section*{Kernel Changes}
 
 Fixed bugs in task descriptor reuse.
+
+Zero length messages can now be sent successfully.
 
 \section*{Demonstration Output}
 
