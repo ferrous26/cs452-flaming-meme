@@ -101,19 +101,19 @@ static void _debug_psr(const char* const name, const uint status) {
  * http://www.heyrick.co.uk/armwiki/The_Status_register
  */
 void debug_cpsr(void) {
-    const uint status;
+    uint status;
     asm("mrs %0, cpsr" : "=r" (status));
     _debug_psr("CPSR", status);
 }
 
 void debug_spsr(void) {
-    const uint status;
+    uint status;
     asm("mrs %0, spsr" : "=r" (status));
     _debug_psr("SPSR", status);
 }
 
 pmode debug_processor_mode() {
-    const uint status;
+    uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 
     return (status & CPU_MODE_MASK);
