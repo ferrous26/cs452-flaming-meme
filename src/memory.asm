@@ -1,12 +1,12 @@
 	.file	"memory.asm"
 	.text
+
 	.align	2
 	.global memcpy
 	.type	memcpy,   %function
 memcpy:
 	/** r0 = dest, r1 = src, r2 = len, r3,r12 = free scratch **/
 	/* Back up r0, since we must return it */
-	stmfd sp!, {r0}
 
 	/* If already word aligned, skip to accelerated case */
 	ands   r3, r0, #3
@@ -74,7 +74,6 @@ memcpy:
 .bigdone:
 	ldmfd sp!, {r4-r9}
 .done:
-	ldmfd sp!, {r0}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
 
@@ -82,9 +81,6 @@ memcpy:
 	.type	memset,   %function
 memset:
 	/** r0 = dest, r1 = new_val, r2 = len **/
-	/* Back up r0, since we must return it */
-	stmfd sp!, {r0}
-
 	/* If already word aligned, skip to accelerated case */
 	ands   r3, r0, #3
 	beq    .fastset
@@ -125,7 +121,6 @@ memset:
 	bne .slowset
 
 .doneset:
-	ldmfd sp!, {r0}
 	mov pc, lr
 	.size   memset, .-memset
 
