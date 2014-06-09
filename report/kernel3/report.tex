@@ -53,6 +53,53 @@ which are available to demonstrate features added in this milestone.
 \newpage
 \section*{Hardware Interrupts}
 
+\subsection*{Initalization}
+
+The first operation that we perform is to turn off all of the interrupts 
+this is because we don't know what state the system may be at right now so we
+want to make sure that it is in one that we can successfully initialize to a
+proper one. Next we turn on the interrupts that we have explicit handling for.
+
+Last we set up the vectored interrupt controller such that the clock is on the
+highest priority of \ttt{VEC2} since in this stage it is the only interrupt useful to
+the operation of the kernel. Interrupts \ttt{0}, \ttt{1}, \ttt{63} are all also given
+a basic handling function which is also addressed in the corresponding \ttt{VEC1} or 
+\ttt{VEC2} controller. This was done to make the code to get the currently triggered
+interrupt much cleaner since we have all handing now done for us by the hardware.
+
+\subsection*{Context Switch}
+
+Hardware interrupts are handled in a similar fashion as a software interrupt.
+Since the software interrupt makes a couple assumptions about which registers
+will be saved going in to them the hardware interrupt code first sets things up
+so it can drop into the software interrupt code gracefully.
+
+On exit the same kernel exit code is run, however the hardware interrupt writes
+\ttt{0} into the link register which causes the exit code to also load the extra
+state that the hardware interrupt had saved previously before returning to the
+code before the interrupt was triggered. 
+
+The reason we used the existing code path is two-fold: first, using existing
+code compresses code size allowing for better caching performance. Second,
+having a single entry point allows us to much better track all entry and exit
+from the kernel.
+
+\subsection*{Handling}
+
+The Hardware context switch enters on \ttt{syscall\_handle()} just like the
+software context switch but with a handling code of 0. At this point the same
+software interrupt code is run until it sees that a code 0 has been passed in
+and moves to the specialized interrupt handling section.
+
+At this point we get the address to the handling function from the \ttt{VEC} 
+controller. After we have gotten the handler for current interrupt we just 
+run it and then write back to the \ttt{VEC1} controller to notify it that the 
+current interrupt has been handled. Finally, the interrupted task reschedules 
+its self.
+
+Afterwords we drop into the same scheduling code path that is run at the end of
+any software interrupt and the kernel exits normally.
+
 \subsection*{AwaitEvent()}
 
 The signature we chose for events is
