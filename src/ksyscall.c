@@ -248,9 +248,9 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 
     scheduler_get_next();
     //everythings done, just leave
-    asm volatile ("mov\tr0, %0    \n\t"
-                  "b\tkernel_exit \n\t"
-                 :
-                 :"r" (task_active->sp)
-                 :"r0");
+    asm volatile ("mov  r0, %0     \n"
+                  "b    kernel_exit\n"
+		  :
+		  : "r" (task_active->sp)
+		  : "r0");
 }
