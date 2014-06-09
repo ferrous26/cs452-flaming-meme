@@ -4,9 +4,9 @@
 	.global memcpy
 	.type	memcpy,   %function
 memcpy:
-	/** r0 = dest, r1 = src, r2 = len **/
+	/** r0 = dest, r1 = src, r2 = len, r3,r12 = free scratch **/
 	/* Back up r0, since we must return it */
-	stmfd sp!, {r0, r4-r9}
+	stmfd sp!, {r0}
 
 	/* If already word aligned, skip to accelerated case */
 	ands   r3, r0, #3
@@ -30,11 +30,13 @@ memcpy:
 	cmp r2, #4 /* jump right to the word case */
 	beq .small
 
+	stmfd sp!, {r4-r9}
+
 .big: /* multiple of 32? */
 	subs r2, r2, #32
 	ldmplia r1!, {r3-r9, r12}
 	stmplia r0!, {r3-r9, r12}
-	beq .done
+	beq .bigdone
 	bpl .big /* if there is something left, go back to start */
 	add r2, r2, #32
 
@@ -44,8 +46,10 @@ memcpy:
 	subs r2, r2, #16
 	ldmplia r1!, {r3-r6}
 	stmplia r0!, {r3-r6}
-	beq .done
+	beq .bigdone
 	addmi r2, r2, #16
+
+	ldmfd sp!, {r4-r9}
 
 	subs r2, r2, #8
 	ldmplia r1!, {r3, r12}
@@ -65,12 +69,14 @@ memcpy:
 	ldrplb r3, [r1], #1
 	strplb r3, [r0], #1
 	bne .slowcpy
+	beq .done
 
+.bigdone:
+	ldmfd sp!, {r4-r9}
 .done:
-	ldmfd sp!, {r0, r4-r9}
+	ldmfd sp!, {r0}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
-
 
 	.global memset
 	.type	memset,   %function
