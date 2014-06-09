@@ -69,7 +69,7 @@ static inline void _init() {
     vt_goto(3, 2);
     kprintf("HDATA: %p-%p (%dB)", &_DataStart, &_DataKernEnd,
             (uint)&_DataKernEnd-(uint)&_DataStart);
-    
+
     vt_flush();
 }
 
@@ -105,7 +105,11 @@ void main() {
     memset((void*)&_DataStart, 0, (uint)&_BssEnd - (uint)&_DataStart);
 
     exit_point = ep;
+#ifdef COWAN
     exit_sp    = sp - 1;
+#else
+    exit_sp    = sp - 2;
+#endif
 
     _init();
 
