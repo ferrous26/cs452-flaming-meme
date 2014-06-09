@@ -4,120 +4,105 @@
 #include <std.h>
 #include <debug.h>
 
-#define LEFT(i)   (i << 1)
-#define RIGHT(i)  (LEFT(i) + 1)
-#define PARENT(i) (i >> 1)
-
 int clock_server_tid;
 
 
-typedef struct {
-    uint time;
+typedef struct delay_element {
+    int time;
     task_id tid;
-} clock_delay;
+    struct delay_element* prev;
+    struct delay_element* next;
+} delay;
 
 typedef struct {
-    int count;
-    clock_delay delays[TASK_MAX];
-} clock_pq;
+    delay* head;
+    delay* tail;
+    uint   count;
+    // -4 because clock stuff can't delay, idle can't delay, etc.
+    delay delays[TASK_MAX - 4];
+} delay_list;
 
-static void pq_init(clock_pq* q) {
-    q->count = 1;
-    q->delays[0].time = 0;
-    q->delays[0].tid  = 0;
-    for (size i = 1; i < TASK_MAX; i++) {
-	q->delays[i].time = UINT_MAX;
-	q->delays[i].tid  = 0;
-    }
+static void delay_init(delay_list* l) {
+    memset(l, 0, sizeof(delay_list));
+
+    // keep them at INT_MAX so we don't need a special case for checking
+    for (size i = 0; i < (TASK_MAX - 4); i++)
+	l->delays[i].time = INT_MAX;
+
+    l->head = l->tail = l->delays;
 }
 
-static inline uint pq_peek(clock_pq* q) {
-    return q->delays[1].time;
+static inline int delay_peek(delay_list* l) {
+    return l->head->time;
 }
 
-static task_id pq_delete(clock_pq* q) {
+static inline task_id delay_pop(delay_list* l) {
 
-    task_id tid = q->delays[1].tid;
+    task_id tid = l->head->tid;
 
-    clock_delay* delays = q->delays;
-    int curr = --q->count;
-
-    // take butt and put it on head
-    delays[1].time    = delays[curr].time;
-    delays[1].tid     = delays[curr].tid;
-    delays[curr].time = UINT_MAX; // mark the end
-
-    // now, we need to bubble the head down
-    curr = 1;
-
-    // bubble down until we can bubble no more
-    FOREVER {
-	int left     = LEFT(curr);
-	int right    = RIGHT(curr);
-	int smallest = curr;
-
-	if (delays[left].time < delays[curr].time)
-	    smallest = left;
-
-	if (delays[right].time < delays[smallest].time)
-	    smallest = right;
-
-	// if no swapping needed, then brak
-	if (smallest == curr) break;
-
-	// else, swap and prepare for next iteration
-	uint stime = delays[smallest].time;
-	int   stid = delays[smallest].tid;
-	delays[smallest].time = delays[curr].time;
-	delays[smallest].tid  = delays[curr].tid;
-	delays[curr].time     = stime;
-	delays[curr].tid      = stid;
-	curr = smallest;
-    }
+    l->head->time       = INT_MAX;
+    l->head             = l->head->next;
+    l->head->prev->next = NULL;
+    l->head->prev       = NULL;
+    l->count--;
 
     return tid;
 }
 
-static void pq_add(clock_pq* q, uint time, task_id tid) {
+static void delay_push(delay_list* const l, const int time, const task_id tid) {
 
-    clock_delay* delays = q->delays;
-    int curr   = q->count++;
-    int parent = PARENT(curr);
+    delay* new_delay = &l->delays[++l->count];
+    new_delay->time   = time;
+    new_delay->tid    = tid;
 
-    delays[curr].time = time;
-    delays[curr].tid  = tid;
-
-    FOREVER {
-	// is it smaller than it's parent?
-	if (delays[curr].time >= delays[parent].time) break;
-
-	delays[curr].time   = delays[parent].time;
-	delays[curr].tid    = delays[parent].tid;
-	delays[parent].time = time;
-	delays[parent].tid  = tid;
-	curr                = parent;
-	parent              = PARENT(curr);
+    if (l->count == 1) {
+	l->head = l->tail = new_delay;
+	return;
     }
+
+    // travel from tail to head
+    delay* tail = l->tail;
+    delay* head = l->head;
+
+    do { // there must be at least one iteration
+
+	if (tail->time > new_delay->time) {
+	    tail = tail->prev;
+	}
+	else { // we've found the place to insert new_delay
+
+	    // tail->next might be NULL (i.e. the end of the list)
+	    if (tail->next == NULL)
+		l->tail = new_delay;
+	    else
+		tail->next->prev = new_delay;
+
+	    new_delay->next  = tail->next;
+	    tail->next       = new_delay;
+	    new_delay->prev  = tail;
+
+	    return;
+	}
+    } while (tail != head);
+
+    // if we got here, that means we are inserting at the front of the list
+    // so we need to update the head pointer as well
+    new_delay->next  = l->head;
+    l->head->prev    = new_delay;
+    l->head          = new_delay;
 }
-
-#ifdef DEBUG
-static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
-
-    debug_log("Queue size is %u", q->count);
-
-    clock_delay* delays = q->delays;
-
-    for (size i = 1; i < TASK_MAX; i++)
-	debug_log("q->delays[%u] = %u - %u", i, delays[i].time, delays[i].tid);
-}
-#endif
 
 static void _error(int tid, int code) {
     vt_log("Failed to reply to %u (%d)", tid, code);
     vt_flush();
 }
 
-static void _startup(clock_pq* pq) {
+static void _startup(delay_list* l) {
+
+    // for the sake of safety, we should set this up before allowing any
+    // requests to show up
+    delay_init(l);
+
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
     int result = RegisterAs((char*)"clock");
@@ -134,20 +119,18 @@ static void _startup(clock_pq* pq) {
 	return;
     }
 
-    pq_init(pq);
-
     vt_log("Clock Server started at %d", clock_server_tid);
     vt_flush();
 }
 
 void clock_server() {
 
-    uint      time = 0;
-    int       result; // used by Reply() calls
-    clock_req req; // store incoming requests
-    clock_pq  q;   // priority queue for tasks waiting for time
+    int        time = 0;
+    int        result; // used by Reply() calls
+    clock_req  req; // store incoming requests
+    delay_list l;   // priority queue for tasks waiting for time
 
-    _startup(&q);
+    _startup(&l);
 
     FOREVER {
 	int tid;
@@ -166,19 +149,18 @@ void clock_server() {
 		vt_flush();
 	    }
 
-	    // tick-tock
-	    time++;
+	    time++; // tick-tock
 
-	    while (pq_peek(&q) <= time) {
-		tid = pq_delete(&q);
-		result = Reply(tid, (char*)&req, sizeof(clock_req_type));
+	    while (delay_peek(&l) <= time) {
+		tid = delay_pop(&l);
+		result = Reply(tid, NULL, 0);
 		if (result) _error(tid, result);
 	    }
 	    break;
 
 	case CLOCK_DELAY:
 	    // value is checked on the calling task
-	    pq_add(&q, req.ticks + time, tid);
+	    delay_push(&l, req.ticks + time, tid);
 	    break;
 
 	case CLOCK_TIME:
@@ -187,16 +169,15 @@ void clock_server() {
 	    break;
 
 	case CLOCK_DELAY_UNTIL:
-	    // if we missed the deadline, wake task up right away?
+	    // if we missed the deadline, wake task up right away
 	    if (req.ticks <= time) {
-		result = Reply(tid, (char*)&req, sizeof(clock_req_type));
+		result = Reply(tid, NULL, 0);
 		if (result) _error(tid, result);
 	    }
 	    else {
-		pq_add(&q, req.ticks, tid);
+		delay_push(&l, req.ticks, tid);
 	    }
 	    break;
-
 	}
     }
 }
