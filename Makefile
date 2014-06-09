@@ -64,7 +64,7 @@ endif
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99 -fomit-frame-pointer
 CFLAGS += -c -I. -Iinclude -mcpu=arm920t
 
-LDFLAGS = -init main -Map kernel.map -N -T orex.ld --fix-v4bx --warn-unresolved-symbols
+LDFLAGS = -init main -Map kernel.map -N -T orex.ld --warn-unresolved-symbols
 
 
 ifdef CLANG
