@@ -16,7 +16,7 @@ void vt_init() {
     vt_clear_screen();
     vt_hide_cursor();
 
-    vt_set_scroll_region(LOG_HOME, 80);
+//    vt_set_scroll_region(LOG_HOME, 80);
     vt_goto(LOG_HOME, 0);
     vt_save_cursor();
 
