@@ -104,7 +104,7 @@ int WhoIs(char* name) {
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_MAX-2, name_server) > 0)
+	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
 	    return WhoIs(name);
 
     // else, error out
@@ -116,7 +116,7 @@ int RegisterAs(char* name) {
     req.type = REGISTER;
     memset((void*)&req.payload, 0, sizeof(ns_payload));
 
-    for(uint i = 0; name[i] != '\0'; i++) {
+    for (uint i = 0; name[i] != '\0'; i++) {
         if (i == NAME_MAX_SIZE) return -1;
 	req.payload.text[i] = name[i];
     }
@@ -130,7 +130,7 @@ int RegisterAs(char* name) {
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_MAX-2, name_server) > 0)
+	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
 	    return RegisterAs(name);
 
     // else, error out
@@ -159,14 +159,18 @@ int Delay(int ticks) {
 		      (char*)&req, sizeof(clock_req),
 		      (char*)&req, sizeof(clock_req));
 
-    if (result == OK) return 0;
-
-    // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_MAX-1, clock_server) > 0)
+    switch (result) {
+    case OK:
+	return 0;
+    case INVALID_TASK:
+    case INCOMPLETE:
+	// maybe clock server died, so we can try again
+	if (Create(TASK_PRIORITY_HIGH - 1, clock_server) > 0)
 	    return Delay(ticks);
-    // else, error out
-    return result;
+	// fall through
+    default:
+	return result;
+    }
 }
 
 int Time() {
@@ -184,7 +188,7 @@ int Time() {
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_MAX-1, clock_server) > 0)
+	if (Create(TASK_PRIORITY_HIGH - 1, clock_server) > 0)
 	    return Time();
 
     // else, error out
@@ -204,14 +208,18 @@ int DelayUntil(int ticks) {
 		      (char*)&req, sizeof(clock_req),
 		      (char*)&req, sizeof(clock_req));
 
-    if (result == OK) return 0;
-
-    // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_MAX-1, clock_server) > 0)
+    switch (result) {
+    case OK:
+	return 0;
+    case INVALID_TASK:
+    case INCOMPLETE:
+	// maybe clock server died, so we can try again
+	if (Create(TASK_PRIORITY_HIGH - 1, clock_server) > 0)
 	    return DelayUntil(ticks);
-    // else, error out
-    return result;
+	// fall through
+    default:
+	return result;
+    }
 }
 
 void Shutdown() {
