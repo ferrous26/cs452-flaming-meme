@@ -78,7 +78,7 @@ int Create(int priority, void (*code) (void));
 int myTid(void);
 int myParentTid(void);
 int myPriority(void);
-void ChangePriority(uint);
+void ChangePriority(int);
 
 void Pass(void);
 void Exit(void);
