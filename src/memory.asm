@@ -1,5 +1,5 @@
 	.file	"memory.asm"
-	.text
+	.section ".text.kern"
 
 	.align	2
 	.global memcpy
@@ -77,6 +77,7 @@ memcpy:
 	mov  pc, lr
 	.size	memcpy, .-memcpy
 
+	.section ".text"
 	.global memset
 	.type	memset,   %function
 memset:
