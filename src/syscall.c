@@ -52,8 +52,8 @@ int myPriority() {
     return _syscall(SYS_PRIORITY, NULL);
 }
 
-void ChangePriority(uint new_priority) {
-    _syscall(SYS_CHANGE, (uint*)new_priority);
+void ChangePriority(int new_priority) {
+    _syscall(SYS_CHANGE, (volatile void*)new_priority);
 }
 
 void Pass() {
@@ -161,7 +161,7 @@ int Delay(int ticks) {
 
     clock_req req;
     req.type  = CLOCK_DELAY;
-    req.ticks = (uint)ticks;
+    req.ticks = ticks;
 
     int result = Send(clock_server_tid,
 		      (char*)&req, sizeof(clock_req),
@@ -210,7 +210,7 @@ int DelayUntil(int ticks) {
 
     clock_req req;
     req.type  = CLOCK_DELAY_UNTIL;
-    req.ticks = (uint)ticks;
+    req.ticks = ticks;
 
     int result = Send(clock_server_tid,
 		      (char*)&req, sizeof(clock_req),
