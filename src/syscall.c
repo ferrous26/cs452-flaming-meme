@@ -16,9 +16,17 @@ inline static int _syscall(volatile int code, volatile void* request) {
 	:"r"(r0), "r"(r1)
 	:"r2", "r3", "ip");
 
+#ifdef CLANG
+    // r0 will have the return value of the operation
+    int ret;
+    asm ("mov %0, r0"
+	 : "=r" (ret));
+    return ret;
+#else
     // r0 will have the return value of the operation
     register int ret asm ("r0");
     return ret;
+#endif
 }
 
 int Create(int priority, void (*code)()) {
