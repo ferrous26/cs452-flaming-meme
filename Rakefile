@@ -1,31 +1,88 @@
-task default: :debug
+task :default => :build
 
-task :increment_version do
+UW_HOME = ENV['UW_HOME']
+UW_USER = ENV['UW_USER']
+
+def increment_version
   version = File.read('VERSION').to_i + 1
   File.open('VERSION', 'w') do |fd|
     fd.puts version
   end
 end
 
-task bench: :increment_version do
-  sh 'STRICT=yes BENCHMARK=yes make remote'
+def rsync_command
+  "rsync -trulip --exclude '.git/' --exclude './measurement' " +
+    "./ uw:#{UW_HOME}/trains"
 end
 
-task debug: :increment_version do
-  sh 'make remote'
+def path_to dest
+  paths = case dest
+          when :future
+            ['/u3/marada/arm-eabi-gcc/bin',
+             '/u3/marada/arm-eabi-gcc/libexec/gcc/arm-eabi/4.9.0']
+          when :clang
+            ['/u/cs444/bin',
+             '/u3/marada/arm-eabi-gcc/bin',
+             '/u3/marada/arm-eabi-gcc/libexec/gcc/arm-eabi/4.9.0']
+          when :cowan
+            ['/u/wbcowan/gnuarm-4.0.2/libexec/gcc/arm-elf/4.0.2',
+             '/u/wbcowan/gnuarm-4.0.2/arm-elf/bin']
+          end
+  "export PATH=#{paths.join(':')}:$PATH"
 end
 
-task release: :increment_version do
-  sh 'STRICT=yes RELEASE=2 make remote'
+desc 'Build ferOS in the CS environment'
+task :build, :params do |_, args|
+  env    = []
+  cmds   = ['cd trains/']
+
+  params = args[:params] || 'psad'
+
+  # individual flags
+  env << 'STRICT=yes'    if params.include? 's'
+  env << 'BENCHMARK=yes' if params.include? 'b'
+  env << 'ASSERT=yes'    if params.include? 'a'
+  env << 'DEBUG=yes'     if params.include? 'd'
+  env << 'RELEASE=1'     if params.include? '1'
+  env << 'RELEASE=2'     if params.include? '2'
+  env << 'RELEASE=3'     if params.include? '3'
+
+  if params.include? 'f'
+    env  << 'FUTURE=zomg'
+    cmds << path_to(:future)
+  elsif params.include? 'l'
+    env  << 'CLANG=yes'
+    cmds << path_to(:clang)
+    'export PATH:$PATH'
+  else
+    cmds << path_to(:cowan)
+  end
+
+  env  = env.join ' '
+  cmds = cmds.reverse.join ' && '
+  jobs = params.include?('p') ? '-j32' : '' # parallelize build
+
+  increment_version
+  sh rsync_command
+  sh "ssh uw '#{cmds} && make clean && touch Makefile'"
+  sh "ssh uw '#{cmds} && #{env} make -s #{jobs}'"
+  sh "ssh uw 'cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/#{UW_USER}/k3.elf'"
 end
 
-task release_bench: :increment_version do
-  sh 'STRICT=yes RELEASE=2 BENCHMARK=yes make remote'
-end
+desc 'Debug build with benchmarks'
+task(:bench) { Rake::Task[:build].invoke('psadb') }
 
-task super_release_bench: :increment_version do
-  sh 'RELEASE=3 BENCHMARK=yes make remote'
-end
+desc 'Standard release build'
+task(:release) { Rake::Task[:build].invoke('p2s') }
+
+desc 'Standard release build with benchmarking enabled'
+task(:release_bench) { Rake::Task[:build].invoke('p2sb') }
+
+desc 'Build with clang'
+task(:clang) { Rake::Task[:build].invoke('l2b') }
+
+desc 'Build using GCC from the future'
+task(:future) { Rake::Task[:build].invoke('f2b') }
 
 namespace :md5 do
   def make_md5_for report
@@ -53,6 +110,7 @@ namespace :md5 do
   task(:k1) { make_md5_for 'kernel1'  }
   task(:k2) { make_md5_for 'kernel2'  }
   task(:k3) { make_md5_for 'kernel3'  }
+  task(:k4) { make_md5_for 'kernel4'  }
   task(:p1) { make_md5_for 'project1' }
   task(:p2) { make_md5_for 'project2' }
 end
@@ -65,14 +123,18 @@ namespace :report do
       sh 'open report.pdf'
     end
   end
+
   desc 'Compile the report for A0'
-  task(a0: 'md5:a0') { pdf_compile 'a0'       }
-  desc 'Compile the report for Kernel 1'
-  task(k1: 'md5:k1') { pdf_compile 'kernel1'  }
-  desc 'Compile the report for Kernel 2'
-  task(k2: 'md5:k2') { pdf_compile 'kernel2'  }
-  desc 'Compile the report for Kernel 3'
-  task(k3: 'md5:k3') { pdf_compile 'kernel3'  }
+  task(a0: 'md5:a0') { pdf_compile 'a0' }
+
+  4.times do |count|
+    count += 1
+    desc "Compile the report for Kernel #{count}"
+    task("k#{count}" => "md5:k#{count}") {
+      pdf_compile "kernel#{count}"
+    }
+  end
+
   desc 'Compile the report for Project 1'
   task(p1: 'md5:p1') { pdf_compile 'project1' }
   desc 'Compile the report for Project 2'
