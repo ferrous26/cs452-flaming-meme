@@ -9,10 +9,12 @@ static
 BENCH(bench)
 #endif
 
+#define ITERATIONS 1000000
+
 static void baseline() {
 
     BENCH_START(bench)
-    for (size i = 100000; i; i--)
+    for (size i = ITERATIONS; i; i--)
 	BENCH_LAP(bench)
 
     BENCH_PRINT_WORST(bench)
@@ -28,7 +30,7 @@ static void send_it(int child) {
     char rply[4];
 
     BENCH_START(bench)
-    for (size i = 100000; i; i--) {
+    for (size i = ITERATIONS; i; i--) {
 	Send(child, (char*)msg, 4, rply, 4);
 	BENCH_LAP(bench)
     }
@@ -47,7 +49,7 @@ static void send_it(int child) {
     char big_rply[64];
 
     BENCH_START(bench)
-    for (size i = 100000; i; i--) {
+    for (size i = ITERATIONS; i; i--) {
 	Send(child, (char*)big_msg, 64, big_rply, 64);
 	BENCH_LAP(bench)
     }
