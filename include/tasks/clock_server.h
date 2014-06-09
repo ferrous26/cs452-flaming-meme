@@ -19,6 +19,6 @@ typedef struct {
     uint ticks;
 } clock_req;
 
-void clock_server(void);
+void __attribute__ ((noreturn)) clock_server(void);
 
 #endif
