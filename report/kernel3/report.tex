@@ -105,12 +105,15 @@ causes the server to increment the \ttt{time} and check if any tasks
 waiting for \ttt{Delay}s need to be woken up.
 
 The server keeps track of tasks that wish to be \ttt{Delay}ed in a
-heap based priority queue. A priority queue allows us to check if any
-task needs to be woken up in constant time. A heap implementation,
-combined with our hypothetical use case for the clock server, also has
-the property that new \ttt{Delay} requests can be inserted into the
-queue in near constant time in the average case, or at least less than
-logarithmic time in many cases.
+heap based priority queue that is large enough to store the maximum
+number of concurrent tasks for the system. A priority queue allows us
+to check if any task needs to be woken up in constant time. A heap
+implementation, combined with our hypothetical use case for the clock
+server, also has the property that new \ttt{Delay} requests can be
+inserted into the queue in near constant time in the average case, or
+at least less than logarithmic time in many cases. All other
+operations occur in logarithmic time, which we expect to be sufficient
+for small and medium work loads.
 
 \subsection*{Delay}
 
@@ -157,6 +160,9 @@ More tuning to the system call code path. We were able to convince the
 compiler to not generate several redundant load and store operations on
 the critical path for all system calls. Our message loop time is now
 $\sim6.5\mu$seconds when clock interrupts are enabled.
+
+Added a \ttt{Shutdown()} system call to deal with shutdown upon user
+request.
 
 
 \section*{Demonstration Output}
