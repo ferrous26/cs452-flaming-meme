@@ -3,6 +3,9 @@
 
 #include <irq.h>
 
+#define DEFAULT_LDR_PC 0xE59FF018
+
+
 #define SOFT_IRQ_HANDLE(name, irq)              \
 static void __attribute__ ((used)) name() {     \
     vt_log("IRQ " #irq);                        \
@@ -13,18 +16,26 @@ SOFT_IRQ_HANDLE(irq0, 0)
 SOFT_IRQ_HANDLE(irq1, 1)
 SOFT_IRQ_HANDLE(irq63, 63)
 
-inline static void _setup_vector_irq() {
-    *(voidf*)0x800B0100 = irq0;
-    *(volatile uint*)0x800B0200 = 0x20;
+inline static void
+_init_vector_irq(const uint interrupt, const int priority, voidf handle) {
+    assert(interrupt < 64, "Invalid Interrupt %d", interrupt);
+    assert(priority < 16, "Invalid vector priority on interrupt %d", interrupt);
 
-    *(voidf*)0x800B0104 = irq1;
-    *(volatile uint*)0x800B0204 = 0x21;
+    const uint base = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
+    const uint set  = (interrupt & VICCNTL_INT_MASK) | VICCNTL_ENABLE_MASK;
 
-    *(voidf*)0x800C0100 = irq_clock;
-    *(volatile uint*)0x800C0200 = 0x33;
+    *(voidf*)(base + VICVECADDR_OFFSET + 4*priority) = handle;
+    *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
+}
 
-    *(voidf*)0x800C0104 = irq63;
-    *(volatile uint*)0x800C0204 = 0x3F;
+inline static void _init_all_vector_irq() {
+    //setup VEC1
+    _init_vector_irq(0, 0, irq0);
+    _init_vector_irq(1, 1, irq1);
+
+    //setup VEC2
+    _init_vector_irq(51, 0, irq_clock);
+    _init_vector_irq(63, 1, irq63);
 }
 
 void irq_init() {
@@ -48,7 +59,7 @@ void irq_init() {
     irq_enable_interrupt(54); // UART2 general
     */
 
-    _setup_vector_irq();
+    _init_all_vector_irq();
 }
 
 void irq_deinit() {
@@ -61,11 +72,13 @@ void irq_deinit() {
     VIC(VIC2_BASE, VIC_IRQ_MODE_OFFSET) = 0;
 
     irq_disable_user_protection();
-    *HWI_HANDLER = 0xE59FF018;
+    *HWI_HANDLER = DEFAULT_LDR_PC;
 }
 
 inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
-    const uint base  = interrupt >> 5 ? VIC2_BASE : VIC1_BASE;
+    assert(interrupt < 64, "Invalid Interrupt %d", interrupt);
+    
+    const uint base  = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
     const uint shift = interrupt & 0x1F;
     VIC(base, cmd)   = 1 << shift;
 }
@@ -120,3 +133,4 @@ void debug_interrupt_table() {
     }
 }
 #endif
+

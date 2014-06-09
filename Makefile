@@ -83,7 +83,7 @@ endif
 
 CFLAGS += --freestanding -msoft-float
 CFLAGS += -Wall -Wextra -Wshadow -Wcast-align -Wredundant-decls
-CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
+CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded
 CFLAGS += -Wswitch-enum -Wdisabled-optimization
 
 ASFLAGS	+= -mcpu=arm920t
