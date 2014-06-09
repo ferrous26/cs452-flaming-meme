@@ -9,7 +9,7 @@ static
 BENCH(bench)
 #endif
 
-#define ITERATIONS 1000000
+#define ITERATIONS 100000
 
 static void baseline() {
 
