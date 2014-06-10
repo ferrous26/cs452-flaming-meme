@@ -162,6 +162,5 @@ char vt_waitget() {
         vt_read();
         Pass();
     }
-
     return vt_getc();
 }

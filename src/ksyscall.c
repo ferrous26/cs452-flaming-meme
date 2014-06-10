@@ -186,16 +186,14 @@ ksyscall_await(const kwait_req* const req, int* const result) {
 }
 
 inline static void ksyscall_irq() {
-    voidf handler = (void(*volatile)())VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*volatile)handler;
-
+    voidf handler = (voidf)VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
     handler();
+    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*)handler;
     ksyscall_pass();
 }
 
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
-
 void syscall_handle(const uint code, const void* const req, int* const sp) {
     // save it, save it real good
     task_active->sp = sp;

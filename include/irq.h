@@ -25,6 +25,11 @@ void hwi_enter(void);   /* found in context.asm */
 #define VIC_SOFT_DISABLE_OFFSET  0x1C
 #define VIC_PROTECTION_OFFSET    0x20
 #define VIC_VECTOR_ADDRESS       0x30
+#define VICVECCNTL_OFFSET        0x200
+    #define VICCNTL_ENABLE_MASK  0x20
+    #define VICCNTL_INT_MASK     0x1F
+#define VICVECADDR_OFFSET        0x100
+#define VICDEFVECTADDR_OFFSET    0x34
 
 #define VIC(vic, offset) (*(volatile uint*)(vic|offset))
 #define VIC_PTR(vic, offset) (*(void*volatile*)(vic|offset))

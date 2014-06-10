@@ -60,7 +60,7 @@ void k3_root() {
         Reply(tid, NULL, 0);
     }
 
-    vt_log("K3_Root(%d) Ending", my_tid);
+    vt_log("K3_Root(%d): Ending", my_tid);
     vt_flush();
 }
 

@@ -4,7 +4,6 @@
 #include <tasks/task_launcher.h>
 
 
-static uint8 table[256];
 
 // force grouping by putting them into a struct
 static struct task_free_list {
@@ -20,6 +19,7 @@ static struct task_manager {
 task_q recv_q[TASK_MAX] DATA_HOT;
 struct task_descriptor  tasks[TASK_MAX] DATA_HOT;
 struct task_pointers    task_ptrs DATA_HOT;
+static uint8 table[256] DATA_HOT;
 
 // This algorithm is borrowed from
 // http://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogLookup
