@@ -1,5 +1,6 @@
 \documentclass[pdftex,10pt,a4paper]{article}
 \usepackage{../cs452}
+\usepackage{verbatim}
 
 \begin{document}
 
@@ -62,7 +63,7 @@ proper one. Next we turn on the interrupts that we have explicit handling for.
 
 Last we set up the vectored interrupt controller such that the clock is on the
 highest priority of \ttt{VEC2} since in this stage it is the only interrupt useful to
-the operation of the kernel. Interrupts \ttt{0}, \ttt{1}, \ttt{63{ are all also given
+the operation of the kernel. Interrupts \ttt{0}, \ttt{1}, \ttt{63} are all also given
 a basic handling function which is also addressed in the corresponding \ttt{VEC1} or 
 \ttt{VEC2} controller. This was done to make the code to get the currently triggered
 interrupt much cleaner since we have all handing now done for us by the hardware.
@@ -211,10 +212,43 @@ $\sim6.5\mu$seconds when clock interrupts are enabled.
 Added a \ttt{Shutdown()} system call to deal with shutdown upon user
 request.
 
-
+\newpage
 \section*{Demonstration Output}
+\verbatiminput{k3_output.txt}
 
+\newpage
+\begin{description}
+\item[Lines 1-5] \hfill \\
+These are the standard starting up messages. Since the clock server is in the 
+process of initialization there isn't a notifier to actually wait on the clock
+ticks causing the missed tick messages to be thrown until the server has
+started. Once all the servers have started the task launcher polls for user
+input.
 
+\item[Lines 6-11] \hfill \\
+These are the starting messages of the root launching task for the K3 demo.
+First the demo task show that it has stated and the ids of the 4 children
+tasks that have the inputs in the same order as detailed by the assignment
+specification. Finally the task shows that is has gone into a blocking mode
+while it waits for its children tasks to terminate.
+
+\item[Line 12] \hfill \\
+K3\_Root is blocked on waiting for its children tasks to notify it that they
+are done. All of the K3\_Tasks are waiting for the clock server to let them
+know that their delay time has passed. Task launcher gets scheduled again
+and writes out its message to notify that it is polling for more input.
+
+\item[Lines 13-51] \hfill \\
+The messages that the children tasks of the k3 launcher task. The order of
+their messages follows the value calculated by \ttt{Delay} * \ttt{Iter}. This
+order is the expected output and shows that the clock server is waking up tasks
+in a correct timing with relation to the other tasks currently in the system.
+
+\item[Line 51] \hfill \\
+All of the children tasks are done running to the demo task is now going to call
+\ttt{Exit()}.
+
+\end{description}
 \end{document}
 
 %%% Local Variables:
