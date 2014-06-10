@@ -114,6 +114,6 @@ kernel.elf: $(OBJS)
 .PHONY: clean
 
 clean:
-	-rm -f src/kernel.elf src/kernel.map
+	-rm -f kernel.elf kernel.map
 	-rm -f src/*.s src/tasks/*.s
 	-rm -f src/*.o src/tasks/*.o
