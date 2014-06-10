@@ -91,8 +91,7 @@ void shutdown(void) {
 		    "r" (exit_point));
 }
 
-void main(void);
-void main() {
+int main() {
     uint* volatile ep;
     uint* volatile sp;
 
@@ -118,5 +117,5 @@ void main() {
 
     assert(false, "failed to launch first task");
 
-    return;
+    return 0;
 }
