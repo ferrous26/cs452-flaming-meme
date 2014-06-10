@@ -8,7 +8,7 @@
 void clock_enable(void);
 void clock_t4enable(void);
 
-uint clock_t4tick(void);
+uint __attribute__ ((pure)) clock_t4tick(void);
 void irq_clock(void) TEXT_HOT;
 
 #endif

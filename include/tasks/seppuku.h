@@ -2,6 +2,6 @@
 #ifndef __SEPPUKU_H__
 #define __SEPPUKU_H__
 
-void seppuku(void);
+void __attribute__ ((const)) seppuku(void);
 
 #endif
