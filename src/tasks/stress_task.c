@@ -52,7 +52,7 @@ void stress_root() {
         UNUSED(ret);
     }
 
-    if (tid < 10000) {
+    if (my_tid < 10000) {
         Create(16, stress_root);
         Create(16, stress_root);
     }
