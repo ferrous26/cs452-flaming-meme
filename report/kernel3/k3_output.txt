@@ -1,3 +1,9 @@
+ HTEXT: 0x001019A0-0x00102038 (1688B)  Welcome to ferOS build 819
+ HDATA: 0x00100000-0x0010085C (2140B)  Built Jun 10 2014 11:16:40
+
+
+
+
 1: Missed a clock tick
 2: Name Server started at 2
 3: Missed a clock tick
@@ -26,8 +32,8 @@
 26: K3_TASK(6): Delay:10, Iter:8
 27: K3_TASK(6): Delay:10, Iter:9
 28: K3_TASK(7): Delay:23, Iter:4
-29: K3_TASK(6): Delay:10, Iter:10
-30: K3_TASK(8): Delay:33, Iter:3
+29: K3_TASK(8): Delay:33, Iter:3
+30: K3_TASK(6): Delay:10, Iter:10
 31: K3_TASK(6): Delay:10, Iter:11
 32: K3_TASK(7): Delay:23, Iter:5
 33: K3_TASK(6): Delay:10, Iter:12
