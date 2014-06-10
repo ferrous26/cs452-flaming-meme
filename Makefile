@@ -28,12 +28,15 @@ ASFLAGS = # reset
 LDFLAGS = # reset
 
 ifdef RELEASE
-CFLAGS += -O$(RELEASE)
+CFLAGS += -O$(RELEASE) -Wuninitialized
 
 ifdef CLANG
 CFLAGS +=
 else ifdef FUTURE
 CFLAGS += -fpeel-loops
+CFLAGS += -Wunsafe-loop-optimizations
+CFLAGS += -fno-tree-loop-vectorize -fno-tree-slp-vectorize
+CFLAGS += -fno-tree-partial-pre -fvect-cost-model=cheap
 else
 CFLAGS += -unswitch-loops -fpeel-loops -floop-optimize2
 endif
@@ -77,6 +80,9 @@ else
 
 ifdef FUTURE
 CFLAGS += -D FUTURE
+CFLAGS += -Wsuggest-attribute=format -Wmissing-format-attribute
+CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const
+CFLAGS += -Wsuggest-attribute=noreturn -Wunreachable-code
 else
 CFLAGS += -D COWAN
 endif
@@ -114,6 +120,6 @@ kernel.elf: $(OBJS)
 .PHONY: clean
 
 clean:
-	-rm -f src/kernel.elf src/kernel.map
+	-rm -f kernel.elf kernel.map
 	-rm -f src/*.s src/tasks/*.s
 	-rm -f src/*.o src/tasks/*.o

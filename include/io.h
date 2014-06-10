@@ -17,7 +17,7 @@ void vt_flush(void); // flush the entire output buffer
 
 // buffered I/O
 char vt_getc(void);
-bool vt_can_get(void);
+bool __attribute__ ((pure)) vt_can_get(void);
 
 // general number printing, reasonably fast, but special case
 // code will still be faster

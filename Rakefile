@@ -1,7 +1,8 @@
 task :default => :build
 
-UW_HOME = ENV['UW_HOME']
-UW_USER = ENV['UW_USER']
+ELF_NAME = 'k3'
+UW_HOME  = ENV['UW_HOME']
+UW_USER  = ENV['UW_USER']
 
 def increment_version
   version = File.read('VERSION').to_i + 1
@@ -33,12 +34,10 @@ end
 
 desc 'Build ferOS in the CS environment'
 task :build, :params do |_, args|
-  env    = []
-  cmds   = ['cd trains/']
-
   params = args[:params] || 'psad'
 
   # individual flags
+  env  = []
   env << 'STRICT=yes'    if params.include? 's'
   env << 'BENCHMARK=yes' if params.include? 'b'
   env << 'ASSERT=yes'    if params.include? 'a'
@@ -47,13 +46,18 @@ task :build, :params do |_, args|
   env << 'RELEASE=2'     if params.include? '2'
   env << 'RELEASE=3'     if params.include? '3'
 
+  cmds = if params.include? 't'
+           []
+         else
+           ['cd trains/']
+         end
+
   if params.include? 'f'
     env  << 'FUTURE=zomg'
     cmds << path_to(:future)
   elsif params.include? 'l'
     env  << 'CLANG=yes'
     cmds << path_to(:clang)
-    'export PATH:$PATH'
   else
     cmds << path_to(:cowan)
   end
@@ -62,11 +66,20 @@ task :build, :params do |_, args|
   cmds = cmds.reverse.join ' && '
   jobs = params.include?('p') ? '-j32' : '' # parallelize build
 
-  increment_version
-  sh rsync_command
-  sh "ssh uw '#{cmds} && make clean && touch Makefile'"
-  sh "ssh uw '#{cmds} && #{env} make -s #{jobs}'"
-  sh "ssh uw 'cd trains/ && cp kernel.elf /u/cs452/tftp/ARM/#{UW_USER}/k3.elf'"
+  cmds << " && echo Cleaning Environment && make clean && touch Makefile"
+  cmds << " && echo Building Fresh Kernel && #{env} make -s #{jobs}"
+
+  if params.include? 't'
+    sh cmds
+  else
+    # we also want to copy the thing to the TFTP directory
+    cmds << " && echo Copying kernel to TFTP server"
+    cmds << " && cp kernel.elf /u/cs452/tftp/ARM/#{UW_USER}/#{ELF_NAME}.elf"
+
+    increment_version
+    sh rsync_command
+    sh "ssh uw '#{cmds}'"
+  end
 end
 
 desc 'Debug build with benchmarks'
@@ -83,6 +96,9 @@ task(:clang) { Rake::Task[:build].invoke('l2b') }
 
 desc 'Build using GCC from the future'
 task(:future) { Rake::Task[:build].invoke('f2b') }
+
+desc 'Make a local release_bench build'
+task(:local) { Rake::Task[:build].invoke('p2sbt') }
 
 namespace :md5 do
   def make_md5_for report
