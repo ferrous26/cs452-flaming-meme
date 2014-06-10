@@ -37,6 +37,7 @@ static inline void _flush_caches() {
 static void _lockdown_icache() {
     register uint r0 asm ("r0") = (uint)&_TextStart & FILL_SIZE;
     register uint r1 asm ("r1") = (uint)&_TextKernEnd;
+    
     // Makes sure we lock up to the lowest point including the end defined here
     asm volatile ("mov      r2, #0                      \n\t"
                   "mcr      p15, 0, r2, c9, c0,  1      \n"
@@ -60,6 +61,7 @@ static void _lockdown_icache() {
 static void _lockdown_dcache() {
     register uint r0 asm ("r0") = (uint)&_DataStart & FILL_SIZE;
     register uint r1 asm ("r1") = (uint)&_DataKernEnd;
+    
     // Makes sure we lock up to the lowest point including the end defined here
     asm volatile ("mov      r2, #0                      \n\t"
                   "mcr      p15, 0, r2, c9, c0,  0      \n"

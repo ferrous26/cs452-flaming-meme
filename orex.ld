@@ -2,13 +2,13 @@ ENTRY (main)
 
 MEMORY
 {
-  ram : ORIGIN = 0x00100000, LENGTH = 31M
+  ram : ORIGIN = 0x00000000, LENGTH = 32M
   rom : ORIGIN = 0x60000000, LENGTH = 8M
 }
 
 SECTIONS
 {
-  .data : /* Initialized data. */
+  .data 0x100000: /* Initialized data. */
   {
     _DataStart = . ;
     *(.data.kern)
@@ -26,9 +26,9 @@ SECTIONS
     _BssEnd = . ;
   } >ram
 
-  .text : /* The actual instructions. */
-  {
-    _TextStart = . ;
+  .text ALIGN(0x100): 	/* The actual instructions.          */
+  {		      	/* Alignment ensures that data will  */	
+    _TextStart = . ;	/* not get loaded into the icache    */
     *(.text.kern)
     _TextKernEnd = . ;
     *(.text)
