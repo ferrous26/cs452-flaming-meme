@@ -9,6 +9,7 @@
 #define SOFT_IRQ_HANDLE(name, irq)              \
 static void __attribute__ ((used)) name() {     \
     vt_log("IRQ " #irq);                        \
+    vt_flush();                                 \
     irq_clear_simulated_interrupt(irq);         \
 }                                               \
 
@@ -28,14 +29,21 @@ _init_vector_irq(const uint interrupt, const int priority, voidf handle) {
     *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
 }
 
+
+
+SOFT_IRQ_HANDLE(uart1, 44)
+SOFT_IRQ_HANDLE(uart2, 55)
+
 inline static void _init_all_vector_irq() {
     //setup VEC1
     _init_vector_irq(0, 0, irq0);
     _init_vector_irq(1, 1, irq1);
 
     //setup VEC2
-    _init_vector_irq(51, 0, irq_clock);
-    _init_vector_irq(63, 1, irq63);
+    _init_vector_irq(54, 0, irq_uart2);
+    _init_vector_irq(52, 1, uart1);
+    _init_vector_irq(51, 2, irq_clock);
+    _init_vector_irq(63, 3, irq63);
 }
 
 void irq_init() {
@@ -54,10 +62,9 @@ void irq_init() {
     irq_enable_interrupt(25); // UART2 recv
     irq_enable_interrupt(26); // UART2 send
     */
-    /*
-    irq_enable_interrupt(52); // UART1 general
+  
+    // irq_enable_interrupt(52); // UART1 general
     irq_enable_interrupt(54); // UART2 general
-    */
 
     _init_all_vector_irq();
 }
