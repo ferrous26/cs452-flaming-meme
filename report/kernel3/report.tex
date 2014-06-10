@@ -235,12 +235,12 @@ while it waits for its children tasks to terminate.
 \item[Line 12] \hfill \\
 K3\_Root is blocked on waiting for its children tasks to notify it that they
 are done. All of the K3\_Tasks are waiting for the clock server to let them
-know that their delay time has passed to the task launcher gets scheduled again
+know that their delay time has passed. Task launcher gets scheduled again
 and writes out its message to notify that it is polling for more input.
 
 \item[Lines 13-51] \hfill \\
 The messages that the children tasks of the k3 launcher task. The order of
-their messages follows the value calculated by \ttt{Delay} * \ttt{Iter}. this
+their messages follows the value calculated by \ttt{Delay} * \ttt{Iter}. This
 order is the expected output and shows that the clock server is waking up tasks
 in a correct timing with relation to the other tasks currently in the system.
 
