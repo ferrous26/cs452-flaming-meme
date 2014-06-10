@@ -28,12 +28,15 @@ ASFLAGS = # reset
 LDFLAGS = # reset
 
 ifdef RELEASE
-CFLAGS += -O$(RELEASE)
+CFLAGS += -O$(RELEASE) -Wuninitialized
 
 ifdef CLANG
 CFLAGS +=
 else ifdef FUTURE
 CFLAGS += -fpeel-loops
+CFLAGS += -Wunsafe-loop-optimizations
+CFLAGS += -fno-tree-loop-vectorize -fno-tree-slp-vectorize
+CFLAGS += -fno-tree-partial-pre -fvect-cost-model=cheap
 else
 CFLAGS += -unswitch-loops -fpeel-loops -floop-optimize2
 endif
@@ -77,13 +80,16 @@ else
 
 ifdef FUTURE
 CFLAGS += -D FUTURE
+CFLAGS += -Wsuggest-attribute=format -Wmissing-format-attribute
+CFLAGS += -Wsuggest-attribute=pure -Wsuggest-attribute=const
+CFLAGS += -Wsuggest-attribute=noreturn -Wunreachable-code
 else
 CFLAGS += -D COWAN
 endif
 
 CFLAGS += --freestanding -msoft-float
 CFLAGS += -Wall -Wextra -Wshadow -Wcast-align -Wredundant-decls
-CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded -Wunreachable-code
+CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded
 CFLAGS += -Wswitch-enum -Wdisabled-optimization
 
 ASFLAGS	+= -mcpu=arm920t
