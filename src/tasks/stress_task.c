@@ -15,7 +15,7 @@ static void stress_sub() {
     int seed  = tid;
     int delay = (rand(seed) % 70) + 10;
     int iter  = (rand(seed) % 10) + 2;
-    
+
     for (int i = 1; i < iter; i++) {
         Delay(delay);
         vt_log("STR_T(%d): Delay:%d Iter:%d/%d", tid, delay, i, iter-1);
@@ -28,7 +28,7 @@ static void stress_sub() {
 }
 
 void stress_root() {
-    int tid;
+    int tid = 0;
     int nchildren = 0;
     int my_tid    = myTid();
 
@@ -42,7 +42,7 @@ void stress_root() {
             nchildren++;
         }
     }
-    
+
     vt_log("STR_R(%d): Waiting", my_tid);
     for (int i = 0; i < nchildren; i++) {
         Receive(&tid, NULL, 0);
@@ -56,8 +56,7 @@ void stress_root() {
         Create(16, stress_root);
         Create(16, stress_root);
     }
-    
+
     vt_log("STR_R(%d): Ending", my_tid);
     vt_flush();
 }
-

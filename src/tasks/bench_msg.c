@@ -4,7 +4,10 @@
 #include <syscall.h>
 #include <scheduler.h>
 
+#ifdef BENCHMARK
+static
 BENCH(bench)
+#endif
 
 static void baseline() {
 

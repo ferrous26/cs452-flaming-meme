@@ -161,7 +161,7 @@ void task_destroy() {
     cbuf_produce(&free_list.list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
 
-#if DEBUG
+#ifdef DEBUG
 void debug_task(const task_id tid) {
     task* tsk = &tasks[task_index_from_tid(tid)];
 
@@ -179,6 +179,4 @@ void debug_task(const task_id tid) {
 
     debug_log("  Stack Pointer: %p", tsk->sp);
 }
-#else
-#define debug_task(x)
 #endif

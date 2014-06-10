@@ -9,9 +9,9 @@ static void __attribute__ ((used)) name() {     \
     irq_clear_simulated_interrupt(irq);         \
 }                                               \
 
-SOFT_IRQ_HANDLE(irq0, 0);
-SOFT_IRQ_HANDLE(irq1, 1);
-SOFT_IRQ_HANDLE(irq63, 63);
+SOFT_IRQ_HANDLE(irq0, 0)
+SOFT_IRQ_HANDLE(irq1, 1)
+SOFT_IRQ_HANDLE(irq63, 63)
 
 inline static void _setup_vector_irq() {
     *(voidf*)0x800B0100 = irq0;
@@ -96,7 +96,7 @@ void irq_clear_simulated_interrupt(const uint i) {
     _irq_interrupt(VIC_SOFT_DISABLE_OFFSET, i);
 }
 
-#if DEBUG
+#ifdef DEBUG
 void debug_interrupt_table() {
     uint base = VIC1_BASE;
     for (size table = 1; table < 3; table++) {

@@ -42,7 +42,7 @@ inline static void print_help() {
 static void tl_action(char input) {
     switch(input) {
     case '1':
-        Create(14, k3_root);
+        Create(16, k3_root);
         break;
     case '2':
         vt_log("%d", Create(TASK_PRIORITY_MAX, seppuku));
@@ -65,7 +65,6 @@ static void tl_action(char input) {
     case '8':
 	DelayUntil(0);
 	break;
-
     case 'i':
 	debug_interrupt_table();
 	break;
@@ -92,7 +91,6 @@ static void tl_action(char input) {
 }
 
 static int _create(int priority, void (*code) (void), const char* const name) {
-
     int tid = Create(priority, code);
     if (tid < 0) {
         vt_log("Failed starting %s! Goodbye cruel world", name);
@@ -102,16 +100,10 @@ static int _create(int priority, void (*code) (void), const char* const name) {
     return tid;
 }
 
-static void tl_startup() {
-    _create(TASK_PRIORITY_MIN, idle, "idle task");
-
-    _create(TASK_PRIORITY_MAX-2, name_server, "name server");
-
-    _create(TASK_PRIORITY_MAX-1, clock_server, "clock server");
-}
-
 void task_launcher() {
-    tl_startup();
+    _create(TASK_PRIORITY_IDLE,     idle,         "idle task");
+    _create(TASK_PRIORITY_HIGH - 1, name_server,  "name server");
+    _create(TASK_PRIORITY_HIGH - 1, clock_server, "clock server");
 
     FOREVER {
         vt_log("Welcome to Task Launcher (h for help)");
