@@ -25,18 +25,18 @@ RedBoot using the following command:
 
 Notice that no offset should be specified for the load instruction.
 
-The source code for the kernel exists in \ttt{/u3/marada/kernel2/},
+The source code for the kernel exists in \ttt{/u3/marada/kernel3/},
 and can be compiled with the following command chain:
 
 \begin{center}
-  \ttt{cd /u3/marada/kernel2 \&\& source /u3/marada/.cs452 \&\& make clean \&\& make}
+  \ttt{cd /u3/marada/kernel3 \&\& /u/cs444/bin/rake local}
 \end{center}
 
 Which will produce a \ttt{kernel.elf} file in the same directory as
-the makefile built in debug mode with minimal optimizations enabled.
+the makefile, built in release mode with benchmarking enabled.
 
-After Initialization the kernel will respond with the message ``\ttt{Welcome to
-Task Launcher}''.
+After Initialization the kernel will respond with the message
+``\ttt{Welcome to Task Launcher}''.
 At this point the key \ttt{1} will start the clock server
 demonstration. The \ttt{h} key will print a list of other commands
 which are available to demonstrate features added in this milestone.
@@ -56,50 +56,62 @@ which are available to demonstrate features added in this milestone.
 
 \subsection*{Initalization}
 
-The first operation that we perform is to turn off all of the interrupts 
-this is because we don't know what state the system may be at right now so we
-want to make sure that it is in one that we can successfully initialize to a
-proper one. Next we turn on the interrupts that we have explicit handling for.
+The first operation that we perform is to mask all interrupts in the
+interrupt controller. This is because we do not know what the state of
+the system may be when the kernel boots and it is easiest to just
+disable everything than to poll for the current state.
 
-Last we set up the vectored interrupt controller such that the clock is on the
-highest priority of \ttt{VEC2} since in this stage it is the only interrupt useful to
-the operation of the kernel. Interrupts \ttt{0}, \ttt{1}, \ttt{63} are all also given
-a basic handling function which is also addressed in the corresponding \ttt{VEC1} or 
-\ttt{VEC2} controller. This was done to make the code to get the currently triggered
-interrupt much cleaner since we have all handing now done for us by the hardware.
+Next we unmask the interrupts that we are able to handle. At this
+point the only interrupt that we can handle is from timer 3, being
+used as the clock.
+
+Finally, we setup the vectored interrupt controller such that the
+clock is on the highest priority of \ttt{VEC2}. We chose the highest
+priority since at this stage the clock is the only interrupt that is
+useful to the operation of our system. Interrupts \ttt{0}, \ttt{1},
+\ttt{63} are all also given a basic handling function which is also
+addressed in the corresponding \ttt{VEC1} or \ttt{VEC2}
+controller. Use of the vectored interrupt controller for handling
+interrupt priority was done because it allowed the amount of code we
+need to maintain smaller and cleaner, and allows the kernel to handle
+interrupts faster.
 
 \subsection*{Context Switch}
 
-Hardware interrupts are handled in a similar fashion as a software interrupt.
-Since the software interrupt makes a couple assumptions about which registers
-will be saved going in to them the hardware interrupt code first sets things up
-so it can drop into the software interrupt code gracefully.
+Hardware interrupts are handled in a similar fashion as a software
+interrupt. Since the software interrupt makes a couple assumptions
+about which registers will be saved, the hardware interrupt first sets
+things up so that we can drop into the software interrupt code
+gracefully.
 
-On exit the same kernel exit code is run, however the hardware interrupt writes
-\ttt{0} into the link register which causes the exit code to also load the extra
-state that the hardware interrupt had saved previously before returning to the
-code before the interrupt was triggered. 
+When exiting the kernel from an IRQ event, we reuse the same kernel
+exit code from software interrupts. However the hardware interrupt
+writes \ttt{0} into the link register as part of the kernel entry
+code, which causes the exit code to also load the extra state that the
+hardware interrupt kernel entry had saved previously before returning
+to the code right before the interrupt was triggered.
 
-The reason we used the existing code path is two-fold: first, using existing
-code compresses code size allowing for better caching performance. Second,
-having a single entry point allows us to much better track all entry and exit
-from the kernel.
+The reason we used the existing code path is two-fold: first, using
+existing code compresses code size allowing for better caching
+performance. Second, having a single entry point allows us to much
+better track all entry and exit from the kernel.
 
 \subsection*{Handling}
 
-The Hardware context switch enters on \ttt{syscall\_handle()} just like the
-software context switch but with a handling code of 0. At this point the same
-software interrupt code is run until it sees that a code 0 has been passed in
-and moves to the specialized interrupt handling section.
+The Hardware context switch enters on \ttt{syscall\_handle()} just
+like the software context switch but with a handling code of \ttt{0}. At
+this point the same software interrupt code is run until it sees that
+a code \ttt{0} has been passed in and moves to the specialized
+interrupt handling section.
 
-At this point we get the address to the handling function from the \ttt{VEC} 
-controller. After we have gotten the handler for current interrupt we just 
-run it and then write back to the \ttt{VEC1} controller to notify it that the 
-current interrupt has been handled. Finally, the interrupted task reschedules 
-its self.
+At this point we get the address to the handling function from the
+\ttt{VEC}. After we have gotten the \ttt{handler} for current
+interrupt we just call the \ttt{handler} and then write back to the
+\ttt{VEC1} controller to notify it that the current interrupt has been
+handled. Finally, the interrupted task reschedules its self.
 
-Afterwords we drop into the same scheduling code path that is run at the end of
-any software interrupt and the kernel exits normally.
+Afterwords we drop into the same scheduling code path that is run at
+the end of any software interrupt and the kernel exits normally.
 
 \subsection*{AwaitEvent()}
 
@@ -119,7 +131,8 @@ timer has signalled the CPU. The \ttt{CLOCK\_TICK} event does not put
 any data into the \ttt{event} buffer as there is no meaningful data to
 include. The \ttt{clock\_notifier} task, which is the notifier for the
 \ttt{clock\_server} task, calls \ttt{AwaitEvent} as
-\ttt{AwaitEvent(CLOCK\_TICK, NULL, 0)}.
+\ttt{AwaitEvent(CLOCK\_TICK, NULL, 0)} and expect no data to be
+returned.
 
 Once the UART I/O is implemented, the \ttt{event} buffer will either
 contain some bytes to be written, or be filled with bytes from the
@@ -153,33 +166,59 @@ causes the server to increment the \ttt{time} and check if any tasks
 waiting for \ttt{Delay}s need to be woken up.
 
 The server keeps track of tasks that wish to be \ttt{Delay}ed in a
-heap based priority queue that is large enough to store the maximum
-number of concurrent tasks for the system. A priority queue allows us
-to check if any task needs to be woken up in constant time. A heap
-implementation, combined with our hypothetical use case for the clock
-server, also has the property that new \ttt{Delay} requests can be
-inserted into the queue in near constant time in the average case, or
-at least less than logarithmic time in many cases. All other
-operations occur in logarithmic time, which we expect to be sufficient
-for small and medium work loads.
+heap based priority queue. The queue is large enough to store the
+maximum number of concurrent tasks for the system. A priority queue
+allows us to check if any task needs to be woken up in constant
+time. A heap implementation, combined with our hypothetical use case
+for the clock server, also has the property that new \ttt{Delay}
+requests can be inserted into the queue in near constant time in the
+average case, or at least less than logarithmic time in many
+cases. All other operations occur in logarithmic time, which we expect
+to be sufficient for small and medium work loads.
 
-\subsection*{Delay}
+We had considered an alternative implementation for the priority queue
+based on sorted doubly linked lists, as the only non-constant time
+operation would have been to add a new element to the list. However,
+the performance did not appear to improve, possibly because of the
+overhead of dealing with allocating nodes for the queue.
 
-Negative and zero time delay values are checked by the system call
-before context switching into the kernel. This has the added property
-that a negative or zero delay request will not be forced to the back
-of the scheduling queue, and will continue executing.
 
-\subsection*{DelayUntil}
+\subsection*{int Delay(int ticks)}
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call before context switching into the kernel. This has the
+added property that a negative or zero delay request will not be
+forced to the back of the scheduling queue, and will continue
+executing.
+
+A successful \ttt{Delay} will delay the task for at least \ttt{ticks}
+clock ticks. A failure in the message sending will cause a negative
+integer value to be returned from \ttt{Delay} which matches the error
+codes for \ttt{Send}.
+
+\subsection*{int DelayUntil(int ticks)}
 
 Unlike \ttt{Delay}, this call cannot fully validate its argument until
 the message is received by the \ttt{clock\_server}. However, the
 trivial checks for negative/zero values are still done in the client
 task.
 
-\subsection*{Time}
+If the clock server receives the message and finds out that the task
+wants to be woken up at a time before the current time, then the task
+is replied to immediately without entering the queue.
 
-Simply copy the value from the server via a message pass.
+In error cases, \ttt{Delay} uses the same set of error codes as
+\ttt{Delay}.
+
+\subsection*{int Time()}
+
+\ttt{Time} simply causes the clock server to reply to the sender with
+a copy of its time. This operation does not block in any way other
+than what is cause by message sending.
+
+In error cases, \ttt{Time} uses the same set of error codes as
+\ttt{Delay}.
+
 
 \section*{Idle Task}
 
@@ -194,23 +233,56 @@ only task that runs at that priority to ensure it only runs when it
 must. The current implementation will simply spin in a \ttt{FOREVER}
 loop incrementing a counter.
 
+The idle task allows us to make some assumptions in the kernel
+scheduling, which further speed up system calls and hardware
+interrupts.
+
+For the next kernel milestone, we plan to track how much time is spent
+in the idle task and have the kernel task report that value to some
+sort of UI task that can print the value to the screen. We are
+purposely avoiding UI widgets until we have serial I/O being driven by
+interrupts.
 
 \section*{Kernel Changes}
 
-Fixed bugs related to task descriptor reuse.
+During development of this milestone we found two bugs related to task
+descriptor reuse.
 
-Zero length messages can now be sent successfully and down a more
-optimal path.
+The first bug would only manifest once task descriptors had been
+reused an the \ttt{tid} of the process no longer matched the index
+into the descriptor table. This would cause memory to get into an
+inconsistent state. The fix was simply to calculate the index from the
+\ttt{tid} as we do elsewhere.
 
-Cache pinning.
+The second bug was related to error handling for message passing. Our
+initialization of descriptors was lazy and descriptors would not be
+initialized until they were needed. However, an invalid \ttt{tid} for
+a message receiver would cause an unitialized descriptor to be
+accessed in such a way that it would cause random memory to be
+written. We now initialize the entire descriptor array during
+initialization. And, as an extra paranoid step, we \ttt{memset} the
+entire \ttt{.bss} section before any initialization.
 
-More tuning to the system call code path. We were able to convince the
-compiler to not generate several redundant load and store operations on
-the critical path for all system calls. Our message loop time is now
-$\sim6.5\mu$seconds when clock interrupts are enabled.
+We also added the ability to send zero length messages between
+tasks. This feature is used by the clock server to avoid sending junk
+messages.
 
-Added a \ttt{Shutdown()} system call to deal with shutdown upon user
-request.
+We have implemented cache pinning for the instruction and data
+caches. Code and data which we believe will be used frequently is now
+locked into the cache during initialization.
+
+More tuning to the system call code path was done for this
+milestone. We were able to convince the compiler to not generate
+several redundant load and store operations on the critical path for
+all system calls. Our message loop time is now $\sim6.5\mu$seconds
+when clock interrupts are enabled.
+
+We added a \ttt{Shutdown()} system call to deal with shutdown upon
+user request in a safe way. Even though we throw away the ability to
+return to \ttt{main} after bootstrapping the first task, we are able
+to make a copy of the link register and stack pointer in \ttt{main}
+very early during boot so that they can be restored and so that we can
+return to RedBoot in a consistent manner.
 
 \newpage
 \section*{Demonstration Output}
@@ -219,34 +291,37 @@ request.
 \newpage
 \begin{description}
 \item[Lines 1-5] \hfill \\
-These are the standard starting up messages. Since the clock server is in the 
-process of initialization there isn't a notifier to actually wait on the clock
-ticks causing the missed tick messages to be thrown until the server has
-started. Once all the servers have started the task launcher polls for user
-input.
+These are the standard starting up messages. Since the clock server is
+in the process of initialization there isn't a notifier to actually
+wait on the clock ticks causing the missed tick messages to be thrown
+until the server has started. Once all the servers have started the
+task launcher polls for user input.
 
 \item[Lines 6-11] \hfill \\
-These are the starting messages of the root launching task for the K3 demo.
-First the demo task show that it has stated and the ids of the 4 children
-tasks that have the inputs in the same order as detailed by the assignment
-specification. Finally the task shows that is has gone into a blocking mode
-while it waits for its children tasks to terminate.
+These are the starting messages of the root launching task for the K3
+demo. First the demo task show that it has stated and the ids of the 4
+children tasks that have the inputs in the same order as detailed by
+the assignment specification. Finally the task shows that is has gone
+into a blocking mode while it waits for its children tasks to
+terminate.
 
 \item[Line 12] \hfill \\
-K3\_Root is blocked on waiting for its children tasks to notify it that they
-are done. All of the K3\_Tasks are waiting for the clock server to let them
-know that their delay time has passed. Task launcher gets scheduled again
-and writes out its message to notify that it is polling for more input.
+K3\_Root is blocked on waiting for its children tasks to notify it
+that they are done. All of the K3\_Tasks are waiting for the clock
+server to let them know that their delay time has passed. Task
+launcher gets scheduled again and writes out its message to notify
+that it is polling for more input.
 
 \item[Lines 13-51] \hfill \\
-The messages that the children tasks of the k3 launcher task. The order of
-their messages follows the value calculated by \ttt{Delay} * \ttt{Iter}. This
-order is the expected output and shows that the clock server is waking up tasks
-in a correct timing with relation to the other tasks currently in the system.
+The messages that the children tasks of the k3 launcher task. The
+order of their messages follows the value calculated by
+$Delay * Iter$. This order is the expected output and shows that the clock
+server is waking up tasks in a correct timing with relation to the
+other tasks currently in the system.
 
 \item[Line 51] \hfill \\
-All of the children tasks are done running to the demo task is now going to call
-\ttt{Exit()}.
+All of the children tasks are done running to the demo task is now
+going to call \ttt{Exit()}.
 
 \end{description}
 \end{document}
