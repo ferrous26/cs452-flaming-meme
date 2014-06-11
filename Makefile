@@ -34,7 +34,6 @@ ifdef CLANG
 CFLAGS +=
 else ifdef FUTURE
 CFLAGS += -fpeel-loops
-CFLAGS += -Wunsafe-loop-optimizations
 CFLAGS += -fno-tree-loop-vectorize -fno-tree-slp-vectorize
 CFLAGS += -fno-tree-partial-pre -fvect-cost-model=cheap
 else
