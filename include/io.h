@@ -44,4 +44,6 @@ void kprintf_char(const char c);
 void kprintf(const char* const fmt, ...);
 void kprintf_va(const char* const fmt, va_list args);
 
+void irq_uart2(void);
+
 #endif

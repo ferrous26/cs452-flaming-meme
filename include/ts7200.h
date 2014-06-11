@@ -75,7 +75,11 @@
 	#define RXFF_MASK	0x40	// Receive buffer full
 	#define TXFE_MASK	0x80	// Transmit buffer empty
 #define UART_INTR_OFFSET	0x1c
-#define UART_DMAR_OFFSET	0x28
+        #define RTIS_MASK        0x8    // Receive Timeout Interrupt Status
+        #define TIS_MASK         0x4    // Transmit Interrupt Status
+        #define RIS_MASK         0x2    // Receive Interrupt Status
+        #define MIS_MASK         0x1    // Modem Interrupt Status
+#define UART_DMAR_OFFSET	0x28    
 // Specific to UART1
 
 #define UART_MDMCTL_OFFSET	0x100

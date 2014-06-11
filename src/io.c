@@ -27,7 +27,6 @@ static struct in vt_in;
 
 
 void uart_init() {
-
     // initialize the buffers
     cbuf_init(&vt_out.o, 4096, vt_out.buffer);
     cbuf_init(&vt_in.i,    16, vt_in.buffer);
@@ -46,14 +45,21 @@ void uart_init() {
      */
 
     // speed for vt100
-    int* const high = (int*)(UART2_BASE + UART_LCRM_OFFSET);
-    int* const  low = (int*)(UART2_BASE + UART_LCRL_OFFSET);
-    *high = 0x0;
-    *low  = 0x3;
+    int* const baud_high = (int*)(UART2_BASE + UART_LCRM_OFFSET);
+    int* const baud_low = (int*)(UART2_BASE + UART_LCRL_OFFSET);
+    *baud_high = 0x0;
+    *baud_low  = 0x3;
+    
+    for(int i = 0; i < 55; i++);
 
     // disable fifo for vt100
     int* const line = (int*)(UART2_BASE + UART_LCRH_OFFSET);
     *line = *line & ~FEN_MASK;
+
+    for(int i = 0; i < 55; i++);
+
+    int* const ctrl = (int*)(UART2_BASE + UART_CTLR_OFFSET);
+    *ctrl = *ctrl | RIEN_MASK;
 }
 
 void vt_write() {
@@ -253,3 +259,30 @@ void kprintf_va(const char* const fmt, va_list args) {
 	}
     }
 }
+
+static uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
+    if (irqr & RTIS_MASK) return 1;
+    if (irqr & TIS_MASK)  return 2;
+    if (irqr & RIS_MASK)  return 3;
+    if (irqr & MIS_MASK)  return 4;
+    return 0;
+}
+
+void irq_uart2() {
+    uint* const uart2_irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
+    const char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+
+    uint irq = uart_get_interrupt(*uart2_irqr);
+    switch (irq) {
+    case 1:     // RECEIVE TIMEOUT
+    case 3:     // RECEIVE
+        kprintf_char(*uart2_data & DATA_MASK);
+        vt_flush();
+        break;
+    case 2:     // TRANSMIT
+        break;
+    case 4:     // MODEM
+        break;
+    }
+}
+
