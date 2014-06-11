@@ -54,7 +54,7 @@ which are available to demonstrate features added in this milestone.
 \newpage
 \section*{Hardware Interrupts}
 
-\subsection*{Initalization}
+\subsection*{Initialization}
 
 The first operation that we perform is to mask all interrupts in the
 interrupt controller. This is because we do not know what the state of
@@ -161,7 +161,7 @@ priority level is reserved for emergency tasks.
 
 After setting everything up, the \ttt{clock\_server} enters a
 \ttt{FOREVER} loop and begins \ttt{Receive}ing messages from client
-tasks. The primary cilent task is the \ttt{clock\_notifier}, which
+tasks. The primary client task is the \ttt{clock\_notifier}, which
 causes the server to increment the \ttt{time} and check if any tasks
 waiting for \ttt{Delay}s need to be woken up.
 
@@ -257,7 +257,7 @@ inconsistent state. The fix was simply to calculate the index from the
 The second bug was related to error handling for message passing. Our
 initialization of descriptors was lazy and descriptors would not be
 initialized until they were needed. However, an invalid \ttt{tid} for
-a message receiver would cause an unitialized descriptor to be
+a message receiver would cause an uninitialized descriptor to be
 accessed in such a way that it would cause random memory to be
 written. We now initialize the entire descriptor array during
 initialization. And, as an extra paranoid step, we \ttt{memset} the
