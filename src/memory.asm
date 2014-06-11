@@ -69,7 +69,7 @@ memcpy:
 	ldrplb r3, [r1], #1
 	strplb r3, [r0], #1
 	bne .slowcpy
-	beq .done
+	mov pc, lr
 
 .bigdone:
 	ldmfd sp!, {r4-r9}
