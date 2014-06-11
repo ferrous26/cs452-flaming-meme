@@ -66,8 +66,8 @@ memcpy:
 
 .slowcpy:
 	subs r2, r2, #1  /* set condition flags here */
-	ldrneb r3, [r1], #1
-	strneb r3, [r0], #1
+	ldrplb r3, [r1], #1
+	strplb r3, [r0], #1
 	bne .slowcpy
 	mov pc, lr
 
