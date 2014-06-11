@@ -3,8 +3,6 @@
 #include <debug.h>
 #include <tasks/task_launcher.h>
 
-
-
 // force grouping by putting them into a struct
 static struct task_free_list {
     char_buffer list;
@@ -17,8 +15,10 @@ static struct task_manager {
 } manager DATA_HOT;
 
 task_q recv_q[TASK_MAX] DATA_HOT;
-struct task_descriptor  tasks[TASK_MAX] DATA_HOT;
-struct task_pointers    task_ptrs DATA_HOT;
+task*  task_active DATA_HOT;
+task*  int_queue[EVENT_COUNT] DATA_HOT;
+struct task_descriptor tasks[TASK_MAX] DATA_HOT;
+
 static uint8 table[256] DATA_HOT;
 
 // This algorithm is borrowed from
@@ -69,7 +69,9 @@ void scheduler_init(void) {
 	cbuf_produce(&free_list.list, (char)i);
     }
 
-    memset(&task_ptrs, 0, sizeof(task_ptrs));
+    for (i = 0; i < (int)EVENT_COUNT; i++) {
+        int_queue[i] = NULL;
+    }
 }
 
 void scheduler_schedule(task* const t) {
@@ -99,7 +101,6 @@ void scheduler_schedule(task* const t) {
 
 // scheduler_consume
 void scheduler_get_next(void) {
-
     // find the msb and add it
     uint32 priority = choose_priority(manager.state);
     assert(priority != 32, "Ran out of tasks to run");

@@ -29,8 +29,8 @@ void irq_clock() {
     const uint clear_addr = TIMER3_BASE | CLR_OFFSET;
     *(uint*)clear_addr = clear_addr;
 
-    task* t = task_clock_event;
-    task_clock_event = NULL;
+    task* t = int_queue[CLOCK_TICK];
+    int_queue[CLOCK_TICK] = NULL;
 
     if (t) {
 	t->sp[0] = 0;

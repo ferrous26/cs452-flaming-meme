@@ -23,7 +23,6 @@
 	#define	CLKSEL_MASK	0x00000008
 #define CLR_OFFSET	0x0000000c	// no data, WO
 
-
 #define LED_ADDRESS	0x80840020
 	#define LED_NONE	0x0
 	#define LED_GREEN	0x1
@@ -90,3 +89,4 @@
 #define UART_HDLCRIB_OFFSET	0x218
         #define OVERRUN_MASK    0x4
 #define UART_HDLCSTS_OFFSET	0x21c
+
