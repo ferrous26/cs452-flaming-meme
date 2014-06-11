@@ -12,7 +12,7 @@ int clock_server_tid;
 
 
 typedef struct {
-    uint time;
+    int time;
     task_id tid;
 } clock_delay;
 
@@ -26,12 +26,12 @@ static void pq_init(clock_pq* q) {
     q->delays[0].time = 0;
     q->delays[0].tid  = 0;
     for (size i = 1; i < TASK_MAX; i++) {
-	q->delays[i].time = UINT_MAX;
+	q->delays[i].time = INT_MAX;
 	q->delays[i].tid  = 0;
     }
 }
 
-static inline uint pq_peek(clock_pq* q) {
+static inline int pq_peek(clock_pq* q) {
     return q->delays[1].time;
 }
 
@@ -45,7 +45,7 @@ static task_id pq_delete(clock_pq* q) {
     // take butt and put it on head
     delays[1].time    = delays[curr].time;
     delays[1].tid     = delays[curr].tid;
-    delays[curr].time = UINT_MAX; // mark the end
+    delays[curr].time = INT_MAX; // mark the end
 
     // now, we need to bubble the head down
     curr = 1;
@@ -66,8 +66,8 @@ static task_id pq_delete(clock_pq* q) {
 	if (smallest == curr) break;
 
 	// else, swap and prepare for next iteration
-	uint stime = delays[smallest].time;
-	int   stid = delays[smallest].tid;
+	int stime = delays[smallest].time;
+	int  stid = delays[smallest].tid;
 	delays[smallest].time = delays[curr].time;
 	delays[smallest].tid  = delays[curr].tid;
 	delays[curr].time     = stime;
@@ -78,7 +78,7 @@ static task_id pq_delete(clock_pq* q) {
     return tid;
 }
 
-static void pq_add(clock_pq* q, uint time, task_id tid) {
+static void pq_add(clock_pq* q, int time, task_id tid) {
 
     clock_delay* delays = q->delays;
     int curr   = q->count++;
@@ -142,7 +142,7 @@ static void _startup(clock_pq* pq) {
 
 void clock_server() {
 
-    uint      time = 0;
+    int       time = 0;
     int       result; // used by Reply() calls
     clock_req req; // store incoming requests
     clock_pq  q;   // priority queue for tasks waiting for time

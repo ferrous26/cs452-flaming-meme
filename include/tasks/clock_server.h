@@ -16,7 +16,7 @@ typedef enum {
 
 typedef struct {
     clock_req_type type;
-    uint ticks;
+    int ticks;
 } clock_req;
 
 void __attribute__ ((noreturn)) clock_server(void);
