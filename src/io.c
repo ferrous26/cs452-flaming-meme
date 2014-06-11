@@ -6,8 +6,12 @@
  */
 
 #include <io.h>
+#include <debug.h>
+
 #include <vt100.h>
 #include <ts7200.h>
+#include <scheduler.h>
+
 #include <circular_buffer.h>
 
 // IO buffers
@@ -25,6 +29,7 @@ struct in {
 static struct out vt_out;
 static struct in vt_in;
 
+#define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>3)+1; _cnt++)
 
 void uart_init() {
     // initialize the buffers
@@ -49,21 +54,21 @@ void uart_init() {
     int* const baud_low = (int*)(UART2_BASE + UART_LCRL_OFFSET);
     *baud_high = 0x0;
     *baud_low  = 0x3;
-    
-    for(int i = 0; i < 55; i++);
+
+    NOP(55);
 
     // disable fifo for vt100
-    int* const line = (int*)(UART2_BASE + UART_LCRH_OFFSET);
-    *line = *line & ~FEN_MASK;
+    int* const lcrh = (int*)(UART2_BASE + UART_LCRH_OFFSET);
+    *lcrh &= ~FEN_MASK;
 
-    for(int i = 0; i < 55; i++);
+    NOP(55);
 
-    int* const ctrl = (int*)(UART2_BASE + UART_CTLR_OFFSET);
-    *ctrl = *ctrl | RIEN_MASK;
+    int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
+    *ctlr |= RIEN_MASK|RTIEN_MASK|UARTEN_MASK;
 }
 
 void vt_write() {
-    const int* const flags = (int*)( UART2_BASE + UART_FLAG_OFFSET);
+    const int* const flags = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     char* const       data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     if (cbuf_can_consume(&vt_out.o) && !(*flags & (TXFF_MASK|CTS_MASK)))
@@ -241,7 +246,7 @@ void kprintf_va(const char* const fmt, va_list args) {
 		// recursion feels like it should be the correct solution
 		// but it would be a security flaw (and also less efficient)
 		kprintf_string(va_arg(args, char*));
-		break;
+        	break;
 	    case 'c': // character
 		kprintf_char((const char)va_arg(args, int));
 		break;
@@ -268,20 +273,54 @@ static uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
     return 0;
 }
 
+// must be a seperate function so we can use the
+// receive register shortcut provided by the vec
+// controller
+void irq_uart2_recv() {
+    const char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART2_RECV];
+    int_queue[UART2_RECV] = NULL;
+
+    if (t != NULL) {
+        //TODO: give data to task....
+        scheduler_schedule(t);
+    }
+
+    vt_log("dropped char: %c", *uart2_data);
+    vt_flush();
+}
+
+void irq_uart2_send() {
+    volatile char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART2_SEND];
+    int_queue[UART2_SEND] = NULL;
+
+    assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
+    // TODO: send data....
+    *uart2_data = 'c';
+
+
+    int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
+    *ctlr &= ~TIEN_MASK;
+    scheduler_schedule(t);
+}
+
 void irq_uart2() {
     uint* const uart2_irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
-    const char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
-
-    uint irq = uart_get_interrupt(*uart2_irqr);
+    const uint irq = uart_get_interrupt(*uart2_irqr);
+    
     switch (irq) {
     case 1:     // RECEIVE TIMEOUT
     case 3:     // RECEIVE
-        kprintf_char(*uart2_data & DATA_MASK);
-        vt_flush();
+        irq_uart2_recv();
         break;
     case 2:     // TRANSMIT
+        irq_uart2_send();
         break;
     case 4:     // MODEM
+        vt_log("MODEM!");
+        vt_flush();
+        *uart2_irqr = (uint)uart2_irqr;
         break;
     }
 }

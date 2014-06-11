@@ -4,6 +4,7 @@
 #include <kernel.h>
 
 #include <irq.h>
+#include <ts7200.h>
 #include <scheduler.h>
 
 void syscall_init() {
@@ -176,13 +177,27 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 inline static void
 ksyscall_await(const kwait_req* const req, int* const result) {
     switch (req->eventid) {
+    case UART2_SEND: {
+        int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
+        *ctlr |= TIEN_MASK;
+        break;
+    }
+    case UART1_SEND: {
+        int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
+        *ctlr |= TIEN_MASK;
+        break;
+    }
     case CLOCK_TICK:
-	task_clock_event = task_active;
-	break;
+    case UART2_RECV:
+    case UART1_RECV:
+        break;
     default:
 	*result = INVALID_EVENT;
         ksyscall_pass();
+        return;
     }
+    
+    int_queue[req->eventid] = task_active;
 }
 
 inline static void ksyscall_irq() {

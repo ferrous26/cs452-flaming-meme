@@ -7,7 +7,6 @@
 #define SWI_HANDLER ((uint*volatile)0x08)
 
 #define SYS_IRQ      0
-
 #define SYS_CREATE   1
 #define SYS_TID      2
 #define SYS_PTID     3
@@ -90,14 +89,13 @@ int Reply(int tid, char* reply, int replylen);
 int WhoIs(char* name);
 int RegisterAs(char* name);
 
-
 typedef enum {
-    UNUSED = 0,
-    CLOCK_TICK = 1,
-    //    UART1_READ,
-    //    UART2_READ,
-    //    UART1_WRITE,
-    //    UART2_WRITE,
+    CLOCK_TICK,
+    UART2_SEND,
+    UART2_RECV,
+    UART1_SEND,
+    UART1_RECV,
+    EVENT_COUNT
 } event_id;
 
 typedef enum {

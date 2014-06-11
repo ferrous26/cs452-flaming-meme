@@ -6,6 +6,11 @@
 #include <kernel.h>
 #include <syscall.h>
 
+#define TASK_MAX 64
+#define TASK_HEAP_TOP 0x1F00000 // 31 MB
+#define TASK_HEAP_BOT 0x0300000 //  3 MB
+#define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
+
 #define TASK_PRIORITY_LEVELS 32
 #define TASK_PRIORITY_MAX    31
 #define TASK_PRIORITY_MIN     0
@@ -17,13 +22,6 @@
 #define TASK_PRIORITY_MEDIUM_LO (TASK_PRIORITY_LOW + 5)
 #define TASK_PRIORITY_LOW       (TASK_PRIORITY_MIN + 1)
 #define TASK_PRIORITY_IDLE      TASK_PRIORITY_MIN
-
-
-#define TASK_MAX 64
-
-#define TASK_HEAP_TOP 0x1F00000 // 31 MB
-#define TASK_HEAP_BOT 0x0300000 //  3 MB
-#define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
 
 typedef int32  task_id;
 typedef int32  task_pri;
@@ -49,31 +47,24 @@ struct task_q_pointers {
     task* tail;
 };
 
-struct task_pointers {
-    task* active;
-    task* clock_event;
-};
-
 // choose small values so they can be instruction immediates
 #define RECV_BLOCKED (task*)0xA
 #define RPLY_BLOCKED (task*)0xB
 
 extern task_q recv_q[TASK_MAX];
 extern task   tasks[TASK_MAX];
-extern struct task_pointers task_ptrs;
 
-#define task_active task_ptrs.active
-#define task_clock_event task_ptrs.clock_event
+extern task*  task_active;
+extern task*  int_queue[EVENT_COUNT];
+
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);
 }
 
-
 void scheduler_init(void);
-
-void scheduler_schedule(task* const t) TEXT_HOT;
 void scheduler_get_next(void) TEXT_HOT;
+void scheduler_schedule(task* const t) TEXT_HOT;
 
 /**
  * Change Places! https://www.youtube.com/watch?v=msvOUUgv6m8
