@@ -153,13 +153,13 @@ void irq_uart2_recv() {
 }
 
 void irq_uart2_send() {
-    volatile char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
-    task* t = int_queue[UART2_SEND];
-    int_queue[UART2_SEND] = NULL;
+    volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART1_SEND];
+    int_queue[UART1_SEND] = NULL;
 
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kwait_req* const req_space = (kwait_req*) t->sp[1];
-    *uart2_data = req_space->event[0];
+    *data = req_space->event[0];
     t->sp[0] = 1;
 
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
@@ -168,8 +168,8 @@ void irq_uart2_send() {
 }
 
 void irq_uart2() {
-    uint* const uart2_irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
-    const uint irq = uart_get_interrupt(*uart2_irqr);
+    uint* const irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
+    const uint irq = uart_get_interrupt(*irqr);
 
     switch (irq) {
     case 1:     // RECEIVE TIMEOUT
@@ -180,9 +180,63 @@ void irq_uart2() {
         irq_uart2_send();
         break;
     case 4:     // MODEM
-        kprintf_string("MODEM!", 6);
-        vt_flush();
-        *uart2_irqr = (uint)uart2_irqr;
+        *irqr = (uint)irqr;
+        assert(false, "UART2 should not get modem interrupts!");
         break;
     }
 }
+
+void irq_uart1_recv() {
+    const char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART1_RECV];
+    int_queue[UART1_RECV] = NULL;
+
+    if (t != NULL) {
+        kwait_req* const req_space = (kwait_req*) t->sp[1];
+        req_space->event[0] = *data;
+        t->sp[0] = 1;
+
+        scheduler_schedule(t);
+        return;
+    }
+
+    kprintf_string("dropped char: ", 14);
+    cbuf_produce(&vt_out.o, *data);
+    vt_flush();
+}
+
+void irq_uart1_send() {
+    volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART1_SEND];
+    int_queue[UART1_SEND] = NULL;
+
+    assert(t != NULL, "UART1 SEND INTERRUPT WITHOUT SENDER!");
+    kwait_req* const req_space = (kwait_req*) t->sp[1];
+    *data = req_space->event[0];
+    t->sp[0] = 1;
+
+    int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
+    *ctlr &= ~TIEN_MASK;
+    scheduler_schedule(t);
+}
+    
+void irq_uart1() {
+    uint* const irqr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
+    const uint irq = uart_get_interrupt(*irqr);
+
+    switch (irq) {
+    case 1:     // RECEIVE TIMEOUT
+    case 3:     // RECEIVE
+        irq_uart1_recv();
+        break;
+    case 2:     // TRANSMIT
+        irq_uart1_send();
+        break;
+    case 4:     // MODEM
+        *irqr = (uint)irqr;
+        vt_log("UART1 Modem");
+        vt_flush(); 
+        break;
+    }
+}
+

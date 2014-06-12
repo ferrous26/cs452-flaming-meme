@@ -33,12 +33,12 @@ SOFT_IRQ_HANDLE(uart1, 52)
 
 inline static void _init_all_vector_irq() {
     //setup VEC1
-    _init_vector_irq(0, 0, irq0);
-    _init_vector_irq(1, 1, irq1);
-
+    _init_vector_irq(25, 0, irq_uart2_send);
+    _init_vector_irq(26, 1, irq_uart2_recv);
+        
     //setup VEC2
     _init_vector_irq(54, 0, irq_uart2);
-    _init_vector_irq(52, 1, uart1);
+    _init_vector_irq(52, 1, irq_uart1);
     _init_vector_irq(51, 2, irq_clock);
     _init_vector_irq(63, 3, irq63);
 }
@@ -56,9 +56,9 @@ void irq_init() {
     /*
     irq_enable_interrupt(23); // UART1 recv
     irq_enable_interrupt(24); // UART1 send
+    */
     irq_enable_interrupt(25); // UART2 recv
     irq_enable_interrupt(26); // UART2 send
-    */
   
     irq_enable_interrupt(52); // UART1 general
     irq_enable_interrupt(54); // UART2 general

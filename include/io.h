@@ -22,6 +22,13 @@ char vt_waitget(void);
 
 void kprintf_string(const char* str, uint strlen);
 
+
 void irq_uart2(void);
+void irq_uart2_send(void);
+void irq_uart2_recv(void);
+
+void irq_uart1(void);
+void irq_uart1_send(void);
+void irq_uart1_recv(void);
 
 #endif
