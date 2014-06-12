@@ -18,21 +18,18 @@
 inline static void print_help() {
     vt_log("\n\t"
            "1 ~ K3 assignent demo\n\t"
-	   "2 ~ Create a suicidal task\n\t"
 	   "3 ~ Benchmark message passing\n\t"
-	   "4 ~ Get the current time\n\t"
-	   "5 ~ DelayUntil time + 100\n\t"
-	   "6 ~ Delay 100 ticks\n\t"
-	   "7 ~ Delay -100 ticks\n\t"
-	   "8 ~ DelayUntil time = 0\n\n\t"
+	   "4 ~ Get the current time\n\t");
 
-           "s ~ Run Stressing Task\n\n\t"
+    vt_log("\t"
+	   "s ~ Run Stressing Task\n\t");
 
-	   "i ~ Print the interrupt table status\n\t"
+    vt_log("\t"
 	   "a ~ Trigger software interrupt 0\n\t"
 	   "z ~ Trigger software interrupt 1\n\t"
-           "w ~ Trigger software interrupt 63\n\n\t"
+           "w ~ Trigger software interrupt 63\n\t");
 
+    vt_log("\t"
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
 
@@ -44,29 +41,11 @@ static void tl_action(char input) {
     case '1':
         Create(16, k3_root);
         break;
-    case '2':
-        vt_log("%d", Create(TASK_PRIORITY_MAX, seppuku));
-	break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
 	break;
     case '4':
 	vt_log("The time is %u ticks!", Time());
-	break;
-    case '5':
-	DelayUntil(Time() + 100);
-	break;
-    case '6':
-	Delay(100);
-	break;
-    case '7':
-	Delay(-100);
-	break;
-    case '8':
-	DelayUntil(0);
-	break;
-    case 'i':
-	debug_interrupt_table();
 	break;
     case 'a':
 	irq_simulate_interrupt(0);
