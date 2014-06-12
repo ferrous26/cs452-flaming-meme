@@ -16,9 +16,9 @@ memcpy:
 	/* If we got here, we want to try and align the addresses */
 	sub  r2, r2, r3
 .align:
-	ldrb r12, [r1], #1
+	ldrb ip, [r1], #1
 	subs r3, r3, #1   /* set condition flags here */
-	strb r12, [r0], #1
+	strb ip, [r0], #1
 	bne .align
 
 	/* check alignment again */
@@ -34,9 +34,9 @@ memcpy:
 
 .big: /* multiple of 32? */
 	subs r2, r2, #32
-	ldmplia r1!, {r3-r9, r12}
-	stmplia r0!, {r3-r9, r12}
-	beq .bigdone
+	ldmplia r1!, {r3-r9, ip}
+	stmplia r0!, {r3-r9, ip}
+	beq .done
 	bpl .big /* if there is something left, go back to start */
 	add r2, r2, #32
 
@@ -46,22 +46,22 @@ memcpy:
 	subs r2, r2, #16
 	ldmplia r1!, {r3-r6}
 	stmplia r0!, {r3-r6}
-	beq .bigdone
+	beq .done
 	addmi r2, r2, #16
 
 	ldmfd sp!, {r4-r9}
 
 	subs r2, r2, #8
-	ldmplia r1!, {r3, r12}
-	stmplia r0!, {r3, r12}
-	beq .done
+	ldmplia r1!, {r3, ip}
+	stmplia r0!, {r3, ip}
+	mov   pc, lr
 	addmi r2, r2, #8
 
 .small:
 	subs r2, r2, #4
 	ldmplia r1!, {r3}
 	stmplia r0!, {r3}
-	beq .done
+	mov   pc, lr
 	addmi r2, r2, #4
 
 .slowcpy:
@@ -69,11 +69,10 @@ memcpy:
 	ldrplb r3, [r1], #1
 	strplb r3, [r0], #1
 	bne .slowcpy
-	mov pc, lr
+	mov  pc, lr
 
-.bigdone:
-	ldmfd sp!, {r4-r9}
 .done:
+	ldmfd sp!, {r4-r9}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
 
