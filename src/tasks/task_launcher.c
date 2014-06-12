@@ -12,6 +12,7 @@
 #include <tasks/bench_msg.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
+#include <tasks/term_server.h>
 
 #include <tasks/task_launcher.h>
 
@@ -104,9 +105,10 @@ void task_launcher() {
     // start idle task at highest level so that it can initialize
     // then it will set itself to the proper priority level before
     // entering its forever loop
-    _create(TASK_PRIORITY_IDLE,      idle,         "idle task");
-    _create(TASK_PRIORITY_HIGH - 1,  name_server,  "name server");
-    _create(TASK_PRIORITY_HIGH - 1,  clock_server, "clock server");
+    _create(TASK_PRIORITY_IDLE,     idle,         "idle task");
+    _create(TASK_PRIORITY_HIGH - 1, name_server,  "name server");
+    _create(TASK_PRIORITY_HIGH - 1, clock_server, "clock server");
+    _create(TASK_PRIORITY_HIGH - 1, term_server,  "terminal server");
 
     FOREVER {
         vt_log("Welcome to Task Launcher (h for help)");

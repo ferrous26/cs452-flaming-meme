@@ -1,9 +1,12 @@
+
 #include <irq.h>
 #include <ts7200.h>
 
-#include <clock.h>
-#include <scheduler.h>
+#include <debug.h>
 #include <kernel.h>
+#include <scheduler.h>
+
+#include <clock.h>
 
 #define TIMER3_TICKS_PER_OS_TICK 5080
 
@@ -39,6 +42,6 @@ void irq_clock() {
     }
 
     // TODO: turn this into an assert
-    vt_log("Missed a clock tick");
-    vt_flush();
+    debug_log("Missed a clock tick");
 }
+
