@@ -41,7 +41,5 @@ void irq_clock() {
 	return;
     }
 
-    // TODO: turn this into an assert
-    debug_log("Missed a clock tick");
+    kdebug_log("Missed a clock tick");
 }
-

@@ -3,19 +3,31 @@
 #define __DEBUG_H__
 
 #include <std.h>
-#include <vt100.h>
 
 #ifdef ASSERT
+#define kassert(expr, msg, ...)						\
+    {									\
+	if (!(expr))							\
+	    kdebug_assert_fail(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
+    }
+
 #define assert(expr, msg, ...)						\
     {									\
 	if (!(expr))							\
 	    debug_assert_fail(__FILE__, __LINE__, msg, ##__VA_ARGS__);	\
     }
+
 #else
 #define assert(expr, msg, ...)
+#define kassert(expr, msg, ...)
 #endif
 
 #ifdef DEBUG
+
+void kdebug_log(const char* const message, ...);
+void kdebug_assert_fail(const char* const file,
+			const uint line,
+			const char* const msg, ...);
 
 void debug_log(const char* const message, ...);
 void debug_assert_fail(const char* const file,
@@ -28,8 +40,8 @@ typedef enum {
     IRQ        = 0x12,
     SUPERVISOR = 0x13,
     ABORT      = 0x16,
-    UNDEFINED  = 0x1b,
-    SYSTEM     = 0x1f
+    UNDEFINED  = 0x1B,
+    SYSTEM     = 0x1F
 } pmode;
 
 pmode debug_processor_mode(void);
@@ -39,7 +51,9 @@ void debug_spsr(void);
 #else
 
 #define debug_log( ... )
-#define debug_assert_fail
+#define debug_assert_fail( ... )
+#define kdebug_log( ... )
+#define kdebug_assert_fail( ... )
 #define debug_processor_mode()
 #define debug_cpsr()
 #define debug_spsr()

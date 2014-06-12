@@ -19,11 +19,11 @@ void vt_init() {
     ptr = vt_clear_screen(ptr);
     ptr = vt_hide_cursor(ptr);
 
-    ptr = vt_set_scroll_region(ptr, LOG_HOME, 80);
+    //    ptr = vt_set_scroll_region(ptr, LOG_HOME, 80);
     ptr = vt_goto(ptr, LOG_HOME, 0);
     ptr = vt_save_cursor(ptr);
 
-    kprintf_string(buffer, (uint)(ptr - buffer));
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
 
     log_count = 0;
 }
@@ -34,8 +34,7 @@ void vt_deinit() {
 
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_unhide_cursor(ptr);
-    kprintf_string(buffer, (uint)(ptr - buffer));
-    vt_flush();
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
 }
 
 
@@ -298,7 +297,7 @@ static char* vt_restore_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "8");
 }
 
-char* vt_log_start(char* buffer) {
+char* log_start(char* buffer) {
     log_count++;
 
     buffer = vt_restore_cursor(buffer);
@@ -306,21 +305,21 @@ char* vt_log_start(char* buffer) {
     return sprintf_string(buffer, ": ");
 }
 
-char* vt_log_end(char* buffer) {
+char* log_end(char* buffer) {
     buffer = sprintf_char(buffer, '\n');
     return vt_save_cursor(buffer);
 }
 
-void vt_log(const char* fmt, ...) {
+void log(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    char buffer[128];
+    char buffer[256];
     char* ptr = buffer;
 
-    ptr = vt_log_start(ptr);
+    ptr = log_start(ptr);
     ptr = sprintf_va(ptr, fmt, args);
-    ptr = vt_log_end(ptr);
+    ptr = log_end(ptr);
 
     Puts(buffer, (uint)(ptr - buffer));
     va_end(args);

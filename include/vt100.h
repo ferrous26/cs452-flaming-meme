@@ -21,7 +21,7 @@ void vt_deinit(void);
  * %c - char
  * %% - literal `%'
  */
-#define kprintf(n, fmt, ...)						\
+#define printf(n, fmt, ...)						\
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf(print_buffer, fmt, ## __VA_ARGS__);	\
@@ -36,7 +36,7 @@ char* sprintf(char* buffer, const char* fmt, ...);
  * varargs. This is meant to be used by other APIs which wish to use
  * varargs and pass those varargs directly to sprintf().
  */
-#define kprintf_va(n, fmt, args)					\
+#define printf_va(n, fmt, args)						\
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf_va(print_buffer, fmt, args);		\
@@ -101,8 +101,8 @@ char* vt_colour(char* buffer, const colour c);
  * logging. Otherwise, use vt_log() with a format string for generic
  * logging as it is a wrapper around vt_log_start() and vt_log_end().
  */
-char* vt_log_start(char* buffer);
-char* vt_log_end(char* buffer);
-void  vt_log(const char* fmt, ...);
+char* log_start(char* buffer);
+char* log_end(char* buffer);
+void  log(const char* fmt, ...);
 
 #endif

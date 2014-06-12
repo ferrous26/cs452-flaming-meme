@@ -105,12 +105,12 @@ static inline void _init() {
     vt_init();
     scheduler_init();
     syscall_init();
-    //    irq_init();
+    irq_init();
 }
 
 void shutdown(void) {
-    assert(debug_processor_mode() == SUPERVISOR,
-	   "Trying to shutdown from non-supervisor mode");
+    kassert(debug_processor_mode() == SUPERVISOR,
+	    "Trying to shutdown from non-supervisor mode");
 
     vt_deinit();
     _flush_caches();

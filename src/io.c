@@ -7,6 +7,7 @@
 
 #include <io.h>
 #include <debug.h>
+#include <vt100.h>
 
 #include <ts7200.h>
 #include <scheduler.h>
@@ -14,28 +15,10 @@
 #include <circular_buffer.h>
 #include <syscall.h>
 
-// IO buffers
-struct out {
-    char_buffer o;
-    char buffer[4096];
-};
-
-struct in {
-    char_buffer i;
-    char buffer[16];
-};
-
-// buffer control
-static struct out vt_out;
-static struct in vt_in;
 
 #define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>3)+1; _cnt++)
 
 void uart_init() {
-    // initialize the buffers
-    cbuf_init(&vt_out.o, 4096, vt_out.buffer);
-    cbuf_init(&vt_in.i,    16, vt_in.buffer);
-
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
      * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/pdf/EP93xx_Users_Guide_UM1.pdf
@@ -67,49 +50,33 @@ void uart_init() {
     *ctlr = RIEN_MASK|RTIEN_MASK|UARTEN_MASK;
 }
 
-void vt_write() {
-    const int* const flags = (int*) (UART2_BASE + UART_FLAG_OFFSET);
-    char* const       data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+void uart2_bw_write(const char* string, uint length) {
 
-    if (cbuf_can_consume(&vt_out.o) && !(*flags & (TXFF_MASK|CTS_MASK)))
-	*data = cbuf_consume(&vt_out.o);
-}
+    volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
+    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
-void vt_flush() {
-    while (cbuf_can_consume(&vt_out.o))
-	vt_write();
-}
-
-void vt_read() {
-    const int*  const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
-    const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
-
-    if (*flags & RXFF_MASK)
-	cbuf_produce(&vt_in.i, *data);
-}
-
-bool vt_can_get(void) {
-    return cbuf_can_consume(&vt_in.i);
-}
-
-char vt_getc(void) {
-    return cbuf_consume(&vt_in.i);
-}
-
-char vt_waitget() {
-    while (!vt_can_get()) {
-        vt_read();
-        Pass();
+    for (; length; length--) {
+	while (*flags & (TXFF_MASK|CTS_MASK));
+	*data = *string++;
     }
-    return vt_getc();
 }
 
-void kprintf_string(const char* str, size strlen) {
-    while (strlen--)
-	cbuf_produce(&vt_out.o, *str++);
+bool uart2_bw_can_read(void) {
+    volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
+    return (*flags & RXFF_MASK);
 }
 
-static uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
+char uart2_bw_read() {
+    volatile const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    return *data;
+}
+
+char uart2_bw_waitget() {
+    while (!uart2_bw_can_read());
+    return uart2_bw_read();
+}
+
+static inline uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
     if (irqr & RTIS_MASK) return 1;
     if (irqr & TIS_MASK)  return 2;
     if (irqr & RIS_MASK)  return 3;
@@ -120,12 +87,12 @@ static uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
 // must be a seperate function so we can use the
 // receive register shortcut provided by the vec
 // controller
-void irq_uart2_recv() {
+static void irq_uart2_recv() {
     const char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
-    if (t != NULL) {
+    if (t) {
         kwait_req* const req_space = (kwait_req*) t->sp[1];
         req_space->event[0] = *uart2_data;
         t->sp[0] = 1;
@@ -134,17 +101,15 @@ void irq_uart2_recv() {
         return;
     }
 
-    kprintf_string("dropped char: ", 14);
-    cbuf_produce(&vt_out.o, *uart2_data);
-    vt_flush();
+    kprintf(16, "dropped char: %c", *uart2_data);
 }
 
-void irq_uart2_send() {
+static void irq_uart2_send() {
     volatile char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
 
-    assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
+    kassert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kwait_req* const req_space = (kwait_req*) t->sp[1];
     *uart2_data = req_space->event[0];
     t->sp[0] = 1;
@@ -167,8 +132,7 @@ void irq_uart2() {
         irq_uart2_send();
         break;
     case 4:     // MODEM
-        kprintf_string("MODEM!", 6);
-        vt_flush();
+        kprintf(6, "MODEM!");
         *uart2_irqr = (uint)uart2_irqr;
         break;
     }

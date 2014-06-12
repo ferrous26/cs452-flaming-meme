@@ -10,17 +10,27 @@
 
 void uart_init(void);
 
+#define kprintf(n, fmt, ...)					\
+    {								\
+	char sbuffer[n];					\
+	char* end = sprintf(sbuffer, fmt, ## __VA_ARGS__);	\
+	uart2_bw_write(sbuffer, (uint)(end - sbuffer));		\
+    }
+
+#define kprintf_va(n, fmt, args)			\
+    {							\
+	char sbuffer[n];				\
+	char* end = sprintf_va(sbuffer, fmt, args);	\
+	uart2_bw_write(sbuffer, (uint)(end - sbuffer));	\
+    }
+
+
 // actually doing I/O
-void vt_write(void);
-void vt_read(void);
-void vt_flush(void); // flush the entire output buffer
+void uart2_bw_write(const char* string, uint length);
 
-// buffered I/O
-char vt_getc(void);
-bool __attribute__ ((pure)) vt_can_get(void);
-char vt_waitget(void);
-
-void kprintf_string(const char* str, uint strlen);
+bool __attribute__ ((pure)) uart2_bw_can_read(void);
+char uart2_bw_read(void);
+char uart2_bw_waitget(void);
 
 void irq_uart2(void);
 

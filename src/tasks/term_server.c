@@ -56,7 +56,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 }
 
 static void term_server_startup() {
-    vt_log("Terminal Server started at %d", myParentTid());
+    log("Terminal Server started at %d", myParentTid());
 }
 
 struct out {
@@ -107,16 +107,14 @@ void term_server() {
 
 	case PUTC: {
 	    char ch = (char)req.size;
-	    kprintf_string(&ch, 1);
-	    vt_flush();
+	    uart2_bw_write(&ch, 1);
 	    Reply(tid, NULL, 0);
 	    // TODO: check result code
 	    break;
 	}
 
 	case PUTS:
-	    kprintf_string(req.payload.string, req.size);
-	    vt_flush();
+	    uart2_bw_write(req.payload.string, req.size);
 	    Reply(tid, NULL, 0);
 	    // TODO: check result code
 	    break;

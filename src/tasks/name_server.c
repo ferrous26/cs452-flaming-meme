@@ -1,6 +1,7 @@
 #include <std.h>
 #include <syscall.h>
 #include <debug.h>
+#include <vt100.h>
 
 #include <tasks/name_server.h>
 
@@ -31,7 +32,7 @@ void name_server() {
     int insert = 0;
 
     name_server_tid = myTid();
-    vt_log("Name Server started at %d", name_server_tid);
+    log("Name Server started at %d", name_server_tid);
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
