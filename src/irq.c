@@ -29,10 +29,7 @@ _init_vector_irq(const uint interrupt, const int priority, voidf handle) {
     *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
 }
 
-
-
-SOFT_IRQ_HANDLE(uart1, 44)
-SOFT_IRQ_HANDLE(uart2, 55)
+SOFT_IRQ_HANDLE(uart1, 52)
 
 inline static void _init_all_vector_irq() {
     //setup VEC1
@@ -63,7 +60,7 @@ void irq_init() {
     irq_enable_interrupt(26); // UART2 send
     */
   
-    // irq_enable_interrupt(52); // UART1 general
+    irq_enable_interrupt(52); // UART1 general
     irq_enable_interrupt(54); // UART2 general
 
     _init_all_vector_irq();
