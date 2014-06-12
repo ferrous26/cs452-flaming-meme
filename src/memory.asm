@@ -66,10 +66,10 @@ memcpy:
 
 .slowcpy:
 	subs r2, r2, #1  /* set condition flags here */
-	ldrplb r3, [r1], #1
-	strplb r3, [r0], #1
+	ldrneb r3, [r1], #1
+	strneb r3, [r0], #1
 	bne .slowcpy
-	beq .done
+	mov pc, lr
 
 .bigdone:
 	ldmfd sp!, {r4-r9}
