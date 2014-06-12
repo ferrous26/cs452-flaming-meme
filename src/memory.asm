@@ -36,9 +36,12 @@ memcpy:
 	subs r2, r2, #32
 	ldmplia r1!, {r3-r9, ip}
 	stmplia r0!, {r3-r9, ip}
-	beq .done
+
+	ldmeqfd sp!, {r4-r9}
+	moveq pc, lr
+
 	bpl .big /* if there is something left, go back to start */
-	add r2, r2, #32
+	addmi r2, r2, #32
 
 /* at this point, we have less than 32 bytes left to copy */
 /* so we can make some assumptions to avoid branching */
@@ -46,22 +49,24 @@ memcpy:
 	subs r2, r2, #16
 	ldmplia r1!, {r3-r6}
 	stmplia r0!, {r3-r6}
-	beq .done
-	addmi r2, r2, #16
 
+	addmi r2, r2, #16
 	ldmfd sp!, {r4-r9}
+	moveq pc, lr
 
 	subs r2, r2, #8
 	ldmplia r1!, {r3, ip}
 	stmplia r0!, {r3, ip}
-	mov   pc, lr
+
+	moveq pc, lr
 	addmi r2, r2, #8
 
 .small:
 	subs r2, r2, #4
 	ldmplia r1!, {r3}
 	stmplia r0!, {r3}
-	mov   pc, lr
+
+	moveq pc, lr
 	addmi r2, r2, #4
 
 .slowcpy:
@@ -69,10 +74,6 @@ memcpy:
 	ldrplb r3, [r1], #1
 	strplb r3, [r0], #1
 	bne .slowcpy
-	mov  pc, lr
-
-.done:
-	ldmfd sp!, {r4-r9}
 	mov  pc, lr
 	.size	memcpy, .-memcpy
 
