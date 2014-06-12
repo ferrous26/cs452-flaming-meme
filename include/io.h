@@ -32,3 +32,4 @@ void irq_uart1_send(void);
 void irq_uart1_recv(void);
 
 #endif
+

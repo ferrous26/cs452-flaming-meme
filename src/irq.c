@@ -35,7 +35,11 @@ inline static void _init_all_vector_irq() {
     //setup VEC1
     _init_vector_irq(25, 0, irq_uart2_send);
     _init_vector_irq(26, 1, irq_uart2_recv);
-        
+    /*
+    _init_vector_irq(23, 2, irq_uart1_send);
+    _init_vector_irq(24, 3, irq_uart2_recv);
+    */
+
     //setup VEC2
     _init_vector_irq(54, 0, irq_uart2);
     _init_vector_irq(52, 1, irq_uart1);
