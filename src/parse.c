@@ -1,5 +1,5 @@
 
-#include <io.h>
+#include <vt100.h>
 #include <std.h>
 
 #include <parse.h>
@@ -26,7 +26,7 @@ static int parse_argument(const char* const cmd,
 			  int* const arg) {
 
     if (consume_whitespace(cmd, index)) {
-        kprintf("died at position %d(%d)\n", *index, cmd[*index]);
+        kprintf(32, "died at position %d(%d)\n", *index, cmd[*index]);
         return -1;
     }
 

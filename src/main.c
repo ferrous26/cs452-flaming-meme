@@ -107,18 +107,15 @@ static inline void _init() {
     syscall_init();
     irq_init();
 
-    vt_goto(2, 40);
-    kprintf("Welcome to ferOS build %u", __BUILD__);
-    vt_goto(3, 40);
-    kprintf("Built %s %s", __DATE__, __TIME__);
+    char buffer[128];
+    char* ptr = buffer;
 
-    vt_goto(2, 2);
-    kprintf("HTEXT: %p-%p (%dB)", &_TextStart, &_TextKernEnd,
-            (uint)&_TextKernEnd-(uint)&_TextStart);
-    vt_goto(3, 2);
-    kprintf("HDATA: %p-%p (%dB)", &_DataStart, &_DataKernEnd,
-            (uint)&_DataKernEnd-(uint)&_DataStart);
+    ptr = vt_goto(ptr, 2, 40);
+    ptr = sprintf(ptr, "Welcome to ferOS build %u", __BUILD__);
+    ptr = vt_goto(ptr, 3, 40);
+    ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
 
+    kprintf_string(buffer, (uint)(ptr - buffer));
     vt_flush();
 }
 

@@ -13,10 +13,15 @@ void debug_assert_fail(const char* const file,
     va_list args;
     va_start(args, msg);
 
-    vt_log_start();
-    kprintf("assertion failure at %s:%u\n\r", file, line);
-    kprintf_va(msg, args);
-    vt_log_end();
+    char buffer[128];
+    char* ptr = buffer;
+
+    ptr = vt_log_start(ptr);
+    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
+    ptr = sprintf_va(ptr, msg, args);
+    ptr = vt_log_end(ptr);
+
+    kprintf_string(buffer, (uint)(ptr - buffer));
     vt_flush();
 
     va_end(args);
@@ -29,9 +34,14 @@ void debug_log(const char* const msg, ...) {
     va_list args;
     va_start(args, msg);
 
-    vt_log_start();
-    kprintf_va(msg, args);
-    vt_log_end();
+    char buffer[128];
+    char* ptr = buffer;
+
+    ptr = vt_log_start(ptr);
+    ptr = sprintf_va(ptr, msg, args);
+    ptr = vt_log_end(ptr);
+
+    kprintf_string(buffer, (uint)(ptr - buffer));
     vt_flush();
 
     va_end(args);
