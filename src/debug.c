@@ -26,7 +26,7 @@ void debug_assert_fail(const char* const file,
     ptr = sprintf_va(ptr, msg, args);
     ptr = log_end(ptr);
 
-    Puts(buffer, (uint)(ptr - buffer));
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
     va_end(args);
     Shutdown();
 }
