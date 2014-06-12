@@ -29,13 +29,9 @@ struct in {
 static struct out vt_out;
 static struct in vt_in;
 
-#define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>3)+1; _cnt++)
+#define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
 
-void uart_init() {
-    // initialize the buffers
-    cbuf_init(&vt_out.o, 4096, vt_out.buffer);
-    cbuf_init(&vt_in.i,    16, vt_in.buffer);
-
+inline static void uart_setspeed(int base, int speed) {
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
      * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/pdf/EP93xx_Users_Guide_UM1.pdf
@@ -48,23 +44,40 @@ void uart_init() {
      * Therefore:
      * BAUDDIV = 191 = 0xbf
      */
-
-    // speed for vt100
-    int* const baud_high = (int*)(UART2_BASE + UART_LCRM_OFFSET);
-    int* const baud_low = (int*)(UART2_BASE + UART_LCRL_OFFSET);
+    int* const baud_high = (int*)(base + UART_LCRM_OFFSET);
+    int* const baud_low =  (int*)(base + UART_LCRL_OFFSET);
     *baud_high = 0x0;
-    *baud_low  = 0x3;
+    *baud_low  = speed;
+}
 
+inline static void uart_initirq(int base) {
+    int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
+    *ctlr = RIEN_MASK | RTIEN_MASK | UARTEN_MASK | MSIEN_MASK;
+}
+
+void uart_init() {
+    // initialize the buffers
+    cbuf_init(&vt_out.o, 4096, vt_out.buffer);
+    cbuf_init(&vt_in.i,    16, vt_in.buffer);
+
+    uart_setspeed(UART1_BASE, 0xBF);
+    NOP(55);
+    
+    uart_setspeed(UART2_BASE, 0x03);
     NOP(55);
 
-    // disable fifo for vt100
-    int* const lcrh = (int*)(UART2_BASE + UART_LCRH_OFFSET);
-    *lcrh &= ~FEN_MASK;
-
+    int* const lcrh1 = (int*)(UART1_BASE + UART_LCRH_OFFSET);
+    *lcrh1 &= ~FEN_MASK;
     NOP(55);
 
-    int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
-    *ctlr = RIEN_MASK|RTIEN_MASK|UARTEN_MASK;
+    int* const lcrh2 = (int*)(UART2_BASE + UART_LCRH_OFFSET);
+    *lcrh2 &= ~FEN_MASK;
+    NOP(55);
+
+    uart_initirq(UART1_BASE);
+    NOP(55);
+
+    uart_initirq(UART2_BASE);
 }
 
 void vt_write() {

@@ -1,9 +1,12 @@
 
+#include <irq.h>
 #include <vt100.h>
 #include <syscall.h>
 #include <scheduler.h>
 #include <debug.h>
-#include <irq.h>
+
+#include <train.h>
+#include <ts7200.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -63,6 +66,11 @@ static void tl_action(char input) {
     case 'q':
         Shutdown();
         break;
+
+    case 'o':
+        *(uint* const)(UART1_BASE + UART_DATA_OFFSET) = SENSOR_POLL;
+        break;
+
     case 'h':
     default:
         print_help();
