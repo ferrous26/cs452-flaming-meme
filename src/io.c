@@ -64,7 +64,7 @@ void uart_init() {
     NOP(55);
 
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
-    *ctlr |= RIEN_MASK|RTIEN_MASK|UARTEN_MASK;
+    *ctlr = RIEN_MASK|RTIEN_MASK|UARTEN_MASK;
 }
 
 void vt_write() {
@@ -126,8 +126,12 @@ void irq_uart2_recv() {
     int_queue[UART2_RECV] = NULL;
 
     if (t != NULL) {
-        //TODO: give data to task....
+        kwait_req* const req_space = (kwait_req*) t->sp[1];
+        req_space->event[0] = *uart2_data;
+        t->sp[0] = 1;
+
         scheduler_schedule(t);
+        return;
     }
 
     kprintf_string("dropped char: ", 14);
@@ -141,9 +145,9 @@ void irq_uart2_send() {
     int_queue[UART2_SEND] = NULL;
 
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
-    // TODO: send data....
-    *uart2_data = 'c';
-
+    kwait_req* const req_space = (kwait_req*) t->sp[1];
+    *uart2_data = req_space->event[0];
+    t->sp[0] = 1;
 
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
     *ctlr &= ~TIEN_MASK;
