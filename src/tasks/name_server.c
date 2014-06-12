@@ -32,7 +32,6 @@ void name_server() {
 
     name_server_tid = myTid();
     vt_log("Name Server started at %d", name_server_tid);
-    vt_flush();
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));

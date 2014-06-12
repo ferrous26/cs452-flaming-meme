@@ -4,6 +4,7 @@
 #include <scheduler.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
+#include <tasks/term_server.h>
 
 #include <syscall.h>
 
@@ -232,4 +233,63 @@ int DelayUntil(int ticks) {
 
 void Shutdown() {
     _syscall(SYS_SHUTDOWN, NULL);
+}
+
+int Getc(int channel) {
+    term_req req = {
+	.type = GETC
+    };
+
+    char byte;
+
+    switch (channel) {
+    case TRAIN_CONTROLLER:
+	return INVALID_CHANNEL;
+    case TERMINAL: {
+	int result = Send(term_server_tid,
+			  (char*)&req, sizeof(term_req_type),
+			  &byte, sizeof(byte));
+	if (result > 0) return byte;
+	return result;
+    }
+    default:
+	return INVALID_CHANNEL;
+    }
+}
+
+int Putc(int channel, char ch) {
+    term_req req = {
+	.type = PUTC,
+	.size = ch
+    };
+
+    switch (channel) {
+    case TRAIN_CONTROLLER:
+	return INVALID_CHANNEL;
+    case TERMINAL: {
+	int result = Send(term_server_tid,
+			  (char*)&req, sizeof(term_req_type) + sizeof(int),
+			  NULL, 0);
+	if (result > 0) return OK;
+	return result;
+    }
+    default:
+	return INVALID_CHANNEL;
+    }
+}
+
+int Puts(char* const str, int length) {
+    term_req req = {
+	.type = PUTS,
+	.size = length,
+	.payload.string = str
+    };
+
+    int result = Send(term_server_tid,
+		      (char*)&req,
+		      sizeof(term_req_type) + sizeof(int) + sizeof(char*),
+		      NULL,
+		      0);
+    if (result > 0) return OK;
+    return result;
 }

@@ -19,7 +19,6 @@ static void stress_sub() {
     for (int i = 1; i < iter; i++) {
         Delay(delay);
         vt_log("STR_T(%d): Delay:%d Iter:%d/%d", tid, delay, i, iter-1);
-        vt_flush();
     }
 
     int ret = Send(ptid, NULL, 0, NULL, 0);
@@ -58,5 +57,4 @@ void stress_root() {
     }
 
     vt_log("STR_R(%d): Ending", my_tid);
-    vt_flush();
 }

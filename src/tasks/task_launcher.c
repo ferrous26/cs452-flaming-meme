@@ -13,6 +13,7 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
+#include <tasks/bench_memcpy.h>
 
 #include <tasks/task_launcher.h>
 
@@ -20,7 +21,8 @@ inline static void print_help() {
     vt_log("\n\t"
            "1 ~ K3 assignent demo\n\t"
 	   "3 ~ Benchmark message passing\n\t"
-	   "4 ~ Get the current time\n\t");
+	   "4 ~ Get the current time\n\t"
+	   "5 ~ memcpy tests\n\t");
 
     vt_log("\t"
 	   "s ~ Run Stressing Task\n\t");
@@ -33,8 +35,6 @@ inline static void print_help() {
     vt_log("\t"
 	   "h ~ Print this Help Message\n\t"
 	   "q ~ Quit\n");
-
-    vt_flush();
 }
 
 static void tl_action(char input) {
@@ -47,6 +47,9 @@ static void tl_action(char input) {
 	break;
     case '4':
 	vt_log("The time is %u ticks!", Time());
+	break;
+    case '5':
+	Create(TASK_PRIORITY_EMERGENCY, bench_memcpy);
 	break;
     case 'a':
 	irq_simulate_interrupt(0);
@@ -74,7 +77,6 @@ static int _create(int priority, void (*code) (void), const char* const name) {
     int tid = Create(priority, code);
     if (tid < 0) {
         vt_log("Failed starting %s! Goodbye cruel world", name);
-	vt_flush();
 	Shutdown();
     }
     return tid;
@@ -89,9 +91,20 @@ void task_launcher() {
     _create(TASK_PRIORITY_HIGH - 1, clock_server, "clock server");
     _create(TASK_PRIORITY_HIGH - 1, term_server,  "terminal server");
 
+
+    char buffer[128];
+    char* ptr = buffer;
+
+    ptr = vt_goto(ptr, 2, 40);
+    ptr = sprintf(ptr, "Welcome to ferOS build %u", __BUILD__);
+    ptr = vt_goto(ptr, 3, 40);
+    ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
+
+    Puts(buffer, (uint)(ptr - buffer));
+
+
     FOREVER {
         vt_log("Welcome to Task Launcher (h for help)");
-        vt_flush();
 	tl_action(vt_waitget());
     }
 }

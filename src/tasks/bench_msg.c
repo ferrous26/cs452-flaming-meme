@@ -6,20 +6,19 @@
 
 #ifdef BENCHMARK
 static
-BENCH(bench)
+BENCH(bench);
 #endif
 
 #define ITERATIONS 100000
 
 static void baseline() {
 
-    BENCH_START(bench)
+    BENCH_START(bench);
     for (size i = ITERATIONS; i; i--)
-	BENCH_LAP(bench)
+	BENCH_LAP(bench);
 
-    BENCH_PRINT_WORST(bench)
-    BENCH_PRINT_AVERAGE(bench)
-    vt_flush();
+    BENCH_PRINT_WORST(bench);
+    BENCH_PRINT_AVERAGE(bench);
 }
 
 static void send_it(int child) {
@@ -37,7 +36,6 @@ static void send_it(int child) {
 
     BENCH_PRINT_WORST(bench)
     BENCH_PRINT_AVERAGE(bench)
-    vt_flush();
 
 
     vt_log("64 bytes (16 words)");
@@ -56,7 +54,6 @@ static void send_it(int child) {
 
     BENCH_PRINT_WORST(bench)
     BENCH_PRINT_AVERAGE(bench)
-    vt_flush();
 }
 
 void bench_msg() {
@@ -67,12 +64,10 @@ void bench_msg() {
 	int child = Create(TASK_PRIORITY_MAX / 2, bench_msg);
 	if (child < 0) {
 	    vt_log("Failed to create child task for benchmarking");
-	    vt_flush();
 	    return;
 	}
 
 	vt_log("Child is %u", child);
-	vt_flush();
 
 	vt_log("Starting message passing benchmark!");
 
@@ -90,7 +85,6 @@ void bench_msg() {
 	send_it(child);
 	vt_log("");
 
-	vt_flush();
 	return;
     }
 

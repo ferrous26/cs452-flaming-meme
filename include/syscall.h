@@ -19,6 +19,9 @@
 #define SYS_CHANGE   10
 #define SYS_AWAIT    11
 #define SYS_SHUTDOWN 12
+#define SYS_PUTC     13
+#define SYS_GETC     14
+#define SYS_PUTS     15
 
 #define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
@@ -120,6 +123,24 @@ int Time(void);
 // Note: if you send a value of time that is before the current
 //       time then you will be woken up immediately
 int DelayUntil(int ticks);
+
+/**
+ * Shutdown EVERYTHING. This function does not return and it does
+ * not give other tasks an opportunity to shutdown.
+ */
 void Shutdown(void);
+
+typedef enum {
+    TRAIN_CONTROLLER = 1,
+    TERMINAL         = 2
+} serial_channel;
+
+typedef enum {
+    INVALID_CHANNEL = -6
+} io_err;
+
+int Getc(int channel);
+int Putc(int channel, char ch);
+int Puts(char* const str, int length);
 
 #endif

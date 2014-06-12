@@ -4,6 +4,7 @@
 
 #include <std.h>
 #include <io.h>
+#include <syscall.h>
 
 void vt_init(void);
 void vt_deinit(void);
@@ -24,7 +25,7 @@ void vt_deinit(void);
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf(print_buffer, fmt, ## __VA_ARGS__);	\
-	kprintf_string(print_buffer, (uint)(str_end - print_buffer));	\
+	Puts(print_buffer, (uint)(str_end - print_buffer));		\
     }
 
 char* sprintf(char* buffer, const char* fmt, ...);
@@ -39,7 +40,7 @@ char* sprintf(char* buffer, const char* fmt, ...);
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf_va(print_buffer, fmt, args);		\
-	kprintf_string(print_buffer, (uint)(str_end - print_buffer));	\
+	Puts(print_buffer, (uint)(str_end - print_buffer));		\
     }
 
 char* sprintf_va(char* buffer, const char* fmt, va_list args);

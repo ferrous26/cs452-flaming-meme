@@ -159,7 +159,7 @@ char* sprintf_hex(char* buffer, const uint32 num) {
     uint  nom = num;
 
     for (; i < 8; i++) {
-	noms[i] = (uint8)(nom & 0xf); // take the lower four bits
+	noms[i] = nom & 0xf; // take the lower four bits
 	nom     = nom >> 4;  // shift last three off the end
     }
 
@@ -189,7 +189,7 @@ char* sprintf_ptr(char* buffer, const void* const pointer) {
     uint32 ptr = (uint32)pointer;
 
     for (; i < 8; i++) {
-	noms[i] = (uint8)(ptr & 0xf); // take the lower four bits
+	noms[i] = ptr & 0xf; // take the lower four bits
 	ptr     = ptr >> 4;  // shift last four off the end
     }
 
@@ -322,6 +322,6 @@ void vt_log(const char* fmt, ...) {
     ptr = sprintf_va(ptr, fmt, args);
     ptr = vt_log_end(ptr);
 
-    kprintf_string(buffer, (uint)(ptr - buffer));
+    Puts(buffer, (uint)(ptr - buffer));
     va_end(args);
 }

@@ -6,7 +6,6 @@
 void idle() {
 
     vt_log("Starting idle task at %d", myTid());
-    vt_flush();
 
     volatile int count = 0;
     FOREVER { count++; }

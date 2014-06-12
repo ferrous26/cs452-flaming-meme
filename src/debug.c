@@ -21,8 +21,7 @@ void debug_assert_fail(const char* const file,
     ptr = sprintf_va(ptr, msg, args);
     ptr = vt_log_end(ptr);
 
-    kprintf_string(buffer, (uint)(ptr - buffer));
-    vt_flush();
+    Puts(buffer, (uint)(ptr - buffer));
 
     va_end(args);
     if (debug_processor_mode() == SUPERVISOR)
@@ -41,8 +40,7 @@ void debug_log(const char* const msg, ...) {
     ptr = sprintf_va(ptr, msg, args);
     ptr = vt_log_end(ptr);
 
-    kprintf_string(buffer, (uint)(ptr - buffer));
-    vt_flush();
+    Puts(buffer, (uint)(ptr - buffer));
 
     va_end(args);
 }
