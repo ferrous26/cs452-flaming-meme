@@ -7,6 +7,7 @@
 
 #include <io.h>
 #include <debug.h>
+#include <vt100.h>
 
 #include <ts7200.h>
 #include <scheduler.h>
@@ -14,22 +15,9 @@
 #include <circular_buffer.h>
 #include <syscall.h>
 
-// IO buffers
-struct out {
-    char_buffer o;
-    char buffer[4096];
-};
-
-struct in {
-    char_buffer i;
-    char buffer[16];
-};
-
-// buffer control
-static struct out vt_out;
-static struct in vt_in;
 
 #define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
+
 inline static void uart_setspeed(int base, int speed) {
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
@@ -55,10 +43,6 @@ inline static void uart_initirq(int base) {
 }
 
 void uart_init() {
-    // initialize the buffers
-    cbuf_init(&vt_out.o, 4096, vt_out.buffer);
-    cbuf_init(&vt_in.i,    16, vt_in.buffer);
-
     uart_setspeed(UART1_BASE, 0xBF);
     uart_setspeed(UART2_BASE, 0x03);
     NOP(55);
@@ -74,49 +58,32 @@ void uart_init() {
     uart_initirq(UART2_BASE);
 }
 
-void vt_write() {
-    const int* const flags = (int*) (UART2_BASE + UART_FLAG_OFFSET);
-    char* const       data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+void uart2_bw_write(const char* string, uint length) {
+    volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
+    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
-    if (cbuf_can_consume(&vt_out.o) && !(*flags & (TXFF_MASK|CTS_MASK)))
-	*data = cbuf_consume(&vt_out.o);
-}
-
-void vt_flush() {
-    while (cbuf_can_consume(&vt_out.o))
-	vt_write();
-}
-
-void vt_read() {
-    const int*  const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
-    const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
-
-    if (*flags & RXFF_MASK)
-	cbuf_produce(&vt_in.i, *data);
-}
-
-bool vt_can_get(void) {
-    return cbuf_can_consume(&vt_in.i);
-}
-
-char vt_getc(void) {
-    return cbuf_consume(&vt_in.i);
-}
-
-char vt_waitget() {
-    while (!vt_can_get()) {
-        vt_read();
-        Pass();
+    for (; length; length--) {
+        while (*flags & (TXFF_MASK|CTS_MASK));
+        *data = *string++;
     }
-    return vt_getc();
 }
 
-void kprintf_string(const char* str, size strlen) {
-    while (strlen--)
-	cbuf_produce(&vt_out.o, *str++);
+bool uart2_bw_can_read(void) {
+    volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
+    return (*flags & RXFF_MASK);
 }
 
-static uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
+char uart2_bw_read() {
+    volatile const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    return *data;
+}
+
+char uart2_bw_waitget() {
+    while (!uart2_bw_can_read());
+    return uart2_bw_read();
+}
+
+static inline uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
     if (irqr & RTIS_MASK) return 1;
     if (irqr & TIS_MASK)  return 2;
     if (irqr & RIS_MASK)  return 3;
@@ -129,7 +96,7 @@ void irq_uart2_recv() {
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
-    if (t != NULL) {
+    if (t) {
         kwait_req* const req_space = (kwait_req*) t->sp[1];
         req_space->event[0] = *data;
         t->sp[0] = 1;
@@ -137,9 +104,8 @@ void irq_uart2_recv() {
         scheduler_schedule(t);
         return;
     }
-
-    kprintf_string("dropped char: ", 14);
-    vt_flush();
+    
+    kprintf(32, "UART2 dropped char %c", *data);
 }
 
 void irq_uart2_send() {
@@ -147,7 +113,7 @@ void irq_uart2_send() {
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
 
-    assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
+    kassert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kwait_req* const req_space = (kwait_req*) t->sp[1];
     *data = req_space->event[0];
     t->sp[0] = 1;
@@ -189,6 +155,8 @@ void irq_uart1_recv() {
         scheduler_schedule(t);
         return;
     }
+
+    kprintf(32, "UART1 dropped char %d\n", *data);
 }
 
 void irq_uart1_send() {
@@ -205,10 +173,11 @@ void irq_uart1_send() {
     *ctlr &= ~TIEN_MASK;
     scheduler_schedule(t);
 }
-    
+
 void irq_uart1() {
     uint* const irqr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
     const uint irq = uart_get_interrupt(*irqr);
+    const char modem_mesg[] = "UART1 Modem";
 
     switch (irq) {
     case 1:     // RECEIVE TIMEOUT
@@ -220,8 +189,7 @@ void irq_uart1() {
         break;
     case 4:     // MODEM
         *irqr = (uint)irqr;
-        vt_log("UART1 Modem");
-        vt_flush(); 
+        kprintf(sizeof(modem_mesg), modem_mesg);
         break;
     }
 }

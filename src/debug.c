@@ -5,7 +5,12 @@
 #include <kernel.h>
 #include <syscall.h>
 
+
 #ifdef DEBUG
+
+// TODO: we have 4 functions that do almost the same thing, they should
+//       get refactored, not into macros, because performance doesn't
+//       matter too much for these calls
 
 void debug_assert_fail(const char* const file,
 		       const uint line,
@@ -13,37 +18,65 @@ void debug_assert_fail(const char* const file,
     va_list args;
     va_start(args, msg);
 
-    char buffer[128];
+    char buffer[512];
     char* ptr = buffer;
 
-    ptr = vt_log_start(ptr);
+    ptr = log_start(ptr);
     ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
     ptr = sprintf_va(ptr, msg, args);
-    ptr = vt_log_end(ptr);
+    ptr = log_end(ptr);
 
-    kprintf_string(buffer, (uint)(ptr - buffer));
-    vt_flush();
-
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
     va_end(args);
-    if (debug_processor_mode() == SUPERVISOR)
-	shutdown();
     Shutdown();
+}
+
+void kdebug_assert_fail(const char* const file,
+			const uint  line,
+			const char* const msg, ...) {
+    va_list args;
+    va_start(args, msg);
+
+    char buffer[512];
+    char* ptr = buffer;
+
+    ptr = log_start(ptr);
+    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
+    ptr = sprintf_va(ptr, msg, args);
+    ptr = log_end(ptr);
+
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
+    va_end(args);
+    shutdown();
 }
 
 void debug_log(const char* const msg, ...) {
     va_list args;
     va_start(args, msg);
 
-    char buffer[128];
+    char buffer[256];
     char* ptr = buffer;
 
-    ptr = vt_log_start(ptr);
+    ptr = log_start(ptr);
     ptr = sprintf_va(ptr, msg, args);
-    ptr = vt_log_end(ptr);
+    ptr = log_end(ptr);
 
-    kprintf_string(buffer, (uint)(ptr - buffer));
-    vt_flush();
+    Puts(buffer, (uint)(ptr - buffer));
+    va_end(args);
+}
 
+void kdebug_log(const char* const msg, ...) {
+    va_list args;
+    va_start(args, msg);
+
+    char buffer[256];
+    char* ptr = buffer;
+
+    ptr = log_start(ptr);
+    ptr = sprintf_va(ptr, msg, args);
+    ptr = log_end(ptr);
+
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
     va_end(args);
 }
 
@@ -87,24 +120,38 @@ static inline bool cc_s(const uint status) { return (status & FLAG_STICKY_OVERFL
 
 static void _debug_psr(const char* const name, const uint status) {
 
-    debug_log("%s Information\n"
-	      "       Current Mode: %s\n"
-	      "        Thumb State: %s\n"
-	      "        FIQ Enabled: %s\n"
-	      "        IRQ Enabled: %s\n"
-	      "      Abort Enabled: %s\n"
-	      "    Condition Codes: %c %c %c %c %c",
-	      name,
-	      processor_mode_string(status),
-	      thumb_state(status) ? "Yes" : "No",
-	      fiq_state(status)   ? "No"  : "Yes",
-	      irq_state(status)   ? "No"  : "Yes",
-	      abort_state(status) ? "No"  : "Yes",
-	      cc_n(status) ? 'N' : '_',
-	      cc_z(status) ? 'Z' : '_',
-	      cc_c(status) ? 'C' : '_',
-	      cc_v(status) ? 'V' : '_',
-	      cc_s(status) ? 'S' : '_');
+    void (*logger)(const char* const,...) = NULL;
+    switch (debug_processor_mode()) {
+    case USER:
+	logger = debug_log;
+	break;
+    case FIQ:
+    case IRQ:
+    case SUPERVISOR:
+    case ABORT:
+    case UNDEFINED:
+    case SYSTEM:
+	logger = kdebug_log;
+    };
+
+    logger("%s Information\n"
+	   "       Current Mode: %s\n"
+	   "        Thumb State: %s\n"
+	   "        FIQ Enabled: %s\n"
+	   "        IRQ Enabled: %s\n"
+	   "      Abort Enabled: %s\n"
+	   "    Condition Codes: %c %c %c %c %c",
+	   name,
+	   processor_mode_string(status),
+	   thumb_state(status) ? "Yes" : "No",
+	   fiq_state(status)   ? "No"  : "Yes",
+	   irq_state(status)   ? "No"  : "Yes",
+	   abort_state(status) ? "No"  : "Yes",
+	   cc_n(status) ? 'N' : '_',
+	   cc_z(status) ? 'Z' : '_',
+	   cc_c(status) ? 'C' : '_',
+	   cc_v(status) ? 'V' : '_',
+	   cc_s(status) ? 'S' : '_');
 }
 
 /**

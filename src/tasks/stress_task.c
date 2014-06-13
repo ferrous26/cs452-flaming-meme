@@ -18,13 +18,12 @@ static void stress_sub() {
 
     for (int i = 1; i < iter; i++) {
         Delay(delay);
-        vt_log("STR_T(%d): Delay:%d Iter:%d/%d", tid, delay, i, iter-1);
-        vt_flush();
+        log("STR_T(%d): Delay:%d Iter:%d/%d", tid, delay, i, iter-1);
     }
 
     int ret = Send(ptid, NULL, 0, NULL, 0);
-    assert(ret == 0, "Parent Died Before Task Could Return");
     UNUSED(ret);
+    assert(ret == 0, "Parent Died Before Task Could Return");
 }
 
 void stress_root() {
@@ -32,24 +31,24 @@ void stress_root() {
     int nchildren = 0;
     int my_tid    = myTid();
 
-    vt_log("STR_R(%d): Start", my_tid);
+    log("STR_R(%d): Start", my_tid);
 
     int seed = my_tid;
     for (int i = 1+(rand(seed) % 6); i > 0; i--) {
         tid = Create((rand(seed) % TASK_PRIORITY_LEVELS-6) + 3, stress_sub);
         if ( tid >= 0 ) {
-            vt_log("STR_R(%d): Created %d", my_tid, tid);
+            log("STR_R(%d): Created %d", my_tid, tid);
             nchildren++;
         }
     }
 
-    vt_log("STR_R(%d): Waiting", my_tid);
+    log("STR_R(%d): Waiting", my_tid);
     for (int i = 0; i < nchildren; i++) {
         Receive(&tid, NULL, 0);
         int ret = Reply(tid, NULL, 0);
 
+	UNUSED(ret);
         assert(ret == 0, "Child Died before parent could send back message");
-        UNUSED(ret);
     }
 
     if (my_tid < 10000) {
@@ -57,6 +56,5 @@ void stress_root() {
         Create(16, stress_root);
     }
 
-    vt_log("STR_R(%d): Ending", my_tid);
-    vt_flush();
+    log("STR_R(%d): Ending", my_tid);
 }

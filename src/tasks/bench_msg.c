@@ -6,25 +6,24 @@
 
 #ifdef BENCHMARK
 static
-BENCH(bench)
+BENCH(bench);
 #endif
 
 #define ITERATIONS 100000
 
 static void baseline() {
 
-    BENCH_START(bench)
+    BENCH_START(bench);
     for (size i = ITERATIONS; i; i--)
-	BENCH_LAP(bench)
+	BENCH_LAP(bench);
 
-    BENCH_PRINT_WORST(bench)
-    BENCH_PRINT_AVERAGE(bench)
-    vt_flush();
+    BENCH_PRINT_WORST(bench);
+    BENCH_PRINT_AVERAGE(bench);
 }
 
 static void send_it(int child) {
 
-    vt_log("4 bytes (1 word)");
+    log("4 bytes (1 word)");
 
     const char* msg = "hey";
     char rply[4];
@@ -35,12 +34,11 @@ static void send_it(int child) {
 	BENCH_LAP(bench)
     }
 
-    BENCH_PRINT_WORST(bench)
-    BENCH_PRINT_AVERAGE(bench)
-    vt_flush();
+    BENCH_PRINT_WORST(bench);
+    BENCH_PRINT_AVERAGE(bench);
 
 
-    vt_log("64 bytes (16 words)");
+    log("64 bytes (16 words)");
 
     const char* big_msg =
 	"abcdefghijklmnopqrstuvwxyz"
@@ -56,7 +54,6 @@ static void send_it(int child) {
 
     BENCH_PRINT_WORST(bench)
     BENCH_PRINT_AVERAGE(bench)
-    vt_flush();
 }
 
 void bench_msg() {
@@ -66,31 +63,28 @@ void bench_msg() {
 
 	int child = Create(TASK_PRIORITY_MAX / 2, bench_msg);
 	if (child < 0) {
-	    vt_log("Failed to create child task for benchmarking");
-	    vt_flush();
+	    log("Failed to create child task for benchmarking");
 	    return;
 	}
 
-	vt_log("Child is %u", child);
-	vt_flush();
+	log("Child is %u", child);
 
-	vt_log("Starting message passing benchmark!");
+	log("Starting message passing benchmark!");
 
-	vt_log("Baseline measurement!");
+	log("Baseline measurement!");
 	baseline();
-	vt_log("");
+	log("");
 
-	vt_log("Send before receive");
+	log("Send before receive");
 	send_it(child);
-	vt_log("");
+	log("");
 
-	vt_log("Receive before send");
+	log("Receive before send");
 	ChangePriority(2);
 	Pass(); // ensure the child gets ahead
 	send_it(child);
-	vt_log("");
+	log("");
 
-	vt_flush();
 	return;
     }
 

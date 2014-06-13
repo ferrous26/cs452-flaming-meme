@@ -11,8 +11,7 @@ static void name() {                                                \
     int ptid = myParentTid();                                       \
     for(int i = 1; i < iterations+1; i++) {                         \
         Delay(delay);                                               \
-        vt_log("K3_TASK(%d): Delay:%d, Iter:%d", tid, delay, i);    \
-        vt_flush();                                                 \
+        log("K3_TASK(%d): Delay:%d, Iter:%d", tid, delay, i);    \
     }                                                               \
     Send(ptid, NULL, 0, NULL, 0);                                   \
 }                                                                   \
@@ -27,40 +26,37 @@ void k3_root() {
     int my_tid = myTid();
     int nchildren = 0;
 
-    vt_log("K3_Root(%d): Start", my_tid);
+    log("K3_Root(%d): Start", my_tid);
 
     tid = Create(15, k3_1);
     if ( tid > 0 ) {
-        vt_log("K3_Root(%d): Created %d", my_tid, tid);
-        nchildren++;
-    }
-    
-    tid = Create(14, k3_2);
-    if ( tid > 0 ) {
-        vt_log("K3_Root(%d): Created %d", my_tid, tid);
-        nchildren++;
-    }
-    
-    tid = Create(13, k3_3);
-    if ( tid > 0 ) {
-        vt_log("K3_Root(%d): Created %d", my_tid, tid);
-        nchildren++;
-    }
-    
-    tid = Create(12, k3_4);
-    if ( tid > 0 ) {
-        vt_log("K3_Root(%d): Created %d", my_tid, tid);
+        log("K3_Root(%d): Created %d", my_tid, tid);
         nchildren++;
     }
 
-    vt_flush();
-    vt_log("K3_Root(%d): Waiting", my_tid);
+    tid = Create(14, k3_2);
+    if ( tid > 0 ) {
+        log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
+
+    tid = Create(13, k3_3);
+    if ( tid > 0 ) {
+        log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
+
+    tid = Create(12, k3_4);
+    if (tid > 0) {
+        log("K3_Root(%d): Created %d", my_tid, tid);
+        nchildren++;
+    }
+
+    log("K3_Root(%d): Waiting", my_tid);
     for (int i = 0; i < nchildren; i++) {
         Receive(&tid, NULL, 0);
         Reply(tid, NULL, 0);
     }
 
-    vt_log("K3_Root(%d): Ending", my_tid);
-    vt_flush();
+    log("K3_Root(%d): Ending", my_tid);
 }
-

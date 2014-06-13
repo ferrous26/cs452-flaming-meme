@@ -2,6 +2,7 @@
 #include <syscall.h>
 #include <std.h>
 #include <debug.h>
+#include <vt100.h>
 
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)
@@ -24,8 +25,7 @@ typedef struct {
 static void clock_notifier() {
     int clock = WhoIs((char*)"clock");
     if (clock < 0) {
-	vt_log("Clock server not found (%d)", clock);
-	vt_flush();
+	log("Clock server not found (%d)", clock);
 	return;
     }
 
@@ -34,7 +34,6 @@ static void clock_notifier() {
     FOREVER {
 	int result = AwaitEvent(CLOCK_TICK, NULL, 0);
 
-	UNUSED(result); // it will be unused when asserts are off
 	assert(result == 0, "Impossible clock error code (%d)", result);
 
 	// We don't actually need to send anything to the clock
@@ -44,8 +43,7 @@ static void clock_notifier() {
 		      (char*)&msg, sizeof(msg),
 		      (char*)&msg, sizeof(msg));
 	if (result < 0) {
-	    vt_log("Failed to send to clock (%d)", result);
-	    vt_flush();
+	    log("Failed to send to clock (%d)", result);
 	    return;
 	}
     }
@@ -144,8 +142,7 @@ static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
 #endif
 
 static void _error(int tid, int code) {
-    vt_log("Failed to reply to %u (%d)", tid, code);
-    vt_flush();
+    log("Failed to reply to %u (%d)", tid, code);
 }
 
 static void _startup(clock_pq* pq) {
@@ -153,22 +150,19 @@ static void _startup(clock_pq* pq) {
     clock_server_tid = myTid();
     int result = RegisterAs((char*)"clock");
     if (result) {
-	vt_log("Failed to register clock server name (%d)", result);
-	vt_flush();
+	log("Failed to register clock server name (%d)", result);
 	return;
     }
 
     result = Create(TASK_PRIORITY_HIGH, clock_notifier);
     if (result < 0) {
-	vt_log("Failed to create clock_notifier (%d)", result);
-	vt_flush();
+	log("Failed to create clock_notifier (%d)", result);
 	return;
     }
 
     pq_init(pq);
 
-    vt_log("Clock Server started at %d", clock_server_tid);
-    vt_flush();
+    log("Clock Server started at %d", clock_server_tid);
 }
 
 void clock_server() {
@@ -192,10 +186,8 @@ void clock_server() {
 	case CLOCK_NOTIFY:
 	    // reset notifier ASAP
 	    result = Reply(tid, (char*)&req, siz);
-	    if (result) {
-		vt_log("Failed to reply to clock_notifier (%d)", result);
-		vt_flush();
-	    }
+	    if (result)
+		log("Failed to reply to clock_notifier (%d)", result);
 
 	    // tick-tock
 	    time++;

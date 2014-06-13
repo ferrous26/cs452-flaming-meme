@@ -52,7 +52,7 @@ inline static void ksyscall_recv(task* const receiver) {
 #ifdef DEBUG
     uint sp;
     asm volatile ("mov %0, sp" : "=r" (sp));
-    assert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
+    kassert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
 #endif
 
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
@@ -60,11 +60,14 @@ inline static void ksyscall_recv(task* const receiver) {
     if (q->head) {
 	task* const sender = q->head;
 
-        assert((uint)sender < 0x200000 && (uint)sender > 0x100000,
-               "Receive: %d Invalid head pointer!", receiver->tid);
-        assert((uint) q->head->next < 0x200000 &&
-               ((uint)q->head->next > 0x100000 || (uint)q->head->next == NULL),
-               "Receive: %d Invalid head next! %p", receiver->tid, sender->next);
+        kassert((uint)sender < 0x200000 && (uint)sender > 0x100000,
+		"Receive: %d Invalid head pointer!", receiver->tid);
+
+        kassert((uint) q->head->next < 0x200000 &&
+		((uint)q->head->next > 0x100000 || (uint)q->head->next == NULL),
+		"Receive: %d Invalid head next! %p",
+		receiver->tid, sender->next);
+
         q->head = q->head->next; // consume
 
 	kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
@@ -95,10 +98,10 @@ inline static void ksyscall_recv(task* const receiver) {
 inline static void ksyscall_send(const kreq_send* const req, int* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
 
-    assert(task_index_from_tid(req->tid) < TASK_MAX,
-           "Reply: Invalid Sender %d", req->tid);
-    assert((uint)receiver->sp > TASK_HEAP_BOT && (uint)receiver->sp < TASK_HEAP_TOP,
-           "Send: Sender %d has Invlaid heap %p", receiver->tid, receiver->sp);
+    kassert((uint)receiver->sp > TASK_HEAP_BOT &&
+	    (uint)receiver->sp < TASK_HEAP_TOP,
+	    "Send: Sender %d has Invlaid heap %p",
+	    receiver->tid, receiver->sp);
 
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
@@ -107,8 +110,8 @@ inline static void ksyscall_send(const kreq_send* const req, int* const result) 
         return;
     }
 
-    assert(task_active->tid != req->tid,
-	   "Tried to Send to self! (%u)", task_active->tid);
+    kassert(task_active->tid != req->tid,
+	    "Tried to Send to self! (%u)", task_active->tid);
 
     /**
      * What we want to do is find the receive q and append to it, as we
@@ -143,8 +146,10 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 	return;
     }
 
-    assert((uint)sender->sp > TASK_HEAP_BOT && (uint)sender->sp <= TASK_HEAP_TOP,
-            "Reply: Sender %d has Invalid heap %p", sender->tid, sender->sp);
+    kassert((uint)sender->sp > TASK_HEAP_BOT &&
+	    (uint)sender->sp <= TASK_HEAP_TOP,
+            "Reply: Sender %d has Invalid heap %p",
+	    sender->tid, sender->sp);
 
     if (sender->next != RPLY_BLOCKED) {
 	*result = INVALID_RECVER;
@@ -196,7 +201,7 @@ ksyscall_await(const kwait_req* const req, int* const result) {
         ksyscall_pass();
         return;
     }
-    
+
     int_queue[req->eventid] = task_active;
 }
 

@@ -1,4 +1,4 @@
-
+#include <tasks/term_server.h>
 #include <std.h>
 #include <vt100.h>
 #include <debug.h>
@@ -6,20 +6,9 @@
 #include <scheduler.h>
 #include <circular_buffer.h>
 
-typedef enum {
-    SEND,
-    RECV,
-    CARRIER,
-    NOTIFIER
-} req_type;
+// data coming from the UART
+static void __attribute__ ((noreturn)) recv_notifier() {
 
-typedef struct {
-    req_type type;
-    int      size;
-    char     payload[8];
-} term_req;
-
-static void recv_notifier() {
     int ptid = myParentTid();
 
     term_req buffer = {
@@ -28,36 +17,51 @@ static void recv_notifier() {
     };
 
     FOREVER {
-        buffer.size = AwaitEvent(UART2_RECV, 
-                                 buffer.payload,
+        buffer.size = AwaitEvent(UART2_RECV,
+                                 buffer.payload.text,
                                  sizeof(buffer.payload));
-        if(Send(ptid, (char*)&buffer, sizeof(buffer), NULL, 0) < 0) break;
+        int result = Send(ptid, (char*)&buffer, sizeof(buffer), NULL, 0);
+
+	UNUSED(result);
+	assert(!result,
+	       "Failed to notify terminal server of new data (%d)", result);
     }
 }
 
-static void send_carrier() {
+// data going to the UART
+static void __attribute__ ((noreturn)) send_carrier() {
+
     int ptid = myParentTid();
+
     term_req buffer = {
         .type = CARRIER,
         .size = 0
     };
 
     FOREVER {
-        buffer.size = Send(ptid, 
+        buffer.size = Send(ptid,
                            (char*)&buffer, sizeof(buffer),
-                           buffer.payload, sizeof(buffer.payload));
-        
-        if (buffer.size < 0) {
-            debug_log("Send Dying! %d", buffer.size);
-            break;
-        }
-        AwaitEvent(UART2_SEND, buffer.payload, buffer.size);
+                           buffer.payload.text, sizeof(buffer.payload));
+
+	assert(buffer.size > 0,
+	       "Terminal server gave nothing to send carrier (%d)",
+	       buffer.size);
+
+        int result = AwaitEvent(UART2_SEND, buffer.payload.text, buffer.size);
+
+	UNUSED(result);
+	assert(!result,
+	       "Failed to pass terminal output to the kernel (%d)", result);
     }
+}
+
+static void term_server_startup() {
+    log("Terminal Server started at %d", myParentTid());
 }
 
 struct out {
     char_buffer o;
-    char buffer[1028];
+    char buffer[2048];
 };
 
 struct in {
@@ -65,56 +69,87 @@ struct in {
     char buffer[16];
 };
 
+int term_server_tid;
+
 void term_server() {
-    int my_tid = myTid();
-    int out_tid = my_tid;
+
+    term_server_tid = myTid();
 
     int tid = Create(TASK_PRIORITY_HIGH, recv_notifier);
+    assert(tid > 0, "Failed to startup the terminal receiver (%d)", tid);
+
     tid = Create(TASK_PRIORITY_HIGH, send_carrier);
-    
-    vt_log("TERM: Started!");
+    assert(tid > 0, "Failed to startup the terminal carrier (%d)", tid);
+
+    tid = Create(TASK_PRIORITY_EMERGENCY, term_server_startup);
+    assert(tid > 0, "Failed to run the terminal startup message (%d)", tid);
 
     term_req req;
     struct in vt_in;
     struct out vt_out;
 
+    int waiter = -1;
+
     cbuf_init(&vt_in.i,  sizeof(vt_in.buffer),  vt_in.buffer);
     cbuf_init(&vt_out.o, sizeof(vt_out.buffer), vt_out.buffer);
 
+
     FOREVER {
-        Receive(&tid, (char*)&req, sizeof(req));
+	Receive(&tid, (char*)&req, sizeof(req));
+
+	assert(req.type >= GETC && req.type <= NOTIFIER,
+	       "Invalid message type sent to terminal server (%d)", req.type);
 
         switch(req.type) {
-        case NOTIFIER:
-            cbuf_produce(&vt_out.o, req.payload[0]);
+	case GETC: {
+	    if (cbuf_can_consume(&vt_in.i)) {
+		char byte = cbuf_consume(&vt_in.i);
+		Reply(tid, &byte, sizeof(byte));
+		// TODO: check error code
+	    }
+	    else {
+		waiter = tid;
+	    }
+	    break;
+	}
+	case PUTC: {
+	    char ch = (char)req.size;
+	    uart2_bw_write(&ch, 1);
+	    Reply(tid, NULL, 0);
+	    // TODO: check result code
+	    break;
+	}
 
-            if (out_tid != my_tid) {
-                uint c = (uint)cbuf_consume(&vt_out.o);
-                Reply(out_tid, (char*)&c, sizeof(uint));
-                out_tid = my_tid;
-            }
-            Reply(tid, NULL, 0);
+	case PUTS:
+	    uart2_bw_write(req.payload.string, req.size);
+	    Reply(tid, NULL, 0);
+	    // TODO: check result code
+	    break;
+
+	case CARRIER:
+	    // just block it for now
+            /* if (cbuf_can_consume(&vt_out.o)) { */
+            /*     uint c = (uint)cbuf_consume(&vt_out.o); */
+            /*     Reply(tid, (char*)&c, sizeof(uint)); */
+            /* } else { */
+            /*     out_tid = tid; */
+            /* } */
             break;
 
-        case CARRIER:
-            if(cbuf_can_consume(&vt_out.o)) {
-                uint c = (uint)cbuf_consume(&vt_out.o);
-                Reply(tid, (char*)&c, sizeof(uint));
-            } else {
-                out_tid = tid;
-            }
-            break;
-
-        case SEND:
-            debug_log("got send!");
+	case NOTIFIER: {
+	    cbuf_produce(&vt_in.i, req.payload.text[0]);
             Reply(tid, NULL, 0);
-            break;
+	    // TODO: check error code
 
-        case RECV:
-            debug_log("got recv!");
-            Reply(tid, NULL, 0);
-            break;        
-        }
+	    if (waiter >= 0) {
+		char byte = cbuf_consume(&vt_in.i);
+		kdebug_log("sending %c from %p", byte, &byte);
+		Reply(waiter, &byte, sizeof(byte));
+		// TODO: check error code
+		waiter = -1;
+	    }
+            break;
+	}
+	}
     }
 }
-

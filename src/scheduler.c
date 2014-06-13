@@ -77,9 +77,8 @@ void scheduler_init(void) {
 void scheduler_schedule(task* const t) {
     task_q* const q = &manager.q[t->priority];
 
-    assert(t >= tasks, "schedule: cant schedule task at %p", t);
-    assert(t < &tasks[TASK_MAX], "schedule: cant schedule task at %p", t);
-    assert(t->priority <= TASK_PRIORITY_MAX, "schedule: Bad Priority %u", t->priority);
+    kassert(t >= tasks, "schedule: cant schedule task at %p", t);
+    kassert(t < &tasks[TASK_MAX], "schedule: can't schedule task at %p", t);
 
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
@@ -103,7 +102,7 @@ void scheduler_schedule(task* const t) {
 void scheduler_get_next(void) {
     // find the msb and add it
     uint32 priority = choose_priority(manager.state);
-    assert(priority != 32, "Ran out of tasks to run");
+    kassert(priority != 32, "Ran out of tasks to run");
 
     task_q* const q = &manager.q[priority];
 
@@ -121,7 +120,7 @@ void scheduler_activate(void) {
 
 int task_create(const task_pri pri, void (*const start)(void)) {
     // double check that priority was checked in user land
-    assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
+    kassert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
     // make sure we have something to allocate
     if (!cbuf_can_consume(&free_list.list)) return NO_DESCRIPTORS;

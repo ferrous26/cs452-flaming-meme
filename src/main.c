@@ -106,24 +106,12 @@ static inline void _init() {
     scheduler_init();
     syscall_init();
     irq_init();
-
-    char buffer[128];
-    char* ptr = buffer;
-
-    ptr = vt_goto(ptr, 2, 40);
-    ptr = sprintf(ptr, "Welcome to ferOS build %u", __BUILD__);
-    ptr = vt_goto(ptr, 3, 40);
-    ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
-
-    kprintf_string(buffer, (uint)(ptr - buffer));
-    vt_flush();
 }
 
 void shutdown(void) {
-    assert(debug_processor_mode() == SUPERVISOR,
-	   "Trying to shutdown from non-supervisor mode");
+    kassert(debug_processor_mode() == SUPERVISOR,
+	    "Trying to shutdown from non-supervisor mode");
 
-    vt_log("Shutting Down");
     vt_deinit();
     _flush_caches();
 
