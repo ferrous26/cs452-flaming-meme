@@ -30,7 +30,6 @@ static struct out vt_out;
 static struct in vt_in;
 
 #define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
-
 inline static void uart_setspeed(int base, int speed) {
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
@@ -61,22 +60,17 @@ void uart_init() {
     cbuf_init(&vt_in.i,    16, vt_in.buffer);
 
     uart_setspeed(UART1_BASE, 0xBF);
-    NOP(55);
-    
     uart_setspeed(UART2_BASE, 0x03);
     NOP(55);
 
     int* const lcrh1 = (int*)(UART1_BASE + UART_LCRH_OFFSET);
     *lcrh1 &= ~FEN_MASK;
-    NOP(55);
-
+    
     int* const lcrh2 = (int*)(UART2_BASE + UART_LCRH_OFFSET);
     *lcrh2 &= ~FEN_MASK;
     NOP(55);
 
     uart_initirq(UART1_BASE);
-    NOP(55);
-
     uart_initirq(UART2_BASE);
 }
 
@@ -130,17 +124,14 @@ static uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
     return 0;
 }
 
-// must be a seperate function so we can use the
-// receive register shortcut provided by the vec
-// controller
 void irq_uart2_recv() {
-    const char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    const char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
     if (t != NULL) {
         kwait_req* const req_space = (kwait_req*) t->sp[1];
-        req_space->event[0] = *uart2_data;
+        req_space->event[0] = *data;
         t->sp[0] = 1;
 
         scheduler_schedule(t);
@@ -148,14 +139,13 @@ void irq_uart2_recv() {
     }
 
     kprintf_string("dropped char: ", 14);
-    cbuf_produce(&vt_out.o, *uart2_data);
     vt_flush();
 }
 
 void irq_uart2_send() {
-    volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
-    task* t = int_queue[UART1_SEND];
-    int_queue[UART1_SEND] = NULL;
+    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART2_SEND];
+    int_queue[UART2_SEND] = NULL;
 
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kwait_req* const req_space = (kwait_req*) t->sp[1];
@@ -199,10 +189,6 @@ void irq_uart1_recv() {
         scheduler_schedule(t);
         return;
     }
-
-    kprintf_string("dropped char: ", 14);
-    cbuf_produce(&vt_out.o, *data);
-    vt_flush();
 }
 
 void irq_uart1_send() {
