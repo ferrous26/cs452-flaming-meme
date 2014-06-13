@@ -83,14 +83,6 @@ char uart2_bw_waitget() {
     return uart2_bw_read();
 }
 
-static inline uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
-    if (irqr & RTIS_MASK) return 1;
-    if (irqr & TIS_MASK)  return 2;
-    if (irqr & RIS_MASK)  return 3;
-    if (irqr & MIS_MASK)  return 4;
-    return 0;
-}
-
 void irq_uart2_recv() {
     const char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART2_RECV];
@@ -124,22 +116,13 @@ void irq_uart2_send() {
 }
 
 void irq_uart2() {
-    uint* const irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
-    const uint irq = uart_get_interrupt(*irqr);
-
-    switch (irq) {
-    case 1:     // RECEIVE TIMEOUT
-    case 3:     // RECEIVE
-        irq_uart2_recv();
-        break;
-    case 2:     // TRANSMIT
-        irq_uart2_send();
-        break;
-    case 4:     // MODEM
-        *irqr = (uint)irqr;
-        assert(false, "UART2 should not get modem interrupts!");
-        break;
-    }
+    uint* const intr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
+    
+    assert(*intr & RTIS_MASK,   "UART2 in general without timeout");
+    assert(!(*intr & MIS_MASK), "UART2 got a modem interrupt");
+    
+    const char* rtimeout_mesg = "UART2 Receive Timout!";
+    kprintf(sizeof(rtimeout_mesg), rtimeout_mesg);
 }
 
 void irq_uart1_recv() {
@@ -175,22 +158,19 @@ void irq_uart1_send() {
 }
 
 void irq_uart1() {
-    uint* const irqr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
-    const uint irq = uart_get_interrupt(*irqr);
-    const char modem_mesg[] = "UART1 Modem";
-
-    switch (irq) {
-    case 1:     // RECEIVE TIMEOUT
-    case 3:     // RECEIVE
-        irq_uart1_recv();
-        break;
-    case 2:     // TRANSMIT
-        irq_uart1_send();
-        break;
-    case 4:     // MODEM
-        *irqr = (uint)irqr;
-        kprintf(sizeof(modem_mesg), modem_mesg);
-        break;
+    uint* const intr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
+    assert(*intr & MIS_MASK,     "UART1 in general without modem");
+    assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
+    const char modem_mesg[] = "UART1 Modem dropped!";
+    
+    *intr = (uint)intr;
+    
+    task* t = int_queue[UART1_MODM];
+    if( t != NULL ) {
+        int_queue[UART1_MODM] = NULL;
+        scheduler_schedule(t);
     }
+
+    kprintf(sizeof(modem_mesg), modem_mesg);
 }
 
