@@ -22,20 +22,21 @@ typedef struct {
 } clock_pq;
 
 
-static void clock_notifier() {
+#define CLOCK_ASSERT if (result) clock_failure(result, __LINE__)
+static void __attribute__ ((noreturn)) clock_failure(int result, uint line) {
+    log("Action failed in clock at line %u (%d)", line, result);
+    Shutdown();
+}
 
-    int clock = WhoIs((char*)"clock");
-    if (clock < 0) {
-	log("Clock server not found (%d)", clock);
-	return;
-    }
 
-    int msg = CLOCK_NOTIFY;
+static void __attribute__ ((noreturn)) clock_notifier() {
+
+    int clock = myParentTid();
+    int   msg = CLOCK_NOTIFY;
 
     FOREVER {
 	int result = AwaitEvent(CLOCK_TICK, NULL, 0);
-
-	assert(result == 0, "Impossible clock error code (%d)", result);
+	CLOCK_ASSERT;
 
 	// We don't actually need to send anything to the clock
 	// server, but sending 0 bytes is going to go down a bad path
@@ -43,12 +44,79 @@ static void clock_notifier() {
 	result = Send(clock,
 		      (char*)&msg, sizeof(msg),
 		      (char*)&msg, sizeof(msg));
-	if (result < 0) {
-	    log("Failed to send to clock (%d)", result);
-	    return;
+	CLOCK_ASSERT;
+    }
+}
+
+static void __attribute__ ((noreturn)) clock_ui() {
+
+// CLOCK MM:SS.D
+#define CLOCK_ROW     1
+#define CLOCK_MINUTES 7
+#define CLOCK_SECONDS 10
+#define CLOCK_TENTHS  13
+
+    printf(32, "Clock UI starting on %d", myTid());
+
+    char buffer[64];
+    char* ptr   = buffer;
+    int result  = 0;
+
+    ptr    = vt_goto(buffer, CLOCK_ROW, 1);
+    ptr    = sprintf_string(ptr, "CLOCK 00:00.0");
+    result = Puts(buffer, (uint)(ptr - buffer));
+    CLOCK_ASSERT;
+
+    int minutes = 0;
+    int seconds = 0;
+    int  tenths = 0;
+
+    FOREVER {
+	result = Delay(10);
+	CLOCK_ASSERT;
+
+	tenths++;
+	if (tenths == 10) {
+	    seconds++;
+	    tenths = 0;
+
+	    if (seconds == 60) {
+		// sync with the actual time
+		int time = Time();
+		tenths  = time    / 10;
+		seconds = tenths  / 10;
+		minutes = seconds / 60;
+		tenths  = tenths  % 10;
+		seconds = seconds % 60;
+		minutes = minutes % 100;
+
+		ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_MINUTES);
+		ptr    = sprintf(ptr, "%c%c:%c%c.%c",
+				 '0' + (minutes / 10),
+				 '0' + (minutes % 10),
+				 '0' + (seconds / 10),
+				 '0' + (seconds % 10),
+				 '0' + tenths);
+		result = Puts(buffer, (uint)(ptr - buffer));
+		CLOCK_ASSERT;
+
+	    }
+	    else { // need to update seconds and tenths
+		ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_SECONDS);
+		ptr    = sprintf(ptr, "%c%c.0",
+				 '0' + (seconds / 10),
+				 '0' + (seconds % 10));
+		result = Puts(buffer, (uint)(ptr - buffer));
+		CLOCK_ASSERT;
+	    }
+	}
+	else { // only need to update deciseconds
+	    ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_TENTHS);
+	    ptr    = sprintf_char(ptr, '0' + tenths);
+	    result = Puts(buffer, (uint)(ptr - buffer));
+	    CLOCK_ASSERT;
 	}
     }
-
 }
 
 static void pq_init(clock_pq* q) {
@@ -158,6 +226,12 @@ static void _startup(clock_pq* pq) {
     result = Create(TASK_PRIORITY_HIGH, clock_notifier);
     if (result < 0) {
 	log("Failed to create clock_notifier (%d)", result);
+	return;
+    }
+
+    result = Create(TASK_PRIORITY_MEDIUM_HI, clock_ui);
+    if (result < 0) {
+	log("Failed to create clock_ui (%d)", result);
 	return;
     }
 
