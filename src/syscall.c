@@ -233,6 +233,7 @@ int DelayUntil(int ticks) {
 
 void Shutdown() {
     _syscall(SYS_SHUTDOWN, NULL);
+    FOREVER;
 }
 
 int Getc(int channel) {

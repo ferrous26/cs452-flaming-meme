@@ -128,7 +128,7 @@ int DelayUntil(int ticks);
  * Shutdown EVERYTHING. This function does not return and it does
  * not give other tasks an opportunity to shutdown.
  */
-void Shutdown(void);
+void __attribute__ ((noreturn)) Shutdown(void);
 
 typedef enum {
     TRAIN_CONTROLLER = 1,
