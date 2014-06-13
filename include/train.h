@@ -1,5 +1,3 @@
-#include <std.h>
-
 #define TRAIN_ALL_START      0x60
 #define TRAIN_ALL_STOP       0x61
 
@@ -20,3 +18,4 @@
 
 #define SENSOR_RESET         192
 #define SENSOR_POLL          133
+

@@ -28,9 +28,7 @@ static void __attribute__ ((noreturn)) clock_failure(int result, uint line) {
     Shutdown();
 }
 
-
 static void __attribute__ ((noreturn)) clock_notifier() {
-
     int clock = myParentTid();
     int   msg = CLOCK_NOTIFY;
 

@@ -32,6 +32,14 @@ bool __attribute__ ((pure)) uart2_bw_can_read(void);
 char uart2_bw_read(void);
 char uart2_bw_waitget(void);
 
+
 void irq_uart2(void);
+void irq_uart2_send(void);
+void irq_uart2_recv(void);
+
+void irq_uart1(void);
+void irq_uart1_send(void);
+void irq_uart1_recv(void);
 
 #endif
+

@@ -16,9 +16,9 @@
 #include <syscall.h>
 
 
-#define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>3)+1; _cnt++)
+#define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
 
-void uart_init() {
+inline static void uart_setspeed(int base, int speed) {
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
      * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/pdf/EP93xx_Users_Guide_UM1.pdf
@@ -31,33 +31,40 @@ void uart_init() {
      * Therefore:
      * BAUDDIV = 191 = 0xbf
      */
-
-    // speed for vt100
-    int* const baud_high = (int*)(UART2_BASE + UART_LCRM_OFFSET);
-    int* const baud_low = (int*)(UART2_BASE + UART_LCRL_OFFSET);
+    int* const baud_high = (int*)(base + UART_LCRM_OFFSET);
+    int* const baud_low =  (int*)(base + UART_LCRL_OFFSET);
     *baud_high = 0x0;
-    *baud_low  = 0x3;
+    *baud_low  = speed;
+}
 
+inline static void uart_initirq(int base) {
+    int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
+    *ctlr = RIEN_MASK | RTIEN_MASK | UARTEN_MASK | MSIEN_MASK;
+}
+
+void uart_init() {
+    uart_setspeed(UART1_BASE, 0xBF);
+    uart_setspeed(UART2_BASE, 0x03);
     NOP(55);
 
-    // disable fifo for vt100
-    int* const lcrh = (int*)(UART2_BASE + UART_LCRH_OFFSET);
-    *lcrh &= ~FEN_MASK;
-
+    int* const lcrh1 = (int*)(UART1_BASE + UART_LCRH_OFFSET);
+    *lcrh1 &= ~FEN_MASK;
+    
+    int* const lcrh2 = (int*)(UART2_BASE + UART_LCRH_OFFSET);
+    *lcrh2 &= ~FEN_MASK;
     NOP(55);
 
-    int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
-    *ctlr = RIEN_MASK|RTIEN_MASK|UARTEN_MASK;
+    uart_initirq(UART1_BASE);
+    uart_initirq(UART2_BASE);
 }
 
 void uart2_bw_write(const char* string, uint length) {
-
     volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     for (; length; length--) {
-	while (*flags & (TXFF_MASK|CTS_MASK));
-	*data = *string++;
+        while (*flags & (TXFF_MASK|CTS_MASK));
+        *data = *string++;
     }
 }
 
@@ -84,34 +91,31 @@ static inline uint __attribute__ ((const)) uart_get_interrupt(const uint irqr) {
     return 0;
 }
 
-// must be a seperate function so we can use the
-// receive register shortcut provided by the vec
-// controller
-static void irq_uart2_recv() {
-    const char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+void irq_uart2_recv() {
+    const char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
     if (t) {
         kwait_req* const req_space = (kwait_req*) t->sp[1];
-        req_space->event[0] = *uart2_data;
+        req_space->event[0] = *data;
         t->sp[0] = 1;
 
         scheduler_schedule(t);
         return;
     }
-
-    kprintf(16, "dropped char: %c", *uart2_data);
+    
+    kprintf(32, "UART2 dropped char %c", *data);
 }
 
-static void irq_uart2_send() {
-    volatile char* const uart2_data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+void irq_uart2_send() {
+    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
 
     kassert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kwait_req* const req_space = (kwait_req*) t->sp[1];
-    *uart2_data = req_space->event[0];
+    *data = req_space->event[0];
     t->sp[0] = 1;
 
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
@@ -120,8 +124,8 @@ static void irq_uart2_send() {
 }
 
 void irq_uart2() {
-    uint* const uart2_irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
-    const uint irq = uart_get_interrupt(*uart2_irqr);
+    uint* const irqr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
+    const uint irq = uart_get_interrupt(*irqr);
 
     switch (irq) {
     case 1:     // RECEIVE TIMEOUT
@@ -132,8 +136,61 @@ void irq_uart2() {
         irq_uart2_send();
         break;
     case 4:     // MODEM
-        kprintf(6, "MODEM!");
-        *uart2_irqr = (uint)uart2_irqr;
+        *irqr = (uint)irqr;
+        assert(false, "UART2 should not get modem interrupts!");
         break;
     }
 }
+
+void irq_uart1_recv() {
+    const char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART1_RECV];
+    int_queue[UART1_RECV] = NULL;
+
+    if (t != NULL) {
+        kwait_req* const req_space = (kwait_req*) t->sp[1];
+        req_space->event[0] = *data;
+        t->sp[0] = 1;
+
+        scheduler_schedule(t);
+        return;
+    }
+
+    kprintf(32, "UART1 dropped char %d\n", *data);
+}
+
+void irq_uart1_send() {
+    volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    task* t = int_queue[UART1_SEND];
+    int_queue[UART1_SEND] = NULL;
+
+    assert(t != NULL, "UART1 SEND INTERRUPT WITHOUT SENDER!");
+    kwait_req* const req_space = (kwait_req*) t->sp[1];
+    *data = req_space->event[0];
+    t->sp[0] = 1;
+
+    int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
+    *ctlr &= ~TIEN_MASK;
+    scheduler_schedule(t);
+}
+
+void irq_uart1() {
+    uint* const irqr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
+    const uint irq = uart_get_interrupt(*irqr);
+    const char modem_mesg[] = "UART1 Modem";
+
+    switch (irq) {
+    case 1:     // RECEIVE TIMEOUT
+    case 3:     // RECEIVE
+        irq_uart1_recv();
+        break;
+    case 2:     // TRANSMIT
+        irq_uart1_send();
+        break;
+    case 4:     // MODEM
+        *irqr = (uint)irqr;
+        kprintf(sizeof(modem_mesg), modem_mesg);
+        break;
+    }
+}
+

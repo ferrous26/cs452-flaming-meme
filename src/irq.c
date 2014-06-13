@@ -23,10 +23,14 @@ _init_vector_irq(const uint interrupt, const int priority, voidf handle) {
 
 inline static void _init_all_vector_irq() {
     //setup VEC1
+    _init_vector_irq(25, 0, irq_uart2_recv);
+    _init_vector_irq(23, 1, irq_uart1_recv);
+    _init_vector_irq(24, 3, irq_uart1_send);
+    _init_vector_irq(26, 2, irq_uart2_send);
 
     //setup VEC2
     _init_vector_irq(54, 0, irq_uart2);
-    //    _init_vector_irq(52, 1, uart1);
+    _init_vector_irq(52, 1, irq_uart1);
     _init_vector_irq(51, 2, irq_clock);
 }
 
@@ -35,21 +39,14 @@ void irq_init() {
     *HWI_HANDLER = (0xea000000 | (((uint)hwi_enter >> 2) - 8));
 
     // irq_enable_user_protection();
-    irq_enable_interrupt(0);  // Soft Interrupt
-    irq_enable_interrupt(1);  // Soft Interrupt
-    irq_enable_interrupt(63); // Soft Interrupt
-    irq_enable_interrupt(51); // Timer 3
-
-    /*
     irq_enable_interrupt(23); // UART1 recv
     irq_enable_interrupt(24); // UART1 send
     irq_enable_interrupt(25); // UART2 recv
     irq_enable_interrupt(26); // UART2 send
-    */
 
-    // irq_enable_interrupt(52); // UART1 general
+    irq_enable_interrupt(51); // Timer 3
+    irq_enable_interrupt(52); // UART1 general
     irq_enable_interrupt(54); // UART2 general
-
     _init_all_vector_irq();
 }
 
@@ -67,7 +64,6 @@ void irq_deinit() {
 }
 
 inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
-
     kassert(interrupt < 64,
 	    "Invalid Interrupt %d", interrupt);
 
