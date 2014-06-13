@@ -186,7 +186,7 @@ void clock_server() {
 	switch (req.type) {
 	case CLOCK_NOTIFY:
 	    // reset notifier ASAP
-	    result = Reply(tid, (char*)&req, siz);
+	    result = Reply(tid, NULL, 0);
 	    if (result)
 		log("Failed to reply to clock_notifier (%d)", result);
 
@@ -195,7 +195,7 @@ void clock_server() {
 
 	    while (pq_peek(&q) <= time) {
 		tid = pq_delete(&q);
-		result = Reply(tid, (char*)&req, sizeof(clock_req_type));
+		result = Reply(tid, NULL, 0);
 		if (result) _error(tid, result);
 	    }
 	    break;
