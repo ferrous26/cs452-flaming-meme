@@ -207,8 +207,8 @@ ksyscall_await(const kwait_req* const req, int* const result) {
 
 inline static void ksyscall_irq() {
     voidf handler = (voidf)VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-    handler();
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*)handler;
+    handler();
     ksyscall_pass();
 }
 
