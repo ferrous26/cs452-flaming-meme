@@ -110,7 +110,8 @@ static void irq_uart2_send() {
     int_queue[UART2_SEND] = NULL;
 
     kassert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
-    kwait_req* const req_space = (kwait_req*) t->sp[1];
+
+    kwait_req* const req_space = (kwait_req*)t->sp[1];
     *uart2_data = req_space->event[0];
     t->sp[0] = 1;
 

@@ -165,18 +165,18 @@ void task_destroy() {
 void debug_task(const task_id tid) {
     task* tsk = &tasks[task_index_from_tid(tid)];
 
-    debug_log("Task:");
-    debug_log("             ID: %u", tsk->tid);
-    debug_log("      Parent ID: %u", tsk->p_tid);
-    debug_log("       Priority: %u", tsk->priority);
+    kdebug_log("Task:");
+    kdebug_log("             ID: %u", tsk->tid);
+    kdebug_log("      Parent ID: %u", tsk->p_tid);
+    kdebug_log("       Priority: %u", tsk->priority);
 
     if (tsk->next == RECV_BLOCKED)
-	debug_log("           Next: RECEIVE BLOCKED");
+	kdebug_log("           Next: RECEIVE BLOCKED");
     else if (tsk->next == RPLY_BLOCKED)
-	debug_log("           Next: REPLY BLOCKED");
+	kdebug_log("           Next: REPLY BLOCKED");
     else
-	debug_log("           Next: %p", tsk->next);
+	kdebug_log("           Next: %p", tsk->next);
 
-    debug_log("  Stack Pointer: %p", tsk->sp);
+    kdebug_log("  Stack Pointer: %p", tsk->sp);
 }
 #endif
