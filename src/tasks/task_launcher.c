@@ -13,6 +13,7 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
+#include <tasks/bench_memcpy.h>
 
 #include <tasks/task_launcher.h>
 
@@ -40,6 +41,9 @@ static void tl_action(char input) {
 	break;
     case '4':
 	log("The time is %u ticks!", Time());
+	break;
+    case '5':
+	Create(TASK_PRIORITY_MAX, bench_memcpy);
 	break;
     case 's':
         Create(16, stress_root);
