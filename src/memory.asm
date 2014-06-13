@@ -46,8 +46,10 @@ memcpy:
 
 .fastcpy:
 	/* if we are moving less than 2 words, then skip to the small case */
-	cmp r2, #9
-	bmi .small
+	cmp r2, #4
+	beq .reallysmall
+	cmp r2, #8
+	beq .small
 
 	/* otherwise, begin shrink wrapped section */
 	stmfd sp!, {r4-r9}
@@ -73,8 +75,13 @@ memcpy:
 	ldmplia r1!, {r3-r6}
 	stmplia r0!, {r3-r6}
 
+	/* I wish I was clever enough to eliminate these instructions */
 	addmi r2, r2, #16
+
+	/* end of shrink wrapped section*/
 	ldmfd sp!, {r4-r9}
+
+	/* if we are done, then we can return */
 	moveq pc, lr
 
 .small:
@@ -87,6 +94,8 @@ memcpy:
 
 	/* else, prepare for the one word case */
 	addmi r2, r2, #8
+
+.reallysmall:
 	subs  r2, r2, #4
 
 	ldrpl r3, [r1], #4
