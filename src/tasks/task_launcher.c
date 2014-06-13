@@ -82,9 +82,8 @@ void task_launcher() {
 
     Puts(buffer, (uint)(ptr - buffer));
 
-
     FOREVER {
         log("Welcome to Task Launcher (h for help)");
-	tl_action(uart2_bw_waitget());
+	tl_action(Getc(TERMINAL));
     }
 }
