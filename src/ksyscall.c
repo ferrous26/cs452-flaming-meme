@@ -180,7 +180,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 }
 
 inline static void
-ksyscall_await(const kwait_req* const req, int* const result) {
+ksyscall_await(const kreq_event* const req, int* const result) {
     switch (req->eventid) {
     case UART2_SEND: {
         int_queue[UART2_SEND] = task_active;
@@ -263,7 +263,7 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 	ksyscall_change_priority((int)req);
 	break;
     case SYS_AWAIT:
-	ksyscall_await((const kwait_req* const)req, sp);
+	ksyscall_await((const kreq_event* const)req, sp);
 	break;
     case SYS_SHUTDOWN:
 	shutdown();

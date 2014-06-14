@@ -6,7 +6,6 @@
 #include <scheduler.h>
 #include <circular_buffer.h>
 
-
 #define TERM_ASSERT(expr, var) if (expr) term_failure(var, __LINE__)
 static void __attribute__ ((noreturn)) term_failure(int result, uint line) {
     UNUSED(result);
@@ -19,7 +18,6 @@ static void __attribute__ ((noreturn)) term_failure(int result, uint line) {
 
 // data coming from the UART
 static void __attribute__ ((noreturn)) recv_notifier() {
-
     int ptid = myParentTid();
 
     term_req buffer = {
@@ -41,7 +39,6 @@ static void __attribute__ ((noreturn)) send_carrier() {
     int ptid = myParentTid();
     term_req buffer = {
         .type = CARRIER,
-        .size = 1 // TODO: set this to UART FIFO size when FIFO is enabled
     };
 
     FOREVER {
@@ -50,8 +47,14 @@ static void __attribute__ ((noreturn)) send_carrier() {
                            buffer.payload.text, sizeof(buffer.payload));
 	TERM_ASSERT(buffer.size <= 0, buffer.size);
 
-        int result = AwaitEvent(UART2_SEND, buffer.payload.text, buffer.size);
-	TERM_ASSERT(result != 1, result);
+        int sent = 0;
+        while (sent < buffer.size) {
+            int result = AwaitEvent(UART2_SEND, buffer.payload.text + sent, buffer.size);
+	    TERM_ASSERT(result != 1, result);
+
+            sent        += result;
+            buffer.size -= result;
+        }
     }
 }
 
@@ -76,7 +79,6 @@ int term_server_tid;
 
 
 void term_server() {
-
     term_server_tid = myTid();
 
     struct term_state state;

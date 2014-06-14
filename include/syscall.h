@@ -70,6 +70,12 @@ typedef struct {
     int   replylen;
 } kreq_reply;
 
+typedef struct {
+    int eventid;
+    char* event;
+    int eventlen;
+} kreq_event;
+
 void syscall_init(void);
 void syscall_deinit(void);
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
@@ -107,12 +113,6 @@ typedef enum {
     INVALID_EVENT = -1,
     CORRUPT_DATA  = -2
 } event_err;
-
-typedef struct {
-    int eventid;
-    char* event;
-    int eventlen;
-} kwait_req;
 
 int AwaitEvent(int eventid, char* event, int eventlen);
 

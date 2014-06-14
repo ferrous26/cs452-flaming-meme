@@ -147,7 +147,7 @@ int RegisterAs(char* name) {
 }
 
 int AwaitEvent(int eventid, char* event, int eventlen) {
-    volatile kwait_req req = {
+    volatile kreq_event req = {
         .eventid  = eventid,
         .event    = event,
         .eventlen = eventlen
