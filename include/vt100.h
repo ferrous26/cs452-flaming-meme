@@ -104,5 +104,6 @@ char* vt_colour(char* buffer, const colour c);
 char* log_start(char* buffer);
 char* log_end(char* buffer);
 void  log(const char* fmt, ...);
+void  klog(const char* fmt, ...);
 
 #endif

@@ -324,3 +324,18 @@ void log(const char* fmt, ...) {
     Puts(buffer, (uint)(ptr - buffer));
     va_end(args);
 }
+
+void klog(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    char buffer[256];
+    char* ptr = buffer;
+
+    ptr = log_start(ptr);
+    ptr = sprintf_va(ptr, fmt, args);
+    ptr = log_end(ptr);
+
+    uart2_bw_write(buffer, (uint)(ptr - buffer));
+    va_end(args);
+}
