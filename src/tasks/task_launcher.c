@@ -17,6 +17,7 @@
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
 #include <tasks/bench_memcpy.h>
+#include <tasks/train_server.h>
 
 #include <tasks/task_launcher.h>
 
@@ -27,7 +28,8 @@ inline static void print_help() {
 	"4 ~ Get the current time\n\t");
 
     log("\t"
-	"s ~ Run Stressing Task\n\t");
+	"s ~ Run Stressing Task\n\t"
+        "o ~ Poll Sensors");
 
     log("\t"
 	"h ~ Print this Help Message\n\t"
@@ -56,7 +58,13 @@ static void tl_action(char input) {
         break;
 
     case 'o':
-        *(uint* const)(UART1_BASE + UART_DATA_OFFSET) = SENSOR_POLL;
+        put_train(WhoIs(TRAIN_SEND), SENSOR_POLL);
+        
+        for(int i = 0; i < 10; i++) {
+            uint c;
+            get_train(WhoIs(TRAIN_RECV), (char*)&c, sizeof(c));
+            log("%d - %d", i, c);
+        } 
         break;
 
     case 'h':
@@ -79,10 +87,11 @@ void task_launcher() {
     // start idle task at highest level so that it can initialize
     // then it will set itself to the proper priority level before
     // entering its forever loop
-    _create(TASK_PRIORITY_HIGH - 1, term_server,  "terminal server");
-    _create(TASK_PRIORITY_HIGH - 1, name_server,  "name server");
-    _create(TASK_PRIORITY_HIGH - 1, clock_server, "clock server");
-    _create(TASK_PRIORITY_IDLE,     idle,         "idle task");
+    _create(TASK_PRIORITY_MEDIUM, term_server,  "terminal server");
+    _create(TASK_PRIORITY_MEDIUM, name_server,  "name server");
+    _create(TASK_PRIORITY_MEDIUM, clock_server, "clock server");
+    _create(TASK_PRIORITY_MEDIUM, train_server, "train server");
+    _create(TASK_PRIORITY_IDLE,   idle,         "idle task");
 
     char buffer[128];
     char* ptr = buffer;

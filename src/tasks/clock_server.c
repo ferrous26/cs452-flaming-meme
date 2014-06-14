@@ -251,6 +251,7 @@ void clock_server() {
 	int tid;
 	int siz = Receive(&tid, (char*)&req, sizeof(req));
 
+        UNUSED(siz);
 	assert(req.type >= CLOCK_NOTIFY && req.type <= CLOCK_DELAY_UNTIL,
 	       "CS: Invalid message type from %u (%d) size = %u",
 	       tid, req.type, siz);

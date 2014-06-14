@@ -183,26 +183,36 @@ inline static void
 ksyscall_await(const kwait_req* const req, int* const result) {
     switch (req->eventid) {
     case UART2_SEND: {
+        int_queue[UART2_SEND] = task_active;
+
         int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
         break;
     }
     case UART1_SEND: {
+        int_queue[UART1_SEND] = task_active;
+
         int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
         break;
     }
     case CLOCK_TICK:
+        int_queue[CLOCK_TICK] = task_active;
+        break;
     case UART2_RECV:
+        int_queue[UART2_RECV] = task_active;
+        break;
     case UART1_RECV:
+        int_queue[UART1_RECV] = task_active;
+        break;
+    case UART1_MODM:
+        int_queue[UART1_MODM] = task_active;
         break;
     default:
 	*result = INVALID_EVENT;
         ksyscall_pass();
         return;
     }
-
-    int_queue[req->eventid] = task_active;
 }
 
 inline static void ksyscall_irq() {

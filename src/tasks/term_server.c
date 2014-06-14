@@ -23,16 +23,13 @@ static void __attribute__ ((noreturn)) recv_notifier() {
         int result = Send(ptid, (char*)&buffer, sizeof(buffer), NULL, 0);
 
 	UNUSED(result);
-	assert(!result,
-	       "Failed to notify terminal server of new data (%d)", result);
+	assert(!result, "Failed to notify terminal server (%d)", result);
     }
 }
 
 // data going to the UART
 static void __attribute__ ((noreturn)) send_carrier() {
-
     int ptid = myParentTid();
-
     term_req buffer = {
         .type = CARRIER,
         .size = 0

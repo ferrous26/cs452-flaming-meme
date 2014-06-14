@@ -117,7 +117,8 @@ void irq_uart2_send() {
 
 void irq_uart2() {
     uint* const intr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
-    
+
+    UNUSED(intr);
     assert(*intr & RTIS_MASK,   "UART2 in general without timeout");
     assert(!(*intr & MIS_MASK), "UART2 got a modem interrupt");
     
@@ -161,7 +162,6 @@ void irq_uart1() {
     uint* const intr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
     assert(*intr & MIS_MASK,     "UART1 in general without modem");
     assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
-    const char modem_mesg[] = "UART1 Modem dropped!";
     
     *intr = (uint)intr;
     
@@ -170,7 +170,5 @@ void irq_uart1() {
         int_queue[UART1_MODM] = NULL;
         scheduler_schedule(t);
     }
-
-    kprintf(sizeof(modem_mesg), modem_mesg);
 }
 
