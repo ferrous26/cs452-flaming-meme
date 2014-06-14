@@ -227,7 +227,7 @@ static void _startup(clock_pq* pq) {
 	return;
     }
 
-    result = Create(TASK_PRIORITY_MEDIUM_HI, clock_ui);
+    result = Create(TASK_PRIORITY_MEDIUM_LO, clock_ui);
     if (result < 0) {
 	log("Failed to create clock_ui (%d)", result);
 	return;

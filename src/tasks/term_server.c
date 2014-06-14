@@ -10,7 +10,7 @@
 static void __attribute__ ((noreturn)) term_failure(int result, uint line) {
     UNUSED(result);
     UNUSED(line);
-    
+
     kdebug_log("Action failed in terminal server at line %u (%d)", line, result);
     Shutdown();
 }
