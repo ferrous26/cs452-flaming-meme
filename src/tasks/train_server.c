@@ -40,20 +40,29 @@ static void write_carrier() {
         .size = 0
     };
 
+    char *next;
     FOREVER {
+        next = buffer.payload;
         buffer.size = Send(ptid,
                            (char*)&buffer, sizeof(buffer),
                            buffer.payload, sizeof(buffer.payload));        
         assert(buffer.size > 0, "Failed to send to train (%d)", buffer.size);
 
-        if (!(*uart_flag & CTS_MASK)) {
-            AwaitEvent(UART1_MODM, NULL, 0);
-        }
+        while (buffer.size) {
+            if (!(*uart_flag & CTS_MASK)) {
+                AwaitEvent(UART1_MODM, NULL, 0);
+            }
+            
+            int ret = AwaitEvent(UART1_SEND, buffer.payload, buffer.size);
 
-        AwaitEvent(UART1_SEND, buffer.payload, buffer.size);
+            assert(ret > 0, "Sending To Train Failed (%d)", ret);
+            next        += ret;
+            buffer.size -= ret;
+            assert(buffer.size >= 0, "Sent more than buffersize by %d", -buffer.size);
 
-        if (*uart_flag & CTS_MASK) {
-            AwaitEvent(UART1_MODM, NULL, 0);
+            if (*uart_flag & CTS_MASK) {
+                AwaitEvent(UART1_MODM, NULL, 0);
+            }
         }
     }
 }

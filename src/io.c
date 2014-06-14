@@ -57,6 +57,16 @@ void uart_init() {
 
     uart_initirq(UART1_BASE);
     uart_initirq(UART2_BASE);
+
+    NOP(55);
+
+    // want to clear the error registers since otehr people might
+    // have set them off
+    int* const rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
+    *rsr1 = (int)rsr1;
+    
+    int* const rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
+    *rsr2 = (int)rsr2;
 }
 
 void uart2_bw_write(const char* string, uint length) {
@@ -84,7 +94,19 @@ char uart2_bw_waitget() {
     return uart2_bw_read();
 }
 
+
+#ifdef DEBUG
+static void uart_rsr_check(int base) {
+    volatile int*  const rsr  = (int*) (base + UART_RSR_OFFSET);
+    kassert(!(*rsr & 0xf), "UART %p has had an error %p", base, *rsr);
+}
+#else
+#define uart_rsr_check(...)
+#endif
+
 void irq_uart2_recv() {
+    uart_rsr_check(UART2_BASE);
+
     volatile int* const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     const char* const   data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     
@@ -99,7 +121,7 @@ void irq_uart2_recv() {
             req->event[i] = *data;
         }
 
-        assert(i > 0, "UART2 Had An Empty Send");
+        kassert(i > 0, "UART2 Had An Empty Recv");
         t->sp[0] = i;
 
         scheduler_schedule(t);
@@ -110,9 +132,11 @@ void irq_uart2_recv() {
 }
 
 void irq_uart2_send() {
+    uart_rsr_check(UART2_BASE);
+    
     volatile int*  const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
-    
+
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
 
@@ -124,7 +148,7 @@ void irq_uart2_send() {
         *data = req->event[i];
     }
 
-    assert(i > 0, "UART2 Had An Empty Send");
+    kassert(i > 0, "UART2 Had An Empty Send");
     t->sp[0] = i;
 
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
@@ -133,6 +157,7 @@ void irq_uart2_send() {
 }
 
 void irq_uart2() {
+    uart_rsr_check(UART2_BASE);
     uint* const intr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
 
     UNUSED(intr);
@@ -143,6 +168,8 @@ void irq_uart2() {
 }
 
 void irq_uart1_recv() {
+    uart_rsr_check(UART1_BASE);
+
     const char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART1_RECV];
     int_queue[UART1_RECV] = NULL;
@@ -161,6 +188,8 @@ void irq_uart1_recv() {
 }
 
 void irq_uart1_send() {
+    uart_rsr_check(UART1_BASE);
+    
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART1_SEND];
     int_queue[UART1_SEND] = NULL;
@@ -176,6 +205,8 @@ void irq_uart1_send() {
 }
 
 void irq_uart1() {
+    uart_rsr_check(UART1_BASE);
+    
     uint* const intr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
     assert(*intr & MIS_MASK,     "UART1 in general without modem");
     assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
