@@ -6,11 +6,6 @@
 #include <syscall.h>
 #include <scheduler.h>
 
-enum {
-    UPDATE,
-    POLL
-} idle_notifs;
-
 // best case number of Timer4 ticks for a context switch
 #define MINIMUM_NON_IDLE_TIME 2
 
@@ -43,24 +38,26 @@ static void idle_ui() {
     int time = 0;
 
     FOREVER {
-	Delay(100);
- 	time = Time();
+        Delay(100);
+        time = Time();
 
-	// 9830.4 idle ticks = 1 clock tick
-	// we update the UI once every 1000 milliseconds
-	// so, 983040 idle ticks = 100 clock ticks = 1 UI update
-	// therefore, total number of idle ticks is given by this
+        // 9830.4 idle ticks = 1 clock tick
+        // we update the UI once every 1000 milliseconds
+        // so, 983040 idle ticks = 100 clock ticks = 1 UI update
+        // therefore, total number of idle ticks is given by this
 #define T4_TICKS_PER_SECOND 983040
-	int idle_time = (T4_TICKS_PER_SECOND - non_idle_ticks) * 100;
-	idle_time /= T4_TICKS_PER_SECOND;
-	non_idle_ticks = 0;
+        int idle_time = (T4_TICKS_PER_SECOND - non_idle_ticks) * 100;
+        idle_time /= T4_TICKS_PER_SECOND;
+        non_idle_ticks = 0;
 
-	ptr = vt_goto(buffer, IDLE_ROW, IDLE_COL);
-	ptr = sprintf(ptr, "%c%c",
-		      '0' + (idle_time / 10),
-		      '0' + (idle_time % 10));
-	result = Puts(buffer, (uint)(ptr - buffer));
-	IDLE_ASSERT;
+        if (idle_time >= 100) idle_time = 99; // handle this edge case
+
+        ptr = vt_goto(buffer, IDLE_ROW, IDLE_COL);
+        ptr = sprintf(ptr, "%c%c",
+		                  '0' + (idle_time / 10),
+                      '0' + (idle_time % 10));
+        result = Puts(buffer, (uint)(ptr - buffer));
+        IDLE_ASSERT;
     }
 }
 
@@ -81,11 +78,11 @@ void idle() {
     int diff      = 0;
 
     FOREVER {
-	curr_time = clock_t4tick();
-	diff      = curr_time - prev_time;
-	prev_time = curr_time;
+        curr_time = clock_t4tick();
+        diff      = curr_time - prev_time;
+        prev_time = curr_time;
 
-	if (diff > MINIMUM_NON_IDLE_TIME)
-	    non_idle_ticks += diff;
+        if (diff > MINIMUM_NON_IDLE_TIME)
+            non_idle_ticks += diff;
     }
 }
