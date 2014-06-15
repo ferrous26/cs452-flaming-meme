@@ -4,10 +4,9 @@
 
 typedef enum {
     GETC     = 1,
-    PUTC     = 2,
-    PUTS     = 3,
-    CARRIER  = 4,
-    NOTIFIER = 5
+    PUTS     = 2,
+    CARRIER  = 3,
+    NOTIFIER = 4
 } term_req_type;
 
 typedef union {

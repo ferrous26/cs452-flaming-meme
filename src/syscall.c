@@ -260,8 +260,9 @@ int Getc(int channel) {
 
 int Putc(int channel, char ch) {
     term_req req = {
-	.type = PUTC,
-	.size = ch
+	.type = PUTS,
+	.size = 1,
+	.payload.string = &ch
     };
 
     switch (channel) {
@@ -269,9 +270,9 @@ int Putc(int channel, char ch) {
 	return INVALID_CHANNEL;
     case TERMINAL: {
 	int result = Send(term_server_tid,
-			  (char*)&req, sizeof(term_req_type) + sizeof(int),
+			  (char*)&req, sizeof(term_req_type) + (sizeof(int) * 2),
 			  NULL, 0);
-	if (result > 0) return OK;
+	if (result == 0) return OK;
 	return result;
     }
     default:
@@ -286,11 +287,12 @@ int Puts(char* const str, int length) {
 	.payload.string = str
     };
 
+    assert(length > 0, "Empty string sent to Puts (%d)", length);
+
     int result = Send(term_server_tid,
 		      (char*)&req,
 		      sizeof(term_req_type) + sizeof(int) + sizeof(char*),
-		      NULL,
-		      0);
-    if (result > 0) return OK;
+		      NULL, 0);
+    if (result == 0) return OK;
     return result;
 }
