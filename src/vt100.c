@@ -272,11 +272,11 @@ static inline char* vt_reset_scroll_region(char* buffer) {
 }
 
 char* vt_scroll_up(char* buffer) {
-    return sprintf_string(buffer, ESC "M");
+    return sprintf_string(buffer, ESC_CODE "1S");
 }
 
 char* vt_scroll_down(char* buffer) {
-    return sprintf_string(buffer, ESC "D");
+    return sprintf_string(buffer, ESC_CODE "1T");
 }
 
 char* vt_colour_reset(char* buffer) {
