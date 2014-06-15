@@ -54,7 +54,6 @@ inline static void ksyscall_recv(task* const receiver) {
     asm volatile ("mov %0, sp" : "=r" (sp));
     kassert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
 #endif
-
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
 
     if (q->head) {
@@ -97,11 +96,6 @@ inline static void ksyscall_recv(task* const receiver) {
 
 inline static void ksyscall_send(const kreq_send* const req, int* const result) {
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
-
-    kassert((uint)receiver->sp > TASK_HEAP_BOT &&
-	    (uint)receiver->sp < TASK_HEAP_TOP,
-	    "Send: Sender %d has Invlaid heap %p",
-	    receiver->tid, receiver->sp);
 
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
@@ -146,11 +140,6 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 	return;
     }
 
-    kassert((uint)sender->sp > TASK_HEAP_BOT &&
-	    (uint)sender->sp <= TASK_HEAP_TOP,
-            "Reply: Sender %d has Invalid heap %p",
-	    sender->tid, sender->sp);
-
     if (sender->next != RPLY_BLOCKED) {
 	*result = INVALID_RECVER;
         ksyscall_pass();
@@ -181,6 +170,10 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 
 inline static void
 ksyscall_await(const kreq_event* const req, int* const result) {
+    assert(!int_queue[req->eventid],
+           "Event Task Collision (%d - %d) has happened on event %d",
+           ((task*)int_queue[req->eventid])->tid, task_active->tid, req->eventid);
+    
     switch (req->eventid) {
     case UART2_SEND: {
         int_queue[UART2_SEND] = task_active;
@@ -222,9 +215,30 @@ inline static void ksyscall_irq() {
     ksyscall_pass();
 }
 
+
+#ifdef DEBUG
+extern const int _TextStart;
+extern const int _TextEnd;
+
+static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
+    int pc = sp[2] == 0 ? sp[17] : sp[2];
+
+    if (pc >= (int)&_TextStart && pc <= (int)&_TextEnd) {
+        return 0;
+    }
+
+    return pc;
+}
+#endif
+
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 void syscall_handle(const uint code, const void* const req, int* const sp) {
+    kassert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
+            "Reply: task %d has Invalid heap %p", task_active->tid, sp);
+    kassert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
+
+
     // save it, save it real good
     task_active->sp = sp;
 
