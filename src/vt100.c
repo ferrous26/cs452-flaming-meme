@@ -7,8 +7,6 @@
 
 static inline char* vt_reset_scroll_region(char* buffer);
 static inline char* vt_set_scroll_region(char* buffer, uint start, uint end);
-static char* vt_save_cursor(char* buffer);
-static char* vt_restore_cursor(char* buffer);
 
 static uint log_count = 0;
 
@@ -214,8 +212,6 @@ inline char* sprintf_char(char* buffer, const char c) {
     return ++buffer;
 }
 
-#define ESC "\x1B"
-#define ESC_CODE ESC "["
 
 char* vt_clear_screen(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "2J");
@@ -289,11 +285,11 @@ char* vt_colour(char* buffer, const colour c) {
     return sprintf_char(buffer, 'm');
 }
 
-static char* vt_save_cursor(char* buffer) {
+char* vt_save_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "7");
 }
 
-static char* vt_restore_cursor(char* buffer) {
+char* vt_restore_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "8");
 }
 

@@ -58,13 +58,20 @@ static void tl_action(char input) {
         break;
 
     case 'o':
-        put_train(WhoIs(TRAIN_SEND), SENSOR_POLL);
-        
+        put_train_char(WhoIs(TRAIN_SEND), SENSOR_POLL);
         for(int i = 0; i < 10; i++) {
             uint c;
             get_train(WhoIs(TRAIN_RECV), (char*)&c, sizeof(c));
             log("%d - %d", i, c);
         } 
+        break;
+
+    case 'l':
+        put_train_turnout(WhoIs(TRAIN_SEND), TURNOUT_STRAIGHT, 14);
+        break;
+
+    case 'c':
+        put_train_turnout(WhoIs(TRAIN_SEND), TURNOUT_CURVED, 14);
         break;
 
     case 'h':
@@ -100,11 +107,44 @@ void task_launcher() {
     ptr = sprintf(ptr, "Welcome to ferOS build %u", __BUILD__);
     ptr = vt_goto(ptr, 3, 40);
     ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
-
     Puts(buffer, (uint)(ptr - buffer));
 
+
+    char line_mark[] = "TERM> ";
+    char command[80];
+    int  insert;
+
+    log("Welcome to Task Launcher (h for help)");
     FOREVER {
-        log("Welcome to Task Launcher (h for help)");
-	tl_action(Getc(TERMINAL));
+        insert = 0;
+        
+        ptr = vt_goto(buffer, 80, 0);
+        ptr = sprintf(ptr, line_mark);
+        Puts(buffer, (uint)(ptr-buffer));
+
+        for(;;) {
+            char c  = Getc(TERMINAL);
+            
+            switch (c) {
+            case '\b':
+                if(insert == 0) continue;
+                ptr = vt_goto(buffer, 80, (--insert)+sizeof(line_mark));
+                *(ptr++) = ' ';
+                command[insert] = 0;
+                break;
+            case 0x1B:
+                c = '^';
+            default:
+                if(insert == 80) { insert--; }
+
+                ptr = vt_goto(buffer, 80, insert+sizeof(line_mark));
+                *(ptr++) = c;
+                command[insert++] = c;
+            }
+            Puts(buffer, (uint)(ptr-buffer));
+            if(c == '\r') { break; }
+        }
+
+        tl_action(command[0]);    
     }
 }

@@ -7,6 +7,7 @@
 
 #include <std.h>
 #include <stdarg.h>
+#include <kernel.h>
 
 void uart_init(void);
 
@@ -37,9 +38,9 @@ void irq_uart2(void);
 void irq_uart2_send(void);
 void irq_uart2_recv(void);
 
-void irq_uart1(void);
-void irq_uart1_send(void);
-void irq_uart1_recv(void);
+void irq_uart1(void) TEXT_HOT;
+void irq_uart1_send(void) TEXT_HOT;
+void irq_uart1_recv(void) TEXT_HOT;
 
 #endif
 

@@ -6,6 +6,9 @@
 #include <io.h>
 #include <syscall.h>
 
+#define ESC "\x1B"
+#define ESC_CODE ESC "["
+
 void vt_init(void);
 void vt_deinit(void);
 
@@ -63,6 +66,9 @@ char* vt_hide_cursor(char* buffer);
 char* vt_unhide_cursor(char* buffer);
 char* vt_kill_line(char* buffer);
 char* vt_reverse_kill_line(char* buffer);
+char* vt_save_cursor(char* buffer);
+char* vt_load_cursor(char* buffer);
+
 
 // these do not seem to work...
 char* vt_scroll_up(char* buffer);

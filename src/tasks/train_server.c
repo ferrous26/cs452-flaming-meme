@@ -1,4 +1,5 @@
 #include <std.h>
+#include <train.h>
 #include <debug.h>
 #include <vt100.h>
 #include <ts7200.h>
@@ -117,8 +118,8 @@ void train_server() {
         switch (req.type) {
         case CARRIER:
             if (cbuf_can_consume(&train_out.b)) {
-                uint c = (uint)cbuf_consume(&train_out.b);
-                Reply(tid, (char*)&c, sizeof(uint));
+                char c = (char)cbuf_consume(&train_out.b);
+                Reply(tid, (char*)&c, sizeof(c));
             } else {
                 send_tid = tid;
             }
@@ -132,9 +133,13 @@ void train_server() {
             }
 
             if (get_tid != my_tid) {
-                uint c = (uint)cbuf_consume(&train_in.b);
-                Reply(get_tid, (char*)&c, sizeof(c));
-                get_tid = my_tid; 
+                int  i;
+                char c[4];
+                for(i = 0; i<4 && cbuf_can_consume(&train_out.b) ; i++) {
+                    c[i] = cbuf_consume(&train_out.b);
+                }
+                Reply(get_tid, c, i);
+                get_tid = my_tid;
             }
             break;
 
@@ -156,8 +161,12 @@ void train_server() {
             }
             
             if (send_tid != my_tid) {
-                uint c = cbuf_consume(&train_out.b);
-                Reply(send_tid, (char*)&c, sizeof(c));
+                int  i;
+                char c[4];
+                for(i = 0; i<4 && cbuf_can_consume(&train_out.b) ; i++) {
+                    c[i] = cbuf_consume(&train_out.b);
+                }
+                Reply(send_tid, c, i);
                 send_tid = my_tid;
             }
             break;
@@ -165,7 +174,7 @@ void train_server() {
     }
 }
 
-int put_train(int tid, char c){
+int put_train_char(int tid, char c) {
     train_req req = {
         .type       = PUT,
         .size       = 1,
@@ -175,12 +184,35 @@ int put_train(int tid, char c){
     return Send(tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
+int put_train_cmd(int tid, char cmd, char vctm) {
+    train_req req = {
+        .type       = PUT,
+        .size       = 2,
+        .payload[0] = cmd,
+        .payload[1] = vctm
+    };
+
+    return Send(tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int put_train_turnout(int tid, char cmd, char turn) {
+    train_req req = {
+        .type       = PUT,
+        .size       = 3,
+        .payload[0] = cmd,
+        .payload[1] = turn,
+        .payload[2] = TURNOUT_CLEAR
+    };
+
+    return Send(tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
 int get_train(int tid, char *buf, size buf_size) {
     train_req req = {
         .type       = GET,
-        .size       = 0
+        .size       = 1
     };
-    
+
     return Send(tid, (char*)&req, sizeof(req), buf, buf_size);
 }
 
