@@ -121,7 +121,7 @@ static void pq_init(clock_pq* q) {
     q->count = 1;
     q->delays[0].time = 0;
     q->delays[0].tid  = 0;
-    for (size i = 1; i < TASK_MAX; i++) {
+    for (uint i = 1; i < TASK_MAX; i++) {
 	q->delays[i].time = INT_MAX;
 	q->delays[i].tid  = 0;
     }
@@ -203,7 +203,7 @@ static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
 
     clock_delay* delays = q->delays;
 
-    for (size i = 1; i < TASK_MAX; i++)
+    for (uint i = 1; i < TASK_MAX; i++)
 	debug_log("q->delays[%u] = %u - %u", i, delays[i].time, delays[i].tid);
 }
 #endif

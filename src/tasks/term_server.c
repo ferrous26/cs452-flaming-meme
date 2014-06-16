@@ -39,7 +39,7 @@ typedef struct {
     term_puts* head;
     term_puts* tail;
     term_puts* end;
-    size       count;
+    uint       count;
     term_puts  buffer[OUTPUT_Q_SIZE];
 } puts_buffer;
 
@@ -309,7 +309,7 @@ static inline void _term_try_send(struct term_state* const state) {
     	// skip checking if it will fit in this function; it will be
     	// checked in _term_try_puts, and in the worst case, the requests
     	// that do not fit will waste CPU time and get requeued
-    	for (size count = state->output_q.count; count; count--)
+    	for (uint count = state->output_q.count; count; count--)
     	    _term_try_puts(state, pbuf_consume(&state->output_q));
     }
     UNUSED(state);

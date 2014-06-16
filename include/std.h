@@ -21,9 +21,6 @@ typedef          char  int8;
 
 typedef void (*voidf)(void);
 
-typedef uint32 size;
-typedef int32  ssize;
-
 int  __attribute__ ((const)) abs(const int val);
 bool __attribute__ ((const)) isspace(const char c);
 bool __attribute__ ((const)) isdigit(const char c);

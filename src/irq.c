@@ -100,7 +100,7 @@ void irq_clear_simulated_interrupt(const uint i) {
 #ifdef DEBUG
 void debug_interrupt_table() {
     uint base = VIC1_BASE;
-    for (size table = 1; table < 3; table++) {
+    for (uint table = 1; table < 3; table++) {
 	kdebug_log("VIC%d Table\n"
 		   "       IRQ Status: %p\n"
 		   "       FIQ Status: %p\n"

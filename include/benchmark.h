@@ -20,18 +20,19 @@ struct benchmark {
 /**
  * Put this somewhere in global space to setup the variables needed.
  */
-#define BENCH(name) struct benchmark name;
-#define BENCH_EXTERN(name) extern struct benchmark name;
+#define BENCH(name) struct benchmark name
+#define BENCH_EXTERN(name) extern struct benchmark name
 
 /**
  * Put this in the library init function to initialize the state.
  */
-#define BENCH_START(name)			\
-    name.curr  = 0;				\
-    name.worst = 0;				\
-    name.total = 0;				\
-    name.count = 0;				\
-    name.prev  = clock_t4tick();
+#define BENCH_START(name) {			\
+	name.curr  = 0;				\
+	name.worst = 0;				\
+	name.total = 0;				\
+	name.count = 0;				\
+	name.prev  = clock_t4tick();		\
+    }
 
 /* (╯°□°）╯︵ ┻━┻ */
 #define BENCH_LAP(name)							\
@@ -46,10 +47,10 @@ struct benchmark {
     }
 
 #define BENCH_PRINT_WORST(name)			\
-    log(#name ".worst: %u", name.worst);
+    log(#name ".worst: %u", name.worst)
 
 #define BENCH_PRINT_AVERAGE(name)				\
-    log(#name ".avg: %u / (%u * 983.04)", name.total, name.count);
+    log(#name ".avg: %u / (%u * 983.04)", name.total, name.count)
 
 #else
 

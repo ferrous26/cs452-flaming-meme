@@ -6,7 +6,7 @@
 
 
 static inline char* vt_reset_scroll_region(char* buffer);
-static inline char* vt_set_scroll_region(char* buffer, uint start, uint end);
+static inline char* vt_set_scroll_region(char* buffer, int start, int end);
 static inline char* vt_save_cursor(char* buffer);
 static inline char* vt_restore_cursor(char* buffer);
 
@@ -99,7 +99,7 @@ char* sprintf_va(char* buffer, const char* fmt, va_list args) {
 static inline char* sprintf_num_simple(char* buffer, const uint32 num) {
 
     // build the string in reverse order to be used like a stack
-    size     i = 0;
+    uint     i = 0;
     uint32 nom = num;
     uint8  noms[10];
 
@@ -153,7 +153,7 @@ char* sprintf_hex(char* buffer, const uint32 num) {
 	return sprintf_char(buffer, '0');
 
     // build the string in reverse order to be used like a stack
-    size  i = 0;
+    uint  i = 0;
     uint8 noms[8];
     uint  nom = num;
 
@@ -183,7 +183,7 @@ char* sprintf_ptr(char* buffer, const void* const pointer) {
     buffer = sprintf_char(buffer, 'x');
 
     // build the string in reverse order to be used like a stack
-    size i = 0;
+    uint i = 0;
     uint8 noms[8];
     uint32 ptr = (uint32)pointer;
 
@@ -264,7 +264,7 @@ char* vt_reverse_kill_line(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "1K");
 }
 
-static inline char* vt_set_scroll_region(char* buffer, uint start, uint end) {
+static inline char* vt_set_scroll_region(char* buffer, int start, int end) {
     buffer = vt_set_location(buffer, start, end);
     return sprintf_char(buffer, 'r');
 }
