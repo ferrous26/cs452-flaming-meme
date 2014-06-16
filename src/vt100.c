@@ -204,7 +204,8 @@ char* sprintf_ptr(char* buffer, const void* const pointer) {
 }
 
 char* sprintf_string(char* buffer, const char* str) {
-    while ((*(buffer++) = *(str++)));
+    while (*str)
+	buffer = sprintf_char(buffer, *str++);
     return buffer;
 }
 
