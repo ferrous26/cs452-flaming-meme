@@ -6,19 +6,19 @@
 
 #ifdef BENCHMARK
 static
-BENCH(bench);
+BENCH(bench)
 #endif
 
 #define ITERATIONS 100000
 
 static void baseline() {
 
-    BENCH_START(bench);
+    BENCH_START(bench)
     for (size i = ITERATIONS; i; i--)
-	BENCH_LAP(bench);
+	BENCH_LAP(bench)
 
-    BENCH_PRINT_WORST(bench);
-    BENCH_PRINT_AVERAGE(bench);
+    BENCH_PRINT_WORST(bench)
+    BENCH_PRINT_AVERAGE(bench)
 }
 
 static void send_it(int child) {
@@ -34,8 +34,8 @@ static void send_it(int child) {
 	BENCH_LAP(bench)
     }
 
-    BENCH_PRINT_WORST(bench);
-    BENCH_PRINT_AVERAGE(bench);
+    BENCH_PRINT_WORST(bench)
+    BENCH_PRINT_AVERAGE(bench)
 
 
     log("64 bytes (16 words)");

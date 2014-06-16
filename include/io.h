@@ -27,7 +27,7 @@ void uart_init(void);
 
 
 // actually doing I/O
-void uart2_bw_write(const char* string, uint length);
+void uart2_bw_write(const char* string, int length);
 
 bool __attribute__ ((pure)) uart2_bw_can_read(void);
 char uart2_bw_read(void);
@@ -43,4 +43,3 @@ void irq_uart1_send(void) TEXT_HOT;
 void irq_uart1_recv(void) TEXT_HOT;
 
 #endif
-

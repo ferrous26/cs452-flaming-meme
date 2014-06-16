@@ -78,7 +78,7 @@
         #define TIS_MASK         0x4    // Transmit Interrupt Status
         #define RIS_MASK         0x2    // Receive Interrupt Status
         #define MIS_MASK         0x1    // Modem Interrupt Status
-#define UART_DMAR_OFFSET	0x28    
+#define UART_DMAR_OFFSET	0x28
 // Specific to UART1
 
 #define UART_MDMCTL_OFFSET	0x100
@@ -89,4 +89,3 @@
 #define UART_HDLCRIB_OFFSET	0x218
         #define OVERRUN_MASK    0x4
 #define UART_HDLCSTS_OFFSET	0x21c
-

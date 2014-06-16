@@ -7,6 +7,8 @@
 
 static inline char* vt_reset_scroll_region(char* buffer);
 static inline char* vt_set_scroll_region(char* buffer, uint start, uint end);
+static inline char* vt_save_cursor(char* buffer);
+static inline char* vt_restore_cursor(char* buffer);
 
 static uint log_count = 0;
 
@@ -21,7 +23,7 @@ void vt_init() {
     ptr = vt_goto(ptr, LOG_HOME, 0);
     ptr = vt_save_cursor(ptr);
 
-    uart2_bw_write(buffer, (uint)(ptr - buffer));
+    uart2_bw_write(buffer, ptr - buffer);
 
     log_count = 0;
 }
@@ -32,7 +34,7 @@ void vt_deinit() {
 
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_unhide_cursor(ptr);
-    uart2_bw_write(buffer, (uint)(ptr - buffer));
+    uart2_bw_write(buffer, ptr - buffer);
 }
 
 
@@ -285,11 +287,11 @@ char* vt_colour(char* buffer, const colour c) {
     return sprintf_char(buffer, 'm');
 }
 
-char* vt_save_cursor(char* buffer) {
+static inline char* vt_save_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "7");
 }
 
-char* vt_restore_cursor(char* buffer) {
+static inline char* vt_restore_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "8");
 }
 
@@ -317,7 +319,7 @@ void log(const char* fmt, ...) {
     ptr = sprintf_va(ptr, fmt, args);
     ptr = log_end(ptr);
 
-    Puts(buffer, (uint)(ptr - buffer));
+    Puts(buffer, ptr - buffer);
     va_end(args);
 }
 
@@ -332,6 +334,6 @@ void klog(const char* fmt, ...) {
     ptr = sprintf_va(ptr, fmt, args);
     ptr = log_end(ptr);
 
-    uart2_bw_write(buffer, (uint)(ptr - buffer));
+    uart2_bw_write(buffer, ptr - buffer);
     va_end(args);
 }

@@ -6,7 +6,7 @@
 #define DEFAULT_LDR_PC 0xE59FF018
 
 inline static void
-_init_vector_irq(const uint interrupt, const int priority, voidf handle) {
+_init_vector_irq(const uint interrupt, const uint priority, voidf handle) {
 
     assert(interrupt < 64,
 	   "Invalid Interrupt %d", interrupt);

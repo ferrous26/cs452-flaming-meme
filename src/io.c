@@ -15,9 +15,11 @@
 #include <circular_buffer.h>
 #include <syscall.h>
 
-#define NOP(count) for(volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
+#define NOP(count) for (volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
 
-inline static void uart_setoptions(int base, int speed, int fifo) {
+inline static void uart_setoptions(const uint base,
+				   const int speed,
+				   const int fifo) {
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
      * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/pdf/EP93xx_Users_Guide_UM1.pdf
@@ -28,7 +30,7 @@ inline static void uart_setoptions(int base, int speed, int fifo) {
      * page 82
      *
      * Therefore:
-     * BAUDDIV = 191 = 0xbf
+     * BAUDDIV = 191 = 0xbf (for the train controller)
      */
     volatile int* const lcrl = (int*)(base + UART_LCRL_OFFSET);
     volatile int* const lcrm = (int*)(base + UART_LCRM_OFFSET);
@@ -44,7 +46,7 @@ inline static void uart_setoptions(int base, int speed, int fifo) {
     }
 }
 
-inline static void uart_initirq(int base) {
+inline static void uart_initirq(const uint base) {
     int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
     *ctlr = RIEN_MASK | RTIEN_MASK | UARTEN_MASK | MSIEN_MASK;
 }
@@ -69,7 +71,7 @@ void uart_init() {
     *rsr2 = (int)rsr2;
 }
 
-void uart2_bw_write(const char* string, uint length) {
+void uart2_bw_write(const char* string, int length) {
     volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
@@ -85,7 +87,7 @@ bool uart2_bw_can_read(void) {
 }
 
 char uart2_bw_read() {
-    volatile const char* const data  = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    volatile const char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     return *data;
 }
 
@@ -97,7 +99,7 @@ char uart2_bw_waitget() {
 
 #ifdef DEBUG
 static void uart_rsr_check(int base) {
-    volatile int*  const rsr  = (int*) (base + UART_RSR_OFFSET);
+    volatile int* const rsr = (int*)(base + UART_RSR_OFFSET);
     assert(!(*rsr & 0xf), "UART %p has had an error %p", base, *rsr);
 }
 #else
@@ -108,7 +110,7 @@ void irq_uart2_recv() {
     uart_rsr_check(UART2_BASE);
 
     volatile int* const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
-    const char* const   data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    const char*   const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
@@ -161,7 +163,7 @@ void irq_uart2_send() {
 
 void irq_uart2() {
     uart_rsr_check(UART2_BASE);
-    uint* const intr = (uint*)(UART2_BASE + UART_INTR_OFFSET);
+    int* const intr = (int*)(UART2_BASE + UART_INTR_OFFSET);
 
     UNUSED(intr);
     assert(*intr & RTIS_MASK,   "UART2 in general without timeout");
@@ -209,14 +211,14 @@ void irq_uart1_send() {
 void irq_uart1() {
     uart_rsr_check(UART1_BASE);
 
-    uint* const intr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
+    int* const intr = (int*)(UART1_BASE + UART_INTR_OFFSET);
     assert(*intr & MIS_MASK,     "UART1 in general without modem");
     assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
 
-    *intr = (uint)intr;
+    *intr = (int)intr;
 
     task* t = int_queue[UART1_MODM];
-    if( t != NULL ) {
+    if (t != NULL) {
         int_queue[UART1_MODM] = NULL;
         scheduler_schedule(t);
     }
