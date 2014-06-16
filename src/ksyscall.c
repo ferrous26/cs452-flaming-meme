@@ -86,7 +86,7 @@ inline static void ksyscall_recv(task* const receiver) {
 	sender->next       = RPLY_BLOCKED;
 
         if (sender_req->msglen)
-	    memcpy(receiver_req->msg, sender_req->msg, (uint)sender_req->msglen);
+	    memcpy(receiver_req->msg, sender_req->msg, sender_req->msglen);
 	scheduler_schedule(receiver); // schedule this mofo
 	return;
     }
@@ -159,7 +159,7 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 
     // at this point, it is smooth sailing
     if (req->replylen)
-        memcpy(sender_req->reply, req->reply, (uint)req->replylen);
+        memcpy(sender_req->reply, req->reply, (int)req->replylen);
 
     // according to spec, we should schedule the sender first, because, in
     // the case where they are the same priority level we want the sender

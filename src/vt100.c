@@ -4,11 +4,10 @@
 #include <debug.h>
 #include <vt100.h>
 
-
-static inline char* vt_reset_scroll_region(char* buffer);
-static inline char* vt_set_scroll_region(char* buffer, uint start, uint end);
 static inline char* vt_save_cursor(char* buffer);
 static inline char* vt_restore_cursor(char* buffer);
+static inline char* vt_reset_scroll_region(char* buffer);
+static inline char* vt_set_scroll_region(char* buffer, int start, int end);
 
 static uint log_count = 0;
 
@@ -264,7 +263,7 @@ char* vt_reverse_kill_line(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "1K");
 }
 
-static inline char* vt_set_scroll_region(char* buffer, uint start, uint end) {
+static inline char* vt_set_scroll_region(char* buffer, int start, int end) {
     buffer = vt_set_location(buffer, start, end);
     return sprintf_char(buffer, 'r');
 }
