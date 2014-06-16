@@ -22,6 +22,7 @@
 #define SYS_PUTC     13
 #define SYS_GETC     14
 #define SYS_PUTS     15
+#define SYS_ABORT    16
 
 #define SAVED_REGISTERS 13
 #define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
@@ -130,6 +131,15 @@ int DelayUntil(int ticks);
  * not give other tasks an opportunity to shutdown.
  */
 void __attribute__ ((noreturn)) Shutdown(void);
+
+typedef struct {
+    char* message;
+    int length;
+} kreq_abort;
+
+void __attribute__ ((noreturn)) Abort(const char* const file,
+				      int line,
+				      char* msg, ...);
 
 typedef enum {
     TRAIN_CONTROLLER = 1,

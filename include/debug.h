@@ -3,12 +3,13 @@
 #define __DEBUG_H__
 
 #include <std.h>
+#include <syscall.h>
 
 #ifdef ASSERT
 #define assert(expr, msg, ...)						\
     {									\
 	if (!(expr))							\
-	    debug_assert_fail(__FILE__, __LINE__, msg, ##__VA_ARGS__);	\
+	    Abort(__FILE__, __LINE__, msg, ##__VA_ARGS__);		\
     }
 
 #else
@@ -19,10 +20,6 @@
 
 void kdebug_log(const char* const message, ...);
 void debug_log(const char* const message, ...);
-
-void debug_assert_fail(const char* const file,
-		       const uint line,
-		       const char* const msg, ...);
 
 typedef enum {
     USER       = 0x10,

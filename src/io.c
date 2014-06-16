@@ -76,7 +76,7 @@ void uart2_bw_write(const char* string, int length) {
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     for (; length; length--) {
-        while (*flags & (TXFF_MASK|CTS_MASK));
+        while (*flags & TXFF_MASK);
         *data = *string++;
     }
 }
@@ -144,7 +144,8 @@ void irq_uart2_send() {
 
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req = (kreq_event*)t->sp[1];
-    assert(req->eventlen, "UART2 Had An Empty Send");
+    assert(req->eventlen > 0 && req->eventlen <= 128,
+	   "UART2 Had Invalid Send Size %d", req->eventlen);
 
     int i;
     for(i = 0; i < 8 && i < req->eventlen; i++) {

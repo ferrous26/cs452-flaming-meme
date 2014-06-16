@@ -125,6 +125,8 @@ void shutdown(void) {
 		  :
 		  : "r" (exit_sp),
 		    "r" (exit_point));
+
+    FOREVER;
 }
 
 int main(int argc, char** argv);

@@ -2,6 +2,7 @@
 #include <syscall.h>
 #include <memory.h>
 #include <kernel.h>
+#include <io.h>
 
 #include <irq.h>
 #include <ts7200.h>
@@ -202,6 +203,12 @@ inline static void ksyscall_irq() {
     ksyscall_pass();
 }
 
+static inline void ksyscall_abort(const kreq_abort* const req) {
+    uart2_bw_write(req->message, req->length);
+    debug_task(task_active->tid);
+    shutdown();
+}
+
 
 #ifdef DEBUG
 extern const int _TextStart;
@@ -268,7 +275,8 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 	break;
     case SYS_SHUTDOWN:
 	shutdown();
-	break;
+    case SYS_ABORT:
+	ksyscall_abort((const kreq_abort* const)req);
     default:
         assert(false, "Task %d, called invalid system call %d",
 	       task_active->tid,

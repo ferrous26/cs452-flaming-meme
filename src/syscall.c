@@ -2,6 +2,7 @@
 #include <debug.h>
 #include <limits.h>
 #include <scheduler.h>
+#include <vt100.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
@@ -233,6 +234,29 @@ int DelayUntil(int ticks) {
 
 void Shutdown() {
     _syscall(SYS_SHUTDOWN, NULL);
+    FOREVER;
+}
+
+void Abort(const char* const file, int line, char* msg, ...) {
+    va_list args;
+    va_start(args, msg);
+
+    char buffer[512];
+    char* ptr = buffer;
+
+    ptr = vt_colour_reset(ptr);
+    ptr = sprintf_string(ptr, "\n\n\n\n\n");
+    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
+    ptr = sprintf_va(ptr, msg, args);
+
+    va_end(args);
+
+    volatile kreq_abort req = {
+	.message = buffer,
+	.length  = (ptr - buffer)
+    };
+
+    _syscall(SYS_ABORT, &req);
     FOREVER;
 }
 

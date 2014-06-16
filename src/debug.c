@@ -12,28 +12,6 @@
 //       get refactored, not into macros, because performance doesn't
 //       matter too much for these calls
 
-void debug_assert_fail(const char* const file,
-		       const uint line,
-		       const char* const msg, ...) {
-    va_list args;
-    va_start(args, msg);
-
-    char buffer[512];
-    char* ptr = buffer;
-
-    ptr = vt_clear_screen(ptr);
-    ptr = vt_goto(ptr, 10, 10);
-    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
-    ptr = sprintf_va(ptr, msg, args);
-
-    uart2_bw_write(buffer, (uint)(ptr - buffer));
-    va_end(args);
-
-    if (debug_processor_mode() == SUPERVISOR)
-	shutdown();
-    Shutdown();
-}
-
 void debug_log(const char* const msg, ...) {
     va_list args;
     va_start(args, msg);

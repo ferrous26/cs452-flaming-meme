@@ -415,7 +415,6 @@ void term_server() {
 
         switch(req.type) {
 	case GETC:
-	    klog("want");
 	    assert(state.in_tid == -1,
 		   "Multiple tasks waiting for input: %d and %d",
 		   state.in_tid, tid);
