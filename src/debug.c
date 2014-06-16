@@ -21,10 +21,10 @@ void debug_assert_fail(const char* const file,
     char buffer[512];
     char* ptr = buffer;
 
-    ptr = log_start(ptr);
+    ptr = vt_clear_screen(ptr);
+    ptr = vt_goto(ptr, 10, 10);
     ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
     ptr = sprintf_va(ptr, msg, args);
-    ptr = log_end(ptr);
 
     uart2_bw_write(buffer, (uint)(ptr - buffer));
     va_end(args);
