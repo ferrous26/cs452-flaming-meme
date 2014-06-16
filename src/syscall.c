@@ -260,9 +260,9 @@ int Getc(int channel) {
 
 int Putc(int channel, char ch) {
     term_req req = {
-	.type = PUTS,
-	.size = 1,
-	.payload.string = &ch
+	.type   = PUTS,
+	.length = 1,
+	.string = &ch
     };
 
     switch (channel) {
@@ -282,9 +282,9 @@ int Putc(int channel, char ch) {
 
 int Puts(char* const str, int length) {
     term_req req = {
-	.type = PUTS,
-	.size = length,
-	.payload.string = str
+	.type   = PUTS,
+	.length = length,
+	.string = str
     };
 
     assert(length > 0, "Empty string sent to Puts (%d)", length);

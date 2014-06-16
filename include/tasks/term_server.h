@@ -6,18 +6,15 @@ typedef enum {
     GETC     = 1,
     PUTS     = 2,
     CARRIER  = 3,
-    NOTIFIER = 4
+    NOTIFIER = 4,
+    OBUFFER  = 5,
+    IBUFFER  = 6
 } term_req_type;
-
-typedef union {
-    char text[8];
-    char* string;
-} term_payload;
 
 typedef struct {
     term_req_type type;
-    int           size;
-    term_payload  payload;
+    int           length;
+    char*         string;
 } term_req;
 
 extern int term_server_tid;
