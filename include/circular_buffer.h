@@ -39,14 +39,14 @@ struct circular_buffer {
   cb->cb.count  = 0;				\
   cb->buffer    = (type*)buffer;
 
-#define CB_PRODUCE					\
-    size ptr = cb->cb.head;				\
-    cb->buffer[ptr] = value;				\
-    cb->cb.count = mod2(ptr + 1, cb->cb.length);	\
+#define CB_PRODUCE						\
+    size ptr = cb->cb.head;					\
+    cb->buffer[ptr] = value;					\
+    cb->cb.count = mod2(cb->cb.count + 1, cb->cb.length);	\
     cb->cb.head  = mod2(ptr + 1, cb->cb.length);
 
 #define CB_CAN_CONSUME				\
-  return (bool)(cb->cb.head != cb->cb.tail);
+    return (bool)cb->cb.count;
 
 #define CB_CONSUME(type)			\
   size ptr    = cb->cb.tail;			\
@@ -72,7 +72,7 @@ static inline void cbuf_init(char_buffer* const cb,
 static inline void cbuf_produce(char_buffer* const cb, const char value) { CB_PRODUCE; }
 static inline bool cbuf_can_consume(const char_buffer* const cb)         { CB_CAN_CONSUME; }
 static inline char cbuf_consume(char_buffer* const cb)                   { CB_CONSUME(char); }
-static inline char cbuf_count(char_buffer* const cb)                     { CB_COUNT; }
+static inline size cbuf_count(const char_buffer* const cb)               { CB_COUNT; }
 
 
 /**
@@ -89,6 +89,6 @@ static inline void ibuf_init(uint_buffer* const  cb,
 static inline void ibuf_produce(uint_buffer* const cb, const uint32 value) { CB_PRODUCE; }
 static inline bool ibuf_can_consume(const uint_buffer* const cb)           { CB_CAN_CONSUME; }
 static inline uint32 ibuf_consume(uint_buffer* const cb)                   { CB_CONSUME(uint32); }
-static inline uint32 ibuf_count(uint_buffer* const cb)                     { CB_COUNT; }
+static inline size   ibuf_count(const uint_buffer* const cb)               { CB_COUNT; }
 
 #endif
