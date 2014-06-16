@@ -1,15 +1,15 @@
-#include <tasks/clock_server.h>
-#include <syscall.h>
+
 #include <std.h>
 #include <debug.h>
 #include <vt100.h>
+#include <syscall.h>
+#include <tasks/clock_server.h>
 
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)
 #define PARENT(i) (i >> 1)
 
 int clock_server_tid;
-
 
 typedef struct {
     int time;

@@ -32,7 +32,7 @@ struct out {
     char buffer[128];
 };
 
-static void write_carrier() {
+static void __attribute__((noreturn)) write_carrier() {
     int ptid      = myParentTid();
     volatile int* const uart_flag = (int*)(UART1_BASE + UART_FLAG_OFFSET);
 
@@ -68,7 +68,7 @@ static void write_carrier() {
     }
 }
 
-static void receive_notifier() {
+static void __attribute__((noreturn)) receive_notifier() {
     int ptid = myParentTid();
     train_req buffer = {
         .type = NOTIFIER,
@@ -94,10 +94,10 @@ void train_server() {
     int send_tid = my_tid;
     int get_tid  = my_tid;
 
-    tid = RegisterAs(TRAIN_SEND);
+    tid = RegisterAs((char*)TRAIN_SEND);
     assert(tid == 0, "Train Server failed to register send name (%d)", tid);
 
-    tid = RegisterAs(TRAIN_RECV);
+    tid = RegisterAs((char*)TRAIN_RECV);
     assert(tid == 0, "Train Server failed to register receive name (%d)", tid);
     
     tid = Create(TASK_PRIORITY_HIGH, write_carrier);
@@ -207,7 +207,10 @@ int put_train_turnout(int tid, char cmd, char turn) {
     return Send(tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int get_train(int tid, char *buf, size buf_size) {
+int get_train(int tid, char *buf, int buf_size) {
+    assert(buf_size > 0 && buf_size <= 10,
+           "Tried to read invalid sensor bank size (%d)", buf_size);
+
     train_req req = {
         .type       = GET,
         .size       = 1

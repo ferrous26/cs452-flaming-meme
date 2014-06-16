@@ -201,15 +201,14 @@ char* sprintf_ptr(char* buffer, const void* const pointer) {
     return buffer;
 }
 
-inline char* sprintf_string(char* buffer, const char* str) {
-    while (*str)
-	buffer = sprintf_char(buffer, *str++);
+char* sprintf_string(char* buffer, const char* str) {
+    while ((*(buffer++) = *(str++)));
     return buffer;
 }
 
-inline char* sprintf_char(char* buffer, const char c) {
-    *buffer = c;
-    return ++buffer;
+char* sprintf_char(char* buffer, const char c) {
+    *(buffer++) = c;
+    return buffer;
 }
 
 
@@ -221,11 +220,16 @@ char* vt_goto_home(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "H");
 }
 
-static char* vt_set_location(char* buffer, const uint first, const uint second) {
-    const char first_high  = (char)(first / 10) + 48;
-    const char first_low   = (char)(first % 10) + 48;
-    const char second_high = (char)(second / 10) + 48;
-    const char second_low  = (char)(second % 10) + 48;
+static char* vt_set_location(char* buffer, const int first, const int second) {
+    assert(first >= 0 && first < 100,
+           "vt_set_location first is invalid (%d)", first);
+    assert(second >= 0 &&second < 100,
+           "vt_set_loaction second is invalid (%d)", second);
+
+    const char first_high  = (char)(first / 10)  + '0';
+    const char first_low   = (char)(first % 10)  + '0';
+    const char second_high = (char)(second / 10) + '0';
+    const char second_low  = (char)(second % 10) + '0';
 
     buffer = sprintf_string(buffer, ESC_CODE);
     if (first_high > 48)
@@ -237,7 +241,7 @@ static char* vt_set_location(char* buffer, const uint first, const uint second) 
     return sprintf_char(buffer, second_low);
 }
 
-char* vt_goto(char* buffer, const uint row, const uint column) {
+char* vt_goto(char* buffer, const int row, const int column) {
     buffer = vt_set_location(buffer, row, column);
     return sprintf_char(buffer, 'H');
 }

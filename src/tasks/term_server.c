@@ -80,9 +80,11 @@ static inline void pbuf_init(puts_buffer* const cb) {
     memset(cb->buffer, 0, sizeof(cb->buffer));
 }
 
+/*
 static inline size pbuf_count(const puts_buffer* const cb) {
     return cb->count;
 }
+*/
 
 static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
     memcpy(cb->head, puts, sizeof(term_puts));
@@ -261,7 +263,8 @@ static inline void _term_send_xoff(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
 	   "No space in buffer for the stop byte!");
     *state->out_head++ = XOFF; // J-J-Jam it in
-    state->xoff = state->obuffer_size++;
+    state->xoff = false;
+    state->obuffer_size++;
 }
 
 static inline void _term_send_xon(struct term_state* const state) {
@@ -269,7 +272,8 @@ static inline void _term_send_xon(struct term_state* const state) {
 	   "No space in buffer for the stop byte!");
     assert(state->xoff, "Haven't sent the xoff byte yet");
     *state->out_head++ = XON; // J-J-Jam it in
-    state->xon = state->obuffer_size++;
+    state->xon = true;
+    state->obuffer_size++;
 }
 
 static inline void _term_try_send(struct term_state* const state) {

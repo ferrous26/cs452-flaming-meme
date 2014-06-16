@@ -60,12 +60,12 @@ char* sprintf_uint(char* buffer, const uint32 num);
 char* sprintf_hex(char* buffer, const uint32 num);
 char* sprintf_ptr(char* buffer, const void* const ptr);
 
-inline char* sprintf_char(char* buffer, const char c);
-inline char* sprintf_string(char* buffer, const char* str);
+char* sprintf_char(char* buffer, const char c);
+char* sprintf_string(char* buffer, const char* str);
 
 char* vt_clear_screen(char* buffer);
 char* vt_goto_home(char* buffer);
-char* vt_goto(char* buffer, const uint row, const uint column);
+char* vt_goto(char* buffer, const int row, const int column);
 char* vt_hide_cursor(char* buffer);
 char* vt_unhide_cursor(char* buffer);
 char* vt_kill_line(char* buffer);
