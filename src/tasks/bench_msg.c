@@ -15,10 +15,10 @@ static void baseline() {
 
     BENCH_START(bench)
     for (size i = ITERATIONS; i; i--)
-	BENCH_LAP(bench)
+	BENCH_LAP(bench);
 
-    BENCH_PRINT_WORST(bench)
-    BENCH_PRINT_AVERAGE(bench)
+    BENCH_PRINT_WORST(bench);
+    BENCH_PRINT_AVERAGE(bench);
 }
 
 static void send_it(int child) {
@@ -28,14 +28,14 @@ static void send_it(int child) {
     const char* msg = "hey";
     char rply[4];
 
-    BENCH_START(bench)
+    BENCH_START(bench);
     for (size i = ITERATIONS; i; i--) {
 	Send(child, (char*)msg, 4, rply, 4);
 	BENCH_LAP(bench)
     }
 
-    BENCH_PRINT_WORST(bench)
-    BENCH_PRINT_AVERAGE(bench)
+    BENCH_PRINT_WORST(bench);
+    BENCH_PRINT_AVERAGE(bench);
 
 
     log("64 bytes (16 words)");
