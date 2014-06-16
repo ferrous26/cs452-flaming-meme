@@ -28,26 +28,10 @@ void debug_assert_fail(const char* const file,
 
     uart2_bw_write(buffer, (uint)(ptr - buffer));
     va_end(args);
+
+    if (debug_processor_mode() == SUPERVISOR)
+	shutdown();
     Shutdown();
-}
-
-void kdebug_assert_fail(const char* const file,
-			const uint  line,
-			const char* const msg, ...) {
-    va_list args;
-    va_start(args, msg);
-
-    char buffer[512];
-    char* ptr = buffer;
-
-    ptr = log_start(ptr);
-    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
-    ptr = sprintf_va(ptr, msg, args);
-    ptr = log_end(ptr);
-
-    uart2_bw_write(buffer, (uint)(ptr - buffer));
-    va_end(args);
-    shutdown();
 }
 
 void debug_log(const char* const msg, ...) {

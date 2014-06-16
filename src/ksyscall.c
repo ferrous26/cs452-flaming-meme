@@ -52,20 +52,20 @@ inline static void ksyscall_recv(task* const receiver) {
 #ifdef DEBUG
     uint sp;
     asm volatile ("mov %0, sp" : "=r" (sp));
-    kassert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
+    assert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
 #endif
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
 
     if (q->head) {
 	task* const sender = q->head;
 
-        kassert((uint)sender < 0x200000 && (uint)sender > 0x100000,
-		"Receive: %d Invalid head pointer!", receiver->tid);
+        assert((uint)sender < 0x200000 && (uint)sender > 0x100000,
+	       "Receive: %d Invalid head pointer!", receiver->tid);
 
-        kassert((uint) q->head->next < 0x200000 &&
-		((uint)q->head->next > 0x100000 || (uint)q->head->next == NULL),
-		"Receive: %d Invalid head next! %p",
-		receiver->tid, sender->next);
+        assert((uint) q->head->next < 0x200000 &&
+	       ((uint)q->head->next > 0x100000 || (uint)q->head->next == NULL),
+	       "Receive: %d Invalid head next! %p",
+	       receiver->tid, sender->next);
 
         q->head = q->head->next; // consume
 
@@ -104,8 +104,8 @@ inline static void ksyscall_send(const kreq_send* const req, int* const result) 
         return;
     }
 
-    kassert(task_active->tid != req->tid,
-	    "Tried to Send to self! (%u)", task_active->tid);
+    assert(task_active->tid != req->tid,
+	   "Tried to Send to self! (%u)", task_active->tid);
 
     /**
      * What we want to do is find the receive q and append to it, as we
@@ -173,7 +173,7 @@ ksyscall_await(const kreq_event* const req, int* const result) {
     assert(!int_queue[req->eventid],
            "Event Task Collision (%d - %d) has happened on event %d",
            ((task*)int_queue[req->eventid])->tid, task_active->tid, req->eventid);
-    
+
     switch (req->eventid) {
     case UART2_SEND: {
         int_queue[UART2_SEND] = task_active;
@@ -234,9 +234,9 @@ static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 void syscall_handle(const uint code, const void* const req, int* const sp) {
-    kassert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
-            "Reply: task %d has Invalid heap %p", task_active->tid, sp);
-    kassert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
+    assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
+	   "Reply: task %d has Invalid heap %p", task_active->tid, sp);
+    assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
 
 
     // save it, save it real good

@@ -5,12 +5,6 @@
 #include <std.h>
 
 #ifdef ASSERT
-#define kassert(expr, msg, ...)						\
-    {									\
-	if (!(expr))							\
-	    kdebug_assert_fail(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
-    }
-
 #define assert(expr, msg, ...)						\
     {									\
 	if (!(expr))							\
@@ -19,17 +13,13 @@
 
 #else
 #define assert(expr, msg, ...)
-#define kassert(expr, msg, ...)
 #endif
 
 #ifdef DEBUG
 
 void kdebug_log(const char* const message, ...);
-void kdebug_assert_fail(const char* const file,
-			const uint line,
-			const char* const msg, ...);
-
 void debug_log(const char* const message, ...);
+
 void debug_assert_fail(const char* const file,
 		       const uint line,
 		       const char* const msg, ...);

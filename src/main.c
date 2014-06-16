@@ -109,8 +109,8 @@ static inline void _init() {
 }
 
 void shutdown(void) {
-    kassert(debug_processor_mode() == SUPERVISOR,
-	    "Trying to shutdown from non-supervisor mode");
+    assert(debug_processor_mode() == SUPERVISOR,
+	   "Trying to shutdown from non-supervisor mode");
 
     vt_deinit();
     _flush_caches();

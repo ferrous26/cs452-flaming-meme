@@ -52,7 +52,7 @@ inline static void uart_initirq(int base) {
 void uart_init() {
     uart_setoptions(UART1_BASE, 0xBF, 0);
     uart_setoptions(UART2_BASE, 0x03, 1);
-    
+
     NOP(55);
 
     uart_initirq(UART1_BASE);
@@ -64,7 +64,7 @@ void uart_init() {
     // have set them off
     int* const rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
     *rsr1 = (int)rsr1;
-    
+
     int* const rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
     *rsr2 = (int)rsr2;
 }
@@ -98,7 +98,7 @@ char uart2_bw_waitget() {
 #ifdef DEBUG
 static void uart_rsr_check(int base) {
     volatile int*  const rsr  = (int*) (base + UART_RSR_OFFSET);
-    kassert(!(*rsr & 0xf), "UART %p has had an error %p", base, *rsr);
+    assert(!(*rsr & 0xf), "UART %p has had an error %p", base, *rsr);
 }
 #else
 #define uart_rsr_check(...)
@@ -109,7 +109,7 @@ void irq_uart2_recv() {
 
     volatile int* const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     const char* const   data = (char*)(UART2_BASE + UART_DATA_OFFSET);
-    
+
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
@@ -121,7 +121,7 @@ void irq_uart2_recv() {
             req->event[i] = *data;
         }
 
-        kassert(i > 0, "UART2 Had An Empty Recv");
+        assert(i > 0, "UART2 Had An Empty Recv");
         t->sp[0] = i;
 
         scheduler_schedule(t);
@@ -133,14 +133,14 @@ void irq_uart2_recv() {
 
 void irq_uart2_send() {
     uart_rsr_check(UART2_BASE);
-    
+
     volatile int*  const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
 
-    kassert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
+    assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req = (kreq_event*)t->sp[1];
 
     int i;
@@ -148,7 +148,7 @@ void irq_uart2_send() {
         *data = req->event[i];
     }
 
-    kassert(i > 0, "UART2 Had An Empty Send");
+    assert(i > 0, "UART2 Had An Empty Send");
     t->sp[0] = i;
 
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
@@ -189,7 +189,7 @@ void irq_uart1_recv() {
 
 void irq_uart1_send() {
     uart_rsr_check(UART1_BASE);
-    
+
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
     task* t = int_queue[UART1_SEND];
     int_queue[UART1_SEND] = NULL;
@@ -206,17 +206,16 @@ void irq_uart1_send() {
 
 void irq_uart1() {
     uart_rsr_check(UART1_BASE);
-    
+
     uint* const intr = (uint*)(UART1_BASE + UART_INTR_OFFSET);
     assert(*intr & MIS_MASK,     "UART1 in general without modem");
     assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
-    
+
     *intr = (uint)intr;
-    
+
     task* t = int_queue[UART1_MODM];
     if( t != NULL ) {
         int_queue[UART1_MODM] = NULL;
         scheduler_schedule(t);
     }
 }
-

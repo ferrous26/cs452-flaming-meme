@@ -8,11 +8,11 @@
 inline static void
 _init_vector_irq(const uint interrupt, const int priority, voidf handle) {
 
-    kassert(interrupt < 64,
-	    "Invalid Interrupt %d", interrupt);
+    assert(interrupt < 64,
+	   "Invalid Interrupt %d", interrupt);
 
-    kassert(priority < 16,
-	    "Invalid vector priority on interrupt %d", interrupt);
+    assert(priority < 16,
+	   "Invalid vector priority on interrupt %d", interrupt);
 
     const uint base = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
     const uint set  = (interrupt & VICCNTL_INT_MASK) | VICCNTL_ENABLE_MASK;
@@ -64,8 +64,7 @@ void irq_deinit() {
 }
 
 inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
-    kassert(interrupt < 64,
-	    "Invalid Interrupt %d", interrupt);
+    assert(interrupt < 64, "Invalid Interrupt %d", interrupt);
 
     const uint base  = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
     const uint shift = interrupt & 0x1F;
