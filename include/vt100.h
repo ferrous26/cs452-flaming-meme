@@ -28,7 +28,7 @@ void vt_deinit(void);
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf(print_buffer, fmt, ## __VA_ARGS__);	\
-	int result = Puts(print_buffer, (uint)(str_end - print_buffer)); \
+	int result = Puts(print_buffer, str_end - print_buffer);	\
 	assert(result == 0, "Failed to Puts (%d)", result);		\
 	UNUSED(result);							\
     }
@@ -45,7 +45,7 @@ char* sprintf(char* buffer, const char* fmt, ...);
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf_va(print_buffer, fmt, args);		\
-	int result = Puts(print_buffer, (uint)(str_end - print_buffer)); \
+	int result = Puts(print_buffer, str_end - print_buffer);	\
 	assert(result == 0, "Failed to Puts (%d)", result);		\
 	UNUSED(result);							\
     }
@@ -70,9 +70,6 @@ char* vt_hide_cursor(char* buffer);
 char* vt_unhide_cursor(char* buffer);
 char* vt_kill_line(char* buffer);
 char* vt_reverse_kill_line(char* buffer);
-char* vt_save_cursor(char* buffer);
-char* vt_load_cursor(char* buffer);
-
 
 // these do not seem to work...
 char* vt_scroll_up(char* buffer);

@@ -3,6 +3,7 @@
 #include <std.h>
 
 #include <parse.h>
+#include <debug.h>
 
 
 static int consume_integer(const char* const str, int* const index) {
@@ -26,7 +27,7 @@ static int parse_argument(const char* const cmd,
 			  int* const arg) {
 
     if (consume_whitespace(cmd, index)) {
-        kprintf(32, "died at position %d(%d)\n", *index, cmd[*index]);
+        assert(false, "died at position %d (%d)\n", (uint)*index, cmd[*index]);
         return -1;
     }
 
