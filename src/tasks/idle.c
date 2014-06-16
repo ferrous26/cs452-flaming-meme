@@ -15,10 +15,10 @@ static void __attribute__ ((noreturn)) idle_failure(int result, uint line) {
     Shutdown();
 }
 
-uint non_idle_ticks = 0;
+static uint non_idle_ticks = 0;
 
 
-static void idle_ui() {
+static void __attribute__((noreturn)) idle_ui() {
 
 // IDLE nn%
 #define IDLE_ROW 2
@@ -32,7 +32,7 @@ static void idle_ui() {
 
     ptr = vt_goto(buffer, IDLE_ROW, 1);
     ptr = sprintf_string(ptr, "IDLE  00%");
-    result = Puts(buffer, (uint)(ptr - buffer));
+    result = Puts(buffer, (int)(ptr - buffer));
     IDLE_ASSERT;
 
     int time = 0;
@@ -56,7 +56,7 @@ static void idle_ui() {
         ptr = sprintf(ptr, "%c%c",
 		      '0' + (idle_time / 10),
                       '0' + (idle_time % 10));
-        result = Puts(buffer, (uint)(ptr - buffer));
+        result = Puts(buffer, (int)(ptr - buffer));
         IDLE_ASSERT;
     }
 }
