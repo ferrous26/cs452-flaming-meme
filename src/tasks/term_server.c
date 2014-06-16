@@ -192,9 +192,13 @@ static void __attribute__ ((noreturn)) send_carrier() {
 
     FOREVER {
 	// blocked until a buffer is ready to go
-        result = Send(ptid, (char*)&msg, sizeof(term_req_type),
+        result = Send(ptid,
+		      (char*)&msg,        sizeof(term_req_type),
 		      (char*)&msg.length, sizeof(int));
 	TERM_ASSERT(result == sizeof(int), result);
+
+	assert(msg.length > 0 && msg.length <= 128,
+	       "BAD CARRIER SIZE MOTHER FUCKER %d", msg.length);
 
 	// switch to next buffer
 	if (buffer == buffers.two)
@@ -283,7 +287,7 @@ static inline void _term_try_send(struct term_state* const state) {
 
     	// then do carrier-send dance
     	int result = Reply(state->carrier,
-    			   (char*)state->obuffer_size,
+    			   (char*)&state->obuffer_size,
     			   sizeof(uint));
     	TERM_ASSERT(result == 0, result);
 
@@ -319,8 +323,6 @@ static inline void _term_try_getc(struct term_state* const state) {
 
     // if we have a buffered byte
     if (cbuf_can_consume(&state->input_q)) {
-	klog("giving");
-
 	// then send it over the wire immediately
 	char  byte = cbuf_consume(&state->input_q);
 	int result = Reply(state->in_tid, &byte, 1);
@@ -345,8 +347,6 @@ static inline void _term_try_getc(struct term_state* const state) {
 
 static inline void _term_recv(struct term_state* const state,
 			      const int length) {
-
-    klog("got %d", length);
 
     // TODO: implement bulk produce for circular buffers
     for (int count = 0; count < length; count++)
