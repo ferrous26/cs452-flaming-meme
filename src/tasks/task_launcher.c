@@ -16,7 +16,6 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
-#include <tasks/bench_memcpy.h>
 #include <tasks/train_server.h>
 
 #include <tasks/task_launcher.h>
@@ -47,9 +46,6 @@ static void tl_action(char input) {
     case '4':
 	log("The time is %u ticks!", Time());
 	break;
-    case '5':
-	Create(TASK_PRIORITY_MAX, bench_memcpy);
-	break;
     case 's':
         Create(16, stress_root);
         break;
@@ -63,7 +59,7 @@ static void tl_action(char input) {
             uint c;
             get_train(WhoIs(TRAIN_RECV), (char*)&c, sizeof(c));
             log("%d - %d", i, c);
-        } 
+        }
         break;
 
     case 'l':
@@ -117,14 +113,14 @@ void task_launcher() {
     log("Welcome to Task Launcher (h for help)");
     FOREVER {
         insert = 0;
-        
+
         ptr = vt_goto(buffer, 80, 0);
         ptr = sprintf(ptr, line_mark);
         Puts(buffer, (uint)(ptr-buffer));
 
         for(;;) {
-            char c  = Getc(TERMINAL);
-            
+            char c = (char)Getc(TERMINAL);
+
             switch (c) {
             case '\b':
                 if(insert == 0) continue;
@@ -145,6 +141,6 @@ void task_launcher() {
             if(c == '\r') { break; }
         }
 
-        tl_action(command[0]);    
+        tl_action(command[0]);
     }
 }
