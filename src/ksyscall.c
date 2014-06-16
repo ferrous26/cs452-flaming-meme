@@ -168,43 +168,30 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
     ksyscall_pass();
 }
 
-inline static void
-ksyscall_await(const kreq_event* const req, int* const result) {
+static inline void
+ksyscall_await(const kreq_event* const req) {
     assert(!int_queue[req->eventid],
            "Event Task Collision (%d - %d) has happened on event %d",
            ((task*)int_queue[req->eventid])->tid, task_active->tid, req->eventid);
 
+    assert(req->eventid >= CLOCK_TICK && req->eventid < EVENT_COUNT,
+	   "Invalid event (%d)", req->eventid);
+
+    int_queue[req->eventid] = task_active;
+
     switch (req->eventid) {
     case UART2_SEND: {
-        int_queue[UART2_SEND] = task_active;
-
         int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
         break;
     }
     case UART1_SEND: {
-        int_queue[UART1_SEND] = task_active;
-
         int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
         break;
     }
-    case CLOCK_TICK:
-        int_queue[CLOCK_TICK] = task_active;
-        break;
-    case UART2_RECV:
-        int_queue[UART2_RECV] = task_active;
-        break;
-    case UART1_RECV:
-        int_queue[UART1_RECV] = task_active;
-        break;
-    case UART1_MODM:
-        int_queue[UART1_MODM] = task_active;
-        break;
     default:
-	*result = INVALID_EVENT;
-        ksyscall_pass();
-        return;
+	break;
     }
 }
 
@@ -277,7 +264,7 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 	ksyscall_change_priority((int)req);
 	break;
     case SYS_AWAIT:
-	ksyscall_await((const kreq_event* const)req, sp);
+	ksyscall_await((const kreq_event* const)req);
 	break;
     case SYS_SHUTDOWN:
 	shutdown();

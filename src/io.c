@@ -116,6 +116,7 @@ void irq_uart2_recv() {
     if (t) {
         kreq_event* const req = (kreq_event*) t->sp[1];
 
+
         int i;
         for (i = 0; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
             req->event[i] = *data;
@@ -128,31 +129,33 @@ void irq_uart2_recv() {
         return;
     }
 
-    kprintf(32, "\nUART2 dropped %c\n", *data);
+    assert(false, "UART2 dropped %c", *data);
 }
 
 void irq_uart2_send() {
     uart_rsr_check(UART2_BASE);
 
-    volatile int*  const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
-    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    volatile char* data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
 
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req = (kreq_event*)t->sp[1];
+    assert(req->eventlen, "UART2 Had An Empty Send");
 
     int i;
-    for(i = 0; !(*flag & TXFF_MASK) && i < req->eventlen ;i++) {
+    for(i = 0; i < 8 && i < req->eventlen; i++) {
         *data = req->event[i];
     }
 
-    assert(i > 0, "UART2 Had An Empty Send");
+    assert(i > 0, "UART2 Failed To Send %d %d", i, req->eventlen);
     t->sp[0] = i;
 
+    // disable the interrupt now that we have sent out a full block
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
     *ctlr &= ~TIEN_MASK;
+
     scheduler_schedule(t);
 }
 
@@ -183,8 +186,7 @@ void irq_uart1_recv() {
         return;
     }
 
-    char mesg[] = "UART1 dropped char %d\n";
-    kprintf(sizeof(mesg)+6, mesg, *data);
+    assert(false, "UART1 dropped char %d", *data);
 }
 
 void irq_uart1_send() {

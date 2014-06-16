@@ -112,6 +112,8 @@ void shutdown(void) {
     assert(debug_processor_mode() == SUPERVISOR,
 	   "Trying to shutdown from non-supervisor mode");
 
+    klog("SHUTTING DOWN");
+
     vt_deinit();
     _flush_caches();
 
