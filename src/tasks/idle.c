@@ -15,7 +15,7 @@ static void __attribute__ ((noreturn)) idle_failure(int result, uint line) {
     Shutdown();
 }
 
-int non_idle_ticks = 0;
+uint non_idle_ticks = 0;
 
 
 static void idle_ui() {
@@ -46,7 +46,7 @@ static void idle_ui() {
         // so, 983040 idle ticks = 100 clock ticks = 1 UI update
         // therefore, total number of idle ticks is given by this
 #define T4_TICKS_PER_SECOND 983040
-        int idle_time = (T4_TICKS_PER_SECOND - non_idle_ticks) * 100;
+        uint idle_time = (T4_TICKS_PER_SECOND - non_idle_ticks) * 100;
         idle_time /= T4_TICKS_PER_SECOND;
         non_idle_ticks = 0;
 
@@ -54,7 +54,7 @@ static void idle_ui() {
 
         ptr = vt_goto(buffer, IDLE_ROW, IDLE_COL);
         ptr = sprintf(ptr, "%c%c",
-		                  '0' + (idle_time / 10),
+		      '0' + (idle_time / 10),
                       '0' + (idle_time % 10));
         result = Puts(buffer, (uint)(ptr - buffer));
         IDLE_ASSERT;
@@ -73,9 +73,9 @@ void idle() {
     // now that we are done setting up, we can drop to idle priority
     ChangePriority(TASK_PRIORITY_IDLE);
 
-    int prev_time = clock_t4tick();
-    int curr_time = prev_time;
-    int diff      = 0;
+    uint prev_time = clock_t4tick();
+    uint curr_time = prev_time;
+    uint diff      = 0;
 
     FOREVER {
         curr_time = clock_t4tick();
