@@ -105,7 +105,8 @@ typedef enum {
     UART2_RECV,
     UART1_SEND,
     UART1_RECV,
-    UART1_MODM,
+    UART1_CTS,
+    UART1_DOWN,
     EVENT_COUNT
 } event_id;
 

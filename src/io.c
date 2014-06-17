@@ -198,6 +198,7 @@ void irq_uart1_send() {
     uart_rsr_check(UART1_BASE);
 
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+
     task* t = int_queue[UART1_SEND];
     int_queue[UART1_SEND] = NULL;
 
@@ -215,14 +216,21 @@ void irq_uart1() {
     uart_rsr_check(UART1_BASE);
 
     int* const intr = (int*)(UART1_BASE + UART_INTR_OFFSET);
+    int* const flag = (int*)(UART1_BASE + UART_FLAG_OFFSET);
+    
     assert(*intr & MIS_MASK,     "UART1 in general without modem");
     assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
 
     *intr = (int)intr;
 
-    task* t = int_queue[UART1_MODM];
-    if (t != NULL) {
-        int_queue[UART1_MODM] = NULL;
-        scheduler_schedule(t);
+    task* t;
+    if (*flag & CTS_MASK) {
+        t = int_queue[UART1_CTS];
+        int_queue[UART1_CTS] = NULL;
+    } else {
+        t = int_queue[UART1_DOWN];
+        int_queue[UART1_DOWN] = NULL;
     }
+
+    if (t != NULL) { scheduler_schedule(t); }
 }
