@@ -80,17 +80,15 @@ static inline void pbuf_init(puts_buffer* const cb) {
     memset(cb->buffer, 0, sizeof(cb->buffer));
 }
 
-/*
-static inline size pbuf_count(const puts_buffer* const cb) {
+static inline uint pbuf_count(const puts_buffer* const cb) {
     return cb->count;
 }
-*/
 
 static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
     memcpy(cb->head, puts, sizeof(term_puts));
 
     cb->count = mod2(cb->count + 1, OUTPUT_Q_SIZE);
-    if (cb->head++ == cb->end)
+    if (++cb->head == cb->end)
 	cb->head = cb->buffer;
 }
 
@@ -313,10 +311,9 @@ static void _term_try_send(struct term_state* const state) {
     	// skip checking if it will fit in this function; it will be
     	// checked in _term_try_puts, and in the worst case, the requests
     	// that do not fit will waste CPU time and get requeued
-    	for (uint count = state->output_q.count; count; count--)
+    	for (; pbuf_count(&state->output_q);)
     	    _term_try_puts(state, pbuf_consume(&state->output_q));
     }
-    UNUSED(state);
 }
 
 static void _term_try_getc(struct term_state* const state) {
