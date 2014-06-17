@@ -18,6 +18,16 @@ static void __attribute__ ((noreturn)) idle_failure(int result, uint line) {
 static uint non_idle_ticks = 0;
 
 
+static inline char twirler(const char prev) {
+    switch (prev) {
+    case  '/': return '-';
+    case  '-': return '\\';
+    case '\\': return '|';
+    case  '|': return '/';
+    }
+    return '|';
+}
+
 static void __attribute__ ((noreturn)) idle_ui() {
 
 // IDLE nn%
@@ -26,12 +36,13 @@ static void __attribute__ ((noreturn)) idle_ui() {
 
     log("Idle UI starting on %d", myTid());
 
+    char twirl = '/';
     char buffer[32];
     char*   ptr = buffer;
     int  result = 0;
 
     ptr = vt_goto(buffer, IDLE_ROW, 1);
-    ptr = sprintf_string(ptr, "IDLE  00%");
+    ptr = sprintf_string(ptr, "IDLE  00");
     result = Puts(buffer, ptr - buffer);
     IDLE_ASSERT;
 
@@ -53,9 +64,10 @@ static void __attribute__ ((noreturn)) idle_ui() {
         if (idle_time >= 100) idle_time = 99; // handle this edge case
 
         ptr = vt_goto(buffer, IDLE_ROW, IDLE_COL);
-        ptr = sprintf(ptr, "%c%c",
+        ptr = sprintf(ptr, "%c%c%c",
 		      '0' + (idle_time / 10),
-                      '0' + (idle_time % 10));
+                      '0' + (idle_time % 10),
+		      (twirl = twirler(twirl)));
         result = Puts(buffer, ptr - buffer);
         IDLE_ASSERT;
     }
