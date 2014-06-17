@@ -161,45 +161,44 @@ int Delay(int ticks) {
     // handle negative/non-delay cases on the task side
     if (ticks <= 0) return 0;
 
-    clock_req req;
-    req.type  = CLOCK_DELAY;
-    req.ticks = ticks;
+    clock_req req = {
+	.type  = CLOCK_DELAY,
+	.ticks = ticks
+    };
 
+    int time;
     int result = Send(clock_server_tid,
-		      (char*)&req, sizeof(clock_req),
-		      (char*)&req, sizeof(clock_req));
+		      (char*)&req,  sizeof(clock_req),
+		      (char*)&time, sizeof(time));
 
-    switch (result) {
-    case OK:
-	return 0;
-    case INVALID_TASK:
-    case INCOMPLETE:
-	// maybe clock server died, so we can try again
-	if (Create(TASK_PRIORITY_HIGH - 1, clock_server) > 0)
-	    return Delay(ticks);
-	// fall through
-    default:
-	return result;
-    }
+    if (result == sizeof(int))
+	return time;
+
+    // maybe clock server died
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	Abort(__FILE__, __LINE__, "Clock server died");
+
+    return result;
 }
 
 int Time() {
-    clock_req req;
-    req.type = CLOCK_TIME;
+    clock_req req = {
+	.type = CLOCK_TIME
+    };
 
-    int ticks;
+    int time;
     int result = Send(clock_server_tid,
-		      (char*)&req, sizeof(clock_req_type),
-		      (char*)&ticks, sizeof(ticks));
+		      (char*)&req,  sizeof(clock_req_type),
+		      (char*)&time, sizeof(time));
 
     // Note: since we return _result_ in error cases, we inherit
     // additional error codes not in the kernel spec for this function
-    if (result > OK) return ticks;
+    if (result == sizeof(time))
+	return time;
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_HIGH - 1, clock_server) > 0)
-	    return Time();
+	Abort(__FILE__, __LINE__, "Clock server died");
 
     // else, error out
     return result;
@@ -210,26 +209,24 @@ int DelayUntil(int ticks) {
     // handle negative/non-delay cases on the task side
     if (ticks <= 0) return 0;
 
-    clock_req req;
-    req.type  = CLOCK_DELAY_UNTIL;
-    req.ticks = ticks;
+    clock_req req = {
+	.type = CLOCK_DELAY_UNTIL,
+	.ticks = ticks
+    };
 
+    int time;
     int result = Send(clock_server_tid,
-		      (char*)&req, sizeof(clock_req),
-		      (char*)&req, sizeof(clock_req));
+		      (char*)&req,  sizeof(clock_req),
+		      (char*)&time, sizeof(time));
 
-    switch (result) {
-    case OK:
-	return 0;
-    case INVALID_TASK:
-    case INCOMPLETE:
-	// maybe clock server died, so we can try again
-	if (Create(TASK_PRIORITY_HIGH - 1, clock_server) > 0)
-	    return DelayUntil(ticks);
-	// fall through
-    default:
-	return result;
-    }
+    if (result == sizeof(time))
+	return time;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	Abort(__FILE__, __LINE__, "Clock server died");
+
+    return result;
 }
 
 void Shutdown() {

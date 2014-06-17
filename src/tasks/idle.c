@@ -38,8 +38,8 @@ static void __attribute__ ((noreturn)) idle_ui() {
 
     char twirl = '/';
     char buffer[32];
-    char*   ptr = buffer;
-    int  result = 0;
+    char*  ptr = buffer;
+    int result = 0;
 
     ptr = vt_goto(buffer, IDLE_ROW, 1);
     ptr = sprintf_string(ptr, "IDLE  00");
@@ -49,8 +49,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
     int time = 0;
 
     FOREVER {
-        Delay(100);
-        time = Time();
+        time = Delay(100);
 
         // 9830.4 idle ticks = 1 clock tick
         // we update the UI once every 1000 milliseconds
