@@ -90,7 +90,6 @@ static void __attribute__((noreturn)) receive_notifier() {
                                       req.payload.data,
                                       sizeof(req.payload.data));
 
-        klog("received %d %d", req.payload.size, (char)*req.payload.data);
         int result = Send(ptid, (char*)&req, sizeof(req), NULL, 0);
 
         UNUSED(result);
@@ -98,15 +97,9 @@ static void __attribute__((noreturn)) receive_notifier() {
     }
 }
 
-void train_server() {
-    int tid;
-    train_req req;
-    
-    const int my_tid = myTid();
-    klog("train server started at %d", my_tid);
-
-    int send_tid     = -1;
-    int get_tid      = -1;
+inline static void _startup() {
+    int tid = myTid();
+    klog("train server started at %d", tid);
 
     tid = RegisterAs((char*)TRAIN_SEND);
     assert(tid == 0, "Train Server failed to register send name (%d)", tid);
@@ -119,59 +112,83 @@ void train_server() {
 
     tid = Create(TASK_PRIORITY_HIGH, receive_notifier);
     assert(tid>0, "Failed to start up train read notifier (%d)", tid);
+}
+
+struct train_context {
+    int        get_tid;
+    int        send_tid;
 
     struct in  train_in;
     struct out train_out;
+};
 
-    cbuf_init(&train_in.b,  sizeof(train_in.buffer),  train_in.buffer);
-    cbuf_init(&train_out.b, sizeof(train_out.buffer), train_out.buffer);
+void train_server() {
+    _startup();
+    
+    int tid;
+    train_req req;
+    struct train_context context = {
+        .send_tid = -1,
+        .get_tid  = -1
+    }; 
+
+    cbuf_init(&context.train_in.b,
+              sizeof(context.train_in.buffer),
+              context.train_in.buffer);
+    
+    cbuf_init(&context.train_out.b,
+              sizeof(context.train_out.buffer),
+              context.train_out.buffer);
 
     FOREVER {
         Receive(&tid, (char*)&req, sizeof(req));
 
         switch (req.type) {
         case CARRIER: {
-            assert(send_tid == -1, "Double Registered Send %d %d", tid, send_tid);
+            assert(-1 == context.send_tid,
+                   "Double Registered Send %d %d", 
+                   tid, context.send_tid);
 
             int  i;
-            for(i = 0; i<4 && cbuf_can_consume(&train_out.b); i++) {
-                req.payload.data[i] = cbuf_consume(&train_out.b);
+            for(i = 0; i<4 && cbuf_can_consume(&context.train_out.b); i++) {
+                req.payload.data[i] = cbuf_consume(&context.train_out.b);
             }
             if(i > 0) {
                 req.payload.size = i;
                 Reply(tid, (char*)&req.payload, sizeof(req.payload));
             } else {
-                send_tid = tid;
+                context.send_tid = tid;
             }
             break;
         }
         case NOTIFIER:
             Reply(tid, NULL, 0);
+            
+            assert(req.payload.size > 0 && req.payload.size <= 4,
+                    "Invalid size sent from server");
 
             for (int i = 0; i < req.payload.size; i++) {
-                cbuf_produce(&train_in.b, req.payload.data[i]);
+                cbuf_produce(&context.train_in.b, req.payload.data[i]);
             }
 
-            if (get_tid != -1) {
-                int i;
-                char c[4] = {0};
-                
-                for(i = 0; i<4 && cbuf_can_consume(&train_out.b) ; i++) {
-                    c[i] = cbuf_consume(&train_out.b);
-                }
-                Reply(get_tid, c, i);
-                get_tid = -1;
+            if (context.get_tid != -1) {
+                char c[4];
+                c[0] = cbuf_consume(&context.train_in.b);
+                Reply(context.get_tid, c, 1);
+                context.get_tid = -1;
             }
             break;
 
         case GET:
-            if (cbuf_can_consume(&train_in.b)) {
-                uint c = (uint)cbuf_consume(&train_in.b);
-                Reply(tid, (char*)&c, sizeof(char));
+            if (cbuf_can_consume(&context.train_in.b)) {
+                char c[4];
+                c[0] = cbuf_consume(&context.train_in.b);
+                Reply(tid, c, 1);
             } else {
-                assert(get_tid == -1,
-                       "task %d already waiting for train input", get_tid);
-                get_tid = tid;
+                assert(context.get_tid == -1,
+                       "task %d already waiting for train input",
+                       context.get_tid);
+                context.get_tid = tid;
             }
             break;
 
@@ -180,18 +197,19 @@ void train_server() {
                    "Invalid train req size (%d)", req.payload.size);
             Reply(tid, NULL, 0);
             for(int i = 0; i < req.payload.size; i++) {
-                cbuf_produce(&train_out.b, req.payload.data[i]);
+                cbuf_produce(&context.train_out.b, req.payload.data[i]);
             }
             
-            if (-1 != send_tid) {
+            if (-1 != context.send_tid) {
                 int  i;
-                for(i = 0; i<4 && cbuf_can_consume(&train_out.b) ; i++) {
-                    req.payload.data[i] = cbuf_consume(&train_out.b);
+                for(i = 0; i<4 && cbuf_can_consume(&context.train_out.b) ; i++) {
+                    req.payload.data[i] = cbuf_consume(&context.train_out.b);
                 }
                 if(i > 0) {
                     req.payload.size = i;
-                    Reply(send_tid, (char*)&req.payload, sizeof(req.payload));
-                    send_tid = -1;
+                    Reply(context.send_tid,
+                          (char*)&req.payload, sizeof(req.payload));
+                    context.send_tid = -1;
                 }
             }
             break;

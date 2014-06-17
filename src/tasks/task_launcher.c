@@ -54,8 +54,8 @@ static void tl_action(char input) {
     case 'o':
         put_train_char(WhoIs((char*)TRAIN_SEND), SENSOR_POLL);
         for(int i = 0; i < 10; i++) {
-            uint c;
-            get_train(WhoIs((char*)TRAIN_RECV), (char*)&c, sizeof(c));
+            char c;
+            get_train(WhoIs((char*)TRAIN_RECV), &c, sizeof(c));
             log("%d - %d", i, c);
         }
         break;
