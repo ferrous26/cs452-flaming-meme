@@ -229,7 +229,7 @@ int put_train_char(int tid, char c) {
     return Send(tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int put_train_cmd(int tid, char cmd, char vctm) {
+int put_train_cmd(int tid, char vctm, char cmd) {
     train_req req = {
         .type    = PUT,
         .payload = {
@@ -238,6 +238,7 @@ int put_train_cmd(int tid, char cmd, char vctm) {
         }
     };
 
+    log("setting %d to %d", req.payload.data[0], req.payload.data[1]);
     return Send(tid, (char*)&req, sizeof(req), NULL, 0);
 }
 

@@ -8,6 +8,8 @@
 #include <train.h>
 #include <ts7200.h>
 
+#include <parse.h>
+
 #include <tasks/idle.h>
 #include <tasks/stress.h>
 #include <tasks/seppuku.h>
@@ -34,6 +36,7 @@ inline static void print_help() {
 	"h ~ Print this Help Message\n\t"
 	"q ~ Quit\n");
 }
+
 
 static void tl_action(char input) {
     switch(input) {
@@ -66,14 +69,42 @@ static void tl_action(char input) {
         put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_START);
         break;
     case 'l':
-        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_STRAIGHT, 4);
         break;
     case 'c':
-        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_CURVED, 4);
         break;
     case 'h':
     default:
         print_help();
+        break;
+    }
+}
+
+static void action(command cmd, int args[]) {
+    switch(cmd) {
+    case NONE:
+        break;
+    case SPEED:
+        log("setting train %d to %d", args[0], args[1]);
+        put_train_cmd(WhoIs((char*)TRAIN_SEND), args[0], args[1]);
+        break;
+    case GATE:
+        if(args[1] == 's' || args[1] == 'S') {
+            put_train_turnout(WhoIs((char*)TRAIN_SEND),
+                              TURNOUT_STRAIGHT, args[0]);
+        } else if (args[1] == 'c' || args[1] == 'C') {
+            put_train_turnout(WhoIs((char*)TRAIN_SEND),
+                              TURNOUT_CURVED, args[0]);
+        } else {
+            log("invalid command");
+        }
+        break;
+    case REVERSE:
+        tl_action('s');
+        break;
+    case QUIT:
+        Shutdown();
+    case ERROR:
+        log("invalid command");
         break;
     }
 }
@@ -107,7 +138,7 @@ void task_launcher() {
     Puts(buffer, (int)(ptr - buffer));
 
     int  insert;
-    char command[80];
+    char line[80];
     char line_mark[] = "TERM> ";
 
     log("Welcome to Task Launcher (h for help)");
@@ -127,20 +158,22 @@ void task_launcher() {
                 if(insert == 0) continue;
                 ptr = vt_goto(buffer, 80, (--insert) + (int)sizeof(line_mark));
                 *(ptr++) = ' ';
-                command[insert] = 0;
+                line[insert] = '\0';
                 break;
             case 0x1B:
                 c = '^';
             default:
-                if(insert == 80) { insert--; }
+                if(insert == 79) { insert--; }
 
                 ptr = vt_goto(buffer, 80, insert + (int)sizeof(line_mark));
                 *(ptr++) = c;
-                command[insert++] = c;
+                line[insert++] = c;
             }
             Puts(buffer, (int)(ptr-buffer));
         }
+        line[insert] = '\0';
 
-        tl_action(command[0]);
+        int args[5];
+        action(parse_command(line, args), args);
     }
 }

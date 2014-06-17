@@ -18,6 +18,7 @@ static int consume_whitespace(const char* const str, int* const index) {
     if  (!isspace(str[*index])) return -1;
     for (; isspace(str[*index]); *index += 1);
     if  (str[*index] == '\0') return 1;
+
     return 0;
 }
 
@@ -75,7 +76,7 @@ static int parse_stop(const char* const cmd) {
 static int parse_reverse(const char* const cmd, int* const buffer) {
     int index = 1;
     if(cmd[index++] != 'v') return -1;
-    if(parse_argument(cmd, 'i', &index, buffer)) return -1;
+     if(parse_argument(cmd, 'i', &index, buffer)) return -1;
     return 0;
 }
 

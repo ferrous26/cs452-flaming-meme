@@ -261,7 +261,7 @@ static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 void syscall_handle(const uint code, const void* const req, int* const sp) {
-#ifdef debug
+#ifdef DEBUG
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
 	   "Reply: task %d has Invalid heap %p", task_active->tid, sp);
     assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
