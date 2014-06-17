@@ -9,14 +9,14 @@
 // forward declarations
 struct term_state;
 struct term_puts;
-static inline void _term_try_send(struct term_state* const state);
+static void _term_try_send(struct term_state* const state);
 
 #define UART_FIFO_SIZE     16
 
 #define INPUT_BUFFER_SIZE  512
 #define OUTPUT_BUFFER_SIZE 128
 #define OUTPUT_BUFFER_MAX  (OUTPUT_BUFFER_SIZE - 2) // save space for XOFF/XON
-#define OUTPUT_Q_SIZE      (TASK_MAX - 8) // at least 8 tasks will never Puts
+#define OUTPUT_Q_SIZE      TASK_MAX // at least 8 tasks will never Puts
 
 // ASCII byte that tells VT100 to stop transmitting
 #define XOFF               17
@@ -219,7 +219,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 }
 
 // handle the init message from the server
-static inline void _term_obuffer(struct term_state* const state) {
+static void _term_obuffer(struct term_state* const state) {
 
     // need to send back the pointers to the obuffers
     struct {
@@ -236,8 +236,8 @@ static inline void _term_obuffer(struct term_state* const state) {
     state->carrier = -1;
 }
 
-static inline void _term_try_puts(struct term_state* const state,
-				  term_puts* const puts) {
+static void _term_try_puts(struct term_state* const state,
+			   term_puts* const puts) {
 
     // if we have space in the buffer (leave space for XOFF/XON)
     if ((state->obuffer_size + puts->length) <= OUTPUT_BUFFER_MAX) {
@@ -263,7 +263,7 @@ static inline void _term_try_puts(struct term_state* const state,
     }
 }
 
-static inline void _term_send_xoff(struct term_state* const state) {
+static void _term_send_xoff(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
 	   "No space in buffer for the stop byte!");
     *state->out_head++ = XOFF; // J-J-Jam it in
@@ -271,7 +271,7 @@ static inline void _term_send_xoff(struct term_state* const state) {
     state->obuffer_size++;
 }
 
-static inline void _term_send_xon(struct term_state* const state) {
+static void _term_send_xon(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
 	   "No space in buffer for the stop byte!");
     assert(state->xoff, "Haven't sent the xoff byte yet");
@@ -280,7 +280,7 @@ static inline void _term_send_xon(struct term_state* const state) {
     state->obuffer_size++;
 }
 
-static inline void _term_try_send(struct term_state* const state) {
+static void _term_try_send(struct term_state* const state) {
 
     // if the carrier is waiting
     if (state->carrier >= 0 && state->obuffer_size) {
@@ -295,7 +295,7 @@ static inline void _term_try_send(struct term_state* const state) {
     	if (state->obuffer == state->obuffers[0])
     	    state->obuffer  = state->obuffers[1];
     	else
-    	    state->obuffer  = state->obuffers[1];
+    	    state->obuffer  = state->obuffers[0];
     	state->out_head     = state->obuffer;
     	state->obuffer_size = 0;
 
@@ -319,7 +319,7 @@ static inline void _term_try_send(struct term_state* const state) {
     UNUSED(state);
 }
 
-static inline void _term_try_getc(struct term_state* const state) {
+static void _term_try_getc(struct term_state* const state) {
 
     // if we have a buffered byte
     if (cbuf_can_consume(&state->input_q)) {
@@ -345,7 +345,7 @@ static inline void _term_try_getc(struct term_state* const state) {
     }
 }
 
-static inline void _term_recv(struct term_state* const state,
+static void _term_recv(struct term_state* const state,
 			      const int length) {
 
     // TODO: implement bulk produce for circular buffers
@@ -370,7 +370,7 @@ static inline void _term_recv(struct term_state* const state,
 	_term_try_getc(state);
 }
 
-static inline void _startup() {
+static void _startup() {
 
     term_server_tid = myTid();
 
