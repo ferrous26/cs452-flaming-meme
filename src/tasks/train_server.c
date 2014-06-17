@@ -29,7 +29,7 @@ struct in {
 
 struct out {
     char_buffer b;
-    char buffer[128];
+    char buffer[64];
 };
 
 static void __attribute__((noreturn)) write_carrier() {
@@ -198,10 +198,9 @@ int put_train_cmd(int tid, char cmd, char vctm) {
 int put_train_turnout(int tid, char cmd, char turn) {
     train_req req = {
         .type       = PUT,
-        .size       = 3,
+        .size       = 2,
         .payload[0] = cmd,
-        .payload[1] = turn,
-        .payload[2] = TURNOUT_CLEAR
+        .payload[1] = turn
     };
 
     return Send(tid, (char*)&req, sizeof(req), NULL, 0);

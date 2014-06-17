@@ -109,8 +109,9 @@ static void uart_rsr_check(int base) {
 void irq_uart2_recv() {
     uart_rsr_check(UART2_BASE);
 
-    volatile int* const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
-    const char*   const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    volatile int*  const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
+    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    volatile int*  const intr = (int*) (UART2_BASE + UART_INTR_OFFSET);
 
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
@@ -118,16 +119,17 @@ void irq_uart2_recv() {
     if (t) {
         kreq_event* const req = (kreq_event*) t->sp[1];
 
-
         int i;
         for (i = 0; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
             req->event[i] = *data;
         }
-
+        
         assert(i > 0, "UART2 Had An Empty Recv");
         t->sp[0] = i;
 
         scheduler_schedule(t);
+        *intr &= ~RTIS_MASK;
+
         return;
     }
 
@@ -175,8 +177,8 @@ void irq_uart2() {
 
 void irq_uart1_recv() {
     uart_rsr_check(UART1_BASE);
-
-    const char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
+    
     task* t = int_queue[UART1_RECV];
     int_queue[UART1_RECV] = NULL;
 

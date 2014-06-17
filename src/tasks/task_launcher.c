@@ -38,7 +38,7 @@ inline static void print_help() {
 static void tl_action(char input) {
     switch(input) {
     case '1':
-        Create(16, k3_root);
+        Create(10, k3_root);
         break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
@@ -47,7 +47,7 @@ static void tl_action(char input) {
 	log("The time is %u ticks!", Time());
 	break;
     case 's':
-        Create(16, stress_root);
+        Create(10, stress_root);
         break;
     case 'q':
         Shutdown();
@@ -59,12 +59,17 @@ static void tl_action(char input) {
             log("%d - %d", i, c);
         }
         break;
-    case 'l':
-        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_STRAIGHT, 14);
+    case 'n':
+        put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_STOP);
         break;
-
+    case 'y':
+        put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_START);
+        break;
+    case 'l':
+        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_STRAIGHT, 4);
+        break;
     case 'c':
-        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_CURVED, 14);
+        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_CURVED, 4);
         break;
     case 'h':
     default:
@@ -101,10 +106,9 @@ void task_launcher() {
     ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
     Puts(buffer, (int)(ptr - buffer));
 
-
-    char line_mark[] = "TERM> ";
-    char command[80];
     int  insert;
+    char command[80];
+    char line_mark[] = "TERM> ";
 
     log("Welcome to Task Launcher (h for help)");
     FOREVER {
@@ -114,9 +118,10 @@ void task_launcher() {
         ptr = sprintf(ptr, line_mark);
         Puts(buffer, (int)(ptr-buffer));
 
-        for(;;) {
-            char c = (char)Getc(TERMINAL);
-
+        char c = 0;
+        for(;c != '\r';) {
+            c = (char)Getc(TERMINAL);
+            
             switch (c) {
             case '\b':
                 if(insert == 0) continue;
@@ -134,7 +139,6 @@ void task_launcher() {
                 command[insert++] = c;
             }
             Puts(buffer, (int)(ptr-buffer));
-            if(c == '\r') { break; }
         }
 
         tl_action(command[0]);

@@ -191,6 +191,11 @@ ksyscall_await(const kreq_event* const req) {
         *ctlr |= TIEN_MASK;
         break;
     }
+    case UART2_RECV: {
+        int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
+        *ctlr |= RTIEN_MASK;
+        break;
+    }
     default:
 	break;
     }
@@ -228,10 +233,11 @@ static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 void syscall_handle(const uint code, const void* const req, int* const sp) {
+#ifdef debug
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
 	   "Reply: task %d has Invalid heap %p", task_active->tid, sp);
     assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
-
+#endif
 
     // save it, save it real good
     task_active->sp = sp;
