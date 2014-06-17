@@ -32,12 +32,10 @@ void irq_clock() {
     const uint clear_addr = TIMER3_BASE | CLR_OFFSET;
     *(uint*)clear_addr = clear_addr;
 
-    task* t = int_queue[CLOCK_TICK];
-    int_queue[CLOCK_TICK] = NULL;
-
-    if (t) {
-	t->sp[0] = 0;
-	scheduler_schedule(t);
+    if (task_clock) {
+	task_clock->sp[0] = 0;
+	scheduler_schedule(task_clock);
+	task_clock = NULL;
 	return;
     }
 

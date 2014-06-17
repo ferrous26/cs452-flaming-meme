@@ -148,6 +148,9 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
     }
 
     const kreq_send* const sender_req = (const kreq_send* const)sender->sp[1];
+    assert(sender_req->tid == task_active->tid,
+	   "Trying to reply to the wrong person, bub (%d)",
+	   sender->tid);
 
     if (req->replylen > sender_req->replylen) {
 	*result = NOT_ENUF_MEMORY;
@@ -171,27 +174,37 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 
 static inline void
 ksyscall_await(const kreq_event* const req) {
-    assert(!int_queue[req->eventid],
-           "Event Task Collision (%d - %d) has happened on event %d",
-           ((task*)int_queue[req->eventid])->tid, task_active->tid, req->eventid);
+    //    assert(!int_queue[req->eventid],
+    //           "Event Task Collision (%d - %d) has happened on event %d",
+    //           ((task*)int_queue[req->eventid])->tid, task_active->tid, req->eventid);
 
     assert(req->eventid >= CLOCK_TICK && req->eventid < EVENT_COUNT,
 	   "Invalid event (%d)", req->eventid);
 
-    int_queue[req->eventid] = task_active;
-
     switch (req->eventid) {
+    case CLOCK_TICK:
+	task_clock = task_active;
+	break;
     case UART2_SEND: {
+	task_term_send = task_active;
         int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
         break;
     }
+    case UART2_RECV:
+	task_term_recv = task_active;
+	break;
     case UART1_SEND: {
+	task_train_send = task_active;
         int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
         break;
     }
-    default:
+    case UART1_RECV:
+	task_train_recv = task_active;
+	break;
+    case UART1_MODM:
+	task_train_modm = task_active;
 	break;
     }
 }

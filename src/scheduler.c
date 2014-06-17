@@ -14,10 +14,15 @@ static struct task_manager {
     task_q q[TASK_PRIORITY_LEVELS];
 } manager DATA_HOT;
 
-task_q recv_q[TASK_MAX] DATA_HOT;
-task*  task_active DATA_HOT;
-task*  int_queue[EVENT_COUNT] DATA_HOT;
+task*  task_active     DATA_HOT;
+task*  task_clock      DATA_HOT;
+task*  task_term_recv  DATA_HOT;
+task*  task_term_send  DATA_HOT;
+task*  task_train_recv DATA_HOT;
+task*  task_train_send DATA_HOT;
+task*  task_train_modm DATA_HOT;
 struct task_descriptor tasks[TASK_MAX] DATA_HOT;
+task_q recv_q[TASK_MAX] DATA_HOT;
 
 static uint8 table[256] DATA_HOT;
 
@@ -69,9 +74,12 @@ void scheduler_init(void) {
 	cbuf_produce(&free_list.list, (char)i);
     }
 
-    for (i = 0; i < (int)EVENT_COUNT; i++) {
-        int_queue[i] = NULL;
-    }
+    task_clock      = NULL;
+    task_term_recv  = NULL;
+    task_term_send  = NULL;
+    task_train_recv = NULL;
+    task_train_send = NULL;
+    task_train_modm = NULL;
 }
 
 void scheduler_schedule(task* const t) {
