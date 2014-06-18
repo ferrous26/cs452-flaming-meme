@@ -112,8 +112,8 @@ void irq_uart2_recv() {
     volatile int* const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     const char*   const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
-    task* t = task_term_recv;
-    task_term_recv = NULL;
+    task* t = int_queue[UART2_RECV];
+    int_queue[UART2_RECV] = NULL;
 
     if (t) {
         kreq_event* const req = (kreq_event*) t->sp[1];
@@ -139,21 +139,20 @@ void irq_uart2_send() {
 
     volatile char* data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
-    task* t = task_term_send;
-    task_term_send = NULL;
+    task* t = int_queue[UART2_SEND];
+    int_queue[UART2_SEND] = NULL;
 
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req = (kreq_event*)t->sp[1];
+    assert(req->eventlen > 0 && req->eventlen <= 128,
+	   "UART2 Had Invalid Send Size %d", req->eventlen);
 
-#define UART_IRQ_FILL 8
-    int i = 0;
-    int j = req->eventlen < UART_IRQ_FILL ? req->eventlen : UART_IRQ_FILL;
-
-    assert(j > 0, "UART2 Has Nothing To Send %d %d", j, req->eventlen);
-
-    for(; i < j; i++)
+    int i;
+    for(i = 0; i < 8 && i < req->eventlen; i++) {
         *data = req->event[i];
+    }
 
+    assert(i > 0, "UART2 Failed To Send %d %d", i, req->eventlen);
     t->sp[0] = i;
 
     // disable the interrupt now that we have sent out a full block
@@ -178,8 +177,8 @@ void irq_uart1_recv() {
     uart_rsr_check(UART1_BASE);
 
     const char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
-    task* t = task_train_recv;
-    task_train_recv = NULL;
+    task* t = int_queue[UART1_RECV];
+    int_queue[UART1_RECV] = NULL;
 
     if (t != NULL) {
         kreq_event* const req_space = (kreq_event*) t->sp[1];
@@ -197,8 +196,8 @@ void irq_uart1_send() {
     uart_rsr_check(UART1_BASE);
 
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
-    task* t = task_train_send;
-    task_train_send = NULL;
+    task* t = int_queue[UART1_SEND];
+    int_queue[UART1_SEND] = NULL;
 
     assert(t != NULL, "UART1 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req_space = (kreq_event*) t->sp[1];
@@ -219,9 +218,9 @@ void irq_uart1() {
 
     *intr = (int)intr;
 
-    task* t = task_train_modm;
+    task* t = int_queue[UART1_MODM];
     if (t != NULL) {
-        task_train_modm = NULL;
+        int_queue[UART1_MODM] = NULL;
         scheduler_schedule(t);
     }
 }

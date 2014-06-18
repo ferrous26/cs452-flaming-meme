@@ -55,12 +55,8 @@ extern task_q recv_q[TASK_MAX];
 extern task   tasks[TASK_MAX];
 
 extern task*  task_active;
-extern task*  task_clock;
-extern task*  task_term_recv;
-extern task*  task_term_send;
-extern task*  task_train_recv;
-extern task*  task_train_send;
-extern task*  task_train_modm;
+extern task*  int_queue[EVENT_COUNT];
+
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);
