@@ -2,6 +2,7 @@
 #include <circular_buffer.h>
 #include <debug.h>
 #include <tasks/task_launcher.h>
+#include <vt100.h>
 
 // force grouping by putting them into a struct
 static struct task_free_list {
@@ -165,18 +166,24 @@ void task_destroy() {
 void debug_task(const task_id tid) {
     task* tsk = &tasks[task_index_from_tid(tid)];
 
-    kdebug_log("Task:");
-    kdebug_log("             ID: %u", tsk->tid);
-    kdebug_log("      Parent ID: %u", tsk->p_tid);
-    kdebug_log("       Priority: %u", tsk->priority);
+    char buffer[256];
+    char* ptr = buffer;
 
+    ptr = sprintf_string(ptr, "\n\nTask:\n");
+    ptr = sprintf(ptr,
+		  "             ID: %d\n"
+		  "      Parent ID: %d\n"
+		  "       Priority: %d\n",
+		  tsk->tid, tsk->p_tid, tsk->priority);
     if (tsk->next == RECV_BLOCKED)
-	kdebug_log("           Next: RECEIVE BLOCKED");
+	ptr = sprintf_string(ptr, "           Next: RECEIVE BLOCKED\n");
     else if (tsk->next == RPLY_BLOCKED)
-	kdebug_log("           Next: REPLY BLOCKED");
+	ptr = sprintf_string(ptr, "           Next: REPLY BLOCKED\n");
     else
-	kdebug_log("           Next: %p", tsk->next);
+	ptr = sprintf(ptr, "           Next: %p\n", tsk->next);
 
-    kdebug_log("  Stack Pointer: %p", tsk->sp);
+    ptr = sprintf(ptr, "  Stack Pointer: %p\n", tsk->sp);
+
+    uart2_bw_write(buffer, ptr - buffer);
 }
 #endif

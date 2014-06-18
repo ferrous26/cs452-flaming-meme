@@ -126,9 +126,8 @@ inline static void ksyscall_send(const kreq_send* const req, int* const result) 
      * Now, if the receiving task is receive blocked, then we need to wake it up
      * and schedule it so that it can receive the message.
      */
-    if (receiver->next == RECV_BLOCKED) {
+    if (receiver->next == RECV_BLOCKED)
 	ksyscall_recv(receiver);
-    }
 }
 
 inline static void ksyscall_reply(const kreq_reply* const req, int* const result) {
