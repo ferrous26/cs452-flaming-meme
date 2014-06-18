@@ -238,10 +238,12 @@ void Abort(const char* const file, int line, char* msg, ...) {
     va_list args;
     va_start(args, msg);
 
-    char buffer[512];
+    char buffer[1024];
     char* ptr = buffer;
 
     ptr = vt_colour_reset(ptr);
+    ptr = vt_reset_scroll_region(ptr);
+    ptr = vt_restore_cursor(ptr);
     ptr = sprintf_string(ptr, "\n\n\n\n\n");
     ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
     ptr = sprintf_va(ptr, msg, args);
