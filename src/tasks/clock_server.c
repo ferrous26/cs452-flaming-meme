@@ -95,7 +95,7 @@ static void __attribute__ ((noreturn)) clock_ui() {
 				 '0' + (seconds % 10),
 				 '0' + tenths);
 		result = Puts(buffer, ptr - buffer);
-		CLOCK_ASSERT;
+		CLOCK_ASSERT(result == 0, result);
 
 	    }
 	    else { // need to update seconds and tenths
@@ -104,14 +104,14 @@ static void __attribute__ ((noreturn)) clock_ui() {
 				 '0' + (seconds / 10),
 				 '0' + (seconds % 10));
 		result = Puts(buffer, ptr - buffer);
-		CLOCK_ASSERT;
+		CLOCK_ASSERT(result == 0, result);
 	    }
 	}
 	else { // only need to update deciseconds
 	    ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_TENTHS);
 	    ptr    = sprintf_char(ptr, '0' + (char)tenths);
 	    result = Puts(buffer, ptr - buffer);
-	    CLOCK_ASSERT;
+	    CLOCK_ASSERT(result == 0, result);
 	}
     }
 }
@@ -122,7 +122,7 @@ static void pq_init(clock_pq* q) {
     q->delays[0].tid  = 0;
     for (uint i = 1; i < TASK_MAX; i++) {
 	q->delays[i].time = INT_MAX;
-	q->delays[i].tid  = 0;
+	q->delays[i].tid  = -1;
     }
 }
 
@@ -267,7 +267,8 @@ void clock_server() {
 
 	    while (pq_peek(&q) <= time) {
 		tid = pq_delete(&q);
-		result = Reply(tid, &time, sizeof(time));
+		assert(tid >= 0, "Waking up invalid tid!");
+		result = Reply(tid, (char*)&time, sizeof(time));
 		if (result) _error(tid, result);
 	    }
 	    break;
