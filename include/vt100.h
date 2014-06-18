@@ -70,6 +70,10 @@ char* vt_hide_cursor(char* buffer);
 char* vt_unhide_cursor(char* buffer);
 char* vt_kill_line(char* buffer);
 char* vt_reverse_kill_line(char* buffer);
+char* vt_reset_scroll_region(char* buffer);
+char* vt_set_scroll_region(char* buffer, int start, int end);
+char* vt_save_cursor(char* buffer);
+char* vt_restore_cursor(char* buffer);
 
 // these do not seem to work...
 char* vt_scroll_up(char* buffer);

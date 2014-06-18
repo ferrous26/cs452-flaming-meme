@@ -22,7 +22,7 @@ typedef struct {
 } clock_pq;
 
 
-#define CLOCK_ASSERT if (result) clock_failure(result, __LINE__)
+#define CLOCK_ASSERT(expr, result) if (!(expr)) clock_failure(result, __LINE__)
 static void __attribute__ ((noreturn)) clock_failure(int result, uint line) {
     log("Action failed in clock at line %u (%d)", line, result);
     Shutdown();
@@ -34,7 +34,7 @@ static void __attribute__ ((noreturn)) clock_notifier() {
 
     FOREVER {
 	int result = AwaitEvent(CLOCK_TICK, NULL, 0);
-	CLOCK_ASSERT;
+	CLOCK_ASSERT(result == 0, result);
 
 	// We don't actually need to send anything to the clock
 	// server, but sending 0 bytes is going to go down a bad path
@@ -42,7 +42,7 @@ static void __attribute__ ((noreturn)) clock_notifier() {
 	result = Send(clock,
 		      (char*)&msg, sizeof(msg),
 		      (char*)&msg, sizeof(msg));
-	CLOCK_ASSERT;
+	CLOCK_ASSERT(result == 0, result);
     }
 }
 
@@ -63,15 +63,15 @@ static void __attribute__ ((noreturn)) clock_ui() {
     ptr    = vt_goto(buffer, CLOCK_ROW, 1);
     ptr    = sprintf_string(ptr, "CLOCK 00:00.0");
     result = Puts(buffer, ptr - buffer);
-    CLOCK_ASSERT;
+    CLOCK_ASSERT(result == 0, result);
 
     int minutes = 0;
     int seconds = 0;
     int  tenths = 0;
 
     FOREVER {
-	result = Delay(10);
-	CLOCK_ASSERT;
+	int time = Delay(10);
+	CLOCK_ASSERT(time, time);
 
 	tenths++;
 	if (tenths == 10) {
@@ -80,7 +80,6 @@ static void __attribute__ ((noreturn)) clock_ui() {
 
 	    if (seconds == 60) {
 		// sync with the actual time
-		int time = Time();
 		tenths  = time    / 10;
 		seconds = tenths  / 10;
 		minutes = seconds / 60;
@@ -96,7 +95,7 @@ static void __attribute__ ((noreturn)) clock_ui() {
 				 '0' + (seconds % 10),
 				 '0' + tenths);
 		result = Puts(buffer, ptr - buffer);
-		CLOCK_ASSERT;
+		CLOCK_ASSERT(result == 0, result);
 
 	    }
 	    else { // need to update seconds and tenths
@@ -105,14 +104,14 @@ static void __attribute__ ((noreturn)) clock_ui() {
 				 '0' + (seconds / 10),
 				 '0' + (seconds % 10));
 		result = Puts(buffer, ptr - buffer);
-		CLOCK_ASSERT;
+		CLOCK_ASSERT(result == 0, result);
 	    }
 	}
 	else { // only need to update deciseconds
 	    ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_TENTHS);
 	    ptr    = sprintf_char(ptr, '0' + (char)tenths);
 	    result = Puts(buffer, ptr - buffer);
-	    CLOCK_ASSERT;
+	    CLOCK_ASSERT(result == 0, result);
 	}
     }
 }
@@ -123,7 +122,7 @@ static void pq_init(clock_pq* q) {
     q->delays[0].tid  = 0;
     for (uint i = 1; i < TASK_MAX; i++) {
 	q->delays[i].time = INT_MAX;
-	q->delays[i].tid  = 0;
+	q->delays[i].tid  = -1;
     }
 }
 
@@ -268,7 +267,8 @@ void clock_server() {
 
 	    while (pq_peek(&q) <= time) {
 		tid = pq_delete(&q);
-		result = Reply(tid, NULL, 0);
+		assert(tid >= 0, "Waking up invalid tid!");
+		result = Reply(tid, (char*)&time, sizeof(time));
 		if (result) _error(tid, result);
 	    }
 	    break;

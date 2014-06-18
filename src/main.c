@@ -114,8 +114,6 @@ void shutdown(void) {
 	   "Trying to shutdown from non-supervisor mode");
 #endif
 
-    klog("SHUTTING DOWN");
-
     vt_deinit();
     _flush_caches();
 

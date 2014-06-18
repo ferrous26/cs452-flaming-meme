@@ -5,11 +5,6 @@
 #include <vt100.h>
 
 
-static inline char* vt_reset_scroll_region(char* buffer);
-static inline char* vt_set_scroll_region(char* buffer, int start, int end);
-static inline char* vt_save_cursor(char* buffer);
-static inline char* vt_restore_cursor(char* buffer);
-
 static uint log_count = 0;
 
 void vt_init() {
@@ -29,11 +24,12 @@ void vt_init() {
 }
 
 void vt_deinit() {
-    char buffer[32];
+    char buffer[64];
     char* ptr = buffer;
 
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_unhide_cursor(ptr);
+    ptr = sprintf_string("\nSHUTTING DOWN");
     uart2_bw_write(buffer, ptr - buffer);
 }
 
@@ -214,7 +210,6 @@ char* sprintf_char(char* buffer, const char c) {
     return buffer;
 }
 
-
 char* vt_clear_screen(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "2J");
 }
@@ -265,12 +260,12 @@ char* vt_reverse_kill_line(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "1K");
 }
 
-static inline char* vt_set_scroll_region(char* buffer, int start, int end) {
+char* vt_set_scroll_region(char* buffer, int start, int end) {
     buffer = vt_set_location(buffer, start, end);
     return sprintf_char(buffer, 'r');
 }
 
-static inline char* vt_reset_scroll_region(char* buffer) {
+char* vt_reset_scroll_region(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "r");
 }
 
@@ -292,11 +287,11 @@ char* vt_colour(char* buffer, const colour c) {
     return sprintf_char(buffer, 'm');
 }
 
-static inline char* vt_save_cursor(char* buffer) {
+char* vt_save_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "7");
 }
 
-static inline char* vt_restore_cursor(char* buffer) {
+char* vt_restore_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "8");
 }
 
