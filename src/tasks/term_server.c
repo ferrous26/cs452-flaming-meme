@@ -72,7 +72,6 @@ int term_server_tid;
 
 
 /* Circular buffer implementations */
-
 static inline void pbuf_init(puts_buffer* const cb) {
     cb->head  = cb->tail = cb->buffer;
     cb->end   = cb->buffer + OUTPUT_Q_SIZE; // first address past the end
@@ -80,20 +79,22 @@ static inline void pbuf_init(puts_buffer* const cb) {
     memset(cb->buffer, 0, sizeof(cb->buffer));
 }
 
-static inline uint pbuf_count(const puts_buffer* const cb) {
+static inline __attribute__ ((const))
+uint pbuf_count(const puts_buffer* const cb) {
     return cb->count;
 }
 
 static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
-    memcpy(cb->head, puts, sizeof(term_puts));
+    memcpy(cb->head++, puts, sizeof(term_puts));
 
-    cb->count = mod2(cb->count + 1, OUTPUT_Q_SIZE);
-    if (++cb->head == cb->end)
+    cb->count++;
+    if (cb->head == cb->end) {
 	cb->head = cb->buffer;
+    }
+    assert(cb->count < OUTPUT_Q_SIZE, "Overfilled buffer!")
 }
 
 static inline term_puts* pbuf_consume(puts_buffer* const cb) {
-
     assert(cb->count, "Trying to consume from empty puts queue");
 
     term_puts* const ptr = cb->tail++;
@@ -368,7 +369,6 @@ static void _term_recv(struct term_state* const state,
 }
 
 static void _startup() {
-
     term_server_tid = myTid();
 
     klog("Terminal Server started at %d", term_server_tid);
@@ -382,7 +382,6 @@ static void _startup() {
 
 
 void term_server() {
-
     _startup();
 
     struct term_state state;

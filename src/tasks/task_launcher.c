@@ -8,6 +8,8 @@
 #include <train.h>
 #include <ts7200.h>
 
+#include <parse.h>
+
 #include <tasks/idle.h>
 #include <tasks/stress.h>
 #include <tasks/seppuku.h>
@@ -35,10 +37,11 @@ inline static void print_help() {
 	"q ~ Quit\n");
 }
 
+
 static void tl_action(char input) {
     switch(input) {
     case '1':
-        Create(16, k3_root);
+        Create(10, k3_root);
         break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
@@ -47,28 +50,61 @@ static void tl_action(char input) {
 	log("The time is %u ticks!", Time());
 	break;
     case 's':
-        Create(16, stress_root);
+        Create(10, stress_root);
         break;
     case 'q':
         Shutdown();
     case 'o':
         put_train_char(WhoIs((char*)TRAIN_SEND), SENSOR_POLL);
         for(int i = 0; i < 10; i++) {
-            uint c;
-            get_train(WhoIs((char*)TRAIN_RECV), (char*)&c, sizeof(c));
+            char c;
+            get_train(WhoIs((char*)TRAIN_RECV), &c, sizeof(c));
             log("%d - %d", i, c);
         }
         break;
-    case 'l':
-        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_STRAIGHT, 14);
+    case 'n':
+        put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_STOP);
         break;
-
+    case 'y':
+        put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_START);
+        break;
+    case 'l':
+        break;
     case 'c':
-        put_train_turnout(WhoIs((char*)TRAIN_SEND), TURNOUT_CURVED, 14);
         break;
     case 'h':
     default:
         print_help();
+        break;
+    }
+}
+
+static void action(command cmd, int args[]) {
+    switch(cmd) {
+    case NONE:
+        break;
+    case SPEED:
+        log("setting train %d to %d", args[0], args[1]);
+        put_train_cmd(WhoIs((char*)TRAIN_SEND), args[0], args[1]);
+        break;
+    case GATE:
+        if(args[1] == 's' || args[1] == 'S') {
+            put_train_turnout(WhoIs((char*)TRAIN_SEND),
+                              TURNOUT_STRAIGHT, args[0]);
+        } else if (args[1] == 'c' || args[1] == 'C') {
+            put_train_turnout(WhoIs((char*)TRAIN_SEND),
+                              TURNOUT_CURVED, args[0]);
+        } else {
+            log("invalid command");
+        }
+        break;
+    case REVERSE:
+        tl_action('s');
+        break;
+    case QUIT:
+        Shutdown();
+    case ERROR:
+        log("invalid command");
         break;
     }
 }
@@ -101,10 +137,9 @@ void task_launcher() {
     ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
     Puts(buffer, (int)(ptr - buffer));
 
-
-    char line_mark[] = "TERM> ";
-    char command[80];
     int  insert;
+    char line[80];
+    char line_mark[] = "TERM> ";
 
     log("Welcome to Task Launcher (h for help)");
     FOREVER {
@@ -114,29 +149,31 @@ void task_launcher() {
         ptr = sprintf(ptr, line_mark);
         Puts(buffer, (int)(ptr-buffer));
 
-        for(;;) {
-            char c = (char)Getc(TERMINAL);
-
+        char c = 0;
+        for(;c != '\r';) {
+            c = (char)Getc(TERMINAL);
+            
             switch (c) {
             case '\b':
                 if(insert == 0) continue;
                 ptr = vt_goto(buffer, 80, (--insert) + (int)sizeof(line_mark));
                 *(ptr++) = ' ';
-                command[insert] = 0;
+                line[insert] = '\0';
                 break;
             case 0x1B:
                 c = '^';
             default:
-                if(insert == 80) { insert--; }
+                if(insert == 79) { insert--; }
 
                 ptr = vt_goto(buffer, 80, insert + (int)sizeof(line_mark));
                 *(ptr++) = c;
-                command[insert++] = c;
+                line[insert++] = c;
             }
             Puts(buffer, (int)(ptr-buffer));
-            if(c == '\r') { break; }
         }
+        line[insert] = '\0';
 
-        tl_action(command[0]);
+        int args[5];
+        action(parse_command(line, args), args);
     }
 }

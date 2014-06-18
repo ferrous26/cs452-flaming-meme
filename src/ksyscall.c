@@ -171,24 +171,57 @@ inline static void ksyscall_reply(const kreq_reply* const req, int* const result
 
 static inline void
 ksyscall_await(const kreq_event* const req) {
+    #ifdef DEBUG
     assert(!int_queue[req->eventid],
            "Event Task Collision (%d - %d) has happened on event %d",
            ((task*)int_queue[req->eventid])->tid, task_active->tid, req->eventid);
 
     assert(req->eventid >= CLOCK_TICK && req->eventid < EVENT_COUNT,
 	   "Invalid event (%d)", req->eventid);
-
-    int_queue[req->eventid] = task_active;
-
+    #endif
+    
     switch (req->eventid) {
+    case CLOCK_TICK:
+        int_queue[CLOCK_TICK] = task_active;
+        break;
     case UART2_SEND: {
         int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
+        int_queue[UART2_SEND] = task_active;
+        break;
+    }
+    case UART2_RECV: {
+        int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
+        *ctlr |= RTIEN_MASK;
+
+        int_queue[UART2_RECV] = task_active;
         break;
     }
     case UART1_SEND: {
         int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
         *ctlr |= TIEN_MASK;
+        int_queue[UART1_SEND] = task_active;
+        break;
+    }
+    case UART1_RECV:
+        int_queue[UART1_RECV] = task_active;
+        break;
+    case UART1_DOWN: {
+        int* const flag = (int*)(UART1_BASE + UART_FLAG_OFFSET);
+        if (*flag & CTS_MASK) {
+            int_queue[UART1_DOWN] = task_active;
+        } else {
+            scheduler_schedule(task_active);
+        }
+        break;
+    }
+    case UART1_CTS: {
+        int* const flag = (int*)(UART1_BASE + UART_FLAG_OFFSET);
+        if (*flag & CTS_MASK) {
+            scheduler_schedule(task_active);
+        } else {
+            int_queue[UART1_CTS] = task_active;
+        }
         break;
     }
     default:
@@ -228,10 +261,11 @@ static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 void syscall_handle(const uint code, const void* const req, int* const sp) {
+#ifdef DEBUG
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
 	   "Reply: task %d has Invalid heap %p", task_active->tid, sp);
     assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
-
+#endif
 
     // save it, save it real good
     task_active->sp = sp;

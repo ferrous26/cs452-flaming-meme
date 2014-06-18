@@ -35,7 +35,7 @@ void stress_root() {
 
     int seed = my_tid;
     for (int i = 1+(rand(seed) % 6); i > 0; i--) {
-        tid = Create((rand(seed) % TASK_PRIORITY_LEVELS-6) + 3, stress_sub);
+        tid = Create((rand(seed) % 6) + 3, stress_sub);
         if ( tid >= 0 ) {
             log("STR_R(%d): Created %d", my_tid, tid);
             nchildren++;
@@ -52,8 +52,8 @@ void stress_root() {
     }
 
     if (my_tid < 10000) {
-        Create(16, stress_root);
-        Create(16, stress_root);
+        Create(10, stress_root);
+        Create(10, stress_root);
     }
 
     log("STR_R(%d): Ending", my_tid);

@@ -28,25 +28,25 @@ void k3_root() {
 
     log("K3_Root(%d): Start", my_tid);
 
-    tid = Create(15, k3_1);
+    tid = Create(9, k3_1);
     if ( tid > 0 ) {
         log("K3_Root(%d): Created %d", my_tid, tid);
         nchildren++;
     }
 
-    tid = Create(14, k3_2);
+    tid = Create(8, k3_2);
     if ( tid > 0 ) {
         log("K3_Root(%d): Created %d", my_tid, tid);
         nchildren++;
     }
 
-    tid = Create(13, k3_3);
+    tid = Create(7, k3_3);
     if ( tid > 0 ) {
         log("K3_Root(%d): Created %d", my_tid, tid);
         nchildren++;
     }
 
-    tid = Create(12, k3_4);
+    tid = Create(6, k3_4);
     if (tid > 0) {
         log("K3_Root(%d): Created %d", my_tid, tid);
         nchildren++;
