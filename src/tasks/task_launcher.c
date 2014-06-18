@@ -55,22 +55,17 @@ static void tl_action(char input) {
     case 'q':
         Shutdown();
     case 'o':
-        put_train_char(WhoIs((char*)TRAIN_SEND), SENSOR_POLL);
+        Putc(TRAIN, SENSOR_POLL);
         for(int i = 0; i < 10; i++) {
-            char c;
-            get_train(WhoIs((char*)TRAIN_RECV), &c, sizeof(c));
+            char c = Getc(TRAIN);
             log("%d - %d", i, c);
         }
         break;
     case 'n':
-        put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_STOP);
+        Putc(TRAIN, TRAIN_ALL_STOP);
         break;
     case 'y':
-        put_train_char(WhoIs((char*)TRAIN_SEND), TRAIN_ALL_START);
-        break;
-    case 'l':
-        break;
-    case 'c':
+        Putc(TRAIN, TRAIN_ALL_START);
         break;
     case 'h':
     default:
@@ -85,15 +80,13 @@ static void action(command cmd, int args[]) {
         break;
     case SPEED:
         log("setting train %d to %d", args[0], args[1]);
-        put_train_cmd(WhoIs((char*)TRAIN_SEND), args[0], args[1]);
+        put_train_cmd(args[0], args[1]);
         break;
     case GATE:
         if(args[1] == 's' || args[1] == 'S') {
-            put_train_turnout(WhoIs((char*)TRAIN_SEND),
-                              TURNOUT_STRAIGHT, args[0]);
+            put_train_turnout(TURNOUT_STRAIGHT, args[0]);
         } else if (args[1] == 'c' || args[1] == 'C') {
-            put_train_turnout(WhoIs((char*)TRAIN_SEND),
-                              TURNOUT_CURVED, args[0]);
+            put_train_turnout(TURNOUT_CURVED, args[0]);
         } else {
             log("invalid command");
         }

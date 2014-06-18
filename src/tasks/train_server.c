@@ -34,6 +34,8 @@ struct out {
     char buffer[64];
 };
 
+static int train_server_tid;
+
 static void __attribute__((noreturn)) write_carrier() {
     int ptid = myParentTid();
     train_req req = {
@@ -98,10 +100,10 @@ static void __attribute__((noreturn)) receive_notifier() {
 }
 
 inline static void _startup() {
-    int tid = myTid();
-    klog("train server started at %d", tid);
+    train_server_tid = myTid();
+    klog("train server started at %d", train_server_tid);
 
-    tid = RegisterAs((char*)TRAIN_SEND);
+    int tid = RegisterAs((char*)TRAIN_SEND);
     assert(tid == 0, "Train Server failed to register send name (%d)", tid);
 
     tid = RegisterAs((char*)TRAIN_RECV);
@@ -217,7 +219,7 @@ void train_server() {
     }
 }
 
-int put_train_char(int tid, char c) {
+int put_train_char(char c) {
     train_req req = {
         .type    = PUT,
         .payload = {
@@ -226,10 +228,10 @@ int put_train_char(int tid, char c) {
         }
     };
 
-    return Send(tid, (char*)&req, sizeof(req), NULL, 0);
+    return Send(train_server_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int put_train_cmd(int tid, char vctm, char cmd) {
+int put_train_cmd(char vctm, char cmd) {
     train_req req = {
         .type    = PUT,
         .payload = {
@@ -239,10 +241,10 @@ int put_train_cmd(int tid, char vctm, char cmd) {
     };
 
     log("setting %d to %d", req.payload.data[0], req.payload.data[1]);
-    return Send(tid, (char*)&req, sizeof(req), NULL, 0);
+    return Send(train_server_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int put_train_turnout(int tid, char cmd, char turn) {
+int put_train_turnout(char cmd, char turn) {
     train_req req = {
         .type = PUT,
         .payload = {
@@ -251,10 +253,26 @@ int put_train_turnout(int tid, char cmd, char turn) {
         }
     };
 
-    return Send(tid, (char*)&req, sizeof(req), NULL, 0);
+    return Send(train_server_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int get_train(int tid, char *buf, int buf_size) {
+int get_train_char() {
+    char c;
+    train_req req = {
+        .type    = GET,
+        .payload = {
+            .size = 1
+        }
+    };
+
+    int result = Send(train_server_tid,
+                      (char*)&req, sizeof(req),
+                      &c, sizeof(c));
+    if(result < 0) return result;
+    return c;
+}
+
+int get_train(char *buf, int buf_size) {
     assert(buf_size > 0 && buf_size <= 10,
            "Tried to read invalid sensor bank size (%d)", buf_size);
 
@@ -265,6 +283,6 @@ int get_train(int tid, char *buf, int buf_size) {
         }
     };
 
-    return Send(tid, (char*)&req, sizeof(req), buf, buf_size);
+    return Send(train_server_tid, (char*)&req, sizeof(req), buf, buf_size);
 }
 

@@ -7,11 +7,12 @@
 
 void __attribute__ ((noreturn)) train_server(void);
 
-int put_train_char(int tid, char c);
-int put_train_cmd(int tid, char cmd, char vctm);
-int put_train_turnout(int tid, char cmd, char turn);
+int put_train_char(char c);
+int put_train_cmd(char cmd, char vctm);
+int put_train_turnout(char cmd, char turn);
 
-int get_train(int tid, char *c, int buf_size);
+int get_train_char();
+int get_train(char *c, int buf_size);
 
 #endif
 

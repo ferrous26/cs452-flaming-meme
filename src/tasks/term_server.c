@@ -6,9 +6,25 @@
 #include <scheduler.h>
 #include <circular_buffer.h>
 
+typedef enum {
+    GETC     = 1,
+    PUTS     = 2,
+    CARRIER  = 3,
+    NOTIFIER = 4,
+    OBUFFER  = 5,
+    IBUFFER  = 6
+} term_req_type;
+
+typedef struct {
+    term_req_type type;
+    int           length;
+    char*         string;
+} term_req;
+
 // forward declarations
 struct term_state;
 struct term_puts;
+
 static void _term_try_send(struct term_state* const state);
 
 #define UART_FIFO_SIZE     16
@@ -25,7 +41,6 @@ static void _term_try_send(struct term_state* const state);
 // ASCII byte that tells VT100 to start transmitting (only send after XOFF)
 #define XON                19
 #define XON_THRESHOLD     (OUTPUT_BUFFER_SIZE >> 1)
-
 
 // Information stored when a Puts request must block
 typedef struct {
@@ -63,13 +78,8 @@ struct term_state {
     bool  xon;        // whether we sent the XON bit in the last run
 };
 
-
-
 /* Global data */
-
-int term_server_tid;
-
-
+static int term_server_tid;
 
 /* Circular buffer implementations */
 static inline void pbuf_init(puts_buffer* const cb) {
@@ -449,3 +459,51 @@ void term_server() {
 	}
     }
 }
+
+int put_term_char(char ch) {
+    term_req req = {
+	.type   = PUTS,
+	.length = 1,
+	.string = &ch
+    };
+
+    int result = Send(term_server_tid,
+                      (char*)&req, sizeof(term_req_type) + (sizeof(int) * 2),
+		      NULL, 0);
+
+    if (result == 0) return OK;
+    return result;
+}
+
+int Puts(char* const str, int length) {
+    term_req req = {
+	.type   = PUTS,
+	.length = length,
+	.string = str
+    };
+
+    assert(length > 0, "Empty string sent to Puts (%d)", length);
+
+    int result = Send(term_server_tid,
+		      (char*)&req,
+		      sizeof(term_req_type) + sizeof(int) + sizeof(char*),
+		      NULL, 0);
+    if (result == 0) return OK;
+    return result;
+}
+
+int get_term_char() {
+    term_req req = {
+	.type = GETC
+    };
+
+    char byte;
+    int result = Send(term_server_tid,
+                      (char*)&req, sizeof(term_req_type),
+                      &byte, sizeof(byte));
+
+    if (result > 0) return byte;
+    return result;
+}
+
+

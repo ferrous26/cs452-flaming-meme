@@ -4,6 +4,9 @@
 #include <std.h>
 #include <limits.h>
 
+#include <tasks/term_server.h>
+#include <tasks/train_server.h>
+
 #define SWI_HANDLER ((uint*volatile)0x08)
 
 #define SYS_IRQ      0
@@ -143,16 +146,25 @@ void __attribute__ ((noreturn)) Abort(const char* const file,
 				      char* msg, ...);
 
 typedef enum {
-    TRAIN_CONTROLLER = 1,
-    TERMINAL         = 2
+    TRAIN    = 1,
+    TERMINAL = 2
 } serial_channel;
 
 typedef enum {
     INVALID_CHANNEL = -6
 } io_err;
 
-int Getc(int channel);
-int Putc(int channel, char ch);
-int Puts(char* const str, int length);
+
+#define Putc(channel, ch) Putc_##channel(ch)
+#define Putc_TERMINAL(ch) put_term_char(ch)
+#define Putc_2(ch)        Putc_TERMINAL(ch)
+#define Putc_TRAIN(ch)    put_train_char(ch)
+#define Putc_1(ch)        Putc_train(ch);
+
+#define Getc(channel) Getc_##channel
+#define Getc_TERMINAL get_term_char()
+#define Getc_2        Getc_TERMINAL
+#define Getc_TRAIN    get_train_char()
+#define Getc_1        Getc_TRAIN
 
 #endif
