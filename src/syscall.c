@@ -113,9 +113,8 @@ int WhoIs(char* name) {
     if (result > OK) return status;
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
-	    return WhoIs(name);
+    assert(result != INVALID_TASK && result != INCOMPLETE,
+	   "Name server died");
 
     // else, error out
     return result;
@@ -139,9 +138,8 @@ int RegisterAs(char* name) {
     if (result > OK) return (status < 0 ? status :  0);
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
-	    return RegisterAs(name);
+    assert(result != INVALID_TASK && result != INCOMPLETE,
+	   "Name server died");
 
     // else, error out
     return result;
@@ -159,7 +157,7 @@ int AwaitEvent(int eventid, char* event, int eventlen) {
 int Delay(int ticks) {
 
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return 0;
+    assert(ticks > 0, "Missed a mother fucking deadline");
 
     clock_req req = {
 	.type  = CLOCK_DELAY,
@@ -175,8 +173,8 @@ int Delay(int ticks) {
 	return time;
 
     // maybe clock server died
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
+    assert(result != INVALID_TASK && result != INCOMPLETE,
+	   "Clock server died");
 
     return result;
 }
@@ -197,8 +195,8 @@ int Time() {
 	return time;
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
+    assert(result != INVALID_TASK && result != INCOMPLETE,
+	   "Clock server died");
 
     // else, error out
     return result;
@@ -207,7 +205,7 @@ int Time() {
 int DelayUntil(int ticks) {
 
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return 0;
+    assert(ticks > 0, "Missed a mother fucking deadline");
 
     clock_req req = {
 	.type = CLOCK_DELAY_UNTIL,
@@ -223,8 +221,8 @@ int DelayUntil(int ticks) {
 	return time;
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
+    assert(result != INVALID_TASK && result != INCOMPLETE,
+	   "Clock server died");
 
     return result;
 }
@@ -244,8 +242,7 @@ void Abort(const char* const file, int line, char* msg, ...) {
     ptr = vt_colour_reset(ptr);
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_restore_cursor(ptr);
-    ptr = sprintf_string(ptr, "\n\n\n\n\n");
-    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", file, line);
+    ptr = sprintf(ptr, "\n\nassertion failure at %s:%u\n", file, line);
     ptr = sprintf_va(ptr, msg, args);
 
     va_end(args);
@@ -258,4 +255,3 @@ void Abort(const char* const file, int line, char* msg, ...) {
     _syscall(SYS_ABORT, &req);
     FOREVER;
 }
-
