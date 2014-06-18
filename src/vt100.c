@@ -29,7 +29,7 @@ void vt_deinit() {
 
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_unhide_cursor(ptr);
-    ptr = sprintf_string("\nSHUTTING DOWN");
+    ptr = sprintf_string(ptr, "\nSHUTTING DOWN");
     uart2_bw_write(buffer, ptr - buffer);
 }
 
