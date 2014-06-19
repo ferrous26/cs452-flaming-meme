@@ -25,15 +25,19 @@ static char* _abort_tid(char* ptr, task* const t) {
     if (!t)
 	return sprintf_string(ptr, "-           ");
 
+#ifdef ASSERT
     char* name = kWhoTid(t->tid);
     if (name) {
 	char* new_ptr = sprintf_string(ptr, name);
 	return _abort_pad(new_ptr, (int)(new_ptr - ptr));
     }
     else {
+#endif
 	ptr = sprintf_int(ptr, t->tid);
 	return _abort_pad(ptr, log10(t->tid));
+#ifdef ASSERT
     }
+#endif
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {

@@ -16,7 +16,7 @@ int WhoTid(int tid, char* name);
 int RegisterAs(char* name);
 
 #ifdef ASSERT
-char* kWhoTid(const int tid);
+char* __attribute__((pure)) kWhoTid(int tid);
 #endif
 
 #endif

@@ -50,7 +50,7 @@ static void tl_action(char input) {
     case 'o':
         Putc(TRAIN, SENSOR_POLL);
         for(int i = 0; i < 10; i++) {
-            char c = Getc(TRAIN);
+            char c = (char)Getc(TRAIN);
             log("%d - %d", i, c);
         }
         break;
@@ -73,13 +73,13 @@ static void action(command cmd, int args[]) {
         break;
     case SPEED:
         log("setting train %d to %d", args[0], args[1]);
-        put_train_cmd(args[0], args[1]);
+        put_train_cmd((char)args[0], (char)args[1]);
         break;
     case GATE:
         if(args[1] == 's' || args[1] == 'S') {
-            put_train_turnout(TURNOUT_STRAIGHT, args[0]);
+            put_train_turnout(TURNOUT_STRAIGHT,(char)args[0]);
         } else if (args[1] == 'c' || args[1] == 'C') {
-            put_train_turnout(TURNOUT_CURVED, args[0]);
+            put_train_turnout(TURNOUT_CURVED, (char)args[0]);
         } else {
             log("invalid command");
         }
