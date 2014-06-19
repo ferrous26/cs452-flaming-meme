@@ -51,6 +51,10 @@ static void __attribute__((noreturn)) write_carrier() {
         char data[4];
     } buffer;
 
+    buffer.size = RegisterAs((char*)TRAIN_CARRIER_NAME);
+    assert(buffer.size == 0,
+           "Train Carrier Failed to Register (%d)", buffer.size);
+
     char *next;
     FOREVER {
         int ret = Send(ptid,
@@ -87,6 +91,10 @@ static void __attribute__((noreturn)) receive_notifier() {
         }
     };
 
+    req.payload.size = RegisterAs((char*) TRAIN_NOTIFIER_NAME);
+    assert(req.payload.size == 0,
+           "Train Notifier Failed to Register (%d)", req.payload.size);
+
     FOREVER {
         req.payload.size = AwaitEvent(UART1_RECV,
                                       req.payload.data,
@@ -103,10 +111,10 @@ inline static void _startup() {
     train_server_tid = myTid();
     klog("train server started at %d", train_server_tid);
 
-    int tid = RegisterAs((char*)TRAIN_SEND);
+    int tid = RegisterAs((char*)TRAIN_SEND_NAME);
     assert(tid == 0, "Train Server failed to register send name (%d)", tid);
 
-    tid = RegisterAs((char*)TRAIN_RECV);
+    tid = RegisterAs((char*)TRAIN_RECV_NAME);
     assert(tid == 0, "Train Server failed to register receive name (%d)", tid);
     
     tid = Create(TASK_PRIORITY_HIGH, write_carrier);
