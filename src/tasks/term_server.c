@@ -405,7 +405,6 @@ void term_server() {
     state.in_tid = state.carrier = state.notifier = -1;
     state.xoff   = state.xon     = false;
 
-
     int tid = 0;
     term_req req;
 

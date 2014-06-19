@@ -2,7 +2,7 @@
 #define __SYSCALL_H__
 
 #include <std.h>
-#include <limits.h>
+#include <stdarg.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>

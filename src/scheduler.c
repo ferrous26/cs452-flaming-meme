@@ -161,29 +161,3 @@ void task_destroy() {
     // put the task back into the allocation pool
     cbuf_produce(&free_list.list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
-
-#ifdef DEBUG
-void debug_task(const task_id tid) {
-    task* tsk = &tasks[task_index_from_tid(tid)];
-
-    char buffer[256];
-    char* ptr = buffer;
-
-    ptr = sprintf_string(ptr, "\n\nTask:\n");
-    ptr = sprintf(ptr,
-		  "             ID: %d\n"
-		  "      Parent ID: %d\n"
-		  "       Priority: %d\n",
-		  tsk->tid, tsk->p_tid, tsk->priority);
-    if (tsk->next == RECV_BLOCKED)
-	ptr = sprintf_string(ptr, "           Next: RECEIVE BLOCKED\n");
-    else if (tsk->next == RPLY_BLOCKED)
-	ptr = sprintf_string(ptr, "           Next: REPLY BLOCKED\n");
-    else
-	ptr = sprintf(ptr, "           Next: %p\n", tsk->next);
-
-    ptr = sprintf(ptr, "  Stack Pointer: %p\n", tsk->sp);
-
-    uart2_bw_write(buffer, ptr - buffer);
-}
-#endif

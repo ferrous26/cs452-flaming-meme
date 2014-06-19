@@ -5,7 +5,6 @@
 #include <vt100.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
-#include <tasks/term_server.h>
 
 #include <syscall.h>
 

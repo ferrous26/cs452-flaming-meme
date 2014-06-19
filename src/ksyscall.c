@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <kernel.h>
 #include <io.h>
-
+#include <vt100.h>
 #include <irq.h>
 #include <ts7200.h>
 #include <scheduler.h>

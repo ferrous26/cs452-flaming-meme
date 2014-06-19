@@ -5,6 +5,7 @@
 #include <debug.h>
 #include <kernel.h>
 #include <scheduler.h>
+#include <vt100.h>
 
 #include <clock.h>
 
