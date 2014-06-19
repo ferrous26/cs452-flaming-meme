@@ -65,7 +65,8 @@ void scheduler_init(void) {
     cbuf_init(&free_list.list, TASK_MAX, free_list.buffer);
 
     for (i = 0; i < 16; i++) {
-	tasks[i].tid = i;
+	tasks[i].tid   = i;
+	tasks[i].p_tid = -1;
 	cbuf_produce(&free_list.list, (char)i);
     }
 
@@ -79,7 +80,8 @@ void scheduler_init(void) {
     task_create(TASK_PRIORITY_MEDIUM,   train_server);
 
     for (; i < TASK_MAX; i++) {
-	tasks[i].tid = i;
+	tasks[i].tid   = i;
+	tasks[i].p_tid = -1;
 	cbuf_produce(&free_list.list, (char)i);
     }
 }

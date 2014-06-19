@@ -37,9 +37,12 @@ static char* _abort_tid(char* ptr, task* const t) {
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
-    if (t)
-	return _abort_tid(ptr, &tasks[task_index_from_tid(t->p_tid)]);
-    return ptr;
+    if (!t) return ptr;
+
+    if (t->p_tid == -1)
+	return sprintf_string(ptr, "-           ");
+
+    return _abort_tid(ptr, &tasks[task_index_from_tid(t->p_tid)]);
 }
 
 static char* _abort_priority(char* ptr, task* const t) {
