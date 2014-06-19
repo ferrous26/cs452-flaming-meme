@@ -4,7 +4,7 @@
 #include <debug.h>
 #include <syscall.h>
 #include <scheduler.h>
-#include <circular_buffer.h>
+#include <char_buffer.h>
 
 typedef enum {
     GETC     = 1,
@@ -30,7 +30,7 @@ static void _term_try_send(struct term_state* const state);
 #define UART_FIFO_SIZE     16
 
 #define INPUT_BUFFER_SIZE  512
-#define OUTPUT_BUFFER_SIZE 128
+#define OUTPUT_BUFFER_SIZE 130
 #define OUTPUT_BUFFER_MAX  (OUTPUT_BUFFER_SIZE - 2) // save space for XOFF/XON
 #define OUTPUT_Q_SIZE      TASK_MAX // at least 8 tasks will never Puts
 
@@ -41,6 +41,8 @@ static void _term_try_send(struct term_state* const state);
 // ASCII byte that tells VT100 to start transmitting (only send after XOFF)
 #define XON                19
 #define XON_THRESHOLD     (OUTPUT_BUFFER_SIZE >> 1)
+
+CHAR_BUFFER(INPUT_BUFFER_SIZE)
 
 // Information stored when a Puts request must block
 typedef struct {
@@ -68,7 +70,6 @@ struct term_state {
     puts_buffer output_q;
 
     char_buffer input_q;
-    char ibuffer[INPUT_BUFFER_SIZE];
     char* recv_buffer;
 
     int   in_tid;     // tid for the Getc caller that was blocked
@@ -130,8 +131,7 @@ static inline term_puts* pbuf_consume(puts_buffer* const cb) {
 // a release build
 #define TERM_ASSERT(expr, var) if (!(expr))  term_failure(var, __LINE__)
 static void __attribute__ ((noreturn)) term_failure(int result, uint line) {
-    klog("Action failed in terminal server at line %u (%d)", line, result);
-    Shutdown();
+    Abort(__FILE__, line, "Action failed in terminal server (%d)", result);
 }
 
 // data coming from the UART
@@ -343,7 +343,7 @@ static void _term_try_send(struct term_state* const state) {
 static void _term_try_getc(struct term_state* const state) {
 
     // if we have a buffered byte
-    if (cbuf_can_consume(&state->input_q)) {
+    if (cbuf_count(&state->input_q)) {
 	// then send it over the wire immediately
 	char  byte = cbuf_consume(&state->input_q);
 	int result = Reply(state->in_tid, &byte, 1);
@@ -369,9 +369,10 @@ static void _term_try_getc(struct term_state* const state) {
 static void _term_recv(struct term_state* const state,
                        const int length) {
 
-    // TODO: implement bulk produce for circular buffers
-    for (int count = 0; count < length; count++)
-	cbuf_produce(&state->input_q, *(state->recv_buffer + count));
+    if (length > 1)
+	cbuf_bulk_produce(&state->input_q, state->recv_buffer, length);
+    else
+	cbuf_produce(&state->input_q, *state->recv_buffer);
 
     // reply right away in case there is already more crap waiting
     int result = Reply(state->notifier, NULL, 0);
@@ -418,7 +419,7 @@ void term_server() {
     state.out_head = state.obuffer = state.obuffers[0];
     state.obuffer_size = 0;
     pbuf_init(&state.output_q);
-    cbuf_init(&state.input_q, INPUT_BUFFER_SIZE, state.ibuffer);
+    cbuf_init(&state.input_q);
     state.in_tid = state.carrier = state.notifier = -1;
     state.xoff   = state.xon     = false;
 
@@ -484,7 +485,7 @@ int put_term_char(char ch) {
     };
 
     int result = Send(term_server_tid,
-                      (char*)&req, sizeof(term_req_type) + (sizeof(int) * 2),
+                      (char*)&req, sizeof(term_req),
 		      NULL, 0);
 
     if (result == 0) return OK;
@@ -496,25 +497,35 @@ int put_term_char(char ch) {
 }
 
 int Puts(char* const str, int length) {
-    term_req req = {
-	.type   = PUTS,
-	.length = length,
-	.string = str
-    };
 
     assert(length > 0, "Empty string sent to Puts (%d)", length);
 
-    int result = Send(term_server_tid,
-		      (char*)&req,
-		      sizeof(term_req_type) + sizeof(int) + sizeof(char*),
-		      NULL, 0);
+    int offset = 0;
+    while (length) {
+	int chunk = mod2(length, OUTPUT_BUFFER_MAX);
 
-    if (result == 0) return OK;
+	term_req req = {
+	    .type   = PUTS,
+	    .length = chunk,
+	    .string = str + offset
+	};
 
-    assert(result != INCOMPLETE && result != INVALID_TASK,
-	   "Terminal server died");
+	int result = Send(term_server_tid,
+			  (char*)&req, sizeof(term_req),
+			  NULL, 0);
 
-    return result;
+	if (result == 0) {
+	    offset += chunk;
+	    length -= chunk;
+	}
+	else {
+	    assert(result != INCOMPLETE && result != INVALID_TASK,
+		   "Terminal server died");
+	    return result;
+	}
+    }
+
+    return OK;
 }
 
 int get_term_char() {

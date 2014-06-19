@@ -6,7 +6,7 @@
 #include <syscall.h>
 #include <scheduler.h>
 
-#include <circular_buffer.h>
+#include <char_buffer.h>
 #include <tasks/train_server.h>
 
 typedef enum {
@@ -24,15 +24,7 @@ typedef struct {
     } payload;
 } train_req;
 
-struct in {
-    char_buffer b;
-    char buffer[16];
-};
-
-struct out {
-    char_buffer b;
-    char buffer[64];
-};
+CHAR_BUFFER(64);
 
 static int train_server_tid;
 
@@ -127,8 +119,8 @@ struct train_context {
     int        get_tid;
     int        send_tid;
 
-    struct in  train_in;
-    struct out train_out;
+    char_buffer train_in;
+    char_buffer train_out;
 };
 
 void train_server() {
@@ -141,13 +133,8 @@ void train_server() {
         .get_tid  = -1
     };
 
-    cbuf_init(&context.train_in.b,
-              sizeof(context.train_in.buffer),
-              context.train_in.buffer);
-
-    cbuf_init(&context.train_out.b,
-              sizeof(context.train_out.buffer),
-              context.train_out.buffer);
+    cbuf_init(&context.train_in);
+    cbuf_init(&context.train_out);
 
     FOREVER {
         Receive(&tid, (char*)&req, sizeof(req));
@@ -159,8 +146,8 @@ void train_server() {
                    tid, context.send_tid);
 
             int  i;
-            for(i = 0; i<4 && cbuf_can_consume(&context.train_out.b); i++) {
-                req.payload.data[i] = cbuf_consume(&context.train_out.b);
+            for(i = 0; i<4 && cbuf_count(&context.train_out); i++) {
+                req.payload.data[i] = cbuf_consume(&context.train_out);
             }
             if(i > 0) {
                 req.payload.size = i;
@@ -176,22 +163,21 @@ void train_server() {
             assert(req.payload.size > 0 && req.payload.size <= 4,
                     "Invalid size sent from server");
 
-            for (int i = 0; i < req.payload.size; i++) {
-                cbuf_produce(&context.train_in.b, req.payload.data[i]);
-            }
+            for (int i = 0; i < req.payload.size; i++)
+                cbuf_produce(&context.train_in, req.payload.data[i]);
 
             if (context.get_tid != -1) {
                 char c[4];
-                c[0] = cbuf_consume(&context.train_in.b);
+                c[0] = cbuf_consume(&context.train_in);
                 Reply(context.get_tid, c, 1);
                 context.get_tid = -1;
             }
             break;
 
         case GET:
-            if (cbuf_can_consume(&context.train_in.b)) {
+            if (cbuf_count(&context.train_in)) {
                 char c[4];
-                c[0] = cbuf_consume(&context.train_in.b);
+                c[0] = cbuf_consume(&context.train_in);
                 Reply(tid, c, 1);
             } else {
                 assert(context.get_tid == -1,
@@ -205,14 +191,13 @@ void train_server() {
             assert(req.payload.size > 0 && req.payload.size <= 4,
                    "Invalid train req size (%d)", req.payload.size);
             Reply(tid, NULL, 0);
-            for(int i = 0; i < req.payload.size; i++) {
-                cbuf_produce(&context.train_out.b, req.payload.data[i]);
-            }
+            for(int i = 0; i < req.payload.size; i++)
+                cbuf_produce(&context.train_out, req.payload.data[i]);
 
             if (-1 != context.send_tid) {
                 int  i;
-                for(i = 0; i<4 && cbuf_can_consume(&context.train_out.b) ; i++) {
-                    req.payload.data[i] = cbuf_consume(&context.train_out.b);
+                for(i = 0; i<4 && cbuf_count(&context.train_out) ; i++) {
+                    req.payload.data[i] = cbuf_consume(&context.train_out);
                 }
                 if(i > 0) {
                     req.payload.size = i;

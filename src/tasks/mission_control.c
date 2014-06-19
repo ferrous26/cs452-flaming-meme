@@ -48,7 +48,7 @@ static void __attribute__((noreturn)) sensor_poll() {
         Putc(TRAIN, SENSOR_POLL);
         for (int bank = 0; bank < 10; bank++) {
             int c = Getc(TRAIN);
-            assert(c > 0, "sensor_poll got bad return (%d)", c);
+            assert(c >= 0, "sensor_poll got bad return (%d)", c);
 
             for (int mask = 0x80, i = 1; mask > 0; mask = mask >> 1, i++) {
                 if((c & mask) > (sensor_state[bank] & mask)) {
