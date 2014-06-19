@@ -8,6 +8,8 @@
 
 #include <syscall.h>
 
+void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req);
+
 inline static int _syscall(volatile int code, volatile void* request) {
     register int r0 asm ("r0") = code;
     register volatile void* r1 asm ("r1") = request;
@@ -109,7 +111,7 @@ void Shutdown() {
 }
 
 void Abort(const char* const file,
-	   const int line,
+	   const uint line,
 	   const char* const msg, ...) {
 
     va_list args;
@@ -121,6 +123,9 @@ void Abort(const char* const file,
 	.msg  = (char*)msg,
 	.args = &args
     };
+
+    if (debug_processor_mode() == SUPERVISOR)
+	ksyscall_abort((const kreq_abort* const)&req);
 
     _syscall(SYS_ABORT, &req);
 
