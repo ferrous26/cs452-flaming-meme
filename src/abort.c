@@ -52,10 +52,10 @@ static char* _abort_next(char* ptr, task* const t) {
     if (!t) return ptr;
 
     if (t->next == RECV_BLOCKED)
-	return sprintf_string(ptr, "RECV_BLCKD  ");
+	return sprintf_string(ptr, "RECV        ");
 
     if (t->next == RPLY_BLOCKED)
-	return sprintf_string(ptr, "RPLY_BLCKD  ");
+	return sprintf_string(ptr, "RPLY        ");
 
     return _abort_tid(ptr, t->next);
 }
