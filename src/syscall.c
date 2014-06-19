@@ -231,26 +231,22 @@ void Shutdown() {
     FOREVER;
 }
 
-void Abort(const char* const file, int line, char* msg, ...) {
+void Abort(const char* const file,
+	   const uint line,
+	   const char* const msg, ...) {
+
     va_list args;
     va_start(args, msg);
 
-    char buffer[1024];
-    char* ptr = buffer;
-
-    ptr = vt_colour_reset(ptr);
-    ptr = vt_reset_scroll_region(ptr);
-    ptr = vt_restore_cursor(ptr);
-    ptr = sprintf(ptr, "\n\nassertion failure at %s:%u\n", file, line);
-    ptr = sprintf_va(ptr, msg, args);
-
-    va_end(args);
-
     volatile kreq_abort req = {
-	.message = buffer,
-	.length  = (ptr - buffer)
+	.file = (char*)file,
+	.line = line,
+	.msg  = (char*)msg,
+	.args = &args
     };
 
     _syscall(SYS_ABORT, &req);
+
+    va_end(args);
     FOREVER;
 }

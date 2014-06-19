@@ -137,13 +137,15 @@ int DelayUntil(int ticks);
 void __attribute__ ((noreturn)) Shutdown(void);
 
 typedef struct {
-    char* message;
-    int length;
+    char*    file;
+    uint     line;
+    char*    msg;
+    va_list* args;
 } kreq_abort;
 
 void __attribute__ ((noreturn)) Abort(const char* const file,
-				      int line,
-				      char* msg, ...);
+				      const uint line,
+				      const char* const msg, ...);
 
 typedef enum {
     TRAIN    = 1,

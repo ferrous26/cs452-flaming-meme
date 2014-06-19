@@ -42,6 +42,5 @@ void irq_clock() {
 	return;
     }
 
-    kdebug_log("Missed a clock tick");
-    debug_task(task_active->tid);
+    assert(t, "Missed a clock tick");
 }
