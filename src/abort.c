@@ -21,23 +21,23 @@ static char* _abort_pad(char* ptr, const int val) {
     return ptr;
 }
 
+static char* _abort_tid_num(char* ptr, int tid) {
+#ifdef ASSERT
+    char* name = kWhoTid(tid);
+    if (name) {
+	char* new_ptr = sprintf_string(ptr, name);
+	return _abort_pad(new_ptr, new_ptr - ptr);
+    }
+#endif
+
+    ptr = sprintf_int(ptr, tid);
+    return _abort_pad(ptr, log10(tid));
+}
+
 static char* _abort_tid(char* ptr, task* const t) {
     if (!t)
 	return sprintf_string(ptr, "-           ");
-
-#ifdef ASSERT
-    char* name = kWhoTid(t->tid);
-    if (name) {
-	char* new_ptr = sprintf_string(ptr, name);
-	return _abort_pad(new_ptr, (int)(new_ptr - ptr));
-    }
-    else {
-#endif
-	ptr = sprintf_int(ptr, t->tid);
-	return _abort_pad(ptr, log10(t->tid));
-#ifdef ASSERT
-    }
-#endif
+    return _abort_tid_num(t->tid);
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
@@ -46,7 +46,7 @@ static char* _abort_ptid(char* ptr, task* const t) {
     if (t->p_tid == -1)
 	return sprintf_string(ptr, "-           ");
 
-    return _abort_tid(ptr, &tasks[task_index_from_tid(t->p_tid)]);
+    return _abort_tid_num(t->p_tid);
 }
 
 static char* _abort_priority(char* ptr, task* const t) {
