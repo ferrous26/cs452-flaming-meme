@@ -75,6 +75,16 @@ static char* _abort_receiver(char* ptr, task* const t) {
     return _abort_tid(ptr, q->head);
 }
 
+static char* _abort_send(char* ptr, task* const t) {
+    if (!t) return ptr;
+
+    if (t->next != RPLY_BLOCKED)
+	return sprintf_string(ptr, "-           ");
+
+    const kreq_send* const req = (const kreq_send* const)t->sp[1];
+    return _abort_tid(ptr, &tasks[task_index_from_tid(req->tid)]);
+}
+
 void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
 
     // we want a big buffer, we might end up printing a screenful of text
@@ -115,8 +125,9 @@ void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
 			 "Priority    "
 			 "Next        "
 			 "Stack       "
-			 "Receiver\n");
-    for (int i = 0; i < 72; i++)
+			 "Receiver    "
+			 "Send\n");
+    for (int i = 0; i < 84; i++)
 	ptr = sprintf_char(ptr, '#');
     ptr = sprintf_char(ptr, '\n');
 
@@ -129,6 +140,7 @@ void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
 	ptr = _abort_next(ptr, t);
 	ptr = _abort_sp(ptr, t);
 	ptr = _abort_receiver(ptr, t);
+	ptr = _abort_send(ptr, t);
 	ptr = sprintf_string(ptr, "\n");
     }
 
