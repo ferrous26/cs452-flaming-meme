@@ -12,19 +12,15 @@
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
-#include <tasks/seppuku.h>
-#include <tasks/k3_demo.h>
 #include <tasks/bench_msg.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
-
 #include <tasks/task_launcher.h>
 
 inline static void print_help() {
     log("\n\t"
-	"1 ~ K3 assignent demo\n\t"
 	"3 ~ Benchmark message passing\n\t"
 	"4 ~ Get the current time\n\t");
 
@@ -40,9 +36,6 @@ inline static void print_help() {
 
 static void tl_action(char input) {
     switch(input) {
-    case '1':
-        Create(10, k3_root);
-        break;
     case '3':
         Create(TASK_PRIORITY_MAX, bench_msg);
 	break;
@@ -102,15 +95,6 @@ static void action(command cmd, int args[]) {
     }
 }
 
-static int _create(int priority, void (*code) (void), const char* const name) {
-    int tid = Create(priority, code);
-    if (tid < 0) {
-        log("Failed starting %s! Goodbye cruel world", name);
-	Shutdown();
-    }
-    return tid;
-}
-
 void task_launcher() {
     // start idle task at highest level so that it can initialize
     // then it will set itself to the proper priority level before
@@ -145,7 +129,7 @@ void task_launcher() {
         char c = 0;
         for(;c != '\r';) {
             c = (char)Getc(TERMINAL);
-            
+
             switch (c) {
             case '\b':
                 if(insert == 0) continue;
