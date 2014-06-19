@@ -41,7 +41,6 @@ static int name_server_tid;
 #ifdef ASSERT
 static ns_context* _context;
 #endif
-
 /*
  * look up functions
  */
@@ -114,8 +113,10 @@ void name_server() {
     log("Name Server started at %d", name_server_tid);
 
     memset((void*)&buffer, 0, sizeof(buffer));
-    sprintf_string(buffer.payload.text, (char*)NAME_SERVER_NAME);
+    sprintf_string(buffer.payload.text, "NAME");
+
     register_tid(&context, name_server_tid, &buffer.payload);
+
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
