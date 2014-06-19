@@ -64,7 +64,7 @@ task :build, :params do |_, args|
 
   env  = env.join ' '
   cmds = cmds.reverse.join ' && '
-  jobs = params.include?('p') ? '-j48' : '' # parallelize build
+  jobs = params.include?('p') ? '-j32' : '' # parallelize build
 
   cmds << " && echo Cleaning Environment && make clean && touch Makefile"
   cmds << " && echo Building Fresh Kernel && #{env} make -s #{jobs}"
