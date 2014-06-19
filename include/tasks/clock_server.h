@@ -4,6 +4,10 @@
 
 #include <std.h>
 
+#define CLOCK_SERVER_NAME   "CLOCK"
+#define CLOCK_UI_NAME       "CL_UI"
+#define CLOCK_NOTIFIER_NAME "CL_NOTE"
+
 void __attribute__ ((noreturn)) clock_server(void);
 
 int Time(void);

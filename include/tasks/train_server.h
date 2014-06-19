@@ -2,8 +2,10 @@
 #ifndef __TRAIN_SERVER_H__
 #define __TRAIN_SERVER_H__
 
-#define TRAIN_SEND "W_TRAIN"
-#define TRAIN_RECV "R_TRAIN"
+#define TRAIN_CARRIER_NAME  "C_TRAIN"
+#define TRAIN_NOTIFIER_NAME "N_TRAIN"
+#define TRAIN_SEND_NAME     "W_TRAIN"
+#define TRAIN_RECV_NAME     "R_TRAIN"
 
 void __attribute__ ((noreturn)) train_server(void);
 
