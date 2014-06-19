@@ -14,19 +14,19 @@
 static int clock_server_tid;
 
 typedef enum {
-    CLOCK_NOTIFY = 1,
-    CLOCK_DELAY = 2,
-    CLOCK_TIME = 3,
+    CLOCK_NOTIFY      = 1,
+    CLOCK_DELAY       = 2,
+    CLOCK_TIME        = 3,
     CLOCK_DELAY_UNTIL = 4
 } clock_req_type;
 
 typedef struct {
     clock_req_type type;
-    int ticks;
+    int            ticks;
 } clock_req;
 
 typedef struct {
-    int time;
+    int     time;
     task_id tid;
 } clock_delay;
 
@@ -45,6 +45,8 @@ static void __attribute__ ((noreturn)) clock_notifier() {
     int clock = myParentTid();
     int   msg = CLOCK_NOTIFY;
 
+    RegisterAs((char*)CLOCK_NOTIFIER_NAME);
+
     FOREVER {
 	int result = AwaitEvent(CLOCK_TICK, NULL, 0);
 	CLOCK_ASSERT(result == 0, result);
@@ -60,6 +62,7 @@ static void __attribute__ ((noreturn)) clock_notifier() {
 }
 
 static void __attribute__ ((noreturn)) clock_ui() {
+    RegisterAs((char*)CLOCK_UI_NAME);
 
 // CLOCK MM:SS.D
 #define CLOCK_ROW     1
@@ -227,7 +230,7 @@ static void _error(int tid, int code) {
 static void _startup(clock_pq* pq) {
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
-    int result = RegisterAs((char*)"clock");
+    int result = RegisterAs((char*)CLOCK_SERVER_NAME);
     if (result) {
 	log("Failed to register clock server name (%d)", result);
 	return;

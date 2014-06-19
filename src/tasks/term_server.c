@@ -143,11 +143,13 @@ static void __attribute__ ((noreturn)) recv_notifier() {
 	.string = input
     };
 
+    int result = RegisterAs(TERM_NOTIFIER_NAME);
+    assert(result == 0, "Terminal Notifier Failed to Register (%d)", result);
     // first, let the server know about the input buffer so that we don't need
     // to keep sending the pointer each time we notify the server of input
-    int result = Send(ptid,
-		      (char*)&msg,  sizeof(msg),
-		      (char*)input, sizeof(input));
+    result = Send(ptid,
+		  (char*)&msg,  sizeof(msg),
+		  (char*)input, sizeof(input));
     TERM_ASSERT(result == 0, result);
 
     // now, we can keep filling the buffer and sending over only the size
@@ -186,11 +188,13 @@ static void __attribute__ ((noreturn)) send_carrier() {
         .type = OBUFFER
     };
 
+    int result = RegisterAs((char*)TERM_CARRIER_NAME);
+    assert(result == 0, "Terminal Carrier Failed to Register (%d)", result);
     // first, ask the server for the buffer locations so that we can avoid
     // having to send the buffer pointers over and over again
-    int result = Send(ptid,
-		      (char*)&msg,     sizeof(term_req_type),
-		      (char*)&buffers, sizeof(buffers));
+    result = Send(ptid,
+	          (char*)&msg,     sizeof(term_req_type),
+		  (char*)&buffers, sizeof(buffers));
     TERM_ASSERT(result == sizeof(buffers), result);
 
     // now, we can just keep swapping between buffers every time that we
@@ -354,7 +358,7 @@ static void _term_try_getc(struct term_state* const state) {
 }
 
 static void _term_recv(struct term_state* const state,
-			      const int length) {
+                       const int length) {
 
     // TODO: implement bulk produce for circular buffers
     for (int count = 0; count < length; count++)
@@ -383,7 +387,13 @@ static void _startup() {
 
     klog("Terminal Server started at %d", term_server_tid);
 
-    int tid = Create(TASK_PRIORITY_HIGH, recv_notifier);
+    int tid = RegisterAs((char*)TERM_SEND_NAME);
+    assert(tid == 0, "Terminal Failed to register send name (%d)", tid);
+
+    tid = RegisterAs((char*)TERM_RECV_NAME);
+    assert(tid == 0, "Terminal Failed to register receive name (%d)", tid);
+
+    tid = Create(TASK_PRIORITY_HIGH, recv_notifier);
     TERM_ASSERT(tid > 0, tid);
 
     tid = Create(TASK_PRIORITY_HIGH, send_carrier);
