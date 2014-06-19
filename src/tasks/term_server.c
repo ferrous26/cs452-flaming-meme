@@ -143,7 +143,7 @@ static void __attribute__ ((noreturn)) recv_notifier() {
 	.string = input
     };
 
-    int result = RegisterAs(TERM_NOTIFIER_NAME);
+    int result = RegisterAs((char*)TERM_NOTIFIER_NAME);
     assert(result == 0, "Terminal Notifier Failed to Register (%d)", result);
     // first, let the server know about the input buffer so that we don't need
     // to keep sending the pointer each time we notify the server of input

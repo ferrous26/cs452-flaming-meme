@@ -61,7 +61,6 @@ find_loc(int directory[][NAME_OVERLAY_SIZE],
 
 static int __attribute__((const))
 find_name(const int dir[NAME_MAX], const int tid, const int stored) {
-
     for (int i = 0; i < stored; i++) {
         if (dir[i] == tid) { return i; }
     }
@@ -91,16 +90,16 @@ static inline void register_tid(ns_context* ctxt,
     Reply(tid, (char*)&reply, sizeof(reply));
 }
 
-static inline int lookup_tid(ns_context* ctxt,
-			     const ns_payload* const data) {
+static inline int __attribute__((const))
+lookup_tid(ns_context* ctxt, const ns_payload* const data) {
     int loc = find_loc(ctxt->lookup.overlay,
                        data->overlay,
                        ctxt->lookup_insert);
     return loc < 0 ? -69 : ctxt->tasks[loc];
 }
 
-static inline char* lookup_name(ns_context* const ctxt,
-				const ns_payload* const data) {
+static inline char* __attribute__((const))
+lookup_name(ns_context* const ctxt, const ns_payload* const data) {
     int loc = find_name(ctxt->tasks, data->overlay[0], ctxt->lookup_insert);
     return loc < 0 ? NULL : ctxt->lookup.text[loc];
 }
@@ -180,7 +179,7 @@ int WhoTid(int tid, char* name) {
                       name, NAME_MAX_SIZE);
 
     if (result == 0) {
-        memcpy("NO_ENTY", name, sizeof(name));
+        memcpy((char*)"NO_ENTY", name, NAME_MAX_SIZE);
         return -63;
     }
 
