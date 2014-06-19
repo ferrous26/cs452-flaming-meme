@@ -104,6 +104,10 @@ static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
     assert(cb->count < OUTPUT_Q_SIZE, "Overfilled buffer!")
 }
 
+static inline int pbuf_peek_length(puts_buffer* const cb) {
+    return cb->tail->length;
+}
+
 static inline term_puts* pbuf_consume(puts_buffer* const cb) {
     assert(cb->count, "Trying to consume from empty puts queue");
 
@@ -326,8 +330,13 @@ static void _term_try_send(struct term_state* const state) {
     	// skip checking if it will fit in this function; it will be
     	// checked in _term_try_puts, and in the worst case, the requests
     	// that do not fit will waste CPU time and get requeued
-    	for (; pbuf_count(&state->output_q);)
+	int count = 0;
+    	FOREVER {
+	    if (!pbuf_count(&state->output_q)) break;
+	    count += pbuf_peek_length(&state->output_q);
+	    if (count > OUTPUT_BUFFER_MAX) break;
     	    _term_try_puts(state, pbuf_consume(&state->output_q));
+	}
     }
 }
 
