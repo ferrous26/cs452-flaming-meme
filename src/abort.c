@@ -37,7 +37,7 @@ static char* _abort_tid_num(char* ptr, int tid) {
 static char* _abort_tid(char* ptr, task* const t) {
     if (!t)
 	return sprintf_string(ptr, "-           ");
-    return _abort_tid_num(t->tid);
+    return _abort_tid_num(ptr, t->tid);
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
@@ -46,7 +46,7 @@ static char* _abort_ptid(char* ptr, task* const t) {
     if (t->p_tid == -1)
 	return sprintf_string(ptr, "-           ");
 
-    return _abort_tid_num(t->p_tid);
+    return _abort_tid_num(ptr, t->p_tid);
 }
 
 static char* _abort_priority(char* ptr, task* const t) {

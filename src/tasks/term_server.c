@@ -282,8 +282,7 @@ static void _term_try_puts(struct term_state* const state,
 
 static void _term_send_xoff(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
-	   "No space in buffer for the stop byte!");
-    kprintf(8, "XOFF");
+    	   "No space in buffer for the stop byte!");
     *state->out_head++ = XOFF; // J-J-Jam it in
     state->xoff = false;
     state->obuffer_size++;
@@ -291,8 +290,7 @@ static void _term_send_xoff(struct term_state* const state) {
 
 static void _term_send_xon(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
-	   "No space in buffer for the stop byte!");
-    kprintf(8, "XON");
+    	   "No space in buffer for the stop byte!");
     assert(state->xoff, "Haven't sent the xoff byte yet");
     *state->out_head++ = XON; // J-J-Jam it in
     state->xon = true;
