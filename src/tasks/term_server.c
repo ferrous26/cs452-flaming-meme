@@ -405,7 +405,6 @@ void term_server() {
     state.in_tid = state.carrier = state.notifier = -1;
     state.xoff   = state.xon     = false;
 
-
     int tid = 0;
     term_req req;
 
@@ -472,6 +471,10 @@ int put_term_char(char ch) {
 		      NULL, 0);
 
     if (result == 0) return OK;
+
+    assert(result != INCOMPLETE && result != INVALID_TASK,
+	   "Terminal server died");
+
     return result;
 }
 
@@ -488,7 +491,12 @@ int Puts(char* const str, int length) {
 		      (char*)&req,
 		      sizeof(term_req_type) + sizeof(int) + sizeof(char*),
 		      NULL, 0);
+
     if (result == 0) return OK;
+
+    assert(result != INCOMPLETE && result != INVALID_TASK,
+	   "Terminal server died");
+
     return result;
 }
 
@@ -503,7 +511,9 @@ int get_term_char() {
                       &byte, sizeof(byte));
 
     if (result > 0) return byte;
+
+    assert(result != INCOMPLETE && result != INVALID_TASK,
+	   "Terminal server died");
+
     return result;
 }
-
-

@@ -6,7 +6,6 @@
 #define __IO_H__
 
 #include <std.h>
-#include <stdarg.h>
 #include <kernel.h>
 
 void uart_init(void);

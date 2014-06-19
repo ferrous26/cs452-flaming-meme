@@ -6,7 +6,6 @@
 #include <tasks/name_server.h>
 #include <syscall.h>
 
-
 /*
  * All of the internal structs required by the name server implmentation
  */
@@ -39,7 +38,9 @@ typedef struct {
  * Static data 
  */
 static int name_server_tid;
-
+#ifdef ASSERT
+static ns_context* _context;
+#endif
 /*
  * look up functions
  */
@@ -104,6 +105,10 @@ void name_server() {
     ns_req     buffer;
     ns_context context;
 
+    #ifdef ASSERT
+    _context = &context;
+    #endif
+
     name_server_tid = myTid();
     log("Name Server started at %d", name_server_tid);
 
@@ -111,6 +116,7 @@ void name_server() {
     sprintf_string(buffer.payload.text, "NAME");
 
     register_tid(&context, name_server_tid, &buffer.payload);
+
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
@@ -184,6 +190,7 @@ int WhoTid(int tid, char* name) {
     return result;
 }
 
+
 int RegisterAs(char* name) {
     ns_req req;
     req.type = REGISTER;
@@ -209,4 +216,14 @@ int RegisterAs(char* name) {
     // else, error out
     return result;
 }
+
+#ifdef ASSERT
+char* kWhoTid(int tid) {
+    ns_req req;
+    req.payload.overlay[0] = tid;
+    
+    return lookup_name(_context, &req.payload);
+}
+#endif
+
 

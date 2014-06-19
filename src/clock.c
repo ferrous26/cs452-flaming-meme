@@ -5,6 +5,7 @@
 #include <debug.h>
 #include <kernel.h>
 #include <scheduler.h>
+#include <vt100.h>
 
 #include <clock.h>
 
@@ -41,6 +42,5 @@ void irq_clock() {
 	return;
     }
 
-    kdebug_log("Missed a clock tick");
-    debug_task(task_active->tid);
+    assert(t, "Missed a clock tick");
 }

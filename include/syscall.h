@@ -2,7 +2,7 @@
 #define __SYSCALL_H__
 
 #include <std.h>
-#include <limits.h>
+#include <stdarg.h>
 
 #include <tasks/term_server.h>
 #include <tasks/name_server.h>
@@ -36,104 +36,106 @@
 #define EXIT_ADDRESS      START_ADDRESS(Exit)
 #define DEFAULT_SPSR      0x50  //no fiq
 
-typedef enum {
-    NO_DESCRIPTORS   = -1,
-    INVALID_PRIORITY = -2
-} task_err;
+    typedef enum {
+        NO_DESCRIPTORS   = -1,
+        INVALID_PRIORITY = -2
+    } task_err;
 
-typedef enum {
-    OK              =  0, // full steam ahead
-    IMPOSSIBLE_TASK = -1, // task id is negative
-    INVALID_TASK    = -2, // task no longer alive (or has not yet been created)
-    INCOMPLETE      = -3, // receiver Exit()'d before receiving the message
-    INVALID_RECVER  = -3, // receiver was not in the RPLY_BLOCKED state
-    NOT_ENUF_MEMORY = -4, // receiver buffer was not big enough
-    INVALID_MESSAGE = -5  // the receiver did not understand the message
-} msg_err;
+    typedef enum {
+        OK              =  0, // full steam ahead
+        IMPOSSIBLE_TASK = -1, // task id is negative
+        INVALID_TASK    = -2, // task no longer alive (or has not yet been created)
+        INCOMPLETE      = -3, // receiver Exit()'d before receiving the message
+        INVALID_RECVER  = -3, // receiver was not in the RPLY_BLOCKED state
+        NOT_ENUF_MEMORY = -4, // receiver buffer was not big enough
+        INVALID_MESSAGE = -5  // the receiver did not understand the message
+    } msg_err;
 
-typedef struct {
-    int  priority;
-    void (*code)(void);
-} kreq_create;
+    typedef struct {
+        int  priority;
+        void (*code)(void);
+    } kreq_create;
 
-typedef struct {
-    int   tid;
-    char* msg;
-    int   msglen;
-    char* reply;
-    int   replylen;
-} kreq_send;
+    typedef struct {
+        int   tid;
+        char* msg;
+        int   msglen;
+        char* reply;
+        int   replylen;
+    } kreq_send;
 
-typedef struct {
-    int*  tid;
-    char* msg;
-    int   msglen;
-} kreq_recv;
+    typedef struct {
+        int*  tid;
+        char* msg;
+        int   msglen;
+    } kreq_recv;
 
-typedef struct {
-    int   tid;
-    char* reply;
-    int   replylen;
-} kreq_reply;
+    typedef struct {
+        int   tid;
+        char* reply;
+        int   replylen;
+    } kreq_reply;
 
-typedef struct {
-    int eventid;
-    char* event;
-    int eventlen;
-} kreq_event;
+    typedef struct {
+        int eventid;
+        char* event;
+        int eventlen;
+    } kreq_event;
 
-void syscall_init(void);
-void syscall_deinit(void);
-void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
-void kernel_exit(int* sp);                        /* found in context.asm */
+    void syscall_init(void);
+    void syscall_deinit(void);
+    void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
+    void kernel_exit(int* sp);                        /* found in context.asm */
 
-int Create(int priority, void (*code) (void));
+    int Create(int priority, void (*code) (void));
 
-int myTid(void);
-int myParentTid(void);
-int myPriority(void);
-void ChangePriority(int);
+    int myTid(void);
+    int myParentTid(void);
+    int myPriority(void);
+    void ChangePriority(int);
 
-void Pass(void);
-void Exit(void);
+    void Pass(void);
+    void Exit(void);
 
-int Send(int tid, char* msg, int msglen, char* reply, int replylen);
-int Receive(int* tid, char* msg, int msglen);
-int Reply(int tid, char* reply, int replylen);
+    int Send(int tid, char* msg, int msglen, char* reply, int replylen);
+    int Receive(int* tid, char* msg, int msglen);
+    int Reply(int tid, char* reply, int replylen);
 
 
-typedef enum {
-    CLOCK_TICK,
-    UART2_SEND,
-    UART2_RECV,
-    UART1_SEND,
-    UART1_RECV,
-    UART1_CTS,
-    UART1_DOWN,
-    EVENT_COUNT
-} event_id;
+    typedef enum {
+        CLOCK_TICK,
+        UART2_SEND,
+        UART2_RECV,
+        UART1_SEND,
+        UART1_RECV,
+        UART1_CTS,
+        UART1_DOWN,
+        EVENT_COUNT
+    } event_id;
 
-typedef enum {
-    EVENT_OK = 0,
-    INVALID_EVENT = -1,
-    CORRUPT_DATA  = -2
-} event_err;
+    typedef enum {
+        EVENT_OK = 0,
+        INVALID_EVENT = -1,
+        CORRUPT_DATA  = -2
+    } event_err;
 
-int AwaitEvent(int eventid, char* event, int eventlen);
+    int AwaitEvent(int eventid, char* event, int eventlen);
 
-/**
- * Shutdown EVERYTHING. This function does not return and it does
- * not give other tasks an opportunity to shutdown.
- */
-void __attribute__ ((noreturn)) Shutdown(void);
+    /**
+     * Shutdown EVERYTHING. This function does not return and it does
+     * not give other tasks an opportunity to shutdown.
+     */
+    void __attribute__ ((noreturn)) Shutdown(void);
 
-typedef struct {
-    char* message;
-    int length;
-} kreq_abort;
+    typedef struct {
+        char*    file;
+        uint     line;
+        char*    msg;
+        va_list* args;
+    } kreq_abort;
 
-void __attribute__ ((noreturn))
-Abort(const char* const file, int line, char* msg, ...);
+    void __attribute__ ((noreturn))
+    Abort(const char* const file, const int line, const char* const msg, ...);
 
 typedef enum {
     INVALID_CHANNEL = -6

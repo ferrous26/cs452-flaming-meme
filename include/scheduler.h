@@ -76,15 +76,4 @@ void scheduler_activate(void);
 int  task_create(const task_pri pri, void (*const start)(void)) TEXT_HOT;
 void task_destroy(void) TEXT_HOT;
 
-/**
- * Print debug info about the given task to the debug console.
- */
-
-#ifdef DEBUG
-void debug_task(const task_id tid);
-#else
-#define debug_task(...)
-#endif
-
-
 #endif

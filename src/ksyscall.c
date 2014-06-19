@@ -3,10 +3,12 @@
 #include <memory.h>
 #include <kernel.h>
 #include <io.h>
-
+#include <vt100.h>
 #include <irq.h>
 #include <ts7200.h>
 #include <scheduler.h>
+
+void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req);
 
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
@@ -178,7 +180,7 @@ ksyscall_await(const kreq_event* const req) {
     assert(req->eventid >= CLOCK_TICK && req->eventid < EVENT_COUNT,
 	   "Invalid event (%d)", req->eventid);
     #endif
-    
+
     switch (req->eventid) {
     case CLOCK_TICK:
         int_queue[CLOCK_TICK] = task_active;
@@ -234,13 +236,6 @@ inline static void ksyscall_irq() {
     handler();
     ksyscall_pass();
 }
-
-static inline void ksyscall_abort(const kreq_abort* const req) {
-    uart2_bw_write(req->message, req->length);
-    debug_task(task_active->tid);
-    shutdown();
-}
-
 
 #ifdef DEBUG
 extern const int _TextStart;

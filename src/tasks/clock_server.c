@@ -280,7 +280,6 @@ void clock_server() {
 
 	    while (pq_peek(&q) <= time) {
 		tid = pq_delete(&q);
-		assert(tid >= 0, "Waking up invalid tid!");
 		result = Reply(tid, (char*)&time, sizeof(time));
 		if (result) _error(tid, result);
 	    }

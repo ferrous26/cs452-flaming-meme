@@ -14,4 +14,9 @@ int WhoIs(char* name);
 int WhoTid(int tid, char* name);
 int RegisterAs(char* name);
 
+
+#ifdef ASSERT
+char* kWhoTid(int tid);
+#endif
+
 #endif
