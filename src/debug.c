@@ -5,7 +5,6 @@
 #include <kernel.h>
 #include <syscall.h>
 
-
 #ifdef DEBUG
 
 // TODO: we have 4 functions that do almost the same thing, they should
@@ -41,6 +40,8 @@ void kdebug_log(const char* const msg, ...) {
     uart2_bw_write(buffer, (uint)(ptr - buffer));
     va_end(args);
 }
+
+#endif
 
 
 #define CPU_MODE_MASK             0x0000001f
@@ -85,7 +86,7 @@ static void _debug_psr(const char* const name, const uint status) {
     void (*logger)(const char* const,...) = NULL;
     switch (debug_processor_mode()) {
     case USER:
-	logger = debug_log;
+	logger = log;
 	break;
     case FIQ:
     case IRQ:
@@ -93,7 +94,7 @@ static void _debug_psr(const char* const name, const uint status) {
     case ABORT:
     case UNDEFINED:
     case SYSTEM:
-	logger = kdebug_log;
+	logger = klog;
     };
 
     logger("%s Information\n"
@@ -137,5 +138,3 @@ pmode debug_processor_mode() {
 
     return (status & CPU_MODE_MASK);
 }
-
-#endif

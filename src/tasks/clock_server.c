@@ -249,8 +249,6 @@ static void _startup(clock_pq* pq) {
     }
 
     pq_init(pq);
-
-    log("Clock Server started at %d", clock_server_tid);
 }
 
 void clock_server() {
@@ -383,4 +381,3 @@ int DelayUntil(int ticks) {
 
     return result;
 }
-

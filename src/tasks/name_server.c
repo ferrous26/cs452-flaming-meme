@@ -35,7 +35,7 @@ typedef struct {
 } ns_context;
 
 /*
- * Static data 
+ * Static data
  */
 static int name_server_tid;
 #ifdef ASSERT
@@ -71,7 +71,7 @@ find_name(int dir[NAME_MAX], const int tid, const int stored) {
 static inline void register_tid(ns_context* ctxt, int tid, ns_payload* data) {
     int reply = 0;
     int loc   = find_loc(ctxt->lookup.overlay,
-                         data->overlay, 
+                         data->overlay,
                          ctxt->lookup_insert);
 
     if(loc < 0) {
@@ -111,7 +111,6 @@ void name_server() {
     #endif
 
     name_server_tid = myTid();
-    log("Name Server started at %d", name_server_tid);
 
     memset((void*)&buffer, 0, sizeof(buffer));
     sprintf_string(buffer.payload.text, (char*)NAME_SERVER_NAME);
@@ -119,7 +118,7 @@ void name_server() {
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
-	assert(buffer.type == REGISTER 
+	assert(buffer.type == REGISTER
              ||buffer.type == LOOKUP
              ||buffer.type == REVERSE,
 	       "NS: Invalid message type from %u (%d)", buffer.type, tid);
@@ -220,9 +219,7 @@ int RegisterAs(char* name) {
 char* kWhoTid(int tid) {
     ns_req req;
     req.payload.overlay[0] = tid;
-    
+
     return lookup_name(_context, &req.payload);
 }
 #endif
-
-

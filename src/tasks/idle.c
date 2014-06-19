@@ -34,8 +34,6 @@ static void __attribute__ ((noreturn)) idle_ui() {
 #define IDLE_ROW 2
 #define IDLE_COL 7
 
-    log("Idle UI starting on %d", myTid());
-
     char twirl = '/';
     char buffer[32];
     char*  ptr = buffer;
@@ -73,7 +71,6 @@ static void __attribute__ ((noreturn)) idle_ui() {
 }
 
 void idle() {
-    log("Starting idle task at %d", myTid());
     non_idle_ticks = 0;
     int result = Create(TASK_PRIORITY_MEDIUM, idle_ui);
 

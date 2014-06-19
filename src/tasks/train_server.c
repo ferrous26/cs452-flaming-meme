@@ -60,7 +60,7 @@ static void __attribute__((noreturn)) write_carrier() {
         int ret = Send(ptid,
                        (char*)&req, sizeof(req),
                        (char*)&buffer, sizeof(buffer));
-        
+
         assert(ret == sizeof(buffer),
                 "Failed to send to train (%d)", buffer.size);
         assert(buffer.size > 0 && buffer.size <= 4,
@@ -69,7 +69,7 @@ static void __attribute__((noreturn)) write_carrier() {
         next = buffer.data;
         for(int i = 0; i < buffer.size;) {
             AwaitEvent(UART1_CTS, NULL, 0);
-            
+
             ret = AwaitEvent(UART1_SEND, next, buffer.size);
 
             assert(ret > 0 && ret <= 4, "Sending To Train Failed (%d)", ret);
@@ -109,14 +109,13 @@ static void __attribute__((noreturn)) receive_notifier() {
 
 inline static void _startup() {
     train_server_tid = myTid();
-    klog("train server started at %d", train_server_tid);
 
     int tid = RegisterAs((char*)TRAIN_SEND_NAME);
     assert(tid == 0, "Train Server failed to register send name (%d)", tid);
 
     tid = RegisterAs((char*)TRAIN_RECV_NAME);
     assert(tid == 0, "Train Server failed to register receive name (%d)", tid);
-    
+
     tid = Create(TASK_PRIORITY_HIGH, write_carrier);
     assert(tid>0, "Failed to start up train write carrier (%d)", tid);
 
@@ -134,18 +133,18 @@ struct train_context {
 
 void train_server() {
     _startup();
-    
+
     int tid;
     train_req req;
     struct train_context context = {
         .send_tid = -1,
         .get_tid  = -1
-    }; 
+    };
 
     cbuf_init(&context.train_in.b,
               sizeof(context.train_in.buffer),
               context.train_in.buffer);
-    
+
     cbuf_init(&context.train_out.b,
               sizeof(context.train_out.buffer),
               context.train_out.buffer);
@@ -156,7 +155,7 @@ void train_server() {
         switch (req.type) {
         case CARRIER: {
             assert(-1 == context.send_tid,
-                   "Double Registered Send %d %d", 
+                   "Double Registered Send %d %d",
                    tid, context.send_tid);
 
             int  i;
@@ -173,7 +172,7 @@ void train_server() {
         }
         case NOTIFIER:
             Reply(tid, NULL, 0);
-            
+
             assert(req.payload.size > 0 && req.payload.size <= 4,
                     "Invalid size sent from server");
 
@@ -203,13 +202,13 @@ void train_server() {
             break;
 
         case PUT:
-            assert(req.payload.size > 0 && req.payload.size <= 4, 
+            assert(req.payload.size > 0 && req.payload.size <= 4,
                    "Invalid train req size (%d)", req.payload.size);
             Reply(tid, NULL, 0);
             for(int i = 0; i < req.payload.size; i++) {
                 cbuf_produce(&context.train_out.b, req.payload.data[i]);
             }
-            
+
             if (-1 != context.send_tid) {
                 int  i;
                 for(i = 0; i<4 && cbuf_can_consume(&context.train_out.b) ; i++) {
@@ -293,4 +292,3 @@ int get_train(char *buf, int buf_size) {
 
     return Send(train_server_tid, (char*)&req, sizeof(req), buf, buf_size);
 }
-

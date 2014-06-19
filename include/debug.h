@@ -5,6 +5,8 @@
 #include <std.h>
 #include <syscall.h>
 
+
+
 #ifdef ASSERT
 #define assert(expr, msg, ...)						\
     {									\
@@ -17,9 +19,12 @@
 #endif
 
 #ifdef DEBUG
-
 void kdebug_log(const char* const message, ...);
 void debug_log(const char* const message, ...);
+#else
+#define kdebug_log(...)
+#define debug_log(...)
+#endif
 
 typedef enum {
     USER       = 0x10,
@@ -34,17 +39,5 @@ typedef enum {
 pmode debug_processor_mode(void);
 void debug_cpsr(void);
 void debug_spsr(void);
-
-#else
-
-#define debug_log( ... )
-#define debug_assert_fail( ... )
-#define kdebug_log( ... )
-#define kdebug_assert_fail( ... )
-#define debug_processor_mode()
-#define debug_cpsr()
-#define debug_spsr()
-
-#endif
 
 #endif

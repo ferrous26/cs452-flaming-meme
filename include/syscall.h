@@ -135,7 +135,7 @@
     } kreq_abort;
 
     void __attribute__ ((noreturn))
-    Abort(const char* const file, const int line, const char* const msg, ...);
+    Abort(const char* const file, const uint line, const char* const msg, ...);
 
 typedef enum {
     INVALID_CHANNEL = -6

@@ -385,8 +385,6 @@ static void _term_recv(struct term_state* const state,
 static void _startup() {
     term_server_tid = myTid();
 
-    klog("Terminal Server started at %d", term_server_tid);
-
     int tid = RegisterAs((char*)TERM_SEND_NAME);
     assert(tid == 0, "Terminal Failed to register send name (%d)", tid);
 
