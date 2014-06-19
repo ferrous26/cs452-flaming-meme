@@ -109,6 +109,7 @@ void name_server() {
     int        tid;
     ns_req     buffer;
     ns_context context;
+    memset(&context, 0, sizeof(context));
 
     #ifdef ASSERT
     _context = &context;
