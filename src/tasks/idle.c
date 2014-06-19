@@ -72,7 +72,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
 
 void idle() {
     non_idle_ticks = 0;
-    int result = Create(TASK_PRIORITY_MEDIUM, idle_ui);
+    int result = Create(TASK_PRIORITY_HIGH, idle_ui);
 
     UNUSED(result);
     assert(result > 0, "Idle UI task failed to start (%d)", result);

@@ -111,6 +111,7 @@ void task_launcher() {
     char line_mark[] = "TERM> ";
 
     log("Welcome to Task Launcher (h for help)");
+
     FOREVER {
         insert = 0;
 
