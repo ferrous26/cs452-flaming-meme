@@ -365,22 +365,13 @@ static void _term_try_getc(struct term_state* const state) {
     }
 }
 
-static void __attribute__ ((noreturn, noinline)) magic_sysreq() {
-    Abort(__FILE__, 0, "Magic SysReq key pressed");
-}
-
 static void _term_recv(struct term_state* const state,
                        const uint length) {
 
-    // hmmmm
-    if (length > 1) {
+    if (length > 1)
 	cbuf_bulk_produce(&state->input_q, state->recv_buffer, length);
-    }
-    else {
-	char c = *state->recv_buffer;
-	if (c == '`') magic_sysreq();
+    else
 	cbuf_produce(&state->input_q, *state->recv_buffer);
-    }
 
     // reply right away in case there is already more crap waiting
     int result = Reply(state->notifier, NULL, 0);

@@ -63,10 +63,10 @@ void uart_init() {
 
     // want to clear the error registers since otehr people might
     // have set them off
-    int* const rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
+    volatile int* volatile rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
     *rsr1 = (int)rsr1;
 
-    int* const rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
+    volatile int* volatile rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
     *rsr2 = (int)rsr2;
 }
 
@@ -105,6 +105,10 @@ static void uart_rsr_check(int base) {
 #define uart_rsr_check(...)
 #endif
 
+static void __attribute__ ((noreturn, noinline)) magic_sysreq() {
+    Abort(__FILE__, 0, "Magic SysReq key pressed");
+}
+
 void irq_uart2_recv() {
     uart_rsr_check(UART2_BASE);
 
@@ -112,14 +116,19 @@ void irq_uart2_recv() {
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     volatile int*  const intr = (int*) (UART2_BASE + UART_INTR_OFFSET);
 
+    char c = *data;
+    if (c == '`') magic_sysreq();
+
     task* t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
     if (t) {
         kreq_event* const req = (kreq_event*) t->sp[1];
 
+	req->event[0] = c;
+
         int i;
-        for (i = 0; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
+        for (i = 1; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
             req->event[i] = *data;
         }
 
