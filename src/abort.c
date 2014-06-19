@@ -88,7 +88,7 @@ static char* _abort_send(char* ptr, task* const t) {
     return _abort_tid(ptr, &tasks[task_index_from_tid(req->tid)]);
 }
 
-void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
+void abort(const kreq_abort* const req) {
 
     // we want a big buffer, we might end up printing a screenful of text
     // plus various escape sequences to get everything formatted nicely

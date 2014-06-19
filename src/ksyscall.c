@@ -8,8 +8,6 @@
 #include <ts7200.h>
 #include <scheduler.h>
 
-void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req);
-
 void syscall_init() {
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 }
@@ -304,7 +302,7 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
     case SYS_SHUTDOWN:
 	shutdown();
     case SYS_ABORT:
-	ksyscall_abort((const kreq_abort* const)req);
+	abort((const kreq_abort* const)req);
     default:
         assert(false, "Task %d, called invalid system call %d",
 	       task_active->tid,
