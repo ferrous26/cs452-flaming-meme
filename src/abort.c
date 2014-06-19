@@ -1,6 +1,7 @@
 #include <std.h>
 #include <vt100.h>
 #include <scheduler.h>
+#include <tasks/name_server.h>
 
 static int log10(int c) {
     int count = 0;
@@ -12,7 +13,7 @@ static int log10(int c) {
 }
 
 static char* _abort_pad(char* ptr, const int val) {
-    int count = 12 - log10(val);
+    int count = 12 - val;
     if (val == 0) count = 11;
 
     for (int i = 0; i < count; i++)
@@ -24,8 +25,15 @@ static char* _abort_tid(char* ptr, task* const t) {
     if (!t)
 	return sprintf_string(ptr, "-           ");
 
-    ptr = sprintf(ptr, "%d", t->tid);
-    return _abort_pad(ptr, t->tid);
+    char* name = kWhoTid(t->tid);
+    if (name) {
+	char* new_ptr = sprintf_string(ptr, name);
+	return _abort_pad(new_ptr, (int)(new_ptr - ptr));
+    }
+    else {
+	ptr = sprintf(ptr, "%d", t->tid);
+	return _abort_pad(ptr, log10(t->tid));
+    }
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
@@ -37,17 +45,17 @@ static char* _abort_ptid(char* ptr, task* const t) {
 static char* _abort_priority(char* ptr, task* const t) {
     if (!t) return ptr;
     ptr = sprintf(ptr, "%d", t->priority);
-    return _abort_pad(ptr, t->priority);
+    return _abort_pad(ptr, log10(t->priority));
 }
 
 static char* _abort_next(char* ptr, task* const t) {
     if (!t) return ptr;
 
     if (t->next == RECV_BLOCKED)
-	return sprintf_string(ptr, "RECV_BLCKD  ");
+	return sprintf_string(ptr, "RECV        ");
 
     if (t->next == RPLY_BLOCKED)
-	return sprintf_string(ptr, "RPLY_BLCKD  ");
+	return sprintf_string(ptr, "RPLY        ");
 
     return _abort_tid(ptr, t->next);
 }
