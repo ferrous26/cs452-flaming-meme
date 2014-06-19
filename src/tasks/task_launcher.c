@@ -96,14 +96,6 @@ static void action(command cmd, int args[]) {
 }
 
 void task_launcher() {
-    // start idle task at highest level so that it can initialize
-    // then it will set itself to the proper priority level before
-    // entering its forever loop
-    _create(TASK_PRIORITY_MEDIUM, term_server,  "terminal server");
-    _create(TASK_PRIORITY_MEDIUM, name_server,  "name server");
-    _create(TASK_PRIORITY_MEDIUM, clock_server, "clock server");
-    _create(TASK_PRIORITY_MEDIUM, train_server, "train server");
-    _create(TASK_PRIORITY_IDLE,   idle,         "idle task");
 
     char buffer[128];
     char* ptr = buffer;

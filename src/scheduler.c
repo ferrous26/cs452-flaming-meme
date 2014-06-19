@@ -1,8 +1,15 @@
 #include <scheduler.h>
 #include <circular_buffer.h>
 #include <debug.h>
-#include <tasks/task_launcher.h>
 #include <vt100.h>
+
+#include <tasks/task_launcher.h>
+#include <tasks/idle.h>
+#include <tasks/name_server.h>
+#include <tasks/clock_server.h>
+#include <tasks/term_server.h>
+#include <tasks/train_server.h>
+
 
 // force grouping by putting them into a struct
 static struct task_free_list {
@@ -50,9 +57,10 @@ void scheduler_init(void) {
 	table[i] = 1 + table[i >> 1];
     table[0] = 32; // if you want log(0) to return -1, change to -1
 
-    memset(&manager, 0, sizeof(manager));
-    memset(&recv_q,  0, sizeof(recv_q));
-    memset(&tasks,   0, sizeof(tasks));
+    memset(&manager,  0, sizeof(manager));
+    memset(&recv_q,   0, sizeof(recv_q));
+    memset(&tasks,    0, sizeof(tasks));
+    memset(int_queue, 0, sizeof(int_queue));
 
     cbuf_init(&free_list.list, TASK_MAX, free_list.buffer);
 
@@ -64,14 +72,15 @@ void scheduler_init(void) {
     // get the party started
     task_active = &tasks[0];
     task_create(TASK_PRIORITY_IDLE + 1, task_launcher);
+    task_create(TASK_PRIORITY_IDLE,     idle);
+    task_create(TASK_PRIORITY_MEDIUM,   name_server);
+    task_create(TASK_PRIORITY_MEDIUM,   term_server);
+    task_create(TASK_PRIORITY_MEDIUM,   clock_server);
+    task_create(TASK_PRIORITY_MEDIUM,   train_server);
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid = i;
 	cbuf_produce(&free_list.list, (char)i);
-    }
-
-    for (i = 0; i < (int)EVENT_COUNT; i++) {
-        int_queue[i] = NULL;
     }
 }
 
