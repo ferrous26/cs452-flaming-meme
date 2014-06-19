@@ -130,8 +130,7 @@ static inline term_puts* pbuf_consume(puts_buffer* const cb) {
 // a release build
 #define TERM_ASSERT(expr, var) if (!(expr))  term_failure(var, __LINE__)
 static void __attribute__ ((noreturn)) term_failure(int result, uint line) {
-    klog("Action failed in terminal server at line %u (%d)", line, result);
-    Shutdown();
+    Abort(__FILE__, line, "Action failed in terminal server (%d)", result);
 }
 
 // data coming from the UART
