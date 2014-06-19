@@ -106,6 +106,7 @@ void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
 
     for (int i = 0; i < TASK_MAX; i++) {
 	task* t = &tasks[i];
+	if (t->sp == NULL) continue;
 	ptr = _abort_tid(ptr, t);
 	ptr = _abort_ptid(ptr, t);
 	ptr = _abort_priority(ptr, t);
