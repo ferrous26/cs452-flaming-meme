@@ -57,7 +57,6 @@ extern task   tasks[TASK_MAX];
 extern task*  task_active;
 extern task*  int_queue[EVENT_COUNT];
 
-
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);
 }

@@ -95,58 +95,6 @@ int Reply(int tid, char *reply, int replylen) {
     return _syscall(SYS_REPLY, &req);
 }
 
-int WhoIs(char* name) {
-    ns_req req;
-    req.type = LOOKUP;
-    memset((void*)&req.payload, 0, sizeof(ns_payload));
-
-    for(uint i = 0; name[i] != '\0'; i++) {
-        if (i == NAME_MAX_SIZE) return -1;
-	req.payload.text[i] = name[i];
-    }
-
-    int status;
-    int result = Send(name_server_tid,
-		      (char*)&req,    sizeof(req),
-		      (char*)&status, sizeof(int));
-
-    if (result > OK) return status;
-
-    // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
-	    return WhoIs(name);
-
-    // else, error out
-    return result;
-}
-
-int RegisterAs(char* name) {
-    ns_req req;
-    req.type = REGISTER;
-    memset((void*)&req.payload, 0, sizeof(ns_payload));
-
-    for (uint i = 0; name[i] != '\0'; i++) {
-        if (i == NAME_MAX_SIZE) return -1;
-	req.payload.text[i] = name[i];
-    }
-
-    int status;
-    int result = Send(name_server_tid,
-		      (char*)&req,    sizeof(req),
-		      (char*)&status, sizeof(int));
-
-    if (result > OK) return (status < 0 ? status :  0);
-
-    // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
-	    return RegisterAs(name);
-
-    // else, error out
-    return result;
-}
-
 int AwaitEvent(int eventid, char* event, int eventlen) {
     volatile kreq_event req = {
         .eventid  = eventid,
@@ -154,79 +102,6 @@ int AwaitEvent(int eventid, char* event, int eventlen) {
         .eventlen = eventlen
     };
     return _syscall(SYS_AWAIT, &req);
-}
-
-int Delay(int ticks) {
-
-    // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return 0;
-
-    clock_req req = {
-	.type  = CLOCK_DELAY,
-	.ticks = ticks
-    };
-
-    int time;
-    int result = Send(clock_server_tid,
-		      (char*)&req,  sizeof(clock_req),
-		      (char*)&time, sizeof(time));
-
-    if (result == sizeof(int))
-	return time;
-
-    // maybe clock server died
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
-
-    return result;
-}
-
-int Time() {
-    clock_req req = {
-	.type = CLOCK_TIME
-    };
-
-    int time;
-    int result = Send(clock_server_tid,
-		      (char*)&req,  sizeof(clock_req_type),
-		      (char*)&time, sizeof(time));
-
-    // Note: since we return _result_ in error cases, we inherit
-    // additional error codes not in the kernel spec for this function
-    if (result == sizeof(time))
-	return time;
-
-    // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
-
-    // else, error out
-    return result;
-}
-
-int DelayUntil(int ticks) {
-
-    // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return 0;
-
-    clock_req req = {
-	.type = CLOCK_DELAY_UNTIL,
-	.ticks = ticks
-    };
-
-    int time;
-    int result = Send(clock_server_tid,
-		      (char*)&req,  sizeof(clock_req),
-		      (char*)&time, sizeof(time));
-
-    if (result == sizeof(time))
-	return time;
-
-    // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
-
-    return result;
 }
 
 void Shutdown() {

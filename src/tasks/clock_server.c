@@ -2,14 +2,28 @@
 #include <std.h>
 #include <debug.h>
 #include <vt100.h>
-#include <syscall.h>
+#include <scheduler.h>
+
 #include <tasks/clock_server.h>
+#include <syscall.h>
 
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)
 #define PARENT(i) (i >> 1)
 
-int clock_server_tid;
+static int clock_server_tid;
+
+typedef enum {
+    CLOCK_NOTIFY = 1,
+    CLOCK_DELAY = 2,
+    CLOCK_TIME = 3,
+    CLOCK_DELAY_UNTIL = 4
+} clock_req_type;
+
+typedef struct {
+    clock_req_type type;
+    int ticks;
+} clock_req;
 
 typedef struct {
     int time;
@@ -20,7 +34,6 @@ typedef struct {
     int count;
     clock_delay delays[TASK_MAX];
 } clock_pq;
-
 
 #define CLOCK_ASSERT(expr, result) if (!(expr)) clock_failure(result, __LINE__)
 static void __attribute__ ((noreturn)) clock_failure(int result, uint line) {
@@ -297,3 +310,75 @@ void clock_server() {
 	}
     }
 }
+
+int Time() {
+    clock_req req = {
+	.type = CLOCK_TIME
+    };
+
+    int time;
+    int result = Send(clock_server_tid,
+		      (char*)&req,  sizeof(clock_req_type),
+		      (char*)&time, sizeof(time));
+
+    // Note: since we return _result_ in error cases, we inherit
+    // additional error codes not in the kernel spec for this function
+    if (result == sizeof(time))
+	return time;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	Abort(__FILE__, __LINE__, "Clock server died");
+
+    // else, error out
+    return result;
+}
+
+int Delay(int ticks) {
+    // handle negative/non-delay cases on the task side
+    if (ticks <= 0) return 0;
+
+    clock_req req = {
+	.type  = CLOCK_DELAY,
+	.ticks = ticks
+    };
+
+    int time;
+    int result = Send(clock_server_tid,
+		      (char*)&req,  sizeof(clock_req),
+		      (char*)&time, sizeof(time));
+
+    if (result == sizeof(int))
+	return time;
+
+    // maybe clock server died
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	Abort(__FILE__, __LINE__, "Clock server died");
+
+    return result;
+}
+
+int DelayUntil(int ticks) {
+    // handle negative/non-delay cases on the task side
+    if (ticks <= 0) return 0;
+
+    clock_req req = {
+	.type = CLOCK_DELAY_UNTIL,
+	.ticks = ticks
+    };
+
+    int time;
+    int result = Send(clock_server_tid,
+		      (char*)&req,  sizeof(clock_req),
+		      (char*)&time, sizeof(time));
+
+    if (result == sizeof(time))
+	return time;
+
+    // maybe clock server died, so we can try again
+    if (result == INVALID_TASK || result == INCOMPLETE)
+	Abort(__FILE__, __LINE__, "Clock server died");
+
+    return result;
+}
+

@@ -5,7 +5,9 @@
 #include <limits.h>
 
 #include <tasks/term_server.h>
+#include <tasks/name_server.h>
 #include <tasks/train_server.h>
+#include <tasks/clock_server.h>
 
 #define SWI_HANDLER ((uint*volatile)0x08)
 
@@ -99,8 +101,6 @@ int Send(int tid, char* msg, int msglen, char* reply, int replylen);
 int Receive(int* tid, char* msg, int msglen);
 int Reply(int tid, char* reply, int replylen);
 
-int WhoIs(char* name);
-int RegisterAs(char* name);
 
 typedef enum {
     CLOCK_TICK,
@@ -121,15 +121,6 @@ typedef enum {
 
 int AwaitEvent(int eventid, char* event, int eventlen);
 
-// Note: if you send a negative value for the number of ticks
-//       then you will be woken up immediately
-int Delay(int ticks);
-int Time(void);
-
-// Note: if you send a value of time that is before the current
-//       time then you will be woken up immediately
-int DelayUntil(int ticks);
-
 /**
  * Shutdown EVERYTHING. This function does not return and it does
  * not give other tasks an opportunity to shutdown.
@@ -141,19 +132,12 @@ typedef struct {
     int length;
 } kreq_abort;
 
-void __attribute__ ((noreturn)) Abort(const char* const file,
-				      int line,
-				      char* msg, ...);
-
-typedef enum {
-    TRAIN    = 1,
-    TERMINAL = 2
-} serial_channel;
+void __attribute__ ((noreturn))
+Abort(const char* const file, int line, char* msg, ...);
 
 typedef enum {
     INVALID_CHANNEL = -6
 } io_err;
-
 
 #define Putc(channel, ch) Putc_##channel(ch)
 #define Putc_TERMINAL(ch) put_term_char(ch)
