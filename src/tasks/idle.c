@@ -17,7 +17,6 @@ static void __attribute__ ((noreturn)) idle_failure(int result, uint line) {
 
 static uint non_idle_ticks = 0;
 
-
 static inline char twirler(const char prev) {
     switch (prev) {
     case  '/': return '-';
@@ -37,7 +36,9 @@ static void __attribute__ ((noreturn)) idle_ui() {
     char twirl = '/';
     char buffer[32];
     char*  ptr = buffer;
-    int result = 0;
+
+    int result = RegisterAs((char*)IDLE_UI_NAME);
+    assert(result == 0, "Idle UI Has Failed to Load (%d)", result);
 
     ptr = vt_goto(buffer, IDLE_ROW, 1);
     ptr = sprintf_string(ptr, "IDLE  00");
@@ -72,11 +73,13 @@ static void __attribute__ ((noreturn)) idle_ui() {
 
 void idle() {
     non_idle_ticks = 0;
-    int result = Create(TASK_PRIORITY_HIGH, idle_ui);
 
-    UNUSED(result);
+    int result = RegisterAs((char*)IDLE_NAME);
+    assert(result == 0, "Idle failed to register (%d)", result);
+    
+    result = Create(TASK_PRIORITY_MEDIUM_HI, idle_ui);
     assert(result > 0, "Idle UI task failed to start (%d)", result);
-
+    
     uint prev_time = clock_t4tick();
     uint curr_time = prev_time;
     uint diff      = 0;
