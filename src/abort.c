@@ -64,8 +64,15 @@ static char* _abort_sp(char* ptr, task* const t) {
     if (!t) return ptr;
 
     if (t->sp)
-	return sprintf_ptr(ptr, t->sp);
-    return sprintf_char(ptr, '-');
+	return sprintf(ptr, "%p  ", t->sp);
+    return sprintf_string(ptr, "-           ");
+}
+
+static char* _abort_receiver(char* ptr, task* const t) {
+    if (!t) return ptr;
+
+    task_q* const q = &recv_q[task_index_from_tid(t->tid)];
+    return _abort_tid(ptr, q->head);
 }
 
 void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
@@ -107,8 +114,9 @@ void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
 			 "PTID        "
 			 "Priority    "
 			 "Next        "
-			 "Stack\n");
-    for (int i = 0; i < 58; i++)
+			 "Stack       "
+			 "Receiver\n");
+    for (int i = 0; i < 72; i++)
 	ptr = sprintf_char(ptr, '#');
     ptr = sprintf_char(ptr, '\n');
 
@@ -120,6 +128,7 @@ void __attribute__ ((noinline)) ksyscall_abort(const kreq_abort* const req) {
 	ptr = _abort_priority(ptr, t);
 	ptr = _abort_next(ptr, t);
 	ptr = _abort_sp(ptr, t);
+	ptr = _abort_receiver(ptr, t);
 	ptr = sprintf_string(ptr, "\n");
     }
 
