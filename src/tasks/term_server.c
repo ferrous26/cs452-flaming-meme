@@ -30,7 +30,7 @@ static void _term_try_send(struct term_state* const state);
 #define UART_FIFO_SIZE     16
 
 #define INPUT_BUFFER_SIZE  512
-#define OUTPUT_BUFFER_SIZE 128
+#define OUTPUT_BUFFER_SIZE 130
 #define OUTPUT_BUFFER_MAX  (OUTPUT_BUFFER_SIZE - 2) // save space for XOFF/XON
 #define OUTPUT_Q_SIZE      TASK_MAX // at least 8 tasks will never Puts
 
@@ -485,7 +485,7 @@ int put_term_char(char ch) {
     };
 
     int result = Send(term_server_tid,
-                      (char*)&req, sizeof(term_req_type) + (sizeof(int) * 2),
+                      (char*)&req, sizeof(term_req),
 		      NULL, 0);
 
     if (result == 0) return OK;
@@ -497,25 +497,35 @@ int put_term_char(char ch) {
 }
 
 int Puts(char* const str, int length) {
-    term_req req = {
-	.type   = PUTS,
-	.length = length,
-	.string = str
-    };
 
     assert(length > 0, "Empty string sent to Puts (%d)", length);
 
-    int result = Send(term_server_tid,
-		      (char*)&req,
-		      sizeof(term_req_type) + sizeof(int) + sizeof(char*),
-		      NULL, 0);
+    int offset = 0;
+    while (length) {
+	int chunk = mod2(length, OUTPUT_BUFFER_MAX);
 
-    if (result == 0) return OK;
+	term_req req = {
+	    .type   = PUTS,
+	    .length = chunk,
+	    .string = str + offset
+	};
 
-    assert(result != INCOMPLETE && result != INVALID_TASK,
-	   "Terminal server died");
+	int result = Send(term_server_tid,
+			  (char*)&req, sizeof(term_req),
+			  NULL, 0);
 
-    return result;
+	if (result == 0) {
+	    offset += chunk;
+	    length -= chunk;
+	}
+	else {
+	    assert(result != INCOMPLETE && result != INVALID_TASK,
+		   "Terminal server died");
+	    return result;
+	}
+    }
+
+    return OK;
 }
 
 int get_term_char() {
