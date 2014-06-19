@@ -4,7 +4,7 @@
 #include <debug.h>
 #include <syscall.h>
 #include <scheduler.h>
-#include <circular_buffer.h>
+#include <char_buffer.h>
 
 typedef enum {
     GETC     = 1,
@@ -42,6 +42,8 @@ static void _term_try_send(struct term_state* const state);
 #define XON                19
 #define XON_THRESHOLD     (OUTPUT_BUFFER_SIZE >> 1)
 
+CHAR_BUFFER(INPUT_BUFFER_SIZE)
+
 // Information stored when a Puts request must block
 typedef struct {
     int   tid;
@@ -68,7 +70,6 @@ struct term_state {
     puts_buffer output_q;
 
     char_buffer input_q;
-    char ibuffer[INPUT_BUFFER_SIZE];
     char* recv_buffer;
 
     int   in_tid;     // tid for the Getc caller that was blocked
@@ -342,7 +343,7 @@ static void _term_try_send(struct term_state* const state) {
 static void _term_try_getc(struct term_state* const state) {
 
     // if we have a buffered byte
-    if (cbuf_can_consume(&state->input_q)) {
+    if (cbuf_count(&state->input_q)) {
 	// then send it over the wire immediately
 	char  byte = cbuf_consume(&state->input_q);
 	int result = Reply(state->in_tid, &byte, 1);
@@ -368,9 +369,10 @@ static void _term_try_getc(struct term_state* const state) {
 static void _term_recv(struct term_state* const state,
                        const int length) {
 
-    // TODO: implement bulk produce for circular buffers
-    for (int count = 0; count < length; count++)
-	cbuf_produce(&state->input_q, *(state->recv_buffer + count));
+    if (length > 1)
+	cbuf_bulk_produce(&state->input_q, state->recv_buffer, length);
+    else
+	cbuf_produce(&state->input_q, *state->recv_buffer);
 
     // reply right away in case there is already more crap waiting
     int result = Reply(state->notifier, NULL, 0);
@@ -417,7 +419,7 @@ void term_server() {
     state.out_head = state.obuffer = state.obuffers[0];
     state.obuffer_size = 0;
     pbuf_init(&state.output_q);
-    cbuf_init(&state.input_q, INPUT_BUFFER_SIZE, state.ibuffer);
+    cbuf_init(&state.input_q);
     state.in_tid = state.carrier = state.notifier = -1;
     state.xoff   = state.xon     = false;
 

@@ -12,7 +12,6 @@
 #include <ts7200.h>
 #include <scheduler.h>
 
-#include <circular_buffer.h>
 #include <syscall.h>
 
 #define NOP(count) for (volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
@@ -123,7 +122,7 @@ void irq_uart2_recv() {
         for (i = 0; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
             req->event[i] = *data;
         }
-        
+
         assert(i > 0, "UART2 Had An Empty Recv");
         t->sp[0] = i;
 
@@ -178,7 +177,7 @@ void irq_uart2() {
 void irq_uart1_recv() {
     uart_rsr_check(UART1_BASE);
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
-    
+
     task* t = int_queue[UART1_RECV];
     int_queue[UART1_RECV] = NULL;
 
@@ -217,7 +216,7 @@ void irq_uart1() {
 
     int* const intr = (int*)(UART1_BASE + UART_INTR_OFFSET);
     int* const flag = (int*)(UART1_BASE + UART_FLAG_OFFSET);
-    
+
     assert(*intr & MIS_MASK,     "UART1 in general without modem");
     assert(!(*intr & RTIS_MASK), "UART1 got a receive timeout");
 

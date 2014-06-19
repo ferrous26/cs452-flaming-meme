@@ -1,5 +1,5 @@
 #include <scheduler.h>
-#include <circular_buffer.h>
+#include <char_buffer.h>
 #include <debug.h>
 #include <vt100.h>
 
@@ -12,10 +12,9 @@
 
 
 // force grouping by putting them into a struct
-static struct task_free_list {
-    char_buffer list;
-    int8 buffer[TASK_MAX];
-} free_list DATA_HOT;
+CHAR_BUFFER(TASK_MAX);
+
+char_buffer free_list DATA_HOT;
 
 static struct task_manager {
     uint32 state; // bitmap for accelerating queue selection
@@ -62,12 +61,12 @@ void scheduler_init(void) {
     memset(&tasks,    0, sizeof(tasks));
     memset(int_queue, 0, sizeof(int_queue));
 
-    cbuf_init(&free_list.list, TASK_MAX, free_list.buffer);
+    cbuf_init(&free_list);
 
     for (i = 0; i < 16; i++) {
 	tasks[i].tid   = i;
 	tasks[i].p_tid = -1;
-	cbuf_produce(&free_list.list, (char)i);
+	cbuf_produce(&free_list, (char)i);
     }
 
     // get the party started
@@ -82,7 +81,7 @@ void scheduler_init(void) {
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid   = i;
 	tasks[i].p_tid = -1;
-	cbuf_produce(&free_list.list, (char)i);
+	cbuf_produce(&free_list, (char)i);
     }
 }
 
@@ -135,10 +134,10 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
     // make sure we have something to allocate
-    if (!cbuf_can_consume(&free_list.list)) return NO_DESCRIPTORS;
+    if (!cbuf_count(&free_list)) return NO_DESCRIPTORS;
 
     // actually take the task descriptor and load it up
-    const task_idx task_index = cbuf_consume(&free_list.list);
+    const task_idx task_index = cbuf_consume(&free_list);
 
     task* tsk      = &tasks[task_index];
     tsk->p_tid     = task_active->tid; // task_active is _always_ the parent
@@ -170,5 +169,5 @@ void task_destroy() {
     }
 
     // put the task back into the allocation pool
-    cbuf_produce(&free_list.list, (char)mod2((uint)task_active->tid, TASK_MAX));
+    cbuf_produce(&free_list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
