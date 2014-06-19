@@ -1,14 +1,15 @@
+
+#include <debug.h>
 #include <scheduler.h>
 #include <char_buffer.h>
-#include <debug.h>
-#include <vt100.h>
 
-#include <tasks/task_launcher.h>
 #include <tasks/idle.h>
 #include <tasks/name_server.h>
-#include <tasks/clock_server.h>
 #include <tasks/term_server.h>
+#include <tasks/clock_server.h>
 #include <tasks/train_server.h>
+#include <tasks/task_launcher.h>
+#include <tasks/mission_control.h>
 
 
 // force grouping by putting them into a struct
@@ -74,8 +75,9 @@ void scheduler_init(void) {
     task_create(TASK_PRIORITY_IDLE + 1,  task_launcher);
     task_create(TASK_PRIORITY_IDLE,      idle);
     task_create(TASK_PRIORITY_MEDIUM_HI, name_server);
-    task_create(TASK_PRIORITY_MEDIUM,    term_server);
     task_create(TASK_PRIORITY_MEDIUM_HI, clock_server);
+    task_create(TASK_PRIORITY_MEDIUM,    term_server);
+    task_create(TASK_PRIORITY_MEDIUM,    mission_control);
     task_create(TASK_PRIORITY_MEDIUM,    train_server);
 
     for (; i < TASK_MAX; i++) {
