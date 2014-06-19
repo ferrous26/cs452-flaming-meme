@@ -9,7 +9,6 @@
 #include <ts7200.h>
 
 #include <parse.h>
-#include <char_buffer.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -50,9 +49,7 @@ static void __attribute__ ((unused)) tl_action(char input) {
     }
 }
 
-CHAR_BUFFER(32);
-
-static void __attribute__ ((noreturn)) echo_test() {
+static void echo_test() {
 
     char buffer[32];
     char* ptr = buffer;
@@ -61,16 +58,10 @@ static void __attribute__ ((noreturn)) echo_test() {
     ptr = vt_goto(ptr, 1, 1);
     Puts(buffer, ptr - buffer);
 
-    // start the party
-    char_buffer buf;
-    cbuf_init(&buf);
-
     FOREVER {
-	int ret = Getc(TERMINAL);
-	cbuf_produce(&buf, (char)ret);
-
-	if (cbuf_count(&buf) == 32)
-	    Puts(buf.buffer, 32);
+	char c = (char)Getc(TERMINAL);
+	if (c == '`') break;
+	Putc(TERMINAL, c);
     }
 }
 
@@ -82,6 +73,7 @@ static void action(command cmd, int args[]) {
         log("setting train %d to %d", args[0], args[1]);
         put_train_cmd((char)args[0], (char)args[1]);
 	Create(TASK_PRIORITY_MEDIUM_HI, echo_test);
+	Exit(); // no more Terminal!
         break;
     case GATE:
         if(args[1] == 's' || args[1] == 'S') {
@@ -94,7 +86,7 @@ static void action(command cmd, int args[]) {
         break;
     case REVERSE:
 	Create(TASK_PRIORITY_MEDIUM, bench_msg);
-	Delay(200); // :)
+	Delay(2000); // :)
 	Create(10, stress_root);
         break;
     case QUIT:
@@ -116,7 +108,7 @@ void task_launcher() {
     char* ptr = buffer;
     int   insert;
     char  line[80];
-    char* line_mark = "TERM> ";
+    const char* const line_mark = "TERM> ";
 
     FOREVER {
         insert = 0;

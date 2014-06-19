@@ -59,9 +59,9 @@ static void send_it(int child) {
 void bench_msg() {
 
     // this guy sets it up
-    if (myPriority() == TASK_PRIORITY_MAX) {
+    if (myPriority() == TASK_PRIORITY_MEDIUM) {
 
-	int child = Create(TASK_PRIORITY_MAX / 2, bench_msg);
+	int child = Create(TASK_PRIORITY_MEDIUM_LO, bench_msg);
 	if (child < 0) {
 	    log("Failed to create child task for benchmarking");
 	    return;
@@ -80,7 +80,7 @@ void bench_msg() {
 	log("");
 
 	log("Receive before send");
-	ChangePriority(2);
+	ChangePriority(TASK_PRIORITY_MEDIUM_LO - 1);
 	Pass(); // ensure the child gets ahead
 	send_it(child);
 	log("");

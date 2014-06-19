@@ -167,25 +167,3 @@ memset:
 	bne    .slowset
 	mov    pc, lr
 	.size   memset, .-memset
-
-/*
-	.global memcmp
-	.type	memcmp,   %function
-memcmp:
-	ldrb r3, [r0]
-	ldrb r4, [r1]
-	add r0, r0, #1
-	add r1, r1, #1
-
-	cmp r3, r4
-	movmi r0, #-1
-	movmi pc, lr
-	movne r0, #1
-	movne pc, lr
-
-	subs r2, r2, #1
-	bne memcmp
-	mov r0, #0
-	mov pc, lr
-	.size   memcmp, .-memcmp
-*/

@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
 		    "=r" (ep));
 
     // zero out our base space
-    memset((void*)&_DataStart, 0, (int)&_BssEnd - (int)&_DataStart);
+    memset((void*)&_DataStart, 0, (uint)&_BssEnd - (uint)&_DataStart);
 
     exit_point = ep;
 #ifdef COWAN

@@ -24,7 +24,7 @@ typedef struct {
     } payload;
 } train_req;
 
-CHAR_BUFFER(64);
+CHAR_BUFFER(64)
 
 static int train_server_tid;
 

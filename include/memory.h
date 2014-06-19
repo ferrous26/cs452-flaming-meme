@@ -4,10 +4,8 @@
 
 #include <std.h>
 
-void memcpy(void* destaddr, const void* srcaddr, int len);
+void* memcpy(void* destaddr, const void* srcaddr, uint len);
 
-void memset(void *buffer, int c, int len);
-
-//int memcmp(const void* left, const void* right, const size len);
+void* memset(void *buffer, int c, uint len);
 
 #endif

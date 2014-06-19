@@ -17,7 +17,7 @@ typedef enum {
 
 typedef struct {
     term_req_type type;
-    int           length;
+    uint          length;
     char*         string;
 } term_req;
 
@@ -42,12 +42,12 @@ static void _term_try_send(struct term_state* const state);
 #define XON                19
 #define XON_THRESHOLD     (OUTPUT_BUFFER_SIZE >> 1)
 
-CHAR_BUFFER(INPUT_BUFFER_SIZE)
+BULK_CHAR_BUFFER(INPUT_BUFFER_SIZE)
 
 // Information stored when a Puts request must block
 typedef struct {
     int   tid;
-    int   length;
+    uint  length;
     char* string;
 } term_puts;
 
@@ -63,7 +63,7 @@ typedef struct {
 // State for the terminal server
 struct term_state {
     char* out_head;   // pointer where to insert data for output
-    int   obuffer_size;
+    uint  obuffer_size;
     char* obuffer;
     char  obuffers[2][OUTPUT_BUFFER_SIZE];
 
@@ -96,7 +96,7 @@ uint pbuf_count(const puts_buffer* const cb) {
 }
 
 static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
-    memcpy(cb->head++, puts, sizeof(term_puts));
+    memcpy(cb->head++, puts, (uint)sizeof(term_puts));
 
     cb->count++;
     if (cb->head == cb->end) {
@@ -105,7 +105,7 @@ static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
     assert(cb->count < OUTPUT_Q_SIZE, "Overfilled buffer!")
 }
 
-static inline int pbuf_peek_length(puts_buffer* const cb) {
+static inline uint pbuf_peek_length(puts_buffer* const cb) {
     return cb->tail->length;
 }
 
@@ -161,7 +161,7 @@ static void __attribute__ ((noreturn)) recv_notifier() {
     msg.type = NOTIFIER;
 
     FOREVER {
-        msg.length = AwaitEvent(UART2_RECV, (char*)input, sizeof(input));
+        msg.length = (uint)AwaitEvent(UART2_RECV, (char*)input, sizeof(input));
         result     = Send(ptid,
 			  (char*)&msg, sizeof(term_req_type) + sizeof(int),
 			  NULL, 0);
@@ -215,7 +215,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 	TERM_ASSERT(result == sizeof(int), result);
 
 	assert(msg.length > 0 && msg.length <= 128,
-	       "BAD CARRIER SIZE MOTHER FUCKER %d", msg.length);
+	       "BAD CARRIER SIZE (%d)", msg.length);
 
 	// switch to next buffer
 	if (buffer == buffers.two)
@@ -224,13 +224,13 @@ static void __attribute__ ((noreturn)) send_carrier() {
 	    buffer = buffers.two;
 
 	// now, pump the buffer through to the kernel
-	int chunk = 0;
+	uint chunk = 0;
 	while (msg.length) {
-	    result = AwaitEvent(UART2_SEND, buffer + chunk, msg.length);
+	    result = AwaitEvent(UART2_SEND, buffer + chunk, (int)msg.length);
 	    TERM_ASSERT(result > 0, result);
 
-	    chunk      += result;
-	    msg.length -= result;
+	    chunk      += (uint)result;
+	    msg.length -= (uint)result;
 	}
     }
 }
@@ -259,7 +259,7 @@ static void _term_try_puts(struct term_state* const state,
     // if we have space in the buffer (leave space for XOFF/XON)
     if ((state->obuffer_size + puts->length) <= OUTPUT_BUFFER_MAX) {
 	// then just add it
-	memcpy(state->out_head, puts->string, puts->length);
+	memcpy(state->out_head, puts->string, (uint)puts->length);
 
 	// and let the caller go back on their merry way
 	int result = Reply(puts->tid, NULL, 0);
@@ -283,6 +283,7 @@ static void _term_try_puts(struct term_state* const state,
 static void _term_send_xoff(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
 	   "No space in buffer for the stop byte!");
+    kprintf(8, "XOFF");
     *state->out_head++ = XOFF; // J-J-Jam it in
     state->xoff = false;
     state->obuffer_size++;
@@ -291,6 +292,7 @@ static void _term_send_xoff(struct term_state* const state) {
 static void _term_send_xon(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
 	   "No space in buffer for the stop byte!");
+    kprintf(8, "XON");
     assert(state->xoff, "Haven't sent the xoff byte yet");
     *state->out_head++ = XON; // J-J-Jam it in
     state->xon = true;
@@ -325,11 +327,8 @@ static void _term_try_send(struct term_state* const state) {
     	    state->xoff = state->xon = false;
 
     	// wake up tasks that were blocked trying to output;
-    	// I am choosing to wake them all up because in all likelyhood
-    	// all the waiting output will fit into the buffer, so we can
-    	// skip checking if it will fit in this function; it will be
-    	// checked in _term_try_puts, and in the worst case, the requests
-    	// that do not fit will waste CPU time and get requeued
+	// but only until the point where we have filled the next buffer
+	// anything more than that could cause problems
 	int count = 0;
     	FOREVER {
 	    if (!pbuf_count(&state->output_q)) break;
@@ -366,13 +365,22 @@ static void _term_try_getc(struct term_state* const state) {
     }
 }
 
-static void _term_recv(struct term_state* const state,
-                       const int length) {
+static void __attribute__ ((noreturn, noinline)) magic_sysreq() {
+    Abort(__FILE__, 0, "Magic SysReq key pressed");
+}
 
-    if (length > 1)
+static void _term_recv(struct term_state* const state,
+                       const uint length) {
+
+    // hmmmm
+    if (length > 1) {
 	cbuf_bulk_produce(&state->input_q, state->recv_buffer, length);
-    else
+    }
+    else {
+	char c = *state->recv_buffer;
+	if (c == '`') magic_sysreq();
 	cbuf_produce(&state->input_q, *state->recv_buffer);
+    }
 
     // reply right away in case there is already more crap waiting
     int result = Reply(state->notifier, NULL, 0);
@@ -498,11 +506,12 @@ int put_term_char(char ch) {
 
 int Puts(char* const str, int length) {
 
-    assert(length > 0, "Empty string sent to Puts (%d)", length);
+    assert(length > 0 && length < 4096,
+	   "Bizarre string length sent to Puts (%d)", length);
 
     int offset = 0;
     while (length) {
-	int chunk = mod2(length, OUTPUT_BUFFER_MAX);
+	uint chunk = mod2((uint)length, OUTPUT_BUFFER_MAX);
 
 	term_req req = {
 	    .type   = PUTS,

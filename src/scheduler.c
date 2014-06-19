@@ -12,9 +12,9 @@
 
 
 // force grouping by putting them into a struct
-CHAR_BUFFER(TASK_MAX);
+CHAR_BUFFER(TASK_MAX)
 
-char_buffer free_list DATA_HOT;
+static char_buffer free_list DATA_HOT;
 
 static struct task_manager {
     uint32 state; // bitmap for accelerating queue selection

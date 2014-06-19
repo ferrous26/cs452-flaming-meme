@@ -32,7 +32,7 @@ typedef struct {							\
     char* head;								\
     char* tail;								\
     char* end;								\
-    int   count;							\
+    uint  count;							\
     char  buffer[n];							\
 } char_buffer;								\
 									\
@@ -43,7 +43,7 @@ static inline void cbuf_init(char_buffer* const cb) {			\
     memset(cb->buffer, 0, n);						\
 }									\
 									\
-static inline int cbuf_count(const char_buffer* const cb) {		\
+static inline uint cbuf_count(const char_buffer* const cb) {		\
     return cb->count;							\
 }									\
 									\
@@ -53,24 +53,6 @@ static inline void cbuf_produce(char_buffer* const cb, const char c) {	\
     cb->count = mod2(cb->count + 1, n);					\
     if (cb->head == cb->end)						\
 	cb->head = cb->buffer;						\
-}									\
-									\
-static inline void cbuf_bulk_produce(char_buffer* const cb,		\
-				     const char* const c,		\
-				     const int length) {		\
-    if ((cb->head + length) > cb->end) {				\
-	int chunk1 = cb->end - cb->head;				\
-	int chunk2 = length - chunk1;					\
-	memcpy(cb->head,   c,          chunk1);				\
-	memcpy(cb->buffer, c + chunk1, chunk2);				\
-	cb->head = cb->buffer + chunk2;					\
-    }									\
-    else {								\
-	memcpy(cb->head, c, length);					\
-	cb->head += length;						\
-    }									\
-									\
-    cb->count = mod2(cb->count + 1, n);					\
 }									\
 									\
 static inline char cbuf_consume(char_buffer* const cb) {		\
@@ -84,5 +66,28 @@ static inline char cbuf_consume(char_buffer* const cb) {		\
 									\
     return c;								\
 }
+
+#define BULK_CHAR_BUFFER(n)						\
+    CHAR_BUFFER(n)							\
+									\
+static inline void cbuf_bulk_produce(char_buffer* const cb,		\
+				     const char* const c,		\
+				     const uint length) {		\
+    if ((cb->head + length) > cb->end) {				\
+	uint chunk1 = (uint)(cb->end - cb->head);			\
+	uint chunk2 = length         - chunk1;				\
+	memcpy(cb->head,   c,          chunk1);				\
+	memcpy(cb->buffer, c + chunk1, chunk2);				\
+	cb->head = cb->buffer + chunk2;					\
+    }									\
+    else {								\
+	memcpy(cb->head, c, length);					\
+	cb->head += length;						\
+    }									\
+									\
+    cb->count = mod2(cb->count + 1, n);					\
+}									\
+									\
+
 
 #endif
