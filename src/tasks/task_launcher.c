@@ -9,6 +9,7 @@
 #include <ts7200.h>
 
 #include <parse.h>
+#include <char_buffer.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -49,6 +50,30 @@ static void __attribute__ ((unused)) tl_action(char input) {
     }
 }
 
+CHAR_BUFFER(32);
+
+static void __attribute__ ((noreturn)) echo_test() {
+
+    char buffer[32];
+    char* ptr = buffer;
+    ptr = vt_reset_scroll_region(ptr);
+    ptr = vt_clear_screen(ptr);
+    ptr = vt_goto(ptr, 1, 1);
+    Puts(buffer, ptr - buffer);
+
+    // start the party
+    char_buffer buf;
+    cbuf_init(&buf);
+
+    FOREVER {
+	int ret = Getc(TERMINAL);
+	cbuf_produce(&buf, (char)ret);
+
+	if (cbuf_count(&buf) == 32)
+	    Puts(buf.buffer, 32);
+    }
+}
+
 static void action(command cmd, int args[]) {
     switch(cmd) {
     case NONE:
@@ -56,6 +81,7 @@ static void action(command cmd, int args[]) {
     case SPEED:
         log("setting train %d to %d", args[0], args[1]);
         put_train_cmd((char)args[0], (char)args[1]);
+	Create(TASK_PRIORITY_MEDIUM_HI, echo_test);
         break;
     case GATE:
         if(args[1] == 's' || args[1] == 'S') {
@@ -82,23 +108,23 @@ static void action(command cmd, int args[]) {
 
 void task_launcher() {
 
-    char buffer[128];
-    char* ptr = buffer;
-
     log("Welcome to ferOS build %u", __BUILD__);
     log("Built %s %s", __DATE__, __TIME__);
     log("Enter h for help");
 
-    int  insert;
-    char line[80];
-    char line_mark[] = "TERM> ";
+    char  buffer[128];
+    char* ptr = buffer;
+    int   insert;
+    char  line[80];
+    char* line_mark = "TERM> ";
 
     FOREVER {
         insert = 0;
 
-        ptr = vt_goto(buffer, 80, 0);
-        ptr = sprintf(ptr, line_mark);
-        Puts(buffer, (int)(ptr-buffer));
+        ptr = vt_goto(ptr, 80, 0);
+        ptr = sprintf_string(ptr, line_mark);
+        Puts(buffer, ptr - buffer);
+	// TODO: check Puts result code
 
         char c = 0;
         for(;c != '\r';) {
