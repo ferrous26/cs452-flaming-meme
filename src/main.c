@@ -129,7 +129,7 @@ void shutdown(void) {
     FOREVER;
 }
 
-int main(int argc, char** argv);
+int __attribute__ ((noreturn)) main(int argc, char** argv);
 int main(int argc, char** argv) {
     uint* volatile ep;
     uint* volatile sp;
@@ -158,5 +158,4 @@ int main(int argc, char** argv) {
 
     UNUSED(argc);
     UNUSED(argv);
-    return 0;
 }

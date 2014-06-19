@@ -31,7 +31,7 @@ static char* _abort_tid(char* ptr, task* const t) {
 	return _abort_pad(new_ptr, (int)(new_ptr - ptr));
     }
     else {
-	ptr = sprintf(ptr, "%d", t->tid);
+	ptr = sprintf_int(ptr, t->tid);
 	return _abort_pad(ptr, log10(t->tid));
     }
 }

@@ -60,7 +60,7 @@ find_loc(int directory[][NAME_OVERLAY_SIZE],
 }
 
 static int __attribute__((const))
-find_name(int dir[NAME_MAX], const int tid, const int stored) {
+find_name(const int dir[NAME_MAX], const int tid, const int stored) {
 
     for (int i = 0; i < stored; i++) {
         if (dir[i] == tid) { return i; }
@@ -68,7 +68,9 @@ find_name(int dir[NAME_MAX], const int tid, const int stored) {
     return -1;
 }
 
-static inline void register_tid(ns_context* ctxt, int tid, ns_payload* data) {
+static inline void register_tid(ns_context* ctxt,
+				const int tid,
+				const ns_payload* const data) {
     int reply = 0;
     int loc   = find_loc(ctxt->lookup.overlay,
                          data->overlay,
@@ -89,14 +91,16 @@ static inline void register_tid(ns_context* ctxt, int tid, ns_payload* data) {
     Reply(tid, (char*)&reply, sizeof(reply));
 }
 
-static inline int lookup_tid(ns_context* ctxt, ns_payload* data) {
+static inline int lookup_tid(ns_context* ctxt,
+			     const ns_payload* const data) {
     int loc = find_loc(ctxt->lookup.overlay,
                        data->overlay,
                        ctxt->lookup_insert);
     return loc < 0 ? -69 : ctxt->tasks[loc];
 }
 
-static inline char* lookup_name(ns_context* ctxt, ns_payload* data) {
+static inline char* lookup_name(ns_context* const ctxt,
+				const ns_payload* const data) {
     int loc = find_name(ctxt->tasks, data->overlay[0], ctxt->lookup_insert);
     return loc < 0 ? NULL : ctxt->lookup.text[loc];
 }
@@ -216,7 +220,7 @@ int RegisterAs(char* name) {
 }
 
 #ifdef ASSERT
-char* kWhoTid(int tid) {
+char* kWhoTid(const int tid) {
     ns_req req;
     req.payload.overlay[0] = tid;
 
