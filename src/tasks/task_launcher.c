@@ -20,33 +20,15 @@
 #include <tasks/task_launcher.h>
 
 inline static void print_help() {
-    log("\n\t"
-	"3 ~ Benchmark message passing\n\t"
-	"4 ~ Get the current time\n\t");
-
     log("\t"
-	"s ~ Run Stressing Task\n\t"
-        "o ~ Poll Sensors");
-
-    log("\t"
+	"TODO\n"
 	"h ~ Print this Help Message\n\t"
 	"q ~ Quit\n");
 }
 
 
-static void tl_action(char input) {
+static void __attribute__ ((unused)) tl_action(char input) {
     switch(input) {
-    case '3':
-        Create(TASK_PRIORITY_MAX, bench_msg);
-	break;
-    case '4':
-	log("The time is %u ticks!", Time());
-	break;
-    case 's':
-        Create(10, stress_root);
-        break;
-    case 'q':
-        Shutdown();
     case 'o':
         Putc(TRAIN, SENSOR_POLL);
         for(int i = 0; i < 10; i++) {
@@ -85,12 +67,15 @@ static void action(command cmd, int args[]) {
         }
         break;
     case REVERSE:
-        tl_action('s');
+	Create(TASK_PRIORITY_MEDIUM, bench_msg);
+	Delay(200); // :)
+	Create(10, stress_root);
         break;
     case QUIT:
         Shutdown();
     case ERROR:
         log("invalid command");
+	print_help();
         break;
     }
 }
@@ -100,17 +85,13 @@ void task_launcher() {
     char buffer[128];
     char* ptr = buffer;
 
-    ptr = vt_goto(ptr, 2, 40);
-    ptr = sprintf(ptr, "Welcome to ferOS build %u", __BUILD__);
-    ptr = vt_goto(ptr, 3, 40);
-    ptr = sprintf(ptr, "Built %s %s", __DATE__, __TIME__);
-    Puts(buffer, (int)(ptr - buffer));
+    log("Welcome to ferOS build %u", __BUILD__);
+    log("Built %s %s", __DATE__, __TIME__);
+    log("Enter h for help");
 
     int  insert;
     char line[80];
     char line_mark[] = "TERM> ";
-
-    log("Welcome to Task Launcher (h for help)");
 
     FOREVER {
         insert = 0;
