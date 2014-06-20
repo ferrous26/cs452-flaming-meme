@@ -21,9 +21,20 @@ _init_vector_irq(const uint interrupt, const uint priority, voidf handle) {
     *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
 }
 
-static void _irq_default() {
-    debug_interrupt_table();
-    Abort(__FILE__, __LINE__, "Default IRQ handler was triggered");
+static void _irq_default1() {
+    char buffer[1024];
+    char* ptr = buffer;
+    ptr  = debug_interrupt_table(buffer);
+    *ptr = '\0';
+    Abort(__FILE__, __LINE__, "Default IRQ handler1 was triggered:\n%s", buffer);
+}
+
+static void _irq_default2() {
+    char buffer[1024];
+    char* ptr = buffer;
+    ptr  = debug_interrupt_table(buffer);
+    *ptr = '\0';
+    Abort(__FILE__, __LINE__, "Default IRQ handler2 was triggered:\n%s", buffer);
 }
 
 inline static void _init_all_vector_irq() {
@@ -39,9 +50,9 @@ inline static void _init_all_vector_irq() {
     _init_vector_irq(51, 2, irq_clock);
 
     voidf* def = (voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET);
-    *def = _irq_default;
+    *def = _irq_default1;
      def = (voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET);
-    *def = _irq_default;
+    *def = _irq_default2;
 }
 
 void irq_init() {
@@ -107,25 +118,22 @@ void irq_clear_simulated_interrupt(const uint i) {
     _irq_interrupt(VIC_SOFT_DISABLE_OFFSET, i);
 }
 
-void debug_interrupt_table() {
-    uint base = VIC1_BASE;
-    for (uint table = 1; table < 3; table++) {
-	kdebug_log("VIC%d Table\n"
-		   "       IRQ Status: %p\n"
-		   "       FIQ Status: %p\n"
-		   "       Raw Status: %p\n"
-		   "           Select: %p\n"
-		   "          Enabled: %p\n"
-		   "     Soft Enabled: %p\n"
-		   "  User Protection: %s\n",
-		   table,
-		   irq_status(base),
-		   fiq_status(base),
-		   irq_raw_status(base),
-		   irq_mode_status(base),
-		   irq_enabled_status(base),
-		   irq_software_status(base),
-		   irq_is_user_protected(base) ? "Yes" : "No");
-	base += 0x10000;
-    }
+char* debug_interrupt_table(char* ptr) {
+    return sprintf(ptr,
+"VIC1 Table                              VIC2 Table\n"
+"       IRQ Status: %p                          IRQ Status: %p\n"
+"       FIQ Status: %p                          FIQ Status: %p\n"
+"       Raw Status: %p                          Raw Status: %p\n"
+"           Select: %p                              Select: %p\n"
+"          Enabled: %p                             Enabled: %p\n"
+"     Soft Enabled: %p                        Soft Enabled: %p\n"
+"  User Protection: %s                     User Protection: %s\n",
+irq_status(VIC1_BASE),		        irq_status(VIC2_BASE),
+fiq_status(VIC1_BASE),                  fiq_status(VIC2_BASE),
+irq_raw_status(VIC1_BASE),		irq_raw_status(VIC2_BASE),
+irq_mode_status(VIC1_BASE),		irq_mode_status(VIC2_BASE),
+irq_enabled_status(VIC1_BASE),		irq_enabled_status(VIC2_BASE),
+irq_software_status(VIC1_BASE),		irq_software_status(VIC2_BASE),
+		   irq_is_user_protected(VIC1_BASE) ? "Yes" : "No",
+		   irq_is_user_protected(VIC2_BASE) ? "Yes" : "No");
 }
