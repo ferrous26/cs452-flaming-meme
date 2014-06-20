@@ -141,6 +141,9 @@ void abort(const kreq_abort* const req) {
     for (int i = 0; i < TASK_MAX; i++) {
 	task* t = &tasks[i];
 
+	// skip descriptors that have never been allocated
+	if (t->p_tid == -1) continue;
+
 	ptr = _abort_tid(ptr, t);
 	ptr = _abort_ptid(ptr, t);
 	ptr = _abort_priority(ptr, t);
