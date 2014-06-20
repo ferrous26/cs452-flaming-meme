@@ -50,6 +50,13 @@ inline static void uart_initirq(const uint base) {
     *ctlr = RIEN_MASK | RTIEN_MASK | UARTEN_MASK | MSIEN_MASK;
 }
 
+inline static void uart_drain(const uint base) {
+    volatile int* const flag = (int*)(base + UART_FLAG_OFFSET);
+    volatile int* const data = (int*)(base + UART_DATA_OFFSET);
+
+    while (!(*flag & RXFE_MASK)) { *data; }
+}
+
 void uart_init() {
     uart_setoptions(UART1_BASE, 0xBF, 0);
     uart_setoptions(UART2_BASE, 0x03, 1);
@@ -68,6 +75,10 @@ void uart_init() {
 
     volatile int* volatile rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
     *rsr2 = (int)rsr2;
+
+
+    uart_drain(UART1_BASE);
+    uart_drain(UART2_BASE);
 }
 
 void uart2_bw_write(const char* string, int length) {
