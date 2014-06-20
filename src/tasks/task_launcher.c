@@ -111,9 +111,9 @@ void task_launcher() {
     const char* const line_mark = "TERM> ";
 
     FOREVER {
-        insert = 0;
+        insert = 1;
 
-        ptr = vt_goto(ptr, 80, 0);
+        ptr = vt_goto(ptr, LOG_END + 1, 1);
         ptr = sprintf_string(ptr, line_mark);
         Puts(buffer, ptr - buffer);
 	// TODO: check Puts result code
