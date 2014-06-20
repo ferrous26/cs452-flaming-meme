@@ -110,13 +110,14 @@ void task_launcher() {
     char* ptr = buffer;
     int   insert;
     char  line[80];
-    const char* const line_mark = "TERM> ";
+    const char* const line_mark = "TERM>";
 
     FOREVER {
         insert = 1;
 
         ptr = vt_goto(ptr, TERM_ROW, 1);
         ptr = sprintf_string(ptr, line_mark);
+	ptr = vt_kill_line(ptr);
         int result = Puts(buffer, ptr - buffer);
 	if (result != 0) ABORT("Failed to write prompt (%d)", result);
 
