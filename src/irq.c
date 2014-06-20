@@ -21,17 +21,27 @@ _init_vector_irq(const uint interrupt, const uint priority, voidf handle) {
     *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
 }
 
+static void _irq_default() {
+    debug_interrupt_table();
+    Abort(__FILE__, __LINE__, "Default IRQ handler was triggered");
+}
+
 inline static void _init_all_vector_irq() {
     //setup VEC1
     _init_vector_irq(25, 0, irq_uart2_recv);
     _init_vector_irq(23, 1, irq_uart1_recv);
-    _init_vector_irq(24, 3, irq_uart1_send);
     _init_vector_irq(26, 2, irq_uart2_send);
+    _init_vector_irq(24, 3, irq_uart1_send);
 
     //setup VEC2
     _init_vector_irq(54, 0, irq_uart2);
     _init_vector_irq(52, 1, irq_uart1);
     _init_vector_irq(51, 2, irq_clock);
+
+    voidf* def = (voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET);
+    *def = _irq_default;
+     def = (voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET);
+    *def = _irq_default;
 }
 
 void irq_init() {
@@ -97,7 +107,6 @@ void irq_clear_simulated_interrupt(const uint i) {
     _irq_interrupt(VIC_SOFT_DISABLE_OFFSET, i);
 }
 
-#ifdef DEBUG
 void debug_interrupt_table() {
     uint base = VIC1_BASE;
     for (uint table = 1; table < 3; table++) {
@@ -120,4 +129,3 @@ void debug_interrupt_table() {
 	base += 0x10000;
     }
 }
-#endif

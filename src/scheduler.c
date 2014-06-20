@@ -77,7 +77,7 @@ void scheduler_init(void) {
     task_create(TASK_PRIORITY_MEDIUM_HI, name_server);
     task_create(TASK_PRIORITY_MEDIUM_HI, clock_server);
     task_create(TASK_PRIORITY_MEDIUM,    term_server);
-    task_create(TASK_PRIORITY_MEDIUM-1,    mission_control);
+    task_create(TASK_PRIORITY_MEDIUM-1,  mission_control);
     task_create(TASK_PRIORITY_MEDIUM,    train_server);
 
     for (; i < TASK_MAX; i++) {

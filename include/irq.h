@@ -53,10 +53,5 @@ void irq_clear_simulated_interrupt(const uint i);
 void irq_enable_interrupt(const uint i);
 void irq_disable_interrupt(const uint i);
 
-#ifdef DEBUG
-    void debug_interrupt_table(void);
-#else
-    #define debug_interrupt_table()
-#endif
-
+void debug_interrupt_table(void);
 #endif
