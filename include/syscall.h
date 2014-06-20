@@ -127,15 +127,17 @@
      */
     void __attribute__ ((noreturn)) Shutdown(void);
 
-    typedef struct {
-        char*    file;
-        uint     line;
-        char*    msg;
-        va_list* args;
-    } kreq_abort;
+typedef struct {
+    char*    file;
+    uint     line;
+    char*    msg;
+    va_list* args;
+} kreq_abort;
 
-    void __attribute__ ((noreturn))
-    Abort(const char* const file, const uint line, const char* const msg, ...);
+#define ABORT(msg, ...) Abort(__FILE__, __LINE__, msg, ## __VA_ARGS__)
+
+void __attribute__ ((noreturn))
+Abort(const char* const file, const uint line, const char* const msg, ...);
 
 typedef enum {
     INVALID_CHANNEL = -6

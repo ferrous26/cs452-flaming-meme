@@ -119,7 +119,7 @@ void task_launcher() {
         ptr = vt_goto(ptr, TERM_ROW, 1);
         ptr = sprintf_string(ptr, line_mark);
         int result = Puts(buffer, ptr - buffer);
-	assert(result == 0, "Failed to write prompt (%d)", result);
+	if (result != 0) ABORT("Failed to write prompt (%d)", result);
 
         char c = 0;
         for(; c != '\r';) {

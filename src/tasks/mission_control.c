@@ -61,7 +61,7 @@ static void train_ui() {
 " 51                            +-----------------------+    |        | Oldest");
 
     int result = Puts(buffer, ptr - buffer);
-    assert(result == 0, "Failed to init train state UI");
+    if (result != 0) ABORT("Failed to init train state UI");
 }
 
 static void __attribute__ ((noreturn)) sensor_poll() {
