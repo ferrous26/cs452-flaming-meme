@@ -27,17 +27,8 @@ struct term_state;
 struct term_puts;
 
 #define INPUT_BUFFER_SIZE  512
-#define OUTPUT_BUFFER_SIZE 130
-#define OUTPUT_BUFFER_MAX  128 // save space for XOFF/XON
+#define OUTPUT_BUFFER_SIZE 128
 #define OUTPUT_Q_SIZE      TASK_MAX // at least 8 tasks will never Puts
-
-// ASCII byte that tells VT100 to stop transmitting
-#define XOFF               17
-#define XOFF_THRESHOLD     OUTPUT_BUFFER_SIZE
-
-// ASCII byte that tells VT100 to start transmitting (only send after XOFF)
-#define XON                19
-#define XON_THRESHOLD     (OUTPUT_BUFFER_SIZE >> 1)
 
 BULK_CHAR_BUFFER(INPUT_BUFFER_SIZE)
 
@@ -71,8 +62,6 @@ struct term_state {
     int   in_tid;     // tid for the Getc caller that was blocked
     int   carrier;    // tid for the carrier when it gets blocked
     int   notifier;   // tid for the notifier when it makes a request
-    bool  xoff;       // whether we sent the XOFF bit in the last run
-    bool  xon;        // whether we sent the XON bit in the last run
 };
 
 /* Global data */
@@ -118,7 +107,6 @@ static inline void pbuf_consume(puts_buffer* const cb) {
     if (cb->tail == cb->end)
 	cb->tail = cb->buffer;
 }
-
 
 
 /* Static methods for the terminal server */
@@ -212,7 +200,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 		      (char*)&msg.length, sizeof(int));
 	TERM_ASSERT(result == sizeof(int), result);
 
-	assert(msg.length > 0 && msg.length <= OUTPUT_BUFFER_MAX,
+	assert(msg.length > 0 && msg.length <= OUTPUT_BUFFER_SIZE,
 	       "BAD CARRIER SIZE (%d)", msg.length);
 
 	// switch to next buffer
@@ -251,19 +239,6 @@ static inline void _term_obuffer(struct term_state* const state) {
     state->carrier = -1;
 }
 
-static inline void
-_term_send_xoff(struct term_state* const state) {
-    *state->out_head++ = XOFF; // J-J-Jam it in
-    state->xoff = false;
-}
-
-static inline void
-_term_send_xon(struct term_state* const state) {
-    assert(state->xoff, "Haven't sent the xoff byte yet");
-    *state->out_head++ = XON; // J-J-Jam it in
-    state->xon = true;
-}
-
 static inline void _term_try_send(struct term_state* const state) {
 
     // at this point the carrier is ready, so we want to copy
@@ -271,10 +246,10 @@ static inline void _term_try_send(struct term_state* const state) {
     // the carrier
 
     // how much space we have in the buffer
-    uint space = OUTPUT_BUFFER_MAX - (uint)(state->out_head - state->obuffer);
+    uint space = OUTPUT_BUFFER_SIZE - (uint)(state->out_head - state->obuffer);
 
     // if we have nothing to send to the carrier
-    if (space == OUTPUT_BUFFER_MAX && pbuf_count(&state->output_q) == 0)
+    if (space == OUTPUT_BUFFER_SIZE && pbuf_count(&state->output_q) == 0)
 	return; // then we need to block the carrier
 
     // keep going until we run out of space and still have peeps to consume
@@ -306,7 +281,7 @@ static inline void _term_try_send(struct term_state* const state) {
     }
 
     // then do carrier-send dance
-    space = OUTPUT_BUFFER_MAX - space;
+    space = OUTPUT_BUFFER_SIZE - space;
     int result = Reply(state->carrier, (char*)&space, sizeof(uint));
     TERM_ASSERT(result == 0, result);
 
@@ -319,11 +294,6 @@ static inline void _term_try_send(struct term_state* const state) {
 
     // reset this now (before calling _term_try_puts)
     state->carrier = -1;
-
-    // this is technically correct, but might actually be
-    // too premature...we may want a different heuristic
-    if (state->xon)
-	state->xoff = state->xon = false;
 }
 
 static inline void _term_try_puts(struct term_state* const state,
@@ -352,14 +322,6 @@ static inline void _term_try_getc(struct term_state* const state) {
 	// NOTE: if we blocked the receiver for filling the buffer,
 	// this is where we would want to unblock the receiver if
 	// the buffer has been sufficiently emptied
-
-	// if we have previously written the XOFF byte and not
-	// written the XON byte, but we've consumed enough bytes
-	// from the input buffer to allow more input
-	if (state->xoff && !state->xon &&
-	    cbuf_count(&state->input_q) < XON_THRESHOLD)
-	    // then we should re-enable output
-	    _term_send_xon(state);
     }
 }
 
@@ -376,13 +338,9 @@ static inline void _term_recv(struct term_state* const state,
     TERM_ASSERT(result == 0, result);
 
     // if we are past the fill threshold, then we need to send
-    // the XOFF byte
+    // the XOFF byte in the kernel handler
     assert(cbuf_count(&state->input_q) < INPUT_BUFFER_SIZE,
 	   "Filled the input buffer");
-
-    if (!state->xoff &&
-	cbuf_count(&state->input_q) > XOFF_THRESHOLD)
-	_term_send_xoff(state);
 
     // if someone was waiting for a byte
     if (state->in_tid >= 0)
@@ -417,7 +375,6 @@ void term_server() {
     pbuf_init(&state.output_q);
     cbuf_init(&state.input_q);
     state.in_tid = state.carrier = state.notifier = -1;
-    state.xoff   = state.xon     = false;
 
     int tid = 0;
     term_req req;
