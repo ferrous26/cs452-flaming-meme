@@ -133,7 +133,7 @@ void abort(const kreq_abort* const req) {
 			 "Next        "
 			 "Stack       "
 			 "Receiver    "
-			 "Send\n");
+			 "Reply/Send\n");
     for (int i = 0; i < 84; i++)
 	ptr = sprintf_char(ptr, '#');
     ptr = sprintf_char(ptr, '\n');
