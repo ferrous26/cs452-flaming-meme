@@ -19,14 +19,13 @@
 #include <tasks/train_server.h>
 #include <tasks/task_launcher.h>
 
-#define TERM_ROW (LOG_END + 1) // command prompt starts after logging region
+#define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
 #define TERM_COL 6
 
 inline static void print_help() {
-    log("\t"
-	"TODO\n"
-	"h ~ Print this Help Message\n\t"
-	"q ~ Quit\n");
+    log("\tTODO");
+    log("\th ~ Print this Help Message");
+    log("\tq ~ Quit");
 }
 
 
@@ -88,8 +87,8 @@ static void action(command cmd, int args[]) {
         }
         break;
     case REVERSE:
-	Create(TASK_PRIORITY_MEDIUM, bench_msg);
-	Delay(2000); // :)
+	//Create(TASK_PRIORITY_MEDIUM, bench_msg);
+	//Delay(2000); // :)
 	Create(10, stress_root);
         break;
     case QUIT:
@@ -147,8 +146,9 @@ void task_launcher() {
         }
 
         line[insert - 1] = '\0';
+	log("%s%s", line_mark, line + 1);
 
         int args[5];
-        action(parse_command(line, args), args);
+        action(parse_command(line + 1, args), args);
     }
 }
