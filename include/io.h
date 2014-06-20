@@ -24,7 +24,6 @@ void uart_init(void);
 	uart2_bw_write(sbuffer, (uint)(end - sbuffer));	\
     }
 
-
 // actually doing I/O
 void uart2_bw_write(const char* string, int length);
 

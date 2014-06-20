@@ -5,6 +5,7 @@
 #include <syscall.h>
 #include <scheduler.h>
 #include <char_buffer.h>
+#include <ts7200.h>
 
 typedef enum {
     GETC     = 1,
@@ -24,8 +25,6 @@ typedef struct {
 // forward declarations
 struct term_state;
 struct term_puts;
-
-#define UART_FIFO_SIZE     16
 
 #define INPUT_BUFFER_SIZE  512
 #define OUTPUT_BUFFER_SIZE 130

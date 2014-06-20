@@ -43,6 +43,17 @@ inline static void uart_setoptions(const uint base,
     } else {
         *lcrh &= ~FEN_MASK;
     }
+
+    // want to clear the error registers since other people might
+    // have set them off
+    volatile int* volatile rsr = (int*)(base + UART_RSR_OFFSET);
+    *rsr = (int)rsr;
+
+    // we also need to clear anything that was in the input FIFO
+    volatile int* volatile data = (int*)(base + UART_DATA_OFFSET);
+    volatile char input = 0;
+    for (int i = 0; i < UART_FIFO_SIZE; i++)
+	input = *data;
 }
 
 inline static void uart_initirq(const uint base) {
@@ -53,21 +64,11 @@ inline static void uart_initirq(const uint base) {
 void uart_init() {
     uart_setoptions(UART1_BASE, 0xBF, 0);
     uart_setoptions(UART2_BASE, 0x03, 1);
-
     NOP(55);
 
     uart_initirq(UART1_BASE);
     uart_initirq(UART2_BASE);
-
     NOP(55);
-
-    // want to clear the error registers since otehr people might
-    // have set them off
-    volatile int* volatile rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
-    *rsr1 = (int)rsr1;
-
-    volatile int* volatile rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
-    *rsr2 = (int)rsr2;
 }
 
 void uart2_bw_write(const char* string, int length) {
@@ -116,6 +117,8 @@ void irq_uart2_recv() {
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     volatile int*  const intr = (int*) (UART2_BASE + UART_INTR_OFFSET);
 
+    assert(!(*flag & RXFE_MASK), "UART2 Had An Empty Recv");
+
     char c = *data;
     if (c == '`') magic_sysreq();
 
@@ -132,9 +135,7 @@ void irq_uart2_recv() {
             req->event[i] = *data;
         }
 
-        assert(i > 0, "UART2 Had An Empty Recv");
         t->sp[0] = i;
-
         scheduler_schedule(t);
         *intr &= ~RTIS_MASK;
 
