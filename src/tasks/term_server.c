@@ -25,8 +25,6 @@ typedef struct {
 struct term_state;
 struct term_puts;
 
-static void _term_try_send(struct term_state* const state);
-
 #define UART_FIFO_SIZE     16
 
 #define INPUT_BUFFER_SIZE  512
@@ -63,7 +61,6 @@ typedef struct {
 // State for the terminal server
 struct term_state {
     char* out_head;   // pointer where to insert data for output
-    uint  obuffer_size;
     char* obuffer;
     char  obuffers[2][OUTPUT_BUFFER_SIZE];
 
@@ -95,8 +92,14 @@ uint pbuf_count(const puts_buffer* const cb) {
     return cb->count;
 }
 
-static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
-    memcpy(cb->head++, puts, (uint)sizeof(term_puts));
+static inline void pbuf_produce(puts_buffer* const cb,
+				const term_req* const req,
+				const int tid) {
+
+    term_puts* const new_puts = cb->head++;
+    new_puts->tid    = tid;
+    new_puts->length = req->length;
+    new_puts->string = req->string;
 
     cb->count++;
     if (cb->head == cb->end) {
@@ -105,20 +108,16 @@ static inline void pbuf_produce(puts_buffer* const cb, term_puts* const puts) {
     assert(cb->count < OUTPUT_Q_SIZE, "Overfilled buffer!")
 }
 
-static inline uint pbuf_peek_length(puts_buffer* const cb) {
-    return cb->tail->length;
+static inline term_puts* pbuf_peek(puts_buffer* const cb) {
+    return cb->tail;
 }
 
-static inline term_puts* pbuf_consume(puts_buffer* const cb) {
+static inline void pbuf_consume(puts_buffer* const cb) {
     assert(cb->count, "Trying to consume from empty puts queue");
-
-    term_puts* const ptr = cb->tail++;
-
+    cb->tail++;
     cb->count--;
     if (cb->tail == cb->end)
 	cb->tail = cb->buffer;
-
-    return ptr;
 }
 
 
@@ -253,112 +252,93 @@ static inline void _term_obuffer(struct term_state* const state) {
     state->carrier = -1;
 }
 
-static void _term_try_puts(struct term_state* const state,
-			   term_puts* const puts) {
-
-    // if we have no space
-    if (state->obuffer_size == OUTPUT_BUFFER_MAX) {
-	// then queue the job
-	pbuf_produce(&state->output_q, puts);
-	return; // and give up
-    }
-
-    // otherwise, figure out how much space we have left
-    uint chunk = OUTPUT_BUFFER_MAX - state->obuffer_size;
-    if (chunk > puts->length) // if we have more than enough
-	chunk = puts->length; // then only take what we need
-
-    // if there was actually something to take
-    if (chunk > 0) {
-	// then copy it into the buffer
-	memcpy(state->out_head, puts->string, chunk);
-
-	// move these up so we don't overwrite things...
-	state->obuffer_size += chunk;
-	state->out_head     += chunk;
-
-	// if the carrier happened to be waiting
-	if (state->carrier >= 0)
-	    // then we can wake him up and send some stuff
-	    _term_try_send(state);
-    }
-
-    assert(state->carrier == -1,
-	   "Carrier was waiting and we gave it nothing");
-
-    // if there is anything left
-    if ((puts->length -= chunk)) {
-	// then queue the modified job
-	puts->string += chunk;
-	pbuf_produce(&state->output_q, puts);
-    }
-    else {
-	// otherwise let the caller go back on their merry way
-	int result = Reply(puts->tid, NULL, 0);
-	TERM_ASSERT(result == 0, result);
-    }
-}
-
 static inline void
 _term_send_xoff(struct term_state* const state) {
-    assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
-    	   "No space in buffer for the stop byte!");
     *state->out_head++ = XOFF; // J-J-Jam it in
     state->xoff = false;
-    state->obuffer_size++;
 }
 
 static inline void
 _term_send_xon(struct term_state* const state) {
-    assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
-    	   "No space in buffer for the stop byte!");
     assert(state->xoff, "Haven't sent the xoff byte yet");
     *state->out_head++ = XON; // J-J-Jam it in
     state->xon = true;
-    state->obuffer_size++;
 }
 
-static void _term_try_send(struct term_state* const state) {
+static inline void _term_try_send(struct term_state* const state) {
 
-    // if the carrier is waiting
-    if (state->carrier >= 0 && state->obuffer_size) {
+    // at this point the carrier is ready, so we want to copy
+    // as much crap into the buffer as we can, and then reply to
+    // the carrier
 
-    	// then do carrier-send dance
-    	int result = Reply(state->carrier,
-    			   (char*)&state->obuffer_size,
-    			   sizeof(uint));
-    	TERM_ASSERT(result == 0, result);
+    // how much space we have in the buffer
+    uint space = OUTPUT_BUFFER_MAX - (uint)(state->out_head - state->obuffer);
 
-    	// then do the buffer-swap dance
-    	if (state->obuffer == state->obuffers[0])
-    	    state->obuffer  = state->obuffers[1];
-    	else
-    	    state->obuffer  = state->obuffers[0];
-    	state->out_head     = state->obuffer;
-    	state->obuffer_size = 0;
+    // if we have nothing to send to the carrier
+    if (space == OUTPUT_BUFFER_MAX && pbuf_count(&state->output_q) == 0)
+	return; // then we need to block the carrier
 
-    	// reset this now (before calling _term_try_puts)
-    	state->carrier = -1;
+    // keep going until we run out of space and still have peeps to consume
+    while (space && pbuf_count(&state->output_q)) {
 
-    	// this is technically correct, but might actually be
-    	// too premature...we may want a different heuristic
-    	if (state->xon)
-    	    state->xoff = state->xon = false;
+	term_puts* const puts = pbuf_peek(&state->output_q);
+	uint chunk = space;
 
-    	// wake up tasks that were blocked trying to output;
-	// but only until the point where we have filled the next buffer
-	// anything more than that could cause problems
-	int count = 0;
-    	FOREVER {
-	    if (!pbuf_count(&state->output_q) || count == OUTPUT_BUFFER_MAX)
-		break;
-	    count += pbuf_peek_length(&state->output_q);
-    	    _term_try_puts(state, pbuf_consume(&state->output_q));
+	// if we have more space than needed
+	if (chunk > puts->length)
+	    chunk = puts->length; // then only take what is needed
+
+	// copy what we can into the buffer
+	memcpy(state->out_head, puts->string, chunk);
+
+	// move these up so we don't overwrite things...
+	state->out_head += chunk;
+	puts->length    -= chunk;
+	puts->string    += chunk;
+	space           -= chunk;
+
+	// if we have consumed the entire string
+	if (puts->length == 0) {
+	    pbuf_consume(&state->output_q);
+
+	    int result = Reply(puts->tid, NULL, 0);
+	    TERM_ASSERT(result == 0, result);
 	}
     }
+
+    // then do carrier-send dance
+    space = OUTPUT_BUFFER_MAX - space;
+    int result = Reply(state->carrier, (char*)&space, sizeof(uint));
+    TERM_ASSERT(result == 0, result);
+
+    // then do the buffer-swap dance
+    if (state->obuffer == state->obuffers[0])
+	state->obuffer  = state->obuffers[1];
+    else
+	state->obuffer  = state->obuffers[0];
+    state->out_head     = state->obuffer;
+
+    // reset this now (before calling _term_try_puts)
+    state->carrier = -1;
+
+    // this is technically correct, but might actually be
+    // too premature...we may want a different heuristic
+    if (state->xon)
+	state->xoff = state->xon = false;
 }
 
-static void _term_try_getc(struct term_state* const state) {
+static inline void _term_try_puts(struct term_state* const state,
+				  const term_req* const req,
+				  const int tid) {
+    pbuf_produce(&state->output_q, req, tid);
+
+    // if the carrier happened to be waiting
+    if (state->carrier >= 0)
+	// then we can wake him up and send some stuff
+	_term_try_send(state);
+}
+
+static inline void _term_try_getc(struct term_state* const state) {
 
     // if we have a buffered byte
     if (cbuf_count(&state->input_q)) {
@@ -384,8 +364,8 @@ static void _term_try_getc(struct term_state* const state) {
     }
 }
 
-static void _term_recv(struct term_state* const state,
-                       const uint length) {
+static inline void _term_recv(struct term_state* const state,
+			      const uint length) {
 
     if (length > 1)
 	cbuf_bulk_produce(&state->input_q, state->recv_buffer, length);
@@ -435,7 +415,6 @@ void term_server() {
     // initialize this mofo
     memset(&state, 0, sizeof(state));
     state.out_head = state.obuffer = state.obuffers[0];
-    state.obuffer_size = 0;
     pbuf_init(&state.output_q);
     cbuf_init(&state.input_q);
     state.in_tid = state.carrier = state.notifier = -1;
@@ -464,12 +443,7 @@ void term_server() {
 	    break;
 
 	case PUTS: {
-	    term_puts puts = {
-		.tid    = tid,
-		.length = req.length,
-		.string = req.string
-	    };
-	    _term_try_puts(&state, &puts);
+	    _term_try_puts(&state, &req, tid);
 	    break;
 	}
 
