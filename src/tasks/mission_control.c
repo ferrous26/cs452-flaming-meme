@@ -98,7 +98,8 @@ static void train_ui() {
     ptr = vt_goto(ptr, SENSOR_ROW + 8, SENSOR_COL);
     ptr = sprintf_string(ptr, "|        | Oldest");
 
-    Puts(buffer, ptr - buffer);
+    int result = Puts(buffer, ptr - buffer);
+    assert(result == 0, "Failed to init train state UI");
 }
 
 
