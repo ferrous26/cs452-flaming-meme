@@ -1,0 +1,137 @@
+\documentclass[pdftex,10pt,a4paper]{article}
+\usepackage{../cs452}
+\usepackage{verbatim}
+
+\begin{document}
+
+\kernelmake{4}
+
+\section*{Overview}
+
+This kernel development milestone adds the final set of kernel
+features required for train control, namely serial I/O for both
+the terminal and train controller. To demonstrate the finished kernel,
+the M{\"a}rklin train set can be controlled by user input
+to a terminal, and train track state is updated live on screen as the
+trains travel around the track.
+
+Commands issued into the terminal can manipulate trains and
+switches, as well as monitor sensors. Trains can start, stop, toggle
+lights and sound effects, and adjust speed. Switches can be toggled or
+explicitly set to the straight or curved state.
+
+The terminal displays information about current state
+of the trains and switches, including a short history of the most
+recent sensor activations. However, sensor activity cannot be
+controlled by the user in any way.
+
+
+\section*{Operation Instructions}
+
+A pre-compiled kernel exists at
+\ttt{/u/cs452/tftp/ARM/marada/k4.elf}, which can be loaded with
+RedBoot using the following command:
+
+\begin{center}
+  \ttt{load -h 10.15.167.4 ARM/marada/k4.elf; go}
+\end{center}
+
+Notice that no offset should be specified for the load instruction.
+
+The source code for the kernel exists in \ttt{/u3/marada/kernel4/},
+and can be compiled with the following command chain:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel4 \&\& /u/cs444/bin/rake local}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the makefile, built in release mode with benchmarking enabled.
+
+After Initialization the kernel will print
+``\ttt{Welcome to Task Launcher}'' into the message logging area of
+the screen and a command prompt will appear near the bottom of the
+screen titled ``TERM> ''. At this point commands can be entered; keys
+pressed should be echoed back at the command prompt. Pressing the
+return key will confirm a command and cause it to be processed. An
+online listing of the commands can be printed by using the ``help''
+command.
+
+\subsection*{Submitted Files}
+\begin{center}
+\begin{tabular}{l|l}
+  \bfseries File & \bfseries MD5 Hash
+  \\\hline
+  \csvreader[head to column names]{md5_info.csv}{}%
+  {\\\file & \ttt{\hash}}%
+\end{tabular}
+\end{center}
+
+\newpage
+\part*{The Kernel}
+
+\section*{Task Descriptors}
+
+\section*{Scheduling}
+
+\section*{System Calls}
+
+Just talk about the mechanism here, not any specific calls.
+
+\subsection*{Core System Calls}
+
+\subsubsection*{Create}
+\subsubsection*{Pass}
+\subsubsection*{Exit}
+\subsubsection*{Abort}
+\subsubsection*{Shutdown}
+
+\subsection*{Message Passing}
+
+\subsubsection*{Send}
+\subsubsection*{Receive}
+\subsubsection*{Reply}
+
+\subsection*{Hardware Events}
+
+\subsubsection*{AwaitEvent}
+
+Event type details are given later. Here we just give the general API
+details.
+
+\subsection*{Message Passing Wrappers}
+
+\subsubsection*{WhoIs}
+
+And all the rest\ldots
+
+\section*{Hardware Interrupts}
+
+Just talk about the mechanism and practices. Mention how we handle all
+hardware interaction in the kernel (except for Timer4).
+
+\subsection*{UART1 Events}
+\subsection*{UART2 Events}
+\subsection*{Clock Events}
+
+\section*{Tasks}
+
+List all the different tasks we have, their purpose, and the priority
+that they run at.
+
+In the case of server tasks, we need to refer back to the wrapper
+functions on how to interact.
+
+\section*{Terminal Commands}
+
+A full list of the commands that the terminal supports.
+
+\section*{Known Bugs}
+
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
