@@ -19,6 +19,9 @@
 #include <tasks/train_server.h>
 #include <tasks/task_launcher.h>
 
+#define TERM_ROW (LOG_END + 1) // command prompt starts after logging region
+#define TERM_COL 6
+
 inline static void print_help() {
     log("\t"
 	"TODO\n"
@@ -113,34 +116,37 @@ void task_launcher() {
     FOREVER {
         insert = 1;
 
-        ptr = vt_goto(ptr, LOG_END + 1, 1);
+        ptr = vt_goto(ptr, TERM_ROW, 1);
         ptr = sprintf_string(ptr, line_mark);
-        Puts(buffer, ptr - buffer);
-	// TODO: check Puts result code
+        int result = Puts(buffer, ptr - buffer);
+	assert(result != 0, "Failed to write prompt");
 
         char c = 0;
-        for(;c != '\r';) {
+        for(; c != '\r';) {
             c = (char)Getc(TERMINAL);
 
             switch (c) {
             case '\b':
-                if(insert == 0) continue;
-                ptr = vt_goto(buffer, 80, (--insert) + (int)sizeof(line_mark));
-                *(ptr++) = ' ';
-                line[insert] = '\0';
+                if (insert == 1) continue;
+		insert--;
+                ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL);
+                ptr = vt_kill_line(ptr);
                 break;
-            case 0x1B:
-                c = '^';
-            default:
-                if(insert == 79) { insert--; }
 
-                ptr = vt_goto(buffer, 80, insert + (int)sizeof(line_mark));
+            case 0x1B: // swallow escape characters
+                c = '^';
+
+            default:
+                if (insert < 80) insert++;
+
+                ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL);
                 *(ptr++) = c;
-                line[insert++] = c;
+                line[insert - 1] = c;
             }
-            Puts(buffer, (int)(ptr-buffer));
+            Puts(buffer, ptr - buffer);
         }
-        line[insert] = '\0';
+
+        line[insert - 1] = '\0';
 
         int args[5];
         action(parse_command(line, args), args);
