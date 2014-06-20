@@ -28,7 +28,6 @@ inline static void print_help() {
     log("\tq ~ Quit");
 }
 
-
 static void __attribute__ ((unused)) tl_action(char input) {
     switch(input) {
     case 'o':
@@ -101,7 +100,6 @@ static void action(command cmd, int args[]) {
 }
 
 void task_launcher() {
-
     log("Welcome to ferOS build %u", __BUILD__);
     log("Built %s %s", __DATE__, __TIME__);
     log("Enter h for help");
@@ -109,12 +107,11 @@ void task_launcher() {
     char  buffer[128];
     char* ptr = buffer;
     int   insert;
-    char  line[80];
-    const char* const line_mark = "TERM>";
+
+    const char* const line_mark = "TERM> ";
+    char  line[80 - 6];
 
     FOREVER {
-        insert = 1;
-
         ptr = vt_goto(ptr, TERM_ROW, 1);
         ptr = sprintf_string(ptr, line_mark);
 	ptr = vt_kill_line(ptr);
@@ -122,34 +119,39 @@ void task_launcher() {
 	if (result != 0) ABORT("Failed to write prompt (%d)", result);
 
         char c = 0;
+        insert = 0;
+
         for(; c != '\r';) {
+        retry_term:
             c = (char)Getc(TERMINAL);
 
             switch (c) {
             case '\b':
-                if (insert == 1) continue;
-		insert--;
-                ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL);
-                ptr = vt_kill_line(ptr);
+                if (insert == 0) goto retry_term;
+                insert--;
+                ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL+1);
+                *(ptr++) = ' ';
                 break;
 
             case 0x1B: // swallow escape characters
                 c = '^';
 
             default:
-                if (insert < 80) insert++;
+                if (insert == sizeof(line)-2) { insert--; }
 
-                ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL);
+                ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL+1);
                 *(ptr++) = c;
-                line[insert - 1] = c;
+                line[insert++] = c;
             }
+
             Puts(buffer, ptr - buffer);
         }
 
-        line[insert - 1] = '\0';
-	log("%s%s", line_mark, line + 1);
+        line[insert] = '\0';
+	log("%s%s", line_mark, line);
 
         int args[5];
-        action(parse_command(line + 1, args), args);
+        action(parse_command(line, args), args);
     }
 }
+

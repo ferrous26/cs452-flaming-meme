@@ -8,6 +8,8 @@
 
 #include <tasks/mission_control.h>
 
+#define RECENT_SENSOR_SIZE 32
+
 typedef struct {
     short bank;
     short num;
@@ -20,10 +22,6 @@ typedef enum {
 typedef union {
     sensor_name sensor;
 } mc_payload;
-
-typedef struct {
-    int count;
-} mc_context;
 
 typedef struct {
     mc_type    type;
@@ -64,6 +62,35 @@ static void train_ui() {
     if (result != 0) ABORT("Failed to init train state UI");
 }
 
+int __attribute__((const)) train_to_pos(const int train) {
+    if (train >= 43 && train <=51) {
+        return train - 43;
+    } 
+    return -1;
+}
+
+int __attribute__((const)) pos_to_train(const int pos) {
+    if (pos >= 0 && pos <=8) {
+        return pos + 43;
+    }
+    return -1;
+}
+
+int __attribute__((const)) turnout_to_pos(const int turnout) {
+    if (turnout <  1)   return -1;
+    if (turnout <= 18)  return turnout - 1;
+    if (turnout <  153) return -1;
+    if (turnout <= 156) return turnout - (153-18);
+    return -1;
+}
+
+int __attribute__((const)) pos_to_turnout(const int pos) {
+    if (pos < 0)  return -1;
+    if (pos < 18) return pos + 1;
+    if (pos < 22) return pos + (153-18);
+    return -1;
+}
+
 static void __attribute__ ((noreturn)) sensor_poll() {
     RegisterAs((char*)SENSOR_POLL_NAME);
     Putc(TRAIN, SENSOR_RESET);
@@ -100,31 +127,53 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     }
 }
 
+typedef struct {
+    int         insert;
+    sensor_name recent_sensors[9];
+} mc_context;
+
 inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
-    ctxt->count++;
-    log("SENSOR:%c%d", sensor->bank, sensor->num);
+
+    memcpy(ctxt->recent_sensors + ctxt->insert, sensor, sizeof(sensor));
+    ctxt->insert = ++ctxt->insert & (RECENT_SENSOR_SIZE-1);
+    memset(ctxt->recent_sensors + ctxt->insert, 0, sizeof(ctxt->insert)); 
+
+    log("SENSOR:%c%d in %d", sensor->bank, sensor->num, ctxt->insert);
 }
 
 void mission_control() {
-    mc_req     req;
-    mc_context context;
-    int        tid = RegisterAs((char*)SENSOR_POLL_NAME);
+    int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
-    tid = Create(TASK_PRIORITY_MEDIUM_HI, sensor_poll);
-    assert(tid > 0, "Mission Control failed creating sensor poll (%d)", tid);
+    for (int i = 0;; i++) {
+        if (pos_to_train(i) < 0) break;
+        tid = put_train_cmd(pos_to_train(i), 0);
+        assert(tid == 0, "failed to set train %d", tid);
+    }
+
+    for (int i = 0;; i++) {
+        if (pos_to_turnout(i) < 0) break;
+        put_train_turnout(TURNOUT_CURVED, pos_to_turnout(i));
+        assert(tid == 0, "failed to set turnout %d", tid);
+    }
+    
+    tid = Create(15, sensor_poll);
+    assert(tid >  0, "Mission Control failed creating sensor poll (%d)", tid);
 
     tid = Create(TASK_PRIORITY_MEDIUM_LO, train_ui);
     assert(tid > 0, "Mission Control failed creating train UI (%d)", tid);
+    
+    mc_req     req;
+    mc_context context;
 
     FOREVER {
         Receive(&tid, (char*)&req, sizeof(req));
 
         switch (req.type) {
         case SENSOR_UPDATE:
-            mc_update_sensors(&context, &req.payload.sensor);
             Reply(tid, NULL, 0);
+            mc_update_sensors(&context, &req.payload.sensor);
             break;
         }
     }

@@ -49,22 +49,18 @@ inline static void uart_setoptions(const uint base,
     } else {
         *lcrh &= ~FEN_MASK;
     }
-
-    // want to clear the error registers since other people might
-    // have set them off
-    volatile int* volatile rsr = (int*)(base + UART_RSR_OFFSET);
-    *rsr = (int)rsr;
-
-    // we also need to clear anything that was in the input FIFO
-    volatile int* volatile data = (int*)(base + UART_DATA_OFFSET);
-    volatile char input = 0;
-    for (int i = 0; i < UART_FIFO_SIZE; i++)
-	input = *data;
 }
 
 inline static void uart_initirq(const uint base) {
     int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
     *ctlr = RIEN_MASK | RTIEN_MASK | UARTEN_MASK | MSIEN_MASK;
+}
+
+inline static void uart_drain(const uint base) {
+    volatile int* const flag = (int*)(base + UART_FLAG_OFFSET);
+    volatile int* const data = (int*)(base + UART_DATA_OFFSET);
+
+    while (!(*flag & RXFE_MASK)) { *data; }
 }
 
 void uart_init() {
@@ -75,6 +71,18 @@ void uart_init() {
     uart_initirq(UART1_BASE);
     uart_initirq(UART2_BASE);
     NOP(55);
+    
+    // want to clear the error registers since otehr people might
+    // have set them off
+    volatile int* volatile rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
+    *rsr1 = (int)rsr1;
+
+    volatile int* volatile rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
+    *rsr2 = (int)rsr2;
+
+
+    uart_drain(UART1_BASE);
+    uart_drain(UART2_BASE);
 }
 
 void uart2_bw_write(const char* string, int length) {
