@@ -60,14 +60,12 @@ inline static void uart_drain(const uint base) {
 void uart_init() {
     uart_setoptions(UART1_BASE, 0xBF, 0);
     uart_setoptions(UART2_BASE, 0x03, 1);
-
     NOP(55);
 
     uart_initirq(UART1_BASE);
     uart_initirq(UART2_BASE);
-
     NOP(55);
-
+    
     // want to clear the error registers since otehr people might
     // have set them off
     volatile int* volatile rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
@@ -127,6 +125,8 @@ void irq_uart2_recv() {
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     volatile int*  const intr = (int*) (UART2_BASE + UART_INTR_OFFSET);
 
+    assert(!(*flag & RXFE_MASK), "UART2 Had An Empty Recv");
+
     char c = *data;
     if (c == '`') magic_sysreq();
 
@@ -143,9 +143,7 @@ void irq_uart2_recv() {
             req->event[i] = *data;
         }
 
-        assert(i > 0, "UART2 Had An Empty Recv");
         t->sp[0] = i;
-
         scheduler_schedule(t);
         *intr &= ~RTIS_MASK;
 

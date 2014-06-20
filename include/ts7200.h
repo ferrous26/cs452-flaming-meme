@@ -36,6 +36,8 @@
 #define UART1_BASE	0x808c0000
 #define UART2_BASE	0x808d0000
 
+#define UART_FIFO_SIZE 16
+
 // All the below registers for UART1
 // First nine registers (up to Ox28) for UART 2
 

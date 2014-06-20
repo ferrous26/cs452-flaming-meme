@@ -85,7 +85,7 @@ static inline void cbuf_bulk_produce(char_buffer* const cb,		\
 	cb->head += length;						\
     }									\
 									\
-    cb->count = mod2(cb->count + 1, n);					\
+    cb->count = mod2(cb->count + length, n);				\
 }									\
 									\
 
