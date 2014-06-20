@@ -31,7 +31,7 @@ static void _term_try_send(struct term_state* const state);
 
 #define INPUT_BUFFER_SIZE  512
 #define OUTPUT_BUFFER_SIZE 130
-#define OUTPUT_BUFFER_MAX  (OUTPUT_BUFFER_SIZE - 2) // save space for XOFF/XON
+#define OUTPUT_BUFFER_MAX  128 // save space for XOFF/XON
 #define OUTPUT_Q_SIZE      TASK_MAX // at least 8 tasks will never Puts
 
 // ASCII byte that tells VT100 to stop transmitting
@@ -214,7 +214,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 		      (char*)&msg.length, sizeof(int));
 	TERM_ASSERT(result == sizeof(int), result);
 
-	assert(msg.length > 0 && msg.length <= 128,
+	assert(msg.length > 0 && msg.length <= OUTPUT_BUFFER_MAX,
 	       "BAD CARRIER SIZE (%d)", msg.length);
 
 	// switch to next buffer
@@ -236,7 +236,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 }
 
 // handle the init message from the server
-static void _term_obuffer(struct term_state* const state) {
+static inline void _term_obuffer(struct term_state* const state) {
 
     // need to send back the pointers to the obuffers
     struct {
@@ -256,31 +256,50 @@ static void _term_obuffer(struct term_state* const state) {
 static void _term_try_puts(struct term_state* const state,
 			   term_puts* const puts) {
 
-    // if we have space in the buffer (leave space for XOFF/XON)
-    if ((state->obuffer_size + puts->length) <= OUTPUT_BUFFER_MAX) {
-	// then just add it
-	memcpy(state->out_head, puts->string, (uint)puts->length);
+    // if we have no space
+    if (state->obuffer_size == OUTPUT_BUFFER_MAX) {
+	// then queue the job
+	pbuf_produce(&state->output_q, puts);
+	return; // and give up
+    }
+
+    // otherwise, figure out how much space we have left
+    uint chunk = OUTPUT_BUFFER_MAX - state->obuffer_size;
+    if (chunk > puts->length) // if we have more than enough
+	chunk = puts->length; // then only take what we need
+
+    // if there was actually something to take
+    if (chunk > 0) {
+	// then copy it into the buffer
+	memcpy(state->out_head, puts->string, chunk);
 
 	// and let the caller go back on their merry way
 	int result = Reply(puts->tid, NULL, 0);
 	TERM_ASSERT(result == 0, result);
 
 	// move these up so we don't overwrite things...
-	state->out_head     += puts->length;
-	state->obuffer_size += puts->length;
+	state->obuffer_size += chunk;
+	state->out_head     += chunk;
 
-	// if the carrier happens to be waiting
+	// if the carrier happened to be waiting
 	if (state->carrier >= 0)
 	    // then we can wake him up and send some stuff
 	    _term_try_send(state);
     }
-    // else, we need to block the task until we have space
-    else {
+
+    assert(state->carrier == -1,
+	   "Carrier was waiting and we gave it nothing");
+
+    // if there is anything left
+    if ((puts->length -= chunk)) {
+	// then queue the modified job
+	puts->string += chunk;
 	pbuf_produce(&state->output_q, puts);
     }
 }
 
-static void _term_send_xoff(struct term_state* const state) {
+static inline void
+_term_send_xoff(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
     	   "No space in buffer for the stop byte!");
     *state->out_head++ = XOFF; // J-J-Jam it in
@@ -288,7 +307,8 @@ static void _term_send_xoff(struct term_state* const state) {
     state->obuffer_size++;
 }
 
-static void _term_send_xon(struct term_state* const state) {
+static inline void
+_term_send_xon(struct term_state* const state) {
     assert(state->obuffer_size < OUTPUT_BUFFER_SIZE,
     	   "No space in buffer for the stop byte!");
     assert(state->xoff, "Haven't sent the xoff byte yet");
@@ -329,9 +349,9 @@ static void _term_try_send(struct term_state* const state) {
 	// anything more than that could cause problems
 	int count = 0;
     	FOREVER {
-	    if (!pbuf_count(&state->output_q)) break;
+	    if (!pbuf_count(&state->output_q) || count == OUTPUT_BUFFER_MAX)
+		break;
 	    count += pbuf_peek_length(&state->output_q);
-	    if (count > OUTPUT_BUFFER_MAX) break;
     	    _term_try_puts(state, pbuf_consume(&state->output_q));
 	}
     }
@@ -389,7 +409,7 @@ static void _term_recv(struct term_state* const state,
 	_term_try_getc(state);
 }
 
-static void _startup() {
+static inline void _startup() {
     term_server_tid = myTid();
 
     int tid = RegisterAs((char*)TERM_SEND_NAME);
@@ -498,32 +518,22 @@ int Puts(char* const str, int length) {
     assert(length > 0 && length < 4096,
 	   "Bizarre string length sent to Puts (%d)", length);
 
-    int offset = 0;
-    while (length) {
-	uint chunk = mod2((uint)length, OUTPUT_BUFFER_MAX);
+    term_req req = {
+	.type   = PUTS,
+	.length = (uint)length,
+	.string = str
+    };
 
-	term_req req = {
-	    .type   = PUTS,
-	    .length = chunk,
-	    .string = str + offset
-	};
+    int result = Send(term_server_tid,
+		      (char*)&req, sizeof(term_req),
+		      NULL, 0);
 
-	int result = Send(term_server_tid,
-			  (char*)&req, sizeof(term_req),
-			  NULL, 0);
+    if (result == 0) return OK;
 
-	if (result == 0) {
-	    offset += chunk;
-	    length -= chunk;
-	}
-	else {
-	    assert(result != INCOMPLETE && result != INVALID_TASK,
-		   "Terminal server died");
-	    return result;
-	}
-    }
+    assert(result != INCOMPLETE && result != INVALID_TASK,
+	   "Terminal server died");
 
-    return OK;
+    return result;
 }
 
 int get_term_char() {
