@@ -273,10 +273,6 @@ static void _term_try_puts(struct term_state* const state,
 	// then copy it into the buffer
 	memcpy(state->out_head, puts->string, chunk);
 
-	// and let the caller go back on their merry way
-	int result = Reply(puts->tid, NULL, 0);
-	TERM_ASSERT(result == 0, result);
-
 	// move these up so we don't overwrite things...
 	state->obuffer_size += chunk;
 	state->out_head     += chunk;
@@ -295,6 +291,11 @@ static void _term_try_puts(struct term_state* const state,
 	// then queue the modified job
 	puts->string += chunk;
 	pbuf_produce(&state->output_q, puts);
+    }
+    else {
+	// otherwise let the caller go back on their merry way
+	int result = Reply(puts->tid, NULL, 0);
+	TERM_ASSERT(result == 0, result);
     }
 }
 
