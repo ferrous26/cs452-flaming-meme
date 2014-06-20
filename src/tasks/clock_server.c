@@ -70,8 +70,6 @@ static void __attribute__ ((noreturn)) clock_ui() {
 #define CLOCK_SECONDS 10
 #define CLOCK_TENTHS  13
 
-    printf(32, "Clock UI starting on %d", myTid());
-
     char buffer[64];
     char* ptr   = buffer;
     int result  = 0;
