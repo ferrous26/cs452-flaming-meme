@@ -99,7 +99,7 @@ char* vt_colour(char* buffer, const colour c);
 /**
  * The row where logging begins.
  */
-#define LOG_HOME 24
+#define LOG_HOME 16
 
 /**
  * The row where logging ends.
