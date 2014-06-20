@@ -106,7 +106,7 @@ static void uart_rsr_check(int base) {
 #endif
 
 static void __attribute__ ((noreturn, noinline)) magic_sysreq() {
-    Abort(__FILE__, 0, "Magic SysReq key pressed");
+    Abort(__FILE__, 0, "Magic SysRq key pressed");
 }
 
 void irq_uart2_recv() {
