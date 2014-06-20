@@ -16,6 +16,12 @@
 
 #define NOP(count) for (volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
 
+// ASCII byte that tells VT100 to stop transmitting
+#define XOFF  17
+
+// ASCII byte that tells VT100 to start transmitting (only send after XOFF)
+#define XON   19
+
 inline static void uart_setoptions(const uint base,
 				   const int speed,
 				   const int fifo) {
@@ -122,7 +128,7 @@ void irq_uart2_recv() {
     char c = *data;
     if (c == '`') magic_sysreq();
 
-    task* t = int_queue[UART2_RECV];
+    task* const t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
     if (t) {
@@ -142,13 +148,13 @@ void irq_uart2_recv() {
         return;
     }
 
-    assert(false, "UART2 dropped %c", *data);
+    ABORT("UART2 dropped %c", *data);
 }
 
 void irq_uart2_send() {
     uart_rsr_check(UART2_BASE);
 
-    volatile char* data = (char*)(UART2_BASE + UART_DATA_OFFSET);
+    volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
     task* t = int_queue[UART2_SEND];
     int_queue[UART2_SEND] = NULL;
@@ -156,13 +162,12 @@ void irq_uart2_send() {
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req = (kreq_event*)t->sp[1];
 
-    int i;
-    for(i = 0; i < 8 && i < req->eventlen; i++) {
+    const int count = 8 < req->eventlen ? 8 : req->eventlen;
+    for (int i = 0; i < count; i++) {
         *data = req->event[i];
     }
 
-    assert(i > 0, "UART2 Failed To Send %d %d", i, req->eventlen);
-    t->sp[0] = i;
+    t->sp[0] = count;
 
     // disable the interrupt now that we have sent out a full block
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
