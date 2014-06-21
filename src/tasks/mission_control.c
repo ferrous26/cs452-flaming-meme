@@ -62,7 +62,7 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed  Dir.  Special            Turnouts             __Sensor__\n"
+"Train  Speed  Dir.  Special     Turnouts/Gates/Switches     __Sensor__\n"
 "---------------------------    +-----------------------+    |        | Newest\n"
 " 43                            | 1   | 2   | 3   | 4   |    |        |\n"
 " 45                            | 5   | 6   | 7   | 8   |    |        |\n"
@@ -71,7 +71,6 @@ static void train_ui() {
 " 49                            |17   |18   |-----------|    |        |\n"
 " 50                            |19    20   |21    22   |    |        |\n"
 " 51                            +-----------------------+    |        | Oldest");
-
     Puts(buffer, ptr - buffer);
 }
 
@@ -101,7 +100,7 @@ static int __attribute__((const, unused)) pos_to_train(const int pos) {
 
 static int __attribute__((const, unused)) turnout_to_pos(const int turnout) {
     if (turnout <  1)   return -1;
-    if (turnout <= 22)  return turnout - 1;
+    if (turnout <= 18)  return turnout - 1;
     if (turnout <  153) return -1;
     if (turnout <= 156) return turnout - (153-18);
     return -1;
@@ -172,11 +171,11 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     }
     memset(ctxt->insert, 0, sizeof(ctxt->insert));
 
-    char buffer[16];
-    for(int i = 0; next->bank != 0; i++) {
+    char buffer[64];
+    for(int i =0; next->bank != 0; i++) {
         char* output = next->num < 10 ? "%c 0%d": "%c %d";
         char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
-
+        
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
 
@@ -191,49 +190,39 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 static void mc_update_turnout(mc_context* const ctxt,
                               const int         turn_num,
                               int               turn_state) {
-
-    assert(turn_num >= 0, "Bad turnout number (%d)", turn_num);
-
     int state;
-    char buffer[32];
-    char* ptr;
-
-    if (turn_num < 18)
-        ptr = vt_goto(buffer,
-		      TURNOUT_ROW + (turn_num>>2),
-		      TURNOUT_COL + (mod2(turn_num, 4) * 6));
-    else
-        ptr = vt_goto(buffer,
-		      TURNOUT_ROW + 5,
-		      TURNOUT_COL + (mod2(turn_num - 18, 4) * 6));
-
-
+    const int pos = turnout_to_pos(turn_num);
+    if (pos < 0) {
+        log("Invalid Turnout Number %d", turn_num);
+        return;
+    }
     switch(turn_state) {
-    case 'c':
-	turn_state = 'C';
-	// fall through
-    case 'C':
-	state = TURNOUT_CURVED;
-	ptr   = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
-	break;
-    case 's':
-	turn_state = 'S';
-	// fall through
-    case 'S':
-	state = TURNOUT_STRAIGHT;
-	ptr   = sprintf_string(ptr, COLOUR(CYAN) "S" COLOUR_RESET);
-	break;
+    case 'c': turn_state = 'C';
+    case 'C': state      = TURNOUT_CURVED;
+              break;
+    case 's': turn_state = 'S';
+    case 'S': state = TURNOUT_STRAIGHT;
+              break;
     default:
         log("Invalid Turnout State %c", turn_state);
         return;
     }
+    
+    ctxt->turnouts[pos] = turn_state;
 
-    ctxt->turnouts[turn_num] = turn_state;
-
-    int result = put_train_turnout(state, pos_to_turnout(turn_num));
+    int result = put_train_turnout(turn_num, state);
     assert(result == 0, "Failed setting turnout %d to %c", turn_num, turn_state);
     UNUSED(result);
 
+    char buffer[64];
+    char* ptr;
+    if( pos < 18 ) {
+        ptr = vt_goto(buffer, TURNOUT_ROW + (pos>>2), TURNOUT_COL + (pos&3)*6);
+    }else {
+        ptr = vt_goto(buffer, TURNOUT_ROW + 5, TURNOUT_COL + ((pos-18)&3)*6);
+    }
+        
+    *(ptr++)  = turn_state;
     Puts(buffer, ptr-buffer);
 }
 
@@ -262,14 +251,13 @@ static void reset_train_state(mc_context* context) {
     // Want to make sure the contoller is on
     Putc(TRAIN, TRAIN_ALL_START);
 
-    for (int i = 0; i < 18; i++) {
+    for (int i = 1; i < 19; i++) {
         mc_update_turnout(context, i, 'C');
     }
-    mc_update_turnout(context, 18, 'S');
-    mc_update_turnout(context, 19, 'C');
-    mc_update_turnout(context, 20, 'S');
-    mc_update_turnout(context, 21, 'C');
-    mc_update_turnout(context, 13, 'S');
+    mc_update_turnout(context, 153, 'S');
+    mc_update_turnout(context, 154, 'C');
+    mc_update_turnout(context, 155, 'S');
+    mc_update_turnout(context, 156, 'C');
 
     mc_update_train_speed(context, 43, 0);
     mc_update_train_speed(context, 45, 0);
@@ -282,9 +270,9 @@ static void reset_train_state(mc_context* context) {
 static int mission_control_tid;
 
 void mission_control() {
-    mc_context context;
+    mc_context context; 
     memset(&context, 0, sizeof(context));
-
+    
     mission_control_tid = myTid();
 
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
@@ -292,7 +280,7 @@ void mission_control() {
 
     train_ui();
     reset_train_state(&context); // this MUST run before the following
-
+    
     tid = Create(15, sensor_poll);
     if (tid < 0) ABORT("Mission Control failed creating sensor poll (%d)", tid);
 
@@ -309,7 +297,7 @@ void mission_control() {
 	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
 				  result);
             break;
-
+        
         case TURNOUT_UPDATE:
             mc_update_turnout(&context,
                               req.payload.turnout.num,
@@ -330,20 +318,15 @@ void mission_control() {
     }
 }
 
-int update_turnout(int num, int state) {
-    int pos = turnout_to_pos(num);
-    if (pos < 0) {
-        log("Invalid Turnout Number %d", num);
-        return 0;
-    }
-
+int update_turnout(short num, short state) {
     mc_req req = {
         .type = TURNOUT_UPDATE,
         .payload.turnout = {
-            .num   = pos,
+            .num   = num,
             .state = state
         }
     };
+
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 

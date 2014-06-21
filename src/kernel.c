@@ -26,7 +26,7 @@
 #define DEFAULT_SPSR      0x50  //no fiq
 
 #define TASK_HEAP_TOP 0x1F00000 // 31 MB
-//#define TASK_HEAP_BOT 0x0300000 //  3 MB
+#define TASK_HEAP_BOT 0x0300000 //  3 MB
 #define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
 
 #ifdef DEBUG
@@ -384,7 +384,7 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
     assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
 #endif
 
-    assert(code >= SYS_IRQ && code < SYS_COUNT,
+    assert(code < SYS_COUNT,
 	   "Invalid syscall (%d) by %d", code, task_active->tid);
 
     // save it, save it real good
