@@ -29,7 +29,6 @@ void clock_init() {
 }
 
 void clock_deinit() {
-    const uint ctrl = ~ENABLE_MASK & ~MODE_MASK & CLKSEL_MASK;
     *(uint*)(TIMER3_BASE | CRTL_OFFSET) = 0;
 }
 
