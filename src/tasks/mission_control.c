@@ -259,11 +259,10 @@ void mission_control() {
 
         switch (req.type) {
         case SENSOR_UPDATE:
+            mc_update_sensors(&context, &req.payload.sensor);
             result = Reply(tid, NULL, 0);
 	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
 				  result);
-            mc_update_sensors(&context, &req.payload.sensor);
-            Reply(tid, NULL, 0);
             break;
         
         case TURNOUT_UPDATE:
