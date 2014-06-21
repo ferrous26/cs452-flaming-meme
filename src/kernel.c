@@ -450,6 +450,10 @@ void scheduler_first_run() {
     kernel_exit(task_active->sp);
 }
 
+void scheduler_reschedule(task* const t) {
+    scheduler_schedule(t);
+}
+
 inline static void scheduler_schedule(task* const t) {
 
     task_q* const q = &manager.q[t->priority];
@@ -473,10 +477,6 @@ inline static void scheduler_schedule(task* const t) {
 
     // mark the end of the queue
     t->next = NULL;
-}
-
-void scheduler_reschedule(task* const t) {
-    scheduler_schedule(t);
 }
 
 // scheduler_consume
@@ -540,6 +540,9 @@ inline static void task_destroy() {
     cbuf_produce(&free_list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
 
+
+
+/** ABORT UI CODE **/
 
 static char* _abort_pad(char* ptr, const int val) {
     int count = 12 - val;
