@@ -7,6 +7,8 @@ typedef enum {
     GATE,
     REVERSE,
     QUIT,
+    TOGGLE_LIGHT,
+    RESET,
     ERROR
 } command;
 

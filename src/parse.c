@@ -53,12 +53,12 @@ static int parse_argument(const char* const cmd,
 
 static int parse_gate(const char* const cmd, int* buffer) {
     int index = 1;
-    if (cmd[index++] != 'w') return -1;
-    if (parse_argument(cmd, 'i', &index, buffer )) return -1;
-    if (parse_argument(cmd, 'c', &index, &buffer[1] )) return -1;
-    if (!isspace(cmd[index])) return -1;
+    if (cmd[index++] != 'w')                           return ERROR;
+    if (parse_argument(cmd, 'i', &index, buffer ))     return ERROR;
+    if (parse_argument(cmd, 'c', &index, &buffer[1] )) return ERROR;
+    if (!isspace(cmd[index]))                          return ERROR;
 
-    return 0;
+    return GATE;
 }
 
 static int parse_train(const char* const cmd, int* const buffer) {
@@ -72,14 +72,32 @@ static int parse_train(const char* const cmd, int* const buffer) {
 }
 
 static int parse_stop(const char* const cmd) {
-    return !isspace(cmd[1]);
+    if (!isspace(cmd[1])) return ERROR;
+    return QUIT;    
 }
 
-static int parse_reverse(const char* const cmd, int* const buffer) {
+static command parse_r(const char* const cmd, int* const buffer) {
     int index = 1;
-    if(cmd[index++] != 'v') return -1;
-     if(parse_argument(cmd, 'i', &index, buffer)) return -1;
-    return 0;
+    switch (cmd[index++]) {
+    case 'v':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        return REVERSE;
+    case 'e':
+        if (!isspace(cmd[index])) return ERROR;
+        return RESET;
+    }
+    return ERROR;
+}
+
+static command parse_light(const char* const cmd, int* const buffer) {
+    int index = 1;
+    switch (cmd[index++]) {
+    case 't':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        return TOGGLE_LIGHT;
+    }
+
+    return ERROR;
 }
 
 command parse_command(const char* const cmd, int* const buffer) {
@@ -87,17 +105,16 @@ command parse_command(const char* const cmd, int* const buffer) {
     case '\r':
         return NONE;
     case 'q':
-        if ( parse_stop(cmd) ) { return ERROR; }
-        return QUIT;
+        return parse_stop(cmd);
     case 't':
         if (parse_train(cmd, buffer)) { return ERROR; }
         return SPEED;
     case 'r':
-	if (parse_reverse(cmd, buffer)) { return ERROR; }
-        return REVERSE;
+        return parse_r(cmd, buffer);
     case 's':
-        if (parse_gate(cmd, buffer)) { return ERROR; }
-        return GATE;
+        return parse_gate(cmd, buffer);
+    case 'l':
+        return parse_light(cmd, buffer);
     default:
         return ERROR;
     }

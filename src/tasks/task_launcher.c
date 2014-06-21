@@ -63,19 +63,27 @@ static void action(command cmd, int args[]) {
     switch(cmd) {
     case NONE:
         break;
+    case QUIT:
+        Shutdown();
     case SPEED:
         update_train_speed(args[0], args[1]);
         break;
     case GATE:
-        update_turnout((short)args[0], (short)args[1]);
+        update_turnout(args[0], args[1]);
         break;
     case REVERSE:
 	Create(TASK_PRIORITY_MEDIUM, bench_msg);
 	Delay(1000); // :)
 	Create(10, stress_root);
         break;
-    case QUIT:
-        Shutdown();
+    case TOGGLE_LIGHT:
+        log("toggling train light %d", args[0]);
+        toggle_train_light(args[0]);
+        break;
+    case RESET:
+        log("resetting train state");
+        reset_train_state();
+        break;
     case ERROR:
         log("invalid command");
 	print_help();
