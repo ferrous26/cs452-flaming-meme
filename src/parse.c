@@ -39,7 +39,7 @@ static int parse_argument(const char* const cmd,
         *arg = consume_integer(cmd, index);
         break;
     case 'c':
-        if( cmd[*index] == '\0' ) {
+        if (cmd[*index] == '\0') {
 	    // TODO: the compiler complains about these lines...why?
             // kprintf("died at position %d(%d)\n", *index, cmd[*index]);
             // return -1;
