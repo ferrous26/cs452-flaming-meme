@@ -5,12 +5,8 @@
 #include <std.h>
 #include <debug.h>
 
-#define HWI_HANDLER ((uint* volatile)0x18)
-
 void irq_init(void);
 void irq_deinit(void);
-
-void hwi_enter(void);   /* found in context.asm */
 
 #define VIC1_BASE 0x800B0000
 #define VIC2_BASE 0x800C0000

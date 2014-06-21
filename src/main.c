@@ -100,8 +100,7 @@ static inline void _init() {
 
     uart_init();
     vt_init();
-    scheduler_init();
-    ksyscall_init();
+    kernel_init();
     irq_init();
 }
 
@@ -115,7 +114,7 @@ void shutdown(void) {
     _flush_caches();
 
     clock_deinit();
-    ksyscall_deinit();
+    kernel_deinit();
     irq_deinit();
 
     asm volatile ("mov  sp, %0\n"

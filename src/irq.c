@@ -1,9 +1,9 @@
 #include <vt100.h>
 #include <clock.h>
-
 #include <irq.h>
+#include <ts7200.h>
 
-#define DEFAULT_LDR_PC 0xE59FF018
+#define HWI_HANDLER ((uint* volatile)0x18)
 
 inline static void
 _init_vector_irq(const uint interrupt, const uint priority, voidf handle) {
@@ -30,7 +30,7 @@ inline static void _init_all_vector_irq() {
     _init_vector_irq(54, 0, irq_uart2);
     _init_vector_irq(52, 1, irq_uart1);
     _init_vector_irq(51, 2, irq_clock);
-    
+
     *(voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET) = default_isr;
     *(voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET) = default_isr;
 }
@@ -69,7 +69,7 @@ inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
 
     const uint base  = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
     const uint shift = mod2(interrupt, 32);
-    
+
     *(volatile uint* const)(base + cmd) = 1 << shift;
 }
 
