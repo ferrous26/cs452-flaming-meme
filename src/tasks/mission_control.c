@@ -1,12 +1,14 @@
 
+#include <tasks/mission_control.h>
+#include <tasks/train_server.h>
+#include <tasks/term_server.h>
+#include <tasks/name_server.h>
+#include <tasks/clock_server.h>
 #include <std.h>
 #include <debug.h>
 #include <train.h>
-#include <vt100.h>
 #include <syscall.h>
-#include <scheduler.h>
 
-#include <tasks/mission_control.h>
 
 #define RECENT_SENSOR_SIZE 32
 
@@ -194,11 +196,11 @@ void mission_control() {
 
     reset_train_state(); // this MUST run before the following
 
-    tid = Create(TASK_PRIORITY_MEDIUM_LO, train_ui);
-    assert(tid > 0, "Mission Control failed creating train UI (%d)", tid);
+    tid = Create(TASK_PRIORITY_MEDIUM_LOW, train_ui);
+    if (tid < 0) ABORT("Mission Control failed creating train UI (%d)", tid);
 
     tid = Create(15, sensor_poll);
-    assert(tid >  0, "Mission Control failed creating sensor poll (%d)", tid);
+    if (tid < 0) ABORT("Mission Control failed creating sensor poll (%d)", tid);
 
     mc_req     req;
     mc_context context;

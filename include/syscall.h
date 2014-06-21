@@ -4,11 +4,6 @@
 #include <std.h>
 #include <stdarg.h>
 
-#include <tasks/term_server.h>
-#include <tasks/name_server.h>
-#include <tasks/train_server.h>
-#include <tasks/clock_server.h>
-
 typedef enum {
     OK               =  0, // no problems, full steam ahead
     NO_DESCRIPTORS   = -1, // Create(2) failed because descriptor table is exhausted
@@ -23,6 +18,54 @@ typedef enum {
     INVALID_MESSAGE  = -5, // the receiver did not understand the message
     INVALID_CHANNEL  = -6
 } err;
+
+#define TASK_MAX 64 // Maximum number of live tasks in the system
+
+#define TASK_PRIORITY_LEVELS 32
+#define TASK_PRIORITY_MAX    31
+#define TASK_PRIORITY_MIN     0
+
+typedef enum {
+    TASK_PRIORITY_IDLE,
+    TASK_PRIORITY_0 = 0,
+    TASK_PRIORITY_1,
+    TASK_PRIORITY_2,
+    TASK_PRIORITY_3,
+    TASK_PRIORITY_4,
+    TASK_PRIORITY_LOW,
+    TASK_PRIORITY_5 = 5,
+    TASK_PRIORITY_6,
+    TASK_PRIORITY_7,
+    TASK_PRIORITY_8,
+    TASK_PRIORITY_9,
+    TASK_PRIORITY_MEDIUM_LOW,
+    TASK_PRIORITY_10 = 10,
+    TASK_PRIORITY_11,
+    TASK_PRIORITY_12,
+    TASK_PRIORITY_13,
+    TASK_PRIORITY_14,
+    TASK_PRIORITY_MEDIUM,
+    TASK_PRIORITY_15 = 15,
+    TASK_PRIORITY_16,
+    TASK_PRIORITY_17,
+    TASK_PRIORITY_18,
+    TASK_PRIORITY_19,
+    TASK_PRIORITY_MEDIUM_HIGH,
+    TASK_PRIORITY_20 = 20,
+    TASK_PRIORITY_21,
+    TASK_PRIORITY_22,
+    TASK_PRIORITY_23,
+    TASK_PRIORITY_24,
+    TASK_PRIORITY_HIGH,
+    TASK_PRIORITY_25 = 25,
+    TASK_PRIORITY_26,
+    TASK_PRIORITY_27,
+    TASK_PRIORITY_28,
+    TASK_PRIORITY_29,
+    TASK_PRIORITY_30,
+    TASK_PRIORITY_EMERGENCY,
+    TASK_PRIORITY_31 = 31
+} task_priority;
 
 int Create(int priority, void (*code) (void));
 int myTid(void);
@@ -63,18 +106,5 @@ void __attribute__ ((noreturn)) Shutdown(void);
 
 void __attribute__ ((noreturn))
 Abort(const char* const file, const uint line, const char* const msg, ...);
-
-
-#define Putc(channel, ch) Putc_##channel(ch)
-#define Putc_TERMINAL(ch) put_term_char(ch)
-#define Putc_2(ch)        Putc_TERMINAL(ch)
-#define Putc_TRAIN(ch)    put_train_char(ch)
-#define Putc_1(ch)        Putc_train(ch);
-
-#define Getc(channel) Getc_##channel
-#define Getc_TERMINAL get_term_char()
-#define Getc_2        Getc_TERMINAL
-#define Getc_TRAIN    get_train_char()
-#define Getc_1        Getc_TRAIN
 
 #endif

@@ -1,13 +1,11 @@
 #include <std.h>
 #include <train.h>
 #include <debug.h>
-#include <vt100.h>
-#include <ts7200.h>
 #include <syscall.h>
-#include <scheduler.h>
-
 #include <char_buffer.h>
 #include <tasks/train_server.h>
+#include <tasks/name_server.h>
+#include <tasks/term_server.h>
 
 typedef enum {
     CARRIER,

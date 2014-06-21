@@ -1,9 +1,8 @@
 #include <tasks/term_server.h>
+#include <tasks/name_server.h>
 #include <std.h>
-#include <vt100.h>
 #include <debug.h>
 #include <syscall.h>
-#include <scheduler.h>
 #include <char_buffer.h>
 #include <ts7200.h>
 

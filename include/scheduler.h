@@ -6,22 +6,9 @@
 #include <kernel.h>
 #include <syscall.h>
 
-#define TASK_MAX 64
 #define TASK_HEAP_TOP 0x1F00000 // 31 MB
 #define TASK_HEAP_BOT 0x0300000 //  3 MB
 #define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
-
-#define TASK_PRIORITY_LEVELS 32
-#define TASK_PRIORITY_MAX    31
-#define TASK_PRIORITY_MIN     0
-
-#define TASK_PRIORITY_EMERGENCY TASK_PRIORITY_MAX
-#define TASK_PRIORITY_HIGH      (TASK_PRIORITY_MAX - 1)
-#define TASK_PRIORITY_MEDIUM_HI (TASK_PRIORITY_HIGH - 5)
-#define TASK_PRIORITY_MEDIUM    (TASK_PRIORITY_MAX >> 1)
-#define TASK_PRIORITY_MEDIUM_LO (TASK_PRIORITY_LOW + 5)
-#define TASK_PRIORITY_LOW       (TASK_PRIORITY_MIN + 1)
-#define TASK_PRIORITY_IDLE      TASK_PRIORITY_MIN
 
 typedef int32  task_id;
 typedef int32  task_pri;

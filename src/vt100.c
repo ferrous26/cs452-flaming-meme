@@ -1,8 +1,8 @@
 
-#include <io.h>
-#include <syscall.h>
-#include <debug.h>
 #include <vt100.h>
+#include <io.h>
+#include <debug.h>
+#include <tasks/term_server.h>
 
 
 static uint log_count = 0;

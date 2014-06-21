@@ -1,11 +1,10 @@
 
-#include <std.h>
-#include <debug.h>
-#include <vt100.h>
-#include <scheduler.h>
-
 #include <tasks/clock_server.h>
+#include <tasks/term_server.h>
+#include <tasks/name_server.h>
+#include <vt100.h>
 #include <syscall.h>
+#include <debug.h>
 
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)
@@ -26,8 +25,8 @@ typedef struct {
 } clock_req;
 
 typedef struct {
-    int     time;
-    task_id tid;
+    int time;
+    int tid;
 } clock_delay;
 
 typedef struct {
@@ -144,9 +143,9 @@ static inline int pq_peek(clock_pq* q) {
     return q->delays[1].time;
 }
 
-static task_id pq_delete(clock_pq* q) {
+static int pq_delete(clock_pq* q) {
 
-    task_id tid = q->delays[1].tid;
+    int tid = q->delays[1].tid;
 
     clock_delay* delays = q->delays;
     int curr = --q->count;
@@ -187,7 +186,7 @@ static task_id pq_delete(clock_pq* q) {
     return tid;
 }
 
-static void pq_add(clock_pq* q, int time, task_id tid) {
+static void pq_add(clock_pq* q, int time, int tid) {
 
     clock_delay* delays = q->delays;
     int curr   = q->count++;
@@ -240,7 +239,7 @@ static void _startup(clock_pq* pq) {
 	return;
     }
 
-    result = Create(TASK_PRIORITY_MEDIUM_LO, clock_ui);
+    result = Create(TASK_PRIORITY_MEDIUM_LOW, clock_ui);
     if (result < 0) {
 	log("Failed to create clock_ui (%d)", result);
 	return;

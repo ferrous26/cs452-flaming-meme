@@ -1,10 +1,11 @@
 #include <tasks/idle.h>
+#include <tasks/term_server.h>
+#include <tasks/name_server.h>
+#include <tasks/clock_server.h>
 #include <std.h>
 #include <clock.h>
 #include <debug.h>
-#include <vt100.h>
 #include <syscall.h>
-#include <scheduler.h>
 
 // best case number of Timer4 ticks for a context switch
 #define MINIMUM_NON_IDLE_TIME 2
@@ -75,11 +76,11 @@ void idle() {
     non_idle_ticks = 0;
 
     int result = RegisterAs((char*)IDLE_NAME);
-    assert(result == 0, "Idle failed to register (%d)", result);
-    
-    result = Create(TASK_PRIORITY_MEDIUM_HI, idle_ui);
-    assert(result > 0, "Idle UI task failed to start (%d)", result);
-    
+    if (result != 0) ABORT("Idle failed to register (%d)", result);
+
+    result = Create(TASK_PRIORITY_MEDIUM_LOW, idle_ui);
+    if (result < 0) ABORT("Idle UI task failed to start (%d)", result);
+
     uint prev_time = clock_t4tick();
     uint curr_time = prev_time;
     uint diff      = 0;

@@ -1,12 +1,9 @@
 
-#include <irq.h>
-#include <vt100.h>
 #include <syscall.h>
 #include <scheduler.h>
 #include <debug.h>
 
 #include <train.h>
-#include <ts7200.h>
 
 #include <parse.h>
 
@@ -72,8 +69,8 @@ static void action(command cmd, int args[]) {
     case SPEED:
         log("setting train %d to %d", args[0], args[1]);
         put_train_cmd((char)args[0], (char)args[1]);
-	Create(TASK_PRIORITY_MEDIUM_HI, echo_test);
-	Exit(); // no more Terminal!
+	//Create(TASK_PRIORITY_MEDIUM_HIGH, echo_test);
+	//Exit(); // no more Terminal!
         break;
     case GATE:
         if(args[1] == 's' || args[1] == 'S') {
@@ -85,8 +82,8 @@ static void action(command cmd, int args[]) {
         }
         break;
     case REVERSE:
-	//Create(TASK_PRIORITY_MEDIUM, bench_msg);
-	//Delay(2000); // :)
+	Create(TASK_PRIORITY_MEDIUM, bench_msg);
+	Delay(1000); // :)
 	Create(10, stress_root);
         break;
     case QUIT:

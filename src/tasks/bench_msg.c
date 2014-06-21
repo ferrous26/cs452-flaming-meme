@@ -2,7 +2,7 @@
 #include <vt100.h>
 #include <benchmark.h>
 #include <syscall.h>
-#include <scheduler.h>
+#include <tasks/term_server.h>
 
 #ifdef BENCHMARK
 static
@@ -61,7 +61,7 @@ void bench_msg() {
     // this guy sets it up
     if (myPriority() == TASK_PRIORITY_MEDIUM) {
 
-	int child = Create(TASK_PRIORITY_MEDIUM_LO, bench_msg);
+	int child = Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
 	if (child < 0) {
 	    log("Failed to create child task for benchmarking");
 	    return;
@@ -80,7 +80,7 @@ void bench_msg() {
 	log("");
 
 	log("Receive before send");
-	ChangePriority(TASK_PRIORITY_MEDIUM_LO - 1);
+	ChangePriority(TASK_PRIORITY_MEDIUM_LOW - 1);
 	Pass(); // ensure the child gets ahead
 	send_it(child);
 	log("");
