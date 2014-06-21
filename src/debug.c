@@ -1,9 +1,11 @@
 
-#include <debug.h>
 #include <io.h>
+#include <debug.h>
 #include <vt100.h>
 #include <kernel.h>
 #include <syscall.h>
+
+#include <tasks/term_server.h>
 
 #ifdef DEBUG
 

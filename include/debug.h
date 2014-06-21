@@ -5,8 +5,6 @@
 #include <std.h>
 #include <syscall.h>
 
-
-
 #ifdef ASSERT
 #define assert(expr, msg, ...)						\
     {									\
