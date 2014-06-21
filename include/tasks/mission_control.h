@@ -7,5 +7,7 @@
 
 void mission_control(void) __attribute__((noreturn));
 
+int  update_turnout(short num, short state);
+
 #endif
 

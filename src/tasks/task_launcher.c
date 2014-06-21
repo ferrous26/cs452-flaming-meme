@@ -10,6 +10,8 @@
 #include <tasks/clock_server.h>
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
+#include <tasks/mission_control.h>
+
 #include <tasks/task_launcher.h>
 
 #define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
@@ -43,8 +45,7 @@ static void __attribute__ ((unused)) tl_action(char input) {
     }
 }
 
-static void echo_test() {
-
+static void __attribute__((unused)) echo_test() {
     char buffer[32];
     char* ptr = buffer;
     ptr = vt_reset_scroll_region(ptr);
@@ -69,13 +70,7 @@ static void action(command cmd, int args[]) {
 	//Exit(); // no more Terminal!
         break;
     case GATE:
-        if(args[1] == 's' || args[1] == 'S') {
-            put_train_turnout(TURNOUT_STRAIGHT,(char)args[0]);
-        } else if (args[1] == 'c' || args[1] == 'C') {
-            put_train_turnout(TURNOUT_CURVED, (char)args[0]);
-        } else {
-            log("invalid command");
-        }
+        update_turnout((short)args[0], (short)args[1]);
         break;
     case REVERSE:
 	Create(TASK_PRIORITY_MEDIUM, bench_msg);
