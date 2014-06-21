@@ -152,8 +152,8 @@ void irq_uart2_recv() {
         }
 
         t->sp[0] = i;
-        scheduler_schedule(t);
-        *ctlr &= ~(RTIS_MASK | RIS_MASK);
+	*ctlr &= ~(RTIS_MASK | RIS_MASK);
+        scheduler_reschedule(t);
 
         return;
     }
@@ -183,7 +183,7 @@ void irq_uart2_send() {
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
     *ctlr &= ~TIEN_MASK;
 
-    scheduler_schedule(t);
+    scheduler_reschedule(t);
 }
 
 void irq_uart2() {
@@ -209,7 +209,7 @@ void irq_uart1_recv() {
         req_space->event[0] = *data;
         t->sp[0] = 1;
 
-        scheduler_schedule(t);
+        scheduler_reschedule(t);
         return;
     }
 
@@ -231,7 +231,7 @@ void irq_uart1_send() {
 
     int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
     *ctlr &= ~TIEN_MASK;
-    scheduler_schedule(t);
+    scheduler_reschedule(t);
 }
 
 void irq_uart1() {
@@ -254,5 +254,5 @@ void irq_uart1() {
         int_queue[UART1_DOWN] = NULL;
     }
 
-    if (t != NULL) { scheduler_schedule(t); }
+    if (t) scheduler_reschedule(t);
 }

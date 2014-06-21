@@ -41,7 +41,7 @@ void irq_clock() {
 
     if (t) {
 	t->sp[0] = 0;
-	scheduler_schedule(t);
+	scheduler_reschedule(t);
 	return;
     }
 

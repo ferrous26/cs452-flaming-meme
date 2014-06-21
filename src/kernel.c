@@ -88,6 +88,7 @@ static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
 inline static int  task_create(const task_pri pri,
 			       void (*const start)(void)) TEXT_HOT;
 inline static void task_destroy(void) TEXT_HOT;
+inline static void scheduler_schedule(task* const t) TEXT_HOT;
 inline static void scheduler_get_next(void) TEXT_HOT;
 
 
@@ -447,19 +448,20 @@ void scheduler_first_run() {
     kernel_exit(task_active->sp);
 }
 
-void scheduler_schedule(task* const t) {
+inline static void scheduler_schedule(task* const t) {
+
     task_q* const q = &manager.q[t->priority];
 
-    assert(t >= tasks, "schedule: cant schedule task at %p", t);
-    assert(t < &tasks[TASK_MAX], "schedule: can't schedule task at %p", t);
+    assert(t >= tasks && t < &tasks[TASK_MAX],
+	   "schedule: cannot schedule task at %p (%p-%p)",
+	   t, tasks, &tasks[TASK_MAX]);
 
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
 
     // if there was something in the queue, append to it
-    if (q->head) {
+    if (q->head)
 	q->tail->next = t;
-    }
     // else the queue was off, so set the head
     else
 	q->head = t;
@@ -469,6 +471,10 @@ void scheduler_schedule(task* const t) {
 
     // mark the end of the queue
     t->next = NULL;
+}
+
+void scheduler_reschedule(task* const t) {
+    scheduler_schedule(t);
 }
 
 // scheduler_consume

@@ -96,10 +96,10 @@ typedef struct task_descriptor {
     struct task_descriptor* next;
 } task;
 
-extern task*  task_active;
-extern task*  int_queue[EVENT_COUNT];
+extern task* task_active;
+extern task* int_queue[EVENT_COUNT];
 
 void scheduler_first_run(void);
-void scheduler_schedule(task* const t) TEXT_HOT;
+void scheduler_reschedule(task* const t) TEXT_HOT;
 
 #endif
