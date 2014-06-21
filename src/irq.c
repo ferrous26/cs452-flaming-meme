@@ -7,35 +7,17 @@
 
 inline static void
 _init_vector_irq(const uint interrupt, const uint priority, voidf handle) {
-
-    assert(interrupt < 64,
-	   "Invalid Interrupt %d", interrupt);
-
-    assert(priority < 16,
-	   "Invalid vector priority on interrupt %d", interrupt);
+    assert(interrupt < 64, "Invalid Interrupt %d", interrupt);
+    assert(priority < 16, "Invalid vector priority on interrupt %d", interrupt);
 
     const uint base = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
     const uint set  = mod2(interrupt, 32) | VICCNTL_ENABLE_MASK;
 
-    *(voidf*)(base + VICVECADDR_OFFSET + 4*priority) = handle;
-    *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
+    *(volatile voidf* const)(base + VICVECADDR_OFFSET + 4*priority) = handle;
+    *(volatile uint*  const)(base + VICVECCNTL_OFFSET + 4*priority) = set;
 }
 
-static void _irq_default1() {
-    char buffer[1024];
-    char* ptr = buffer;
-    ptr  = debug_interrupt_table(buffer);
-    *ptr = '\0';
-    Abort(__FILE__, __LINE__, "Default IRQ handler1 was triggered:\n%s", buffer);
-}
-
-static void _irq_default2() {
-    char buffer[1024];
-    char* ptr = buffer;
-    ptr  = debug_interrupt_table(buffer);
-    *ptr = '\0';
-    Abort(__FILE__, __LINE__, "Default IRQ handler2 was triggered:\n%s", buffer);
-}
+static void default_isr() {}
 
 inline static void _init_all_vector_irq() {
     //setup VEC1
@@ -49,8 +31,8 @@ inline static void _init_all_vector_irq() {
     _init_vector_irq(52, 1, irq_uart1);
     _init_vector_irq(51, 2, irq_clock);
     
-    *(voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET) = _irq_default1;
-    *(voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET) = _irq_default2;
+    *(voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET) = default_isr;
+    *(voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET) = default_isr;
 }
 
 void irq_init() {
@@ -88,7 +70,7 @@ inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
     const uint base  = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
     const uint shift = mod2(interrupt, 32);
     
-    *(volatile uint* const)(interrupt + cmd) = 1 << shift;
+    *(volatile uint* const)(base + cmd) = 1 << shift;
 }
 
 void irq_enable_user_protection() {

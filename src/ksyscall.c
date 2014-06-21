@@ -232,9 +232,11 @@ ksyscall_await(const kreq_event* const req) {
 
 inline static void ksyscall_irq() {
     voidf handler = (voidf)VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
-    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*)handler;
     handler();
+    VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*)handler;
+
     ksyscall_pass();
+
 }
 
 #ifdef DEBUG
