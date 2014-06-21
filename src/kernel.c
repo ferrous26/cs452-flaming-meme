@@ -14,6 +14,7 @@
 #include <tasks/train_server.h>
 #include <tasks/task_launcher.h>
 #include <tasks/mission_control.h>
+#include <tasks/train.h>
 
 
 #define SWI_HANDLER ((volatile uint*)0x08)
@@ -123,6 +124,7 @@ void kernel_init() {
     task_create(TASK_PRIORITY_MEDIUM,      term_server);
     task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
     task_create(TASK_PRIORITY_MEDIUM,      train_server);
+    task_create(TASK_PRIORITY_MEDIUM,      train_station);
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid   = i;
@@ -448,6 +450,10 @@ void scheduler_first_run() {
     kernel_exit(task_active->sp);
 }
 
+void scheduler_reschedule(task* const t) {
+    scheduler_schedule(t);
+}
+
 inline static void scheduler_schedule(task* const t) {
 
     task_q* const q = &manager.q[t->priority];
@@ -471,10 +477,6 @@ inline static void scheduler_schedule(task* const t) {
 
     // mark the end of the queue
     t->next = NULL;
-}
-
-void scheduler_reschedule(task* const t) {
-    scheduler_schedule(t);
 }
 
 // scheduler_consume
@@ -538,6 +540,9 @@ inline static void task_destroy() {
     cbuf_produce(&free_list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
 
+
+
+/** ABORT UI CODE **/
 
 static char* _abort_pad(char* ptr, const int val) {
     int count = 12 - val;

@@ -84,7 +84,7 @@ static int __attribute__((const, unused)) train_to_pos(const int train) {
     case 43: return 0;
     case 45: return 1;
     }
-    
+
     if (train >= 47 && train <=51) {
         return train - 47 + 2;
     }
@@ -162,7 +162,7 @@ typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
 
-    int turnouts[NUM_TURNOUTS];    
+    int turnouts[NUM_TURNOUTS];
     int trains[NUM_TRAINS];
 } mc_context;
 
@@ -204,7 +204,7 @@ static void mc_update_turnout(mc_context* const ctxt,
 
     if (pos < 18) {
         ptr = vt_goto(buffer,
-		      TURNOUT_ROW + (turn_num>>2),
+		      TURNOUT_ROW + (pos>>2),
 		      TURNOUT_COL + (mod2(pos, 4) * 6));
     } else {
         ptr = vt_goto(buffer,
@@ -281,7 +281,7 @@ static void mc_reset_train_state(mc_context* context) {
     Putc(TRAIN, TRAIN_ALL_START);
 
     for (int i = 1; i < 19; i++) {
-        mc_update_turnout(context, i, 'C');
+        mc_update_turnout(context, i, i == 14 ? 'S' : 'C');
     }
     mc_update_turnout(context, 153, 'S');
     mc_update_turnout(context, 154, 'C');
@@ -402,15 +402,16 @@ int update_train_speed(int train, int speed) {
         log("invalid train number %d", train);
         return 0;
     }
-    if(speed < 0 || speed > 14) {
+    if(speed < 0 || speed > TRAIN_REVERSE) {
         log("can't set train number %d to invalid speed %d", train, speed);
         return 0;
     } 
+
     mc_req req = {
         .type = TRAIN_SPEED_UPDATE,
         .payload.train_speed = {
             .num   = train,
-            .speed = speed   
+            .speed = speed
         }
     };
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
@@ -436,5 +437,4 @@ int toggle_train_light(int train) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-
 

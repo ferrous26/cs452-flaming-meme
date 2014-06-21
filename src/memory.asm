@@ -4,6 +4,14 @@
 	.align	2
 	.global memcpy
 	.type	memcpy,   %function
+
+	/* this logic is somewhat backwards, what we should be doing is    */
+	/* building up to the fast case from the smaller cases instead     */
+	/* of instead of trying to get aligned and starting at the big     */
+	/* case. it should allow for a smaller implementation that handles */
+	/* the smaller cases just as fast and with more uniform performance */
+	/* distribution */
+
 memcpy:
 	/** r0 = dest, r1 = src, r2 = len, r3,r12 = free scratch **/
 	/** r4-9 = expensive scratch (we shrink wrap them) **/
