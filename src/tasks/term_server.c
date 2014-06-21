@@ -443,7 +443,7 @@ int put_term_char(char ch) {
     return result;
 }
 
-int Puts(char* const str, int length) {
+int term_put_string(char* const str, int length) {
 
     assert(length > 0 && length < 4096,
 	   "Bizarre string length sent to Puts (%d)", length);

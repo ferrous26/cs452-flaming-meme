@@ -65,8 +65,7 @@ static void train_ui() {
 " 50                            |19    20   |21    22   |    |        |\n"
 " 51                            +-----------------------+    |        | Oldest");
 
-    int result = Puts(buffer, ptr - buffer);
-    if (result != 0) ABORT("Failed to init train state UI");
+    Puts(buffer, ptr - buffer);
 }
 
 static int __attribute__((const, unused)) train_to_pos(const int train) {
@@ -141,7 +140,7 @@ typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
 
-    int turnouts[NUM_TURNOUTS];    
+    int turnouts[NUM_TURNOUTS];
 } mc_context;
 
 inline static void mc_update_sensors(mc_context* const ctxt,
@@ -158,7 +157,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     for(int i =0; next->bank != 0; i++) {
         char* output = next->num < 10 ? "%c 0%d": "%c %d";
         char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
-        
+
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
 
@@ -190,7 +189,7 @@ static void mc_update_turnout(mc_context* const ctxt,
         log("Invalid Turnout State %c", turn_state);
         return;
     }
-    
+
     ctxt->turnouts[pos] = turn_state;
 
     int result = put_train_turnout(state, turn_num);
@@ -204,7 +203,7 @@ static void mc_update_turnout(mc_context* const ctxt,
     }else {
         ptr = vt_goto(buffer, TURNOUT_ROW + 5, TURNOUT_COL + ((pos-18)&3)*6);
     }
-        
+
     *(ptr++)  = turn_state;
     Puts(buffer, ptr-buffer);
 }
@@ -227,7 +226,7 @@ static void reset_train_state(mc_context* context) {
 
     for (int i = 0;; i++) {
         int pos = pos_to_train(i);
-        
+
         if(pos < 0) break;
         put_train_cmd(pos, 0);
     }
@@ -237,9 +236,9 @@ static void reset_train_state(mc_context* context) {
 static int mission_control_tid;
 
 void mission_control() {
-    mc_context context; 
+    mc_context context;
     memset(&context, 0, sizeof(context));
-    
+
     mission_control_tid = myTid();
 
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
@@ -247,7 +246,7 @@ void mission_control() {
 
     train_ui();
     reset_train_state(&context); // this MUST run before the following
-    
+
     tid = Create(15, sensor_poll);
     if (tid < 0) ABORT("Mission Control failed creating sensor poll (%d)", tid);
 
@@ -264,7 +263,7 @@ void mission_control() {
 	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
 				  result);
             break;
-        
+
         case TURNOUT_UPDATE:
             mc_update_turnout(&context,
                               req.payload.turnout.num,
@@ -286,4 +285,3 @@ int update_turnout(short num, short state) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-
