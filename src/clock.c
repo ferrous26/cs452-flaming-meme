@@ -1,13 +1,10 @@
 
+#include <clock.h>
 #include <irq.h>
 #include <ts7200.h>
-
 #include <debug.h>
 #include <kernel.h>
-#include <scheduler.h>
-#include <vt100.h>
 
-#include <clock.h>
 
 #define TIMER3_TICKS_PER_OS_TICK 5080
 

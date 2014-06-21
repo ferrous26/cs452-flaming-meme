@@ -1,9 +1,7 @@
+#include <tasks/name_server.h>
 #include <std.h>
 #include <debug.h>
 #include <vt100.h>
-#include <scheduler.h>
-
-#include <tasks/name_server.h>
 #include <syscall.h>
 
 /*

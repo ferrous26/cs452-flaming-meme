@@ -1,10 +1,6 @@
-
 #include <syscall.h>
-#include <scheduler.h>
 #include <debug.h>
-
 #include <train.h>
-
 #include <parse.h>
 
 #include <tasks/idle.h>

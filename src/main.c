@@ -6,7 +6,6 @@
 #include <debug.h>
 #include <vt100.h>
 #include <clock.h>
-#include <scheduler.h>
 #include <kernel.h>
 #include <irq.h>
 
@@ -151,7 +150,7 @@ int main(int argc, char** argv) {
     _init();
 
     scheduler_get_next();
-    scheduler_activate();
+    kernel_exit(task_active->sp);
 
     assert(false, "failed to launch first task");
 

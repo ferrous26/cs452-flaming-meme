@@ -7,11 +7,8 @@
 
 #include <io.h>
 #include <debug.h>
-#include <vt100.h>
-
 #include <ts7200.h>
-#include <scheduler.h>
-
+#include <kernel.h>
 #include <syscall.h>
 
 #define NOP(count) for (volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)

@@ -2,8 +2,6 @@
 #include <kernel.h>
 #include <io.h>
 #include <debug.h>
-#include <scheduler.h>
-#include <vt100.h>
 
 inline static int _syscall(volatile int code, volatile void* request) {
     register int r0 asm ("r0") = code;

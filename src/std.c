@@ -24,8 +24,17 @@ bool isdigit(const char c) {
 
 bool ishexdigit(const char c) {
     return isdigit( c )
-        || ( c >= 'a' && c <= 'f' ) 
+        || ( c >= 'a' && c <= 'f' )
         || ( c >= 'A' && c <= 'F' );
 }
 
+int log10(int c) {
+    int count = 0;
 
+    while (c) {
+	count++;
+	c /= 10;
+    }
+
+    return count;
+}

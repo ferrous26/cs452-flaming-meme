@@ -25,6 +25,7 @@ int  __attribute__ ((const)) abs(const int val);
 bool __attribute__ ((const)) isspace(const char c);
 bool __attribute__ ((const)) isdigit(const char c);
 bool __attribute__ ((const)) ishexdigit(const char c);
+int  __attribute__ ((const)) log10(int c); // naively calculate log base 10
 
 #include <limits.h>
 #include <memory.h>
@@ -37,5 +38,7 @@ bool __attribute__ ((const)) ishexdigit(const char c);
 static inline uint __attribute__ ((const)) mod2(uint top, uint mod) {
     return (top & (mod - 1));
 }
+
+
 
 #endif
