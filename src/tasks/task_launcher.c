@@ -64,10 +64,7 @@ static void action(command cmd, int args[]) {
     case NONE:
         break;
     case SPEED:
-        log("setting train %d to %d", args[0], args[1]);
-        put_train_cmd((char)args[0], (char)args[1]);
-	//Create(TASK_PRIORITY_MEDIUM_HIGH, echo_test);
-	//Exit(); // no more Terminal!
+        update_train_speed(args[0], args[1]);
         break;
     case GATE:
         update_turnout((short)args[0], (short)args[1]);

@@ -229,11 +229,10 @@ int put_train_cmd(char vctm, char cmd) {
         }
     };
 
-    log("setting %d to %d", req.payload.data[0], req.payload.data[1]);
     return Send(train_server_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int put_train_turnout(char cmd, char turn) {
+int put_train_turnout(char turn, char cmd) {
     train_req req = {
         .type = PUT,
         .payload = {

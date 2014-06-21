@@ -8,6 +8,7 @@
 void mission_control(void) __attribute__((noreturn));
 
 int  update_turnout(short num, short state);
+int  update_train_speed(int train, int speed);
 
 #endif
 
