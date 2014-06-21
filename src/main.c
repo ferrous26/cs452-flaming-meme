@@ -99,7 +99,7 @@ static inline void _init() {
     _enable_caches();
 
     clock_t4enable();
-    clock_enable();
+    clock_init();
 
     uart_init();
     vt_init();
@@ -117,6 +117,7 @@ void shutdown(void) {
     vt_deinit();
     _flush_caches();
 
+    clock_deinit();
     syscall_deinit();
     irq_deinit();
 
