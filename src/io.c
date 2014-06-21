@@ -129,7 +129,7 @@ void irq_uart2_recv() {
 
     volatile int*  const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
-    volatile int*  const intr = (int*) (UART2_BASE + UART_INTR_OFFSET);
+    volatile int*  const ctlr = (int*) (UART2_BASE + UART_CTLR_OFFSET);
 
     assert(!(*flag & RXFE_MASK), "UART2 Had An Empty Recv");
 
@@ -151,7 +151,7 @@ void irq_uart2_recv() {
 
         t->sp[0] = i;
         scheduler_schedule(t);
-        *intr &= ~RTIS_MASK;
+        *ctlr &= ~(RTIS_MASK); // | RIS_MASK);
 
         return;
     }

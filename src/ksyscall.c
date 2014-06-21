@@ -193,7 +193,7 @@ ksyscall_await(const kreq_event* const req) {
     }
     case UART2_RECV: {
         int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
-        *ctlr |= RTIEN_MASK;
+        *ctlr |= RTIEN_MASK | RIEN_MASK;
 
         int_queue[UART2_RECV] = task_active;
         break;

@@ -15,7 +15,7 @@ _init_vector_irq(const uint interrupt, const uint priority, voidf handle) {
 	   "Invalid vector priority on interrupt %d", interrupt);
 
     const uint base = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
-    const uint set  = (interrupt & VICCNTL_INT_MASK) | VICCNTL_ENABLE_MASK;
+    const uint set  = mod2(interrupt, 32) | VICCNTL_ENABLE_MASK;
 
     *(voidf*)(base + VICVECADDR_OFFSET + 4*priority) = handle;
     *(uint*) (base + VICVECCNTL_OFFSET + 4*priority) = set;
