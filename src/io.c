@@ -111,8 +111,8 @@ char uart2_bw_waitget() {
 }
 
 
-#ifdef DEBUG
-static void uart_rsr_check(int base) {
+#ifdef ASSERT
+static inline void uart_rsr_check(int base) {
     volatile int* const rsr = (int*)(base + UART_RSR_OFFSET);
     assert(!(*rsr & 0xf), "UART %p has had an error %p", base, *rsr);
 }
