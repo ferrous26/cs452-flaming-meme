@@ -20,14 +20,21 @@ typedef struct {
     short state;
 } turnout_state;
 
+typedef struct {
+    short num;
+    short speed;
+} train_speed;
+
 typedef enum {
+    SENSOR_UPDATE,
     TURNOUT_UPDATE,
-    SENSOR_UPDATE
+    TRAIN_SPEED_UPDATE
 } mc_type;
 
 typedef union {
     sensor_name   sensor;
     turnout_state turnout;
+    train_speed   train_speed;
 } mc_payload;
 
 typedef struct {
@@ -37,11 +44,11 @@ typedef struct {
 
 #define TRAIN_ROW           6
 #define TRAIN_COL           1
-#define TRAIN_SPEED_COL     (TRAIN_COLUMN + 7)
-#define TRAIN_DIRECTION_COL (TRAIN_SPEED_COLUMN + 7)
-#define TRAIN_LIGHT_COL     (TRAIN_DIRECTION_COLUMN + 6)
-#define TRAIN_HORN_COL      (TRAIN_LIGHT_COLUMN + 2)
-#define TRAIN_SFX_COL       (TRAIN_HORN_COLUMN + 2)
+#define TRAIN_SPEED_COL     (TRAIN_COL + 7)
+#define TRAIN_DIRECTION_COL (TRAIN_SPEED_COL + 7)
+#define TRAIN_LIGHT_COL     (TRAIN_DIRECTION_COL + 6)
+#define TRAIN_HORN_COL      (TRAIN_LIGHT_COL + 2)
+#define TRAIN_SFX_COL       (TRAIN_HORN_COL + 2)
 
 #define TURNOUT_ROW TRAIN_ROW
 #define TURNOUT_COL 36
@@ -69,15 +76,25 @@ static void train_ui() {
 }
 
 static int __attribute__((const, unused)) train_to_pos(const int train) {
-    if (train >= 43 && train <=51) {
-        return train - 43;
+    switch (train) {
+    case 43: return 0;
+    case 45: return 1;
+    }
+    
+    if (train >= 47 && train <=51) {
+        return train - 47 + 2;
     }
     return -1;
 }
 
 static int __attribute__((const, unused)) pos_to_train(const int pos) {
-    if (pos >= 0 && pos <=8) {
-        return pos + 43;
+    switch (pos) {
+    case 0: return 43;
+    case 1: return 45;
+    }
+
+    if (pos >= 2  && pos <= 6) {
+        return pos + 47 - 2;
     }
     return -1;
 }
@@ -133,14 +150,16 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     }
 }
 
+#define NUM_TURNOUTS     22
+#define NUM_TRAINS       7
 #define SENSOR_LIST_SIZE 9
-#define NUM_TURNOUTS 22
 
 typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
 
-    int turnouts[NUM_TURNOUTS];
+    int turnouts[NUM_TURNOUTS];    
+    int trains[NUM_TRAINS];
 } mc_context;
 
 inline static void mc_update_sensors(mc_context* const ctxt,
@@ -218,6 +237,23 @@ static void mc_update_turnout(mc_context* const ctxt,
     Puts(buffer, ptr-buffer);
 }
 
+static void mc_update_train_speed(mc_context* ctxt,
+                                  const int   tr_num,
+                                  int         tr_speed) {
+    int pos = train_to_pos(tr_num);
+    assert(pos >= 0, "invalid train number %d %d", tr_num, pos);
+    assert(tr_speed >= 0 || tr_speed <= 15, "invalid train speed %d", tr_speed);
+
+    ctxt->trains[pos] = (tr_speed & 0xf) | (ctxt->trains[pos] & 0x10);
+    put_train_cmd(tr_num, ctxt->trains[pos]);
+
+    char  buffer[64];
+    char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_SPEED_COL);
+    ptr = sprintf(ptr, "%d ", tr_speed);
+
+    Puts(buffer, ptr-buffer);
+}
+
 static void reset_train_state(mc_context* context) {
     // Kill any existing command so we're in a good state
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -235,11 +271,10 @@ static void reset_train_state(mc_context* context) {
     mc_update_turnout(context, 21, 'C');
     mc_update_turnout(context, 13, 'S');
 
-    for (int i = 0;; i++) {
-        int pos = pos_to_train(i);
-
-        if(pos < 0) break;
-        put_train_cmd(pos, 0);
+    mc_update_train_speed(context, 43, 0);
+    mc_update_train_speed(context, 45, 0);
+    for (int i = 47; i <=51; i++) {
+        mc_update_train_speed(context, i, 0);
     }
 }
 
@@ -279,16 +314,24 @@ void mission_control() {
             mc_update_turnout(&context,
                               req.payload.turnout.num,
                               req.payload.turnout.state);
-            Reply(tid, NULL, 0);
+            result = Reply(tid, NULL, 0);
+	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
+				  result);
+            break;
+        case TRAIN_SPEED_UPDATE:
+            mc_update_train_speed(&context,
+                                  req.payload.train_speed.num,
+                                  req.payload.train_speed.speed);
+            result = Reply(tid, NULL, 0);
+	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
+				  result);
             break;
         }
     }
 }
 
 int update_turnout(int num, int state) {
-
     int pos = turnout_to_pos(num);
-
     if (pos < 0) {
         log("Invalid Turnout Number %d", num);
         return 0;
@@ -301,7 +344,26 @@ int update_turnout(int num, int state) {
             .state = state
         }
     };
-
-
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
+
+int update_train_speed(int train, int speed) {
+    if(train_to_pos(train) < 0) {
+        log("invalid train number %d", train);
+        return 0;
+    }
+    if(speed < 0 || speed > 14) {
+        log("can't set train number %d to invalid speed %d", train, speed);
+        return 0;
+    }
+    
+    mc_req req = {
+        .type = TRAIN_SPEED_UPDATE,
+        .payload.train_speed = {
+            .num   = train,
+            .speed = speed   
+        }
+    };
+    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
