@@ -80,7 +80,7 @@ static int __attribute__((const, unused)) train_to_pos(const int train) {
     case 43: return 0;
     case 45: return 1;
     }
-    
+
     if (train >= 47 && train <=51) {
         return train - 47 + 2;
     }
@@ -158,7 +158,7 @@ typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
 
-    int turnouts[NUM_TURNOUTS];    
+    int turnouts[NUM_TURNOUTS];
     int trains[NUM_TRAINS];
 } mc_context;
 
@@ -270,12 +270,6 @@ static void reset_train_state(mc_context* context) {
     mc_update_turnout(context, 20, 'S');
     mc_update_turnout(context, 21, 'C');
     mc_update_turnout(context, 13, 'S');
-
-    mc_update_train_speed(context, 43, 0);
-    mc_update_train_speed(context, 45, 0);
-    for (int i = 47; i <=51; i++) {
-        mc_update_train_speed(context, i, 0);
-    }
 }
 
 
@@ -352,18 +346,17 @@ int update_train_speed(int train, int speed) {
         log("invalid train number %d", train);
         return 0;
     }
-    if(speed < 0 || speed > 14) {
+    if(speed < 0 || speed > TRAIN_REVERSE) {
         log("can't set train number %d to invalid speed %d", train, speed);
         return 0;
     }
-    
+
     mc_req req = {
         .type = TRAIN_SPEED_UPDATE,
         .payload.train_speed = {
             .num   = train,
-            .speed = speed   
+            .speed = speed
         }
     };
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-

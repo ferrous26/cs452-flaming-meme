@@ -14,6 +14,7 @@
 #include <tasks/train_server.h>
 #include <tasks/task_launcher.h>
 #include <tasks/mission_control.h>
+#include <tasks/train.h>
 
 
 #define SWI_HANDLER ((volatile uint*)0x08)
@@ -123,6 +124,7 @@ void kernel_init() {
     task_create(TASK_PRIORITY_MEDIUM,      term_server);
     task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
     task_create(TASK_PRIORITY_MEDIUM,      train_server);
+    task_create(TASK_PRIORITY_MEDIUM,      train_station);
 
     for (; i < TASK_MAX; i++) {
 	tasks[i].tid   = i;
