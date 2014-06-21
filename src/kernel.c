@@ -543,13 +543,11 @@ static char* _abort_pad(char* ptr, const int val) {
 }
 
 static char* _abort_tid_num(char* ptr, int tid) {
-#ifdef ASSERT
     char* name = kWhoTid(tid);
     if (name) {
 	char* new_ptr = sprintf_string(ptr, name);
 	return _abort_pad(new_ptr, new_ptr - ptr);
     }
-#endif
 
     ptr = sprintf_int(ptr, tid);
     return _abort_pad(ptr, log10(tid));

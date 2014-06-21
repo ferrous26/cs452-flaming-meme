@@ -36,9 +36,7 @@ typedef struct {
  * Static data
  */
 static int name_server_tid;
-#ifdef ASSERT
-static ns_context* _context;
-#endif
+static ns_context* ctxt;
 
 /*
  * look up functions
@@ -65,8 +63,7 @@ find_name(const int dir[NAME_MAX], const int tid, const int stored) {
     return -1;
 }
 
-static inline void register_tid(ns_context* ctxt,
-				const int tid,
+static inline void register_tid(const int tid,
 				const ns_payload* const data) {
     int reply = 0;
     int loc   = find_loc(ctxt->lookup.overlay,
@@ -89,7 +86,7 @@ static inline void register_tid(ns_context* ctxt,
 }
 
 static inline int __attribute__((const))
-lookup_tid(ns_context* ctxt, const ns_payload* const data) {
+lookup_tid(const ns_payload* const data) {
     int loc = find_loc(ctxt->lookup.overlay,
                        data->overlay,
                        ctxt->lookup_insert);
@@ -97,7 +94,7 @@ lookup_tid(ns_context* ctxt, const ns_payload* const data) {
 }
 
 static inline char* __attribute__((const))
-lookup_name(ns_context* const ctxt, const ns_payload* const data) {
+lookup_name(const ns_payload* const data) {
     int loc = find_name(ctxt->tasks, data->overlay[0], ctxt->lookup_insert);
     return loc < 0 ? NULL : ctxt->lookup.text[loc];
 }
@@ -105,18 +102,13 @@ lookup_name(ns_context* const ctxt, const ns_payload* const data) {
 void name_server() {
     int        tid;
     ns_req     buffer;
-    ns_context context;
-    memset(&context, 0, sizeof(context));
-
-    #ifdef ASSERT
-    _context = &context;
-    #endif
+    memset(&ctxt, 0, sizeof(ctxt));
 
     name_server_tid = myTid();
 
     memset((void*)&buffer, 0, sizeof(buffer));
     sprintf_string(buffer.payload.text, (char*)NAME_SERVER_NAME);
-    register_tid(&context, name_server_tid, &buffer.payload);
+    register_tid(name_server_tid, &buffer.payload);
 
     FOREVER {
         Receive(&tid, (char*)&buffer, sizeof(ns_req));
@@ -127,15 +119,15 @@ void name_server() {
 
         switch(buffer.type) {
         case REGISTER:
-            register_tid(&context, tid, &buffer.payload);
+            register_tid(tid, &buffer.payload);
             break;
         case LOOKUP: {
-            int result = lookup_tid(&context, &buffer.payload);
+            int result = lookup_tid(&buffer.payload);
             Reply(tid, (char*)&result, sizeof(result));
             break;
         }
         case REVERSE: {
-            char* result = lookup_name(&context, &buffer.payload);
+            char* result = lookup_name(&buffer.payload);
             Reply(tid, result, result == NULL ? 0 : NAME_MAX_SIZE*sizeof(char));
             break;
         }
@@ -160,9 +152,9 @@ int WhoIs(char* name) {
 
     if (result > OK) return status;
 
-    // maybe clock server died, so we can try again
     assert(result == INVALID_TASK || result == INCOMPLETE,
            "Name Server Has Died!");
+
     // else, error out
     return result;
 }
@@ -178,7 +170,7 @@ int WhoTid(int tid, char* name) {
                       name, NAME_MAX_SIZE);
 
     if (result == 0) {
-        memcpy((char*)"NO_ENTY", name, NAME_MAX_SIZE);
+        memcpy(name, (char*)"NO_ENTY", NAME_MAX_SIZE);
         return -63;
     }
 
@@ -186,6 +178,7 @@ int WhoTid(int tid, char* name) {
            "NameServer returned weird value %d", result);
     assert(result == INVALID_TASK || result == INCOMPLETE,
            "Name Server Has Died!");
+
     // else, error out
     return result;
 }
@@ -217,11 +210,8 @@ int RegisterAs(char* name) {
     return result;
 }
 
-#ifdef ASSERT
 char* kWhoTid(const int tid) {
     ns_req req;
     req.payload.overlay[0] = tid;
-
-    return lookup_name(_context, &req.payload);
+    return lookup_name(&req.payload);
 }
-#endif
