@@ -55,7 +55,7 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed  Dir.  Special     Turnouts/Gates/Switches     __Sensor__\n"
+"Train  Speed  Dir.  Special            Turnouts             __Sensor__\n"
 "---------------------------    +-----------------------+    |        | Newest\n"
 " 43                            | 1   | 2   | 3   | 4   |    |        |\n"
 " 45                            | 5   | 6   | 7   | 8   |    |        |\n"
@@ -153,8 +153,8 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     }
     memset(ctxt->insert, 0, sizeof(ctxt->insert));
 
-    char buffer[64];
-    for(int i =0; next->bank != 0; i++) {
+    char buffer[16];
+    for(int i = 0; next->bank != 0; i++) {
         char* output = next->num < 10 ? "%c 0%d": "%c %d";
         char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
 
