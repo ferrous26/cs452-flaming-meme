@@ -36,7 +36,7 @@ typedef struct {
  * Static data
  */
 static int name_server_tid;
-static ns_context* ctxt;
+static ns_context ctxt;
 
 /*
  * look up functions
@@ -66,20 +66,20 @@ find_name(const int dir[NAME_MAX], const int tid, const int stored) {
 static inline void register_tid(const int tid,
 				const ns_payload* const data) {
     int reply = 0;
-    int loc   = find_loc(ctxt->lookup.overlay,
+    int loc   = find_loc(ctxt.lookup.overlay,
                          data->overlay,
-                         ctxt->lookup_insert);
+                         ctxt.lookup_insert);
 
     if(loc < 0) {
-        if(ctxt->lookup_insert < NAME_MAX) {
-	    ctxt->lookup.overlay[ctxt->lookup_insert][0] = data->overlay[0];
-	    ctxt->lookup.overlay[ctxt->lookup_insert][1] = data->overlay[1];
-	    ctxt->tasks[ctxt->lookup_insert++] = tid;
+        if(ctxt.lookup_insert < NAME_MAX) {
+	    ctxt.lookup.overlay[ctxt.lookup_insert][0] = data->overlay[0];
+	    ctxt.lookup.overlay[ctxt.lookup_insert][1] = data->overlay[1];
+	    ctxt.tasks[ctxt.lookup_insert++] = tid;
 	} else {
             reply = -69;
 	}
     } else {
-        ctxt->tasks[loc] = tid;
+        ctxt.tasks[loc] = tid;
     }
 
     Reply(tid, (char*)&reply, sizeof(reply));
@@ -87,16 +87,16 @@ static inline void register_tid(const int tid,
 
 static inline int __attribute__((const))
 lookup_tid(const ns_payload* const data) {
-    int loc = find_loc(ctxt->lookup.overlay,
+    int loc = find_loc(ctxt.lookup.overlay,
                        data->overlay,
-                       ctxt->lookup_insert);
-    return loc < 0 ? -69 : ctxt->tasks[loc];
+                       ctxt.lookup_insert);
+    return loc < 0 ? -69 : ctxt.tasks[loc];
 }
 
 static inline char* __attribute__((const))
 lookup_name(const ns_payload* const data) {
-    int loc = find_name(ctxt->tasks, data->overlay[0], ctxt->lookup_insert);
-    return loc < 0 ? NULL : ctxt->lookup.text[loc];
+    int loc = find_name(ctxt.tasks, data->overlay[0], ctxt.lookup_insert);
+    return loc < 0 ? NULL : ctxt.lookup.text[loc];
 }
 
 void name_server() {
