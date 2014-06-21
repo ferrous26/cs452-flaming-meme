@@ -5,7 +5,9 @@
 #include <kernel.h>
 #include <ts7200.h>
 
-void clock_enable(void);
+void clock_init(void);
+void clock_deinit(void);
+
 void clock_t4enable(void);
 
 uint __attribute__ ((pure)) clock_t4tick(void);

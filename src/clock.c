@@ -19,7 +19,9 @@ uint clock_t4tick(void) {
     return *(uint*)(TIMER4_BASE | TIMER4_VALUE);
 }
 
-void clock_enable(void) {
+void clock_init() {
+    clock_deinit();
+
     *(uint*)(TIMER3_BASE | LDR_OFFSET) = TIMER3_TICKS_PER_OS_TICK;
 
     const uint ctrl = ENABLE_MASK | MODE_MASK | CLKSEL_MASK;
@@ -27,6 +29,11 @@ void clock_enable(void) {
 
     const uint clear_addr = TIMER3_BASE | CLR_OFFSET;
     *(uint*)clear_addr = clear_addr;
+}
+
+void clock_deinit() {
+    const uint ctrl = ~ENABLE_MASK & ~MODE_MASK & CLKSEL_MASK;
+    *(uint*)(TIMER3_BASE | CRTL_OFFSET) = ctrl;
 }
 
 void irq_clock() {
