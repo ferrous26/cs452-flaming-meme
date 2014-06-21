@@ -386,7 +386,7 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
     assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
 #endif
 
-    assert(code >= SYS_IRQ && code < SYS_COUNT,
+    assert(code < SYS_COUNT,
 	   "Invalid syscall (%d) by %d", code, task_active->tid);
 
     // save it, save it real good
