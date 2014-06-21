@@ -61,7 +61,6 @@ static void echo_test() {
 
     FOREVER {
 	char c = (char)Getc(TERMINAL);
-	if (c == '`') break;
 	Putc(TERMINAL, c);
     }
 }
@@ -154,4 +153,3 @@ void task_launcher() {
         action(parse_command(line, args), args);
     }
 }
-
