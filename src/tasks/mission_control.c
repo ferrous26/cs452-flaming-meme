@@ -226,13 +226,14 @@ static void reset_train_state(mc_context* context) {
     // Want to make sure the contoller is on
     Putc(TRAIN, TRAIN_ALL_START);
 
-    for (int i = 0; i < 19; i++) {
+    for (int i = 0; i < 18; i++) {
         mc_update_turnout(context, i, 'C');
     }
-    mc_update_turnout(context, 19, 'S');
-    mc_update_turnout(context, 20, 'C');
-    mc_update_turnout(context, 21, 'S');
-    mc_update_turnout(context, 22, 'C');
+    mc_update_turnout(context, 18, 'S');
+    mc_update_turnout(context, 19, 'C');
+    mc_update_turnout(context, 20, 'S');
+    mc_update_turnout(context, 21, 'C');
+    mc_update_turnout(context, 13, 'S');
 
     for (int i = 0;; i++) {
         int pos = pos_to_train(i);
