@@ -277,16 +277,6 @@ char* vt_scroll_down(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "1T");
 }
 
-char* vt_colour_reset(char* buffer) {
-    return sprintf_string(buffer, ESC_CODE "0m");
-}
-
-char* vt_colour(char* buffer, const colour c) {
-    buffer = sprintf_string(buffer, ESC_CODE "3");
-    buffer = sprintf_char(buffer, '0' + c);
-    return sprintf_char(buffer, 'm');
-}
-
 char* vt_save_cursor(char* buffer) {
     return sprintf_string(buffer, ESC "7");
 }

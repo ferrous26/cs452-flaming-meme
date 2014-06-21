@@ -174,17 +174,31 @@ static void mc_update_turnout(mc_context* const ctxt,
                               int               turn_state) {
     int state;
     const int pos = turnout_to_pos(turn_num);
-    if (pos < 0) {
-        log("Invalid Turnout Number %d", turn_num);
-        return;
+    assert(pos >= 0, "Bad turnout number (%d)", pos);
+
+    char buffer[64];
+    char* ptr;
+    if (pos < 18) {
+        ptr = vt_goto(buffer, TURNOUT_ROW + (pos>>2), TURNOUT_COL + (pos&3)*6);
+    } else {
+        ptr = vt_goto(buffer, TURNOUT_ROW + 5, TURNOUT_COL + ((pos-18)&3)*6);
     }
+
     switch(turn_state) {
-    case 'c': turn_state = 'C';
-    case 'C': state      = TURNOUT_CURVED;
-              break;
-    case 's': turn_state = 'S';
-    case 'S': state = TURNOUT_STRAIGHT;
-              break;
+    case 'c':
+	turn_state = 'C';
+	// fall through
+    case 'C':
+	state = TURNOUT_CURVED;
+	ptr   = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
+	break;
+    case 's':
+	turn_state = 'S';
+	// fall through
+    case 'S':
+	state = TURNOUT_STRAIGHT;
+	ptr   = sprintf_string(ptr, COLOUR(CYAN) "S" COLOUR_RESET);
+	break;
     default:
         log("Invalid Turnout State %c", turn_state);
         return;
@@ -196,15 +210,6 @@ static void mc_update_turnout(mc_context* const ctxt,
     assert(result == 0, "Failed setting turnout %d to %c", turn_num, turn_state);
     UNUSED(result);
 
-    char buffer[64];
-    char* ptr;
-    if( pos < 18 ) {
-        ptr = vt_goto(buffer, TURNOUT_ROW + (pos>>2), TURNOUT_COL + (pos&3)*6);
-    }else {
-        ptr = vt_goto(buffer, TURNOUT_ROW + 5, TURNOUT_COL + ((pos-18)&3)*6);
-    }
-
-    *(ptr++)  = turn_state;
     Puts(buffer, ptr-buffer);
 }
 
@@ -274,7 +279,7 @@ void mission_control() {
     }
 }
 
-int update_turnout(short num, short state) {
+int update_turnout(int num, int state) {
     mc_req req = {
         .type = TURNOUT_UPDATE,
         .payload.turnout = {
@@ -282,6 +287,11 @@ int update_turnout(short num, short state) {
             .state = state
         }
     };
+
+    if (turnout_to_pos(num) < 0) {
+        log("Invalid Turnout Number %d", num);
+        return 0;
+    }
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
