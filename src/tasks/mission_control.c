@@ -255,10 +255,13 @@ void mission_control() {
     context.insert = context.recent_sensors;
 
     FOREVER {
-        Receive(&tid, (char*)&req, sizeof(req));
+        int result = Receive(&tid, (char*)&req, sizeof(req));
 
         switch (req.type) {
         case SENSOR_UPDATE:
+            result = Reply(tid, NULL, 0);
+	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
+				  result);
             mc_update_sensors(&context, &req.payload.sensor);
             Reply(tid, NULL, 0);
             break;
