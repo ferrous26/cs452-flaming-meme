@@ -102,6 +102,8 @@ static inline void _init() {
     vt_init();
     kernel_init();
     irq_init();
+
+    scheduler_first_run(); // go go go
 }
 
 void shutdown(void) {
@@ -147,9 +149,6 @@ int main(int argc, char** argv) {
 #endif
 
     _init();
-
-    scheduler_get_next();
-    kernel_exit(task_active->sp);
 
     assert(false, "failed to launch first task");
 

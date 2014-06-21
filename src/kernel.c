@@ -85,9 +85,10 @@ static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
 /**
  * @return tid of new task, or an error code as defined by CreateTask()
  */
-static int  task_create(const task_pri pri, void (*const start)(void)) TEXT_HOT;
-static void task_destroy(void) TEXT_HOT;
-
+inline static int  task_create(const task_pri pri,
+			       void (*const start)(void)) TEXT_HOT;
+inline static void task_destroy(void) TEXT_HOT;
+inline static void scheduler_get_next(void) TEXT_HOT;
 
 
 void kernel_init() {
@@ -441,6 +442,10 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 		  : "r0");
 }
 
+void scheduler_first_run() {
+    scheduler_get_next();
+    kernel_exit(task_active->sp);
+}
 
 void scheduler_schedule(task* const t) {
     task_q* const q = &manager.q[t->priority];
@@ -467,7 +472,7 @@ void scheduler_schedule(task* const t) {
 }
 
 // scheduler_consume
-void scheduler_get_next(void) {
+inline static void scheduler_get_next() {
     // find the msb and add it
     uint32 priority = choose_priority(manager.state);
     assert(priority != 32, "Ran out of tasks to run");
@@ -482,7 +487,9 @@ void scheduler_get_next(void) {
 	manager.state ^= (1 << priority);
 }
 
-static int task_create(const task_pri pri, void (*const start)(void)) {
+inline static int task_create(const task_pri pri,
+			      void (*const start)(void)) {
+
     // double check that priority was checked in user land
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
@@ -508,7 +515,7 @@ static int task_create(const task_pri pri, void (*const start)(void)) {
     return tsk->tid;
 }
 
-static void task_destroy() {
+inline static void task_destroy() {
     // TODO: handle overflow (trololol)
     task_active->tid += TASK_MAX;
     task_active->sp   = NULL;
@@ -524,6 +531,7 @@ static void task_destroy() {
     // put the task back into the allocation pool
     cbuf_produce(&free_list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
+
 
 static char* _abort_pad(char* ptr, const int val) {
     int count = 12 - val;

@@ -97,7 +97,7 @@ typedef struct task_descriptor {
 extern task*  task_active;
 extern task*  int_queue[EVENT_COUNT];
 
-void scheduler_get_next(void) TEXT_HOT;
+void scheduler_first_run(void);
 void scheduler_schedule(task* const t) TEXT_HOT;
 
 #endif
