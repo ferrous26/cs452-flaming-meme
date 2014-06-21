@@ -84,7 +84,7 @@ static int __attribute__((const, unused)) pos_to_train(const int pos) {
 
 static int __attribute__((const, unused)) turnout_to_pos(const int turnout) {
     if (turnout <  1)   return -1;
-    if (turnout <= 18)  return turnout - 1;
+    if (turnout <= 22)  return turnout - 1;
     if (turnout <  153) return -1;
     if (turnout <= 156) return turnout - (153-18);
     return -1;
@@ -172,17 +172,22 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 static void mc_update_turnout(mc_context* const ctxt,
                               const int         turn_num,
                               int               turn_state) {
-    int state;
-    const int pos = turnout_to_pos(turn_num);
-    assert(pos >= 0, "Bad turnout number (%d)", pos);
 
-    char buffer[64];
+    assert(turn_num >= 0, "Bad turnout number (%d)", turn_num);
+
+    int state;
+    char buffer[32];
     char* ptr;
-    if (pos < 18) {
-        ptr = vt_goto(buffer, TURNOUT_ROW + (pos>>2), TURNOUT_COL + (pos&3)*6);
-    } else {
-        ptr = vt_goto(buffer, TURNOUT_ROW + 5, TURNOUT_COL + ((pos-18)&3)*6);
-    }
+
+    if (turn_num < 18)
+        ptr = vt_goto(buffer,
+		      TURNOUT_ROW + (turn_num>>2),
+		      TURNOUT_COL + (mod2(turn_num, 4) * 6));
+    else
+        ptr = vt_goto(buffer,
+		      TURNOUT_ROW + 5,
+		      TURNOUT_COL + (mod2(turn_num - 18, 4) * 6));
+
 
     switch(turn_state) {
     case 'c':
@@ -204,9 +209,9 @@ static void mc_update_turnout(mc_context* const ctxt,
         return;
     }
 
-    ctxt->turnouts[pos] = turn_state;
+    ctxt->turnouts[turn_num] = turn_state;
 
-    int result = put_train_turnout(state, turn_num);
+    int result = put_train_turnout(state, pos_to_turnout(turn_num));
     assert(result == 0, "Failed setting turnout %d to %c", turn_num, turn_state);
     UNUSED(result);
 
@@ -221,13 +226,13 @@ static void reset_train_state(mc_context* context) {
     // Want to make sure the contoller is on
     Putc(TRAIN, TRAIN_ALL_START);
 
-    for (int i = 1; i < 19; i++) {
+    for (int i = 0; i < 19; i++) {
         mc_update_turnout(context, i, 'C');
     }
-    mc_update_turnout(context, 153, 'S');
-    mc_update_turnout(context, 154, 'C');
-    mc_update_turnout(context, 155, 'S');
-    mc_update_turnout(context, 156, 'C');
+    mc_update_turnout(context, 19, 'S');
+    mc_update_turnout(context, 20, 'C');
+    mc_update_turnout(context, 21, 'S');
+    mc_update_turnout(context, 22, 'C');
 
     for (int i = 0;; i++) {
         int pos = pos_to_train(i);
@@ -280,18 +285,22 @@ void mission_control() {
 }
 
 int update_turnout(int num, int state) {
+
+    int pos = turnout_to_pos(num);
+
+    if (pos < 0) {
+        log("Invalid Turnout Number %d", num);
+        return 0;
+    }
+
     mc_req req = {
         .type = TURNOUT_UPDATE,
         .payload.turnout = {
-            .num   = num,
+            .num   = pos,
             .state = state
         }
     };
 
-    if (turnout_to_pos(num) < 0) {
-        log("Invalid Turnout Number %d", num);
-        return 0;
-    }
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
