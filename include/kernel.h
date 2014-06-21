@@ -27,7 +27,8 @@ enum int_num {
     SYS_CHANGE,
     SYS_AWAIT,
     SYS_SHUTDOWN,
-    SYS_ABORT
+    SYS_ABORT,
+    SYS_COUNT
 };
 
 typedef struct {

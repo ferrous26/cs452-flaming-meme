@@ -14,10 +14,10 @@
 #define NOP(count) for (volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
 
 // ASCII byte that tells VT100 to stop transmitting
-#define XOFF  17
+// #define XOFF  17
 
 // ASCII byte that tells VT100 to start transmitting (only send after XOFF)
-#define XON   19
+// #define XON   19
 
 inline static void uart_setoptions(const uint base,
 				   const int speed,
