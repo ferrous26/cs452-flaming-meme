@@ -62,21 +62,21 @@ static void train_ui() {
     if (result != 0) ABORT("Failed to init train state UI");
 }
 
-int __attribute__((const)) train_to_pos(const int train) {
+static int __attribute__((const)) train_to_pos(const int train) {
     if (train >= 43 && train <=51) {
         return train - 43;
-    } 
+    }
     return -1;
 }
 
-int __attribute__((const)) pos_to_train(const int pos) {
+static int __attribute__((const)) pos_to_train(const int pos) {
     if (pos >= 0 && pos <=8) {
         return pos + 43;
     }
     return -1;
 }
 
-int __attribute__((const)) turnout_to_pos(const int turnout) {
+static int __attribute__((const)) turnout_to_pos(const int turnout) {
     if (turnout <  1)   return -1;
     if (turnout <= 18)  return turnout - 1;
     if (turnout <  153) return -1;
@@ -84,7 +84,7 @@ int __attribute__((const)) turnout_to_pos(const int turnout) {
     return -1;
 }
 
-int __attribute__((const)) pos_to_turnout(const int pos) {
+static int __attribute__((const)) pos_to_turnout(const int pos) {
     if (pos < 0)  return -1;
     if (pos < 18) return pos + 1;
     if (pos < 22) return pos + (153-18);
@@ -142,7 +142,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     if(ctxt->insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
         ctxt->insert = ctxt->recent_sensors;
     }
-    memset(ctxt->insert, 0, sizeof(ctxt->insert)); 
+    memset(ctxt->insert, 0, sizeof(ctxt->insert));
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
@@ -169,7 +169,7 @@ static void reset_train_state() {
     // Kill any existing command so we're in a good state
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_STOP);
-    
+
     // Want to make sure the contoller is on
     Putc(TRAIN, TRAIN_ALL_START);
 
@@ -193,7 +193,7 @@ void mission_control() {
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
     reset_train_state(); // this MUST run before the following
-    
+
     tid = Create(TASK_PRIORITY_MEDIUM_LO, train_ui);
     assert(tid > 0, "Mission Control failed creating train UI (%d)", tid);
 
@@ -201,7 +201,7 @@ void mission_control() {
     assert(tid >  0, "Mission Control failed creating sensor poll (%d)", tid);
 
     mc_req     req;
-    mc_context context; 
+    mc_context context;
     memset(&context, 0, sizeof(context));
     context.insert = context.recent_sensors;
 

@@ -6,8 +6,6 @@
 #include <debug.h>
 #include <vt100.h>
 #include <clock.h>
-#include <syscall.h>
-#include <memory.h>
 #include <scheduler.h>
 #include <kernel.h>
 #include <irq.h>
@@ -104,7 +102,7 @@ static inline void _init() {
     uart_init();
     vt_init();
     scheduler_init();
-    syscall_init();
+    ksyscall_init();
     irq_init();
 }
 
@@ -118,7 +116,7 @@ void shutdown(void) {
     _flush_caches();
 
     clock_deinit();
-    syscall_deinit();
+    ksyscall_deinit();
     irq_deinit();
 
     asm volatile ("mov  sp, %0\n"

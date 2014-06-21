@@ -12,6 +12,13 @@
 #include <tasks/mission_control.h>
 
 
+#define SAVED_REGISTERS 13
+#define TRAP_FRAME_SIZE (SAVED_REGISTERS * WORD_SIZE)
+
+#define START_ADDRESS(fn) ((int)fn)
+#define EXIT_ADDRESS      START_ADDRESS(Exit)
+#define DEFAULT_SPSR      0x50  //no fiq
+
 // force grouping by putting them into a struct
 CHAR_BUFFER(TASK_MAX)
 

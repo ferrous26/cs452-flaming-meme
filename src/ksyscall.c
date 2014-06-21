@@ -1,18 +1,19 @@
 #include <debug.h>
-#include <syscall.h>
-#include <memory.h>
 #include <kernel.h>
+#include <syscall.h>
 #include <io.h>
 #include <vt100.h>
 #include <irq.h>
 #include <ts7200.h>
 #include <scheduler.h>
 
-void syscall_init() {
+#define SWI_HANDLER ((volatile uint*)0x08)
+
+void ksyscall_init() {
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 }
 
-void syscall_deinit() {
+void ksyscall_deinit() {
     *SWI_HANDLER = 0xE59FF018;
 }
 
@@ -44,8 +45,9 @@ inline static void ksyscall_priority(int* const result) {
     ksyscall_pass();
 }
 
-inline static void ksyscall_change_priority(const int32 new_priority) {
-    task_active->priority = new_priority;
+inline static void ksyscall_change_priority(const int32 priority,
+					    int* const result) {
+    *result = task_active->priority = priority;
     ksyscall_pass();
 }
 
@@ -234,9 +236,7 @@ inline static void ksyscall_irq() {
     voidf handler = (voidf)VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
     handler();
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*)handler;
-
     ksyscall_pass();
-
 }
 
 #ifdef DEBUG
@@ -298,7 +298,7 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 	ksyscall_reply((const kreq_reply* const)req, sp);
 	break;
     case SYS_CHANGE:
-	ksyscall_change_priority((int)req);
+	ksyscall_change_priority((int)req, sp);
 	break;
     case SYS_AWAIT:
 	ksyscall_await((const kreq_event* const)req);

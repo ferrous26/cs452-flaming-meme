@@ -1,12 +1,9 @@
+#include <syscall.h>
+#include <kernel.h>
 #include <io.h>
 #include <debug.h>
-#include <limits.h>
 #include <scheduler.h>
 #include <vt100.h>
-#include <tasks/name_server.h>
-#include <tasks/clock_server.h>
-
-#include <syscall.h>
 
 inline static int _syscall(volatile int code, volatile void* request) {
     register int r0 asm ("r0") = code;
@@ -53,8 +50,8 @@ int myPriority() {
     return _syscall(SYS_PRIORITY, NULL);
 }
 
-void ChangePriority(int new_priority) {
-    _syscall(SYS_CHANGE, (volatile void*)new_priority);
+int ChangePriority(int priority) {
+    return _syscall(SYS_CHANGE, (volatile void*)priority);
 }
 
 void Pass() {
