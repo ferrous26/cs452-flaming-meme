@@ -53,7 +53,7 @@ inline static void uart_setoptions(const uint base,
 
 inline static void uart_initirq(const uint base) {
     int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
-    *ctlr = RIEN_MASK | RTIEN_MASK | UARTEN_MASK | MSIEN_MASK;
+    *ctlr = UARTEN_MASK | MSIEN_MASK;
 }
 
 inline static void uart_drain(const uint base) {
@@ -70,8 +70,13 @@ void uart_init() {
 
     uart_initirq(UART1_BASE);
     uart_initirq(UART2_BASE);
+
+    // also enable the receive interrupts for UART1
+    int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
+    *ctlr |= RTIEN_MASK | RIEN_MASK;
+
     NOP(55);
-    
+
     // want to clear the error registers since otehr people might
     // have set them off
     volatile int* volatile rsr1 = (int*)(UART1_BASE + UART_RSR_OFFSET);
@@ -151,7 +156,7 @@ void irq_uart2_recv() {
 
         t->sp[0] = i;
         scheduler_schedule(t);
-        *ctlr &= ~(RTIS_MASK); // | RIS_MASK);
+        *ctlr &= ~(RTIS_MASK | RIS_MASK);
 
         return;
     }
