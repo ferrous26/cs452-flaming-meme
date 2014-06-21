@@ -25,10 +25,29 @@
 #define EXIT_ADDRESS      START_ADDRESS(Exit)
 #define DEFAULT_SPSR      0x50  //no fiq
 
+#define TASK_HEAP_TOP 0x1F00000 // 31 MB
+#define TASK_HEAP_BOT 0x0300000 //  3 MB
+#define TASK_HEAP_SIZ 0x40000   // 64 pages * 4096 bytes per page
+
 #ifdef DEBUG
 extern const int _TextStart;
 extern const int _TextEnd;
 #endif
+
+typedef struct task_q_pointers {
+    task* head;
+    task* tail;
+} task_q;
+
+static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
+    return mod2((uint32)tid, TASK_MAX);
+}
+
+/**
+ * @return tid of new task, or an error code as defined by CreateTask()
+ */
+static int  task_create(const task_pri pri, void (*const start)(void)) TEXT_HOT;
+static void task_destroy(void) TEXT_HOT;
 
 CHAR_BUFFER(TASK_MAX)
 static char_buffer free_list DATA_HOT;
@@ -38,12 +57,13 @@ static struct task_manager {
     task_q q[TASK_PRIORITY_LEVELS];
 } manager DATA_HOT;
 
-task_q recv_q[TASK_MAX] DATA_HOT;
+
 task*  task_active DATA_HOT;
 task*  int_queue[EVENT_COUNT] DATA_HOT;
-struct task_descriptor tasks[TASK_MAX] DATA_HOT;
 
-static uint8 table[256] DATA_HOT;
+static task   tasks[TASK_MAX] DATA_HOT;
+static task_q recv_q[TASK_MAX] DATA_HOT;
+static uint8  table[256] DATA_HOT;
 
 
 void ksyscall_init() {
@@ -459,7 +479,7 @@ void scheduler_get_next(void) {
 	manager.state ^= (1 << priority);
 }
 
-int task_create(const task_pri pri, void (*const start)(void)) {
+static int task_create(const task_pri pri, void (*const start)(void)) {
     // double check that priority was checked in user land
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
@@ -485,7 +505,7 @@ int task_create(const task_pri pri, void (*const start)(void)) {
     return tsk->tid;
 }
 
-void task_destroy() {
+static void task_destroy() {
     // TODO: handle overflow (trololol)
     task_active->tid += TASK_MAX;
     task_active->sp   = NULL;
