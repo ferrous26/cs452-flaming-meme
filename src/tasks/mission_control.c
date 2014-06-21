@@ -271,6 +271,7 @@ static void reset_train_state(mc_context* context) {
     mc_update_turnout(context, 21, 'C');
     mc_update_turnout(context, 13, 'S');
 
+    mc_update_train_speed(context, 43, 0);
     mc_update_train_speed(context, 45, 0);
     for (int i = 47; i <=51; i++) {
         mc_update_train_speed(context, i, 0);
@@ -330,9 +331,7 @@ void mission_control() {
 }
 
 int update_turnout(int num, int state) {
-
     int pos = turnout_to_pos(num);
-
     if (pos < 0) {
         log("Invalid Turnout Number %d", num);
         return 0;
@@ -345,8 +344,6 @@ int update_turnout(int num, int state) {
             .state = state
         }
     };
-
-
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
