@@ -68,12 +68,13 @@ typedef struct {
 } kreq_abort;
 
 
-void scheduler_init(void);
-void ksyscall_init(void);
-void ksyscall_deinit(void);
+void kernel_init(void);
+void kernel_deinit(void);
 
+void hwi_enter(void);                             /* found in context.asm */
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
 void kernel_exit(int* sp);                        /* found in context.asm */
+
 void syscall_handle(const uint code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 
@@ -96,7 +97,7 @@ typedef struct task_descriptor {
 extern task*  task_active;
 extern task*  int_queue[EVENT_COUNT];
 
-void scheduler_get_next(void) TEXT_HOT;
+void scheduler_first_run(void);
 void scheduler_schedule(task* const t) TEXT_HOT;
 
 #endif

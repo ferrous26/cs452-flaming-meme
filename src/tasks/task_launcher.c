@@ -99,8 +99,7 @@ void task_launcher() {
         ptr = vt_goto(ptr, TERM_ROW, 1);
         ptr = sprintf_string(ptr, line_mark);
 	ptr = vt_kill_line(ptr);
-        int result = Puts(buffer, ptr - buffer);
-	if (result != 0) ABORT("Failed to write prompt (%d)", result);
+        Puts(buffer, ptr - buffer);
 
         char c = 0;
         insert = 0;

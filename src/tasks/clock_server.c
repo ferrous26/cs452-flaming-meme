@@ -71,12 +71,10 @@ static void __attribute__ ((noreturn)) clock_ui() {
 
     char buffer[64];
     char* ptr   = buffer;
-    int result  = 0;
 
     ptr    = vt_goto(buffer, CLOCK_ROW, 1);
     ptr    = sprintf_string(ptr, "CLOCK 00:00.0");
-    result = Puts(buffer, ptr - buffer);
-    CLOCK_ASSERT(result == 0, result);
+    Puts(buffer, ptr - buffer);
 
     int minutes = 0;
     int seconds = 0;
@@ -100,6 +98,8 @@ static void __attribute__ ((noreturn)) clock_ui() {
 		seconds = seconds % 60;
 		minutes = minutes % 100;
 
+		if (minutes >= 100) Exit(); // avoid killing UI
+
 		ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_MINUTES);
 		ptr    = sprintf(ptr, "%c%c:%c%c.%c",
 				 '0' + (minutes / 10),
@@ -107,24 +107,20 @@ static void __attribute__ ((noreturn)) clock_ui() {
 				 '0' + (seconds / 10),
 				 '0' + (seconds % 10),
 				 '0' + tenths);
-		result = Puts(buffer, ptr - buffer);
-		CLOCK_ASSERT(result == 0, result);
-
+		Puts(buffer, ptr - buffer);
 	    }
 	    else { // need to update seconds and tenths
 		ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_SECONDS);
 		ptr    = sprintf(ptr, "%c%c.0",
 				 '0' + (seconds / 10),
 				 '0' + (seconds % 10));
-		result = Puts(buffer, ptr - buffer);
-		CLOCK_ASSERT(result == 0, result);
+		Puts(buffer, ptr - buffer);
 	    }
 	}
 	else { // only need to update deciseconds
 	    ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_TENTHS);
 	    ptr    = sprintf_char(ptr, '0' + (char)tenths);
-	    result = Puts(buffer, ptr - buffer);
-	    CLOCK_ASSERT(result == 0, result);
+	    Puts(buffer, ptr - buffer);
 	}
     }
 }

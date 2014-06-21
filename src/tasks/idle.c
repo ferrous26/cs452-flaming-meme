@@ -39,12 +39,11 @@ static void __attribute__ ((noreturn)) idle_ui() {
     char*  ptr = buffer;
 
     int result = RegisterAs((char*)IDLE_UI_NAME);
-    assert(result == 0, "Idle UI Has Failed to Load (%d)", result);
+    if (result != 0) ABORT("Idle UI Has Failed to Load (%d)", result);
 
     ptr = vt_goto(buffer, IDLE_ROW, 1);
     ptr = sprintf_string(ptr, "IDLE  00");
-    result = Puts(buffer, ptr - buffer);
-    IDLE_ASSERT;
+    Puts(buffer, ptr - buffer);
 
     int time = 0;
 
@@ -67,8 +66,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
 		      '0' + (idle_time / 10),
                       '0' + (idle_time % 10),
 		      (twirl = twirler(twirl)));
-        result = Puts(buffer, ptr - buffer);
-        IDLE_ASSERT;
+        Puts(buffer, ptr - buffer);
     }
 }
 

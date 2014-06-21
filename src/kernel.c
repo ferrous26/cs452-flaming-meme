@@ -39,15 +39,7 @@ typedef struct task_q_pointers {
     task* tail;
 } task_q;
 
-static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
-    return mod2((uint32)tid, TASK_MAX);
-}
 
-/**
- * @return tid of new task, or an error code as defined by CreateTask()
- */
-static int  task_create(const task_pri pri, void (*const start)(void)) TEXT_HOT;
-static void task_destroy(void) TEXT_HOT;
 
 CHAR_BUFFER(TASK_MAX)
 static char_buffer free_list DATA_HOT;
@@ -66,11 +58,81 @@ static task_q recv_q[TASK_MAX] DATA_HOT;
 static uint8  table[256] DATA_HOT;
 
 
-void ksyscall_init() {
+
+static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
+    return mod2((uint32)tid, TASK_MAX);
+}
+
+// This algorithm is borrowed from
+// http://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogLookup
+static inline uint32 __attribute__ ((pure)) choose_priority(const uint32 v) {
+    uint32 result;
+    uint  t;
+    uint  tt;
+
+    if ((tt = v >> 16))
+	result = (t = tt >> 8) ? 24 + table[t] : 16 + table[tt];
+    else
+	result = (t = v >> 8) ? 8 + table[t] : table[v];
+
+    return result;
+}
+
+static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
+    return (int*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
+}
+
+/**
+ * @return tid of new task, or an error code as defined by CreateTask()
+ */
+inline static int  task_create(const task_pri pri,
+			       void (*const start)(void)) TEXT_HOT;
+inline static void task_destroy(void) TEXT_HOT;
+inline static void scheduler_get_next(void) TEXT_HOT;
+
+
+void kernel_init() {
+    int i;
+
+    // initialize the lookup table for lg()
+    table[0] = table[1] = 0;
+    for (i = 2; i < 256; i++)
+	table[i] = 1 + table[i >> 1];
+    table[0] = 32; // if you want log(0) to return -1, change to -1
+
+    memset(&manager,  0, sizeof(manager));
+    memset(&recv_q,   0, sizeof(recv_q));
+    memset(&tasks,    0, sizeof(tasks));
+    memset(int_queue, 0, sizeof(int_queue));
+
+    cbuf_init(&free_list);
+
+    for (i = 0; i < 16; i++) {
+	tasks[i].tid   = i;
+	tasks[i].p_tid = -1;
+	cbuf_produce(&free_list, (char)i);
+    }
+
+    // get the party started
+    task_active = &tasks[0];
+    task_create(TASK_PRIORITY_IDLE + 1,    task_launcher);
+    task_create(TASK_PRIORITY_IDLE,        idle);
+    task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
+    task_create(TASK_PRIORITY_MEDIUM_HIGH, clock_server);
+    task_create(TASK_PRIORITY_MEDIUM,      term_server);
+    task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
+    task_create(TASK_PRIORITY_MEDIUM,      train_server);
+
+    for (; i < TASK_MAX; i++) {
+	tasks[i].tid   = i;
+	tasks[i].p_tid = -1;
+	cbuf_produce(&free_list, (char)i);
+    }
+
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 }
 
-void ksyscall_deinit() {
+void kernel_deinit() {
     *SWI_HANDLER = 0xE59FF018;
 }
 
@@ -380,63 +442,9 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 		  : "r0");
 }
 
-
-// This algorithm is borrowed from
-// http://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogLookup
-static inline uint32 __attribute__ ((pure)) choose_priority(const uint32 v) {
-    uint32 result;
-    uint  t;
-    uint  tt;
-
-    if ((tt = v >> 16))
-	result = (t = tt >> 8) ? 24 + table[t] : 16 + table[tt];
-    else
-	result = (t = v >> 8) ? 8 + table[t] : table[v];
-
-    return result;
-}
-
-static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
-    return (int*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
-}
-
-void scheduler_init() {
-    int i;
-
-    // initialize the lookup table for lg()
-    table[0] = table[1] = 0;
-    for (i = 2; i < 256; i++)
-	table[i] = 1 + table[i >> 1];
-    table[0] = 32; // if you want log(0) to return -1, change to -1
-
-    memset(&manager,  0, sizeof(manager));
-    memset(&recv_q,   0, sizeof(recv_q));
-    memset(&tasks,    0, sizeof(tasks));
-    memset(int_queue, 0, sizeof(int_queue));
-
-    cbuf_init(&free_list);
-
-    for (i = 0; i < 16; i++) {
-	tasks[i].tid   = i;
-	tasks[i].p_tid = -1;
-	cbuf_produce(&free_list, (char)i);
-    }
-
-    // get the party started
-    task_active = &tasks[0];
-    task_create(TASK_PRIORITY_IDLE + 1,    task_launcher);
-    task_create(TASK_PRIORITY_IDLE,        idle);
-    task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
-    task_create(TASK_PRIORITY_MEDIUM_HIGH, clock_server);
-    task_create(TASK_PRIORITY_MEDIUM,      term_server);
-    task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
-    task_create(TASK_PRIORITY_MEDIUM,      train_server);
-
-    for (; i < TASK_MAX; i++) {
-	tasks[i].tid   = i;
-	tasks[i].p_tid = -1;
-	cbuf_produce(&free_list, (char)i);
-    }
+void scheduler_first_run() {
+    scheduler_get_next();
+    kernel_exit(task_active->sp);
 }
 
 void scheduler_schedule(task* const t) {
@@ -464,7 +472,7 @@ void scheduler_schedule(task* const t) {
 }
 
 // scheduler_consume
-void scheduler_get_next(void) {
+inline static void scheduler_get_next() {
     // find the msb and add it
     uint32 priority = choose_priority(manager.state);
     assert(priority != 32, "Ran out of tasks to run");
@@ -479,7 +487,9 @@ void scheduler_get_next(void) {
 	manager.state ^= (1 << priority);
 }
 
-static int task_create(const task_pri pri, void (*const start)(void)) {
+inline static int task_create(const task_pri pri,
+			      void (*const start)(void)) {
+
     // double check that priority was checked in user land
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
@@ -505,7 +515,7 @@ static int task_create(const task_pri pri, void (*const start)(void)) {
     return tsk->tid;
 }
 
-static void task_destroy() {
+inline static void task_destroy() {
     // TODO: handle overflow (trololol)
     task_active->tid += TASK_MAX;
     task_active->sp   = NULL;
@@ -521,6 +531,7 @@ static void task_destroy() {
     // put the task back into the allocation pool
     cbuf_produce(&free_list, (char)mod2((uint)task_active->tid, TASK_MAX));
 }
+
 
 static char* _abort_pad(char* ptr, const int val) {
     int count = 12 - val;

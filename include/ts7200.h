@@ -91,3 +91,6 @@
 #define UART_HDLCRIB_OFFSET	0x218
         #define OVERRUN_MASK    0x4
 #define UART_HDLCSTS_OFFSET	0x21c
+
+// Default interrupt table instruction (used by RedBoot)
+#define DEFAULT_LDR_PC 0xE59FF018

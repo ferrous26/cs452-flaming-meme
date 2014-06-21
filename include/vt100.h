@@ -28,9 +28,7 @@ void vt_deinit(void);
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf(print_buffer, fmt, ## __VA_ARGS__);	\
-	int result = Puts(print_buffer, str_end - print_buffer);	\
-	assert(result == 0, "Failed to Puts (%d)", result);		\
-	UNUSED(result);							\
+	Puts(print_buffer, str_end - print_buffer);			\
     }
 
 char* sprintf(char* buffer, const char* fmt, ...);
@@ -45,9 +43,7 @@ char* sprintf(char* buffer, const char* fmt, ...);
     {									\
 	char print_buffer[n];						\
 	char* str_end = sprintf_va(print_buffer, fmt, args);		\
-	int result = Puts(print_buffer, str_end - print_buffer);	\
-	assert(result == 0, "Failed to Puts (%d)", result);		\
-	UNUSED(result);							\
+	Puts(print_buffer, str_end - print_buffer);			\
     }
 
 char* sprintf_va(char* buffer, const char* fmt, va_list args);
@@ -81,20 +77,21 @@ char* vt_scroll_down(char* buffer);
 
 
 // coloured output
-typedef enum {
-    BLACK   = 0,
-    RED     = 1,
-    GREEN   = 2,
-    YELLOW  = 3,
-    BLUE    = 4,
-    MAGENTA = 5,
-    CYAN    = 6,
-    WHITE   = 7,
-    DEFAULT = 7
-} colour;
+#define BLACK   "30"
+#define RED     "31"
+#define GREEN   "32"
+#define YELLOW  "33"
+#define BLUE    "34"
+#define MAGENTA "35"
+#define CYAN    "36"
+#define WHITE   "37"
+#define DEFAULT "37"
 
-char* vt_colour_reset(char* buffer);
-char* vt_colour(char* buffer, const colour c);
+#define COLOUR_RESET ESC_CODE "0m"
+#define COLOUR(c) ESC_CODE c "m"
+
+#define vt_colour_reset(ptr) sprintf_string(ptr, COLOUR_RESET)
+
 
 /**
  * The row where logging begins.
