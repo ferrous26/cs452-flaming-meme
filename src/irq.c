@@ -48,11 +48,9 @@ inline static void _init_all_vector_irq() {
     _init_vector_irq(54, 0, irq_uart2);
     _init_vector_irq(52, 1, irq_uart1);
     _init_vector_irq(51, 2, irq_clock);
-
-    voidf* def = (voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET);
-    *def = _irq_default1;
-     def = (voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET);
-    *def = _irq_default2;
+    
+    *(voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET) = _irq_default1;
+    *(voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET) = _irq_default2;
 }
 
 void irq_init() {
@@ -88,8 +86,9 @@ inline static void _irq_interrupt(const uint cmd, const uint interrupt) {
     assert(interrupt < 64, "Invalid Interrupt %d", interrupt);
 
     const uint base  = interrupt > 31 ? VIC2_BASE : VIC1_BASE;
-    const uint shift = interrupt & 0x1F;
-    VIC(base, cmd)   = 1 << shift;
+    const uint shift = mod2(interrupt, 32);
+    
+    *(volatile uint* const)(interrupt + cmd) = 1 << shift;
 }
 
 void irq_enable_user_protection() {

@@ -24,8 +24,7 @@ typedef struct {
     } payload;
 } train_req;
 
-CHAR_BUFFER(64)
-
+CHAR_BUFFER(128)
 static int train_server_tid;
 
 static void __attribute__((noreturn)) write_carrier() {

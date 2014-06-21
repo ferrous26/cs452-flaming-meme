@@ -127,45 +127,83 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     }
 }
 
+#define SENSOR_LIST_SIZE 9
+
 typedef struct {
-    int         insert;
-    sensor_name recent_sensors[9];
+    sensor_name* insert;
+    sensor_name  recent_sensors[SENSOR_LIST_SIZE];
 } mc_context;
 
 inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
 
-    memcpy(ctxt->recent_sensors + ctxt->insert, sensor, sizeof(sensor));
-    ctxt->insert = ++ctxt->insert & (RECENT_SENSOR_SIZE-1);
-    memset(ctxt->recent_sensors + ctxt->insert, 0, sizeof(ctxt->insert)); 
+    sensor_name* next = ctxt->insert++;
+    memcpy(next, sensor, sizeof(sensor));
+    if(ctxt->insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
+        ctxt->insert = ctxt->recent_sensors;
+    }
+    memset(ctxt->insert, 0, sizeof(ctxt->insert)); 
 
-    log("SENSOR:%c%d in %d", sensor->bank, sensor->num, ctxt->insert);
+    char buffer[64];
+    for(int i =0; next->bank != 0; i++) {
+        char* output;
+        if( next->num < 10 ) {
+            output = "%c 0%d";
+        } else {
+            output = "%c %d";
+        }
+
+        char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
+        pos = sprintf(pos, output, next->bank, next->num);
+        Puts(buffer, pos-buffer);
+
+        if (next == ctxt->recent_sensors) {
+            next = ctxt->recent_sensors + SENSOR_LIST_SIZE-1;
+        } else {
+            next--;
+        }
+    }
 }
+
+static void reset_train_state() {
+    // Kill any existing command so we're in a good state
+    Putc(TRAIN, TRAIN_ALL_STOP);
+    Putc(TRAIN, TRAIN_ALL_STOP);
+    
+    // Want to make sure the contoller is on
+    Putc(TRAIN, TRAIN_ALL_START);
+
+    int result;
+    for (int i = 0;; i++) {
+        if (pos_to_train(i) < 0) break;
+        result = put_train_cmd(pos_to_train(i), 0);
+        assert(result == 0, "failed to set train %d", result);
+    }
+
+    for (int i = 0;; i++) {
+        if (pos_to_turnout(i) < 0) break;
+        result = put_train_turnout(TURNOUT_STRAIGHT, pos_to_turnout(i));
+        assert(result == 0, "failed to set turnout %d", result);
+    }
+}
+
 
 void mission_control() {
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
-    for (int i = 0;; i++) {
-        if (pos_to_train(i) < 0) break;
-        tid = put_train_cmd(pos_to_train(i), 0);
-        assert(tid == 0, "failed to set train %d", tid);
-    }
-
-    for (int i = 0;; i++) {
-        if (pos_to_turnout(i) < 0) break;
-        put_train_turnout(TURNOUT_CURVED, pos_to_turnout(i));
-        assert(tid == 0, "failed to set turnout %d", tid);
-    }
+    reset_train_state(); // this MUST run before the following
     
+    tid = Create(TASK_PRIORITY_MEDIUM_LO, train_ui);
+    assert(tid > 0, "Mission Control failed creating train UI (%d)", tid);
+
     tid = Create(15, sensor_poll);
     assert(tid >  0, "Mission Control failed creating sensor poll (%d)", tid);
 
-    tid = Create(TASK_PRIORITY_MEDIUM_LO, train_ui);
-    assert(tid > 0, "Mission Control failed creating train UI (%d)", tid);
-    
     mc_req     req;
-    mc_context context;
+    mc_context context; 
+    memset(&context, 0, sizeof(context));
+    context.insert = context.recent_sensors;
 
     FOREVER {
         Receive(&tid, (char*)&req, sizeof(req));
