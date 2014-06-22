@@ -50,7 +50,7 @@ the makefile, built in release mode with benchmarking enabled.
 
 After Initialization the kernel will print
 ``\ttt{Welcome to Task Launcher}'' into the message logging area of
-the screen and a command prompt will appear near the bottom of the
+the screen and a command prompt will appear near the center of the
 screen titled ``TERM> ''. At this point commands can be entered; keys
 pressed should be echoed back at the command prompt. Pressing the
 return key will confirm a command and cause it to be processed. An
@@ -96,9 +96,6 @@ Just talk about the mechanism here, not any specific calls.
 
 \subsubsection*{AwaitEvent}
 
-Event type details are given later. Here we just give the general API
-details.
-
 \subsection*{Message Passing Wrappers}
 
 \subsubsection*{WhoIs}
@@ -107,12 +104,61 @@ And all the rest\ldots
 
 \section*{Hardware Interrupts}
 
-Just talk about the mechanism and practices. Mention how we handle all
-hardware interaction in the kernel (except for Timer4).
+When we were designing our interrupt code we wanted the user space tasks to
+have no direct interaction with the hardware. This philosophy was chosen since
+it allowed us to make our user land easier to program in as well as allowing us
+ensure that while interacting with the hardware an interrupt can not cause us
+to perform an action that no longer reflects the state of the system.
+
+\subsection*{Context Switch}
+
+The Hardware interrupt code is built such that it encapsulates the software
+interrupt. Since the software interrupt does not save scratch registers that
+GCC will assume have been clobbered during a function execution the hardware
+interrupt first saves those values and writes a flag into the position of the
+old link register to let the exit code know that it needs to perform the extra
+hardware interrupt exit code. This decision was made because it allows for us
+to reuse all of our existing assembly and required for a very small amount of
+change to the existing software interrupt entry code.
+
+When we enter the kernel we will still enter into the function
+\ttt{syscall\_handle()}. When we are servicing an interrupt the interrupt code
+value will get set to 0. At this point we save save the \ttt{sp} like normal
+and can perform the hardware interrupt similarly as if it were regular software
+interrupt reusing the same schedule and exit path.
+
+\subsection*{Vectored Interrupt Controller (\ttt{VIC})}
+
+In order to handle interrupt priority and lookup we employ use of the vectored
+interrupt controllers \ttt{VEC1} and \ttt{VEC2}. They are set up in a daisy
+chained configuration such that the priority of any action on \ttt{VEC1} will
+take priority over the actions on \ttt{VEC2}. This was the nature of hardware
+and not a decision that was made by us. The decision to use the \ttt{VIC}s was
+because it allowed us to greatly simply out interrupt handling code by
+offloading a non-trivial amount of work onto the available hardware.
+
+When we enter the kernel to handle a hardware interrupt we get the interrupt
+service routine by reading the function pointer off of the \ttt{VEC1}
+controller. After the routine had been run we write back to the controller to
+notify it that the interrupt has been serviced and it can get the next
+interrupt service routine.
+
+The largest issue is that when interrupt states are toggled between being
+enabled or disabled the interrupt controller can get out of sync and will try
+to handle the newly disabled interrupt though the default interrupt routine.
+We were able to work around this by using a void function that does nothing but
+return allowing for us to retrieve the next interrupt service routine from the
+\ttt{VIC}.
 
 \subsection*{UART1 Events}
+
+
 \subsection*{UART2 Events}
+
+
 \subsection*{Clock Events}
+
+
 
 \section*{Tasks}
 
@@ -132,8 +178,13 @@ This is where we talk about how we choose to detect and handle errors.
 
 \section*{Known Bugs}
 
-Clock UI stops updating at 100 minutes. Internal time continues to
-increase.
+\begin{itemize}
+\item Clock UI stops updating at 100 minutes. Internal time continues to 
+	increase.
+\item On rare occasion when trying to restart the OS the clock will be in a
+	bad state causing the ui to lock up. Restarting the application again
+	will fix the issue.
+\end{itemize}
 
 \end{document}
 
