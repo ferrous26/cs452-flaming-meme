@@ -24,28 +24,6 @@ inline static void print_help() {
     log("\tq ~ Quit");
 }
 
-static void __attribute__ ((unused)) tl_action(char input) {
-    switch(input) {
-    case 'o':
-        Putc(TRAIN, SENSOR_POLL);
-        for(int i = 0; i < 10; i++) {
-            char c = (char)Getc(TRAIN);
-            log("%d - %d", i, c);
-        }
-        break;
-    case 'n':
-        Putc(TRAIN, TRAIN_ALL_STOP);
-        break;
-    case 'y':
-        Putc(TRAIN, TRAIN_ALL_START);
-        break;
-    case 'h':
-    default:
-        print_help();
-        break;
-    }
-}
-
 static void __attribute__((unused)) echo_test() {
     char buffer[32];
     char* ptr = buffer;
@@ -91,6 +69,10 @@ static void action(command cmd, int args[]) {
     case CMD_STRESS:
 	Create(10, stress_root);
         break;
+    case CMD_ECHO:
+	Create(TASK_PRIORITY_MEDIUM, echo_test);
+	Exit();
+	break;
     case REVERSE_LOOKUP: {
         char name[8];
         if (WhoTid(args[0], name) < 0) {

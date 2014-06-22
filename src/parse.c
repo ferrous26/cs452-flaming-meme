@@ -132,9 +132,19 @@ static command parse_horn(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
+static command parse_echo(const char* const cmd) {
+    int index = 1;
+
+    if (cmd[index++] != 't')   return ERROR;
+    if (!isspace(cmd[index++])) return ERROR;
+
+    return CMD_ECHO;
+}
+
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
+    case 'e':  return parse_echo(cmd);
     case 'q':  return parse_stop(cmd);
     case 'b':  return parse_benchmark(cmd);
     case 't':  return parse_train(cmd, buffer);
