@@ -214,18 +214,24 @@ static void train() {
 	case TRAIN_CHANGE_SPEED:
 	    speed = req.arg;
 	    update_train_speed(train_num, speed);
+	    log("Set train %d to %d", train_num, speed);
 	    break;
 	case TRAIN_REVERSE_DIRECTION:
 	    update_train_speed(train_num, 0);
+	    log("Stopping train %d", train_num);
+
 	    Delay(TRAIN_REVERSE_DELAY_FACTOR * speed);
 	    update_train_speed(train_num, TRAIN_REVERSE);
+	    log("Reversing train %d");
+
 	    update_train_speed(train_num, speed);
+	    log("Starting train %d at speed %d", train_num, speed);
 	    break;
 	case TRAIN_TOGGLE_LIGHT:
 	    toggle_train_light(train_num);
+	    log("Toggling lights on train %d", train_num);
 	    break;
 	case TRAIN_HORN_SOUND:
-	    log("Train horn not implemented");
 	    toggle_train_horn(train_num);
 	    log("Toggling the train horn for train %d", train_num);
 	    break;

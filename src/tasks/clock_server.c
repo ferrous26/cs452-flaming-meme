@@ -223,23 +223,18 @@ static void _error(int tid, int code) {
 static void _startup(clock_pq* pq) {
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
+
     int result = RegisterAs((char*)CLOCK_SERVER_NAME);
-    if (result) {
-	log("Failed to register clock server name (%d)", result);
-	return;
-    }
+    if (result)
+	ABORT("Failed to register clock server name (%d)", result);
 
     result = Create(TASK_PRIORITY_HIGH, clock_notifier);
-    if (result < 0) {
-	log("Failed to create clock_notifier (%d)", result);
-	return;
-    }
+    if (result < 0)
+	ABORT("Failed to create clock_notifier (%d)", result);
 
     result = Create(TASK_PRIORITY_MEDIUM_LOW, clock_ui);
-    if (result < 0) {
-	log("Failed to create clock_ui (%d)", result);
-	return;
-    }
+    if (result < 0)
+	ABORT("Failed to create clock_ui (%d)", result);
 
     pq_init(pq);
 }
@@ -321,7 +316,7 @@ int Time() {
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
+	ABORT("Clock server died");
 
     // else, error out
     return result;
@@ -346,7 +341,7 @@ int Delay(int ticks) {
 
     // maybe clock server died
     if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
+	ABORT("Clock server died");
 
     return result;
 }
@@ -370,7 +365,7 @@ int DelayUntil(int ticks) {
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	Abort(__FILE__, __LINE__, "Clock server died");
+	ABORT("Clock server died");
 
     return result;
 }
