@@ -96,12 +96,11 @@ static inline void _init() {
     _enable_caches();
 
     clock_t4enable();
-    clock_init();
-
     uart_init();
     vt_init();
     kernel_init();
     irq_init();
+    clock_init();
 
     scheduler_first_run(); // go go go
 }

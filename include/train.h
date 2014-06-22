@@ -6,7 +6,7 @@
 #define TRAIN_ALL_STOP       0x61
 
 #define TRAIN_REVERSE        0x0f
-#define TRAIN_LIGHTS         0x10
+#define TRAIN_LIGHT          0x10
 
 #define TRAIN_HORN           68
 #define TRAIN_FUNCTION_OFF   64

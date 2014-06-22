@@ -54,10 +54,8 @@ inline static void uart_initirq(const uint base) {
 }
 
 inline static void uart_drain(const uint base) {
-    volatile int* const flag = (int*)(base + UART_FLAG_OFFSET);
     volatile int* const data = (int*)(base + UART_DATA_OFFSET);
-
-    while (!(*flag & RXFE_MASK)) { *data; }
+    for (int i = UART_FIFO_SIZE; i; i--) *data;
 }
 
 void uart_init() {
@@ -81,7 +79,6 @@ void uart_init() {
 
     volatile int* volatile rsr2 = (int*)(UART2_BASE + UART_RSR_OFFSET);
     *rsr2 = (int)rsr2;
-
 
     uart_drain(UART1_BASE);
     uart_drain(UART2_BASE);
@@ -141,6 +138,8 @@ void irq_uart2_recv() {
     task* const t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
+    //assert(t, "Interrupts were on when we were not waiting...");
+
     if (t) {
         kreq_event* const req = (kreq_event*) t->sp[1];
 
@@ -158,7 +157,15 @@ void irq_uart2_recv() {
         return;
     }
 
-    ABORT("UART2 dropped %c", *data);
+    // we aren't necessarily dropping the byte,
+    // we are missing the interrupt, but if we mask the interrupt
+    // and just return to task handling, the notifier might come
+    // back fast enough to deal with the data; so we should only
+    // fire this off if we have actually lost a byte
+    if (*flag & RXFF_MASK) ABORT("UART2 dropped %c", *data);
+    // however, we should be disabling interrupts when we are
+    // not waiting for input, so we should not be here if the
+    // notifier is not waiting
 }
 
 void irq_uart2_send() {

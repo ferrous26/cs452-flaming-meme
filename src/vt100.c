@@ -15,7 +15,7 @@ void vt_init() {
     ptr = vt_hide_cursor(ptr);
 
     ptr = vt_set_scroll_region(ptr, LOG_HOME, 80);
-    ptr = vt_goto(ptr, LOG_HOME, 0);
+    ptr = vt_goto(ptr, LOG_HOME, 1);
     ptr = vt_save_cursor(ptr);
 
     uart2_bw_write(buffer, ptr - buffer);
@@ -286,10 +286,8 @@ char* vt_restore_cursor(char* buffer) {
 }
 
 char* log_start(char* buffer) {
-    log_count++;
-
     buffer = vt_restore_cursor(buffer);
-    buffer = sprintf_uint(buffer, log_count);
+    buffer = sprintf_uint(buffer, ++log_count);
     return sprintf_string(buffer, ": ");
 }
 

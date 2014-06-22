@@ -11,6 +11,7 @@
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
 #include <tasks/mission_control.h>
+#include <tasks/train_station.h>
 
 #include <tasks/task_launcher.h>
 
@@ -66,22 +67,18 @@ static void action(command cmd, int args[]) {
     case QUIT:
         Shutdown();
     case SPEED:
-        update_train_speed(args[0], args[1]);
+        train_set_speed(args[0], args[1]);
         break;
     case GATE:
         update_turnout(args[0], args[1]);
         break;
     case REVERSE:
-	Create(TASK_PRIORITY_MEDIUM, bench_msg);
-	Delay(1000); // :)
-	Create(10, stress_root);
+	train_reverse(args[0]);
         break;
     case TOGGLE_LIGHT:
-        log("toggling train light %d", args[0]);
-        toggle_train_light(args[0]);
+        train_toggle_light(args[0]);
         break;
     case RESET:
-        log("resetting train state");
         reset_train_state();
         break;
     case ERROR:
@@ -92,6 +89,7 @@ static void action(command cmd, int args[]) {
 }
 
 void task_launcher() {
+
     log("Welcome to ferOS build %u", __BUILD__);
     log("Built %s %s", __DATE__, __TIME__);
     log("Enter h for help");

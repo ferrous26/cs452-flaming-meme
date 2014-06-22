@@ -14,7 +14,7 @@
 #include <tasks/train_server.h>
 #include <tasks/task_launcher.h>
 #include <tasks/mission_control.h>
-#include <tasks/train.h>
+#include <tasks/train_station.h>
 
 
 #define SWI_HANDLER ((volatile uint*)0x08)
@@ -92,6 +92,28 @@ inline static void task_destroy(void) TEXT_HOT;
 inline static void scheduler_schedule(task* const t) TEXT_HOT;
 inline static void scheduler_get_next(void) TEXT_HOT;
 
+static void _print_train() {
+
+    char buffer[1024];
+    char* ptr = log_start(buffer);
+    ptr = sprintf_string(ptr,
+			 "\n"
+"               .---._\n"
+"           .--(. '  .).--.      . .-.\n"
+"        . ( ' _) .)` (   .)-. ( ) '-'\n"
+"       ( ,  ).        `(' . _)\n"
+"     (')  _________      '-'\n"
+"     ____[_________]                                         ________\n"
+"     \\__/ | _ \\  ||    ,;,;,,                               [________]\n"
+"     _][__|(\")/__||  ,;;;;;;;;,   __________   __________   _| LILI |_\n"
+"    /             | |____      | |          | |  ___     | |      ____|\n"
+"   (| .--.    .--.| |     ___  | |   |  |   | |      ____| |____      |\n"
+"   /|/ .. \\~~/ .. \\_|_.-.__.-._|_|_.-:__:-._|_|_.-.__.-._|_|_.-.__.-._|\n"
+"+=/_|\\ '' /~~\\ '' /=+( o )( o )+==( o )( o )=+=( o )( o )+==( o )( o )=+=\n"
+"='=='='--'==+='--'===+'-'=='-'==+=='-'+='-'===+='-'=='-'==+=='-'=+'-'+===");
+    ptr = log_end(ptr);
+    uart2_bw_write(buffer, ptr - buffer);
+}
 
 void kernel_init() {
     int i;
@@ -133,6 +155,8 @@ void kernel_init() {
     }
 
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
+
+    _print_train();
 }
 
 void kernel_deinit() {
@@ -518,7 +542,7 @@ inline static int task_create(const task_pri pri,
     tsk->sp[12]    = EXIT_ADDRESS; // set link register to auto-call Exit()
 
     // set tsk->next
-    scheduler_schedule(tsk);
+    scheduler_reschedule(tsk);
 
     return tsk->tid;
 }
@@ -532,7 +556,7 @@ inline static void task_destroy() {
     task_q* q = &recv_q[task_index_from_tid(task_active->tid)];
     while (q->head) {
 	q->head->sp[0] = INCOMPLETE;
-	scheduler_schedule(q->head);
+	scheduler_reschedule(q->head);
 	q->head = q->head->next;
     }
 

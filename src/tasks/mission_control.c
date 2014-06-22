@@ -180,7 +180,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     for(int i =0; next->bank != 0; i++) {
         char* output = next->num < 10 ? "%c 0%d": "%c %d";
         char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
-        
+
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
 
@@ -195,8 +195,8 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 static void mc_update_turnout(mc_context* const ctxt,
                               const int         turn_num,
                               int               turn_state) {
-    int state;
 
+    char state;
     char* ptr;
     char buffer[32];
     const int pos = turnout_to_pos(turn_num);
@@ -216,32 +216,29 @@ static void mc_update_turnout(mc_context* const ctxt,
     switch(turn_state) {
     case 'c': turn_state = 'C';
     case 'C': state      = TURNOUT_CURVED;
-              ptr        = sprintf_string(ptr, COLOUR(MAGENTA));
+              ptr        = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
               break;
     case 's': turn_state = 'S';
     case 'S': state      = TURNOUT_STRAIGHT;
-              ptr        = sprintf_string(ptr, COLOUR(CYAN));
+              ptr        = sprintf_string(ptr, COLOUR(CYAN) "S" COLOUR_RESET);
               break;
     default:
         log("Invalid Turnout State %c", turn_state);
         return;
     }
-    
+
     ctxt->turnouts[pos] = turn_state;
 
     int result = put_train_turnout(turn_num, state);
     assert(result == 0, "Failed setting turnout %d to %c", turn_num, turn_state);
     UNUSED(result);
-        
-    *(ptr++)  = turn_state;
-    ptr = sprintf_string(ptr, COLOUR_RESET);
 
     Puts(buffer, ptr-buffer);
 }
 
 static void mc_update_train_speed(mc_context* ctxt,
                                   const int   tr_num,
-                                  int         tr_speed) {
+                                  const int   tr_speed) {
     int pos = train_to_pos(tr_num);
     assert(pos >= 0, "invalid train number %d %d", tr_num);
     assert(tr_speed >= 0 || tr_speed <= 15, "invalid train speed %d", tr_speed);
@@ -249,7 +246,7 @@ static void mc_update_train_speed(mc_context* ctxt,
     ctxt->trains[pos] = (tr_speed & 0xf) | (ctxt->trains[pos] & 0x10);
     put_train_cmd(tr_num, ctxt->trains[pos]);
 
-    char  buffer[64];
+    char  buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_SPEED_COL);
     ptr = sprintf(ptr, "%d ", tr_speed);
 
@@ -261,16 +258,16 @@ static void mc_toggle_light(mc_context* ctxt,
     int pos = train_to_pos(tr_num);
     assert(pos >= 0, "invalid train number %d", tr_num);
 
-    ctxt->trains[pos] ^= 0x10;
+    ctxt->trains[pos] ^= TRAIN_LIGHT;
     put_train_cmd(tr_num, ctxt->trains[pos]);
 
-    char buffer[64];
+    char buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_LIGHT_COL);
-    *(ptr++)  = ctxt->trains[pos] & 0x10 ? '!' : ' ';
+    *(ptr++)  = ctxt->trains[pos] & TRAIN_LIGHT ? '!' : ' ';
 
     Puts(buffer, ptr-buffer);
 }
-                                
+
 
 static void mc_reset_train_state(mc_context* context) {
     // Kill any existing command so we're in a good state
@@ -287,20 +284,14 @@ static void mc_reset_train_state(mc_context* context) {
     mc_update_turnout(context, 154, 'C');
     mc_update_turnout(context, 155, 'S');
     mc_update_turnout(context, 156, 'C');
-
-    mc_update_train_speed(context, 43, 0);
-    mc_update_train_speed(context, 45, 0);
-    for (int i = 47; i <=51; i++) {
-        mc_update_train_speed(context, i, 0);
-    }
 }
 
 static int mission_control_tid;
 
 void mission_control() {
-    mc_context context; 
+    mc_context context;
     memset(&context, 0, sizeof(context));
-    
+
     mission_control_tid = myTid();
 
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
@@ -332,7 +323,7 @@ void mission_control() {
 	    if (result < 0) ABORT("Failed to reply to sensor notifier (%d)",
 				  result);
             break;
-        
+
         case TURNOUT_UPDATE:
             mc_update_turnout(&context,
                               req.payload.turnout.num,
@@ -357,7 +348,7 @@ void mission_control() {
 	    if (result < 0) ABORT("Failed to reply to reset req (%d)",
                                   result);
             break;
-        
+
         case TRAIN_TOGGLE_LIGHT:
             mc_toggle_light(&context, req.payload.int_value);
             result = Reply(tid, NULL, 0);
@@ -378,9 +369,15 @@ int update_turnout(int num, int state) {
         log("Invalid Turnout Number %d", num);
         return 0;
     }
+
     switch (state) {
-    case 's': case 'S': case 'c': case 'C':
-        break;
+    case 'C':
+    case 'S':
+	break;
+    case 'c':
+	state = 'C';
+    case 's':
+	state = 'S';
     default:
         log("Invalid turnout direction (%c)", state);
         return 0;
@@ -405,7 +402,7 @@ int update_train_speed(int train, int speed) {
     if(speed < 0 || speed > TRAIN_REVERSE) {
         log("can't set train number %d to invalid speed %d", train, speed);
         return 0;
-    } 
+    }
 
     mc_req req = {
         .type = TRAIN_SPEED_UPDATE,
@@ -437,4 +434,3 @@ int toggle_train_light(int train) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-

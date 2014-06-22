@@ -1,4 +1,4 @@
-#include <tasks/train.h>
+#include <tasks/train_station.h>
 #include <tasks/term_server.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
@@ -68,7 +68,7 @@ static inline train_req* rbuf_consume(req_buffer* const cb) {
 
 static int train_station_whoami() {
     train_req req = {
-	.type = WHOAMI
+	.type = TRAIN_WHOAMI
     };
 
     int train_num = 0;
@@ -82,7 +82,7 @@ static int train_station_whoami() {
 
 static inline void train_station_request(train_req* incoming) {
     train_req outgoing = {
-	.type = REQUEST
+	.type = TRAIN_REQUEST
     };
 
     int result = Send(train_station_tid,
@@ -90,6 +90,100 @@ static inline void train_station_request(train_req* incoming) {
 		      (char*)incoming,  sizeof(train_req));
 
     if (result < 0) ABORT("Train station died (%d)", result);
+}
+
+static bool is_valid_train_number(int train) {
+    if (train < 43  ||
+	train > 51  ||
+	train == 44 ||
+	train == 46) return false;
+    return true;
+}
+
+void train_reverse(int train) {
+
+    if (!is_valid_train_number(train)) {
+        log("Invalid train number %d", train);
+        return;
+    }
+
+    train_req req = {
+	.type  = TRAIN_REVERSE_DIRECTION,
+	.train = train
+    };
+
+    int result = Send(train_station_tid,
+		      (char*)&req, sizeof(req),
+		      NULL, 0);
+    if (result < 0)
+	log("Failed to send reverse command for train %d (%d)", train, result);
+}
+
+void train_set_speed(int train, int speed) {
+
+    if (!is_valid_train_number(train)) {
+        log("Invalid train number %d", train);
+        return;
+    }
+
+    if (speed < 0 || speed >= TRAIN_REVERSE) {
+        log("Cannot set train number %d to speed %d", train, speed);
+        return;
+    }
+
+    train_req req = {
+	.type  = TRAIN_CHANGE_SPEED,
+	.train = train,
+	.arg   = speed
+    };
+
+    int result = Send(train_station_tid,
+		      (char*)&req, sizeof(req),
+		      NULL, 0);
+
+    if (result < 0)
+	log("Failed to send speed change command for train %d to %d (%d)",
+	    train, speed, result);
+}
+
+void train_toggle_light(int train) {
+
+    if (!is_valid_train_number(train)) {
+        log("Invalid train number %d", train);
+        return;
+    }
+
+    train_req req = {
+	.type  = TRAIN_TOGGLE_LIGHT,
+	.train = train
+    };
+
+    int result = Send(train_station_tid,
+		      (char*)&req, sizeof(req),
+		      NULL, 0);
+
+    if (result < 0)
+	log("Failed to send light toggle command to %d (%d)", train, result);
+}
+
+void train_sound_horn(int train) {
+
+    if (train != 51) {
+	log("Only train 51 has a working horn");
+	return;
+    }
+
+    train_req req = {
+	.type  = TRAIN_HORN_SOUND,
+	.train = train
+    };
+
+    int result = Send(train_station_tid,
+		      (char*)&req, sizeof(req),
+		      NULL, 0);
+
+    if (result < 0)
+	log("Failed to send horn sounding command (%d)", result);
 }
 
 static void train() {
@@ -104,7 +198,6 @@ static void train() {
     if (result != 0)
 	ABORT("Failed to register train %d (%d)", train_num, result);
 
-    log("Changing train speed to 0");
     result = update_train_speed(train_num, 0);
     if (result < 0) log("Failed to stop train %d", result);
 
@@ -114,24 +207,24 @@ static void train() {
     FOREVER {
 	train_station_request(&req);
 	switch (req.type) {
-	case WHOAMI:
-	case REQUEST:
+	case TRAIN_WHOAMI:
+	case TRAIN_REQUEST:
 	    ABORT("Illegal train request (%d)", req.type);
 	    break;
-	case SPEED:
+	case TRAIN_CHANGE_SPEED:
 	    speed = req.arg;
 	    update_train_speed(train_num, speed);
 	    break;
-	case REVERSE:
+	case TRAIN_REVERSE_DIRECTION:
 	    update_train_speed(train_num, 0);
 	    Delay(TRAIN_REVERSE_DELAY_FACTOR * speed);
 	    update_train_speed(train_num, TRAIN_REVERSE);
 	    update_train_speed(train_num, speed);
 	    break;
-	case LIGHT:
+	case TRAIN_TOGGLE_LIGHT:
 	    log("Train light not implemented");
 	    break;
-	case HORN:
+	case TRAIN_HORN_SOUND:
 	    log("Train horn not implemented");
 	    break;
 	}
@@ -194,11 +287,11 @@ void train_station() {
 	int result = Receive(&tid, (char*)&req, sizeof(train_req));
 	if (result < WORD_SIZE) ABORT("Bad message to train");
 
-	assert(req.type <= HORN,
+	assert(req.type <= TRAIN_HORN_SOUND,
 	       "Bad train station request (%d) from %d", req.type, tid);
 
 	switch (req.type) {
-	case WHOAMI: {
+	case TRAIN_WHOAMI: {
 	    train_state* const t = trains_find_with_tid(trains, tid);
 	    if (t) {
 		result = Reply(tid, (char*)&t->tnum, sizeof(int));
@@ -210,7 +303,7 @@ void train_station() {
 	    break;
 	}
 
-	case REQUEST: {
+	case TRAIN_REQUEST: {
 	    train_state* const t = trains_find_with_tid(trains, tid);
 	    if (t) {
 		if (rbuf_count(&t->requests)) {
@@ -232,10 +325,10 @@ void train_station() {
 	}
 
 	    // in all these cases, we just want to queue the job
-	case SPEED:
-	case REVERSE:
-	case LIGHT:
-	case HORN: {
+	case TRAIN_CHANGE_SPEED:
+	case TRAIN_REVERSE_DIRECTION:
+	case TRAIN_TOGGLE_LIGHT:
+	case TRAIN_HORN_SOUND: {
 	    train_state* const t = trains_find_with_tnum(trains, req.train);
 	    if (t) {
 		if (t->is_blocked) {
