@@ -94,6 +94,7 @@ inline static void scheduler_get_next(void) TEXT_HOT;
 
 static void _print_train() {
 
+    // ASCII art borrowed from http://www.ascii-art.de/ascii/t/train.txt
     char buffer[1024];
     char* ptr = log_start(buffer);
     ptr = sprintf_string(ptr,
