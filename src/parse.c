@@ -5,7 +5,6 @@
 #include <parse.h>
 #include <debug.h>
 
-
 static int consume_integer(const char* const str, int* const index) {
     int result = 0;
     for (; isdigit( str[*index] ); *index += 1) {
@@ -39,11 +38,7 @@ static int parse_argument(const char* const cmd,
         *arg = consume_integer(cmd, index);
         break;
     case 'c':
-        if (cmd[*index] == '\0') {
-	    // TODO: the compiler complains about these lines...why?
-            // kprintf("died at position %d(%d)\n", *index, cmd[*index]);
-            // return -1;
-        }
+        if (cmd[*index] == '\0') return -1;
         *arg = cmd[*index];
         *index += 1;
         break;
@@ -90,11 +85,17 @@ static command parse_r(const char* const cmd, int* const buffer) {
     switch (cmd[index++]) {
     case 'v':
         if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (!isspace(cmd[index]))                     return ERROR;
         return LOC_REVERSE;
     case 'e':
         if (!isspace(cmd[index])) return ERROR;
         return TRACK_RESET;
+    case 'l':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (!isspace(cmd[index]))                     return ERROR;
+        return REVERSE_LOOKUP;
     }
+
     return ERROR;
 }
 
@@ -103,6 +104,7 @@ static command parse_light(const char* const cmd, int* const buffer) {
     switch (cmd[index++]) {
     case 't':
         if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (!isspace(cmd[index]))                     return ERROR;
         return LOC_LIGHT;
     }
 

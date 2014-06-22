@@ -128,7 +128,7 @@ void name_server() {
         }
         case REVERSE: {
             char* result = lookup_name(&buffer.payload);
-            Reply(tid, result, result == NULL ? 0 : NAME_MAX_SIZE*sizeof(char));
+            Reply(tid, result, result ? NAME_MAX_SIZE : 0);
             break;
         }
 	}
@@ -161,7 +161,7 @@ int WhoIs(char* name) {
 
 int WhoTid(int tid, char* name) {
     ns_req req;
-    req.type = LOOKUP;
+    req.type = REVERSE;
     memset((void*)&req.payload, 0, sizeof(ns_payload));
     req.payload.overlay[0] = tid;
 
@@ -175,8 +175,8 @@ int WhoTid(int tid, char* name) {
     }
 
     assert(result < 0 || result == NAME_MAX_SIZE,
-           "NameServer returned weird value %d", result);
-    assert(result == INVALID_TASK || result == INCOMPLETE,
+           "NameServer returned unexpected value %d", result);
+    assert(result != INVALID_TASK || result != INCOMPLETE,
            "Name Server Has Died!");
 
     // else, error out

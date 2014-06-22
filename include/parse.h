@@ -6,6 +6,7 @@ typedef enum {
 
     CMD_STRESS,
     CMD_BENCHMARK,
+    REVERSE_LOOKUP,
 
     TRACK_RESET,
     TRACK_TURNOUT,
