@@ -3,10 +3,10 @@
 
 typedef enum {
     NONE,
-    
-    STRESS,
-    BENCHMARK,
-    
+
+    CMD_STRESS,
+    CMD_BENCHMARK,
+
     TRACK_RESET,
     TRACK_TURNOUT,
     

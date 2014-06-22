@@ -53,12 +53,12 @@ static int parse_argument(const char* const cmd,
 
 static int parse_s(const char* const cmd, int* buffer) {
     int index = 1;
-    
+
     switch (cmd[index++]) {
     case 't':
         if (!isspace(cmd[index++])) return ERROR;
-        return STRESS;
-    case 'w':    
+        return CMD_STRESS;
+    case 'w':
         if (parse_argument(cmd, 'i', &index, buffer ))     return ERROR;
         if (parse_argument(cmd, 'c', &index, &buffer[1] )) return ERROR;
         if (!isspace(cmd[index]))                          return ERROR;
@@ -80,9 +80,9 @@ static int parse_train(const char* const cmd, int* const buffer) {
 
 static int parse_stop(const char* const cmd) {
     int index = 1;
-    
+
     if (!isspace(cmd[index])) return ERROR;
-    return QUIT;    
+    return QUIT;
 }
 
 static command parse_r(const char* const cmd, int* const buffer) {
@@ -115,7 +115,7 @@ static command parse_benchmark(const char* const cmd) {
     if (cmd[index++] != 'm')   return ERROR;
     if (!isspace(cmd[index++])) return ERROR;
 
-    return BENCHMARK;
+    return CMD_BENCHMARK;
 }
 
 command parse_command(const char* const cmd, int* const buffer) {

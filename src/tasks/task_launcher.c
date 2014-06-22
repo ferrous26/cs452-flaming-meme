@@ -84,11 +84,10 @@ static void action(command cmd, int args[]) {
     case TRACK_TURNOUT:
         update_turnout(args[0], args[1]);
         break;
-
-    case BENCHMARK:
+    case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM, bench_msg);
         break;
-    case STRESS:
+    case CMD_STRESS:
 	Create(10, stress_root);
         break;
 
