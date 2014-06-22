@@ -2,14 +2,20 @@
 #define __PARSE_H__
 
 typedef enum {
-    NONE = 0,
-    SPEED,
-    GATE,
-    REVERSE,
+    NONE,
+    
+    STRESS,
+    BENCHMARK,
+    
+    TRACK_RESET,
+    TRACK_TURNOUT,
+    
+    LOC_LIGHT,
+    LOC_SPEED,
+    LOC_REVERSE,
+    
     QUIT,
-    TOGGLE_LIGHT,
-    RESET,
-    ERROR
+    ERROR,
 } command;
 
 command parse_command(const char* const cmd, int* const buffer);

@@ -266,7 +266,6 @@ static void mc_toggle_light(mc_context* ctxt,
     Puts(buffer, ptr-buffer);
 }
 
-
 static void mc_reset_train_state(mc_context* context) {
     // Kill any existing command so we're in a good state
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -274,6 +273,12 @@ static void mc_reset_train_state(mc_context* context) {
 
     // Want to make sure the contoller is on
     Putc(TRAIN, TRAIN_ALL_START);
+    
+    mc_update_train_speed(context, 43, 0);
+    mc_update_train_speed(context, 45, 0);
+    for (int i = 47; i <=51; i++) {
+        mc_update_train_speed(context, i, 0);
+    }
 
     for (int i = 1; i < 19; i++) {
         mc_update_turnout(context, i, i == 14 ? 'S' : 'C');
@@ -374,8 +379,10 @@ int update_turnout(int num, int state) {
 	break;
     case 'c':
 	state = 'C';
+        break;
     case 's':
 	state = 'S';
+        break;
     default:
         log("Invalid turnout direction (%c)", state);
         return 0;

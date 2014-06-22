@@ -66,21 +66,32 @@ static void action(command cmd, int args[]) {
         break;
     case QUIT:
         Shutdown();
-    case SPEED:
+    
+    case LOC_SPEED:
         train_set_speed(args[0], args[1]);
         break;
-    case GATE:
-        update_turnout(args[0], args[1]);
+    case LOC_REVERSE:
+        train_reverse(args[0]);
         break;
-    case REVERSE:
-	train_reverse(args[0]);
-        break;
-    case TOGGLE_LIGHT:
+    case LOC_LIGHT:
         train_toggle_light(args[0]);
         break;
-    case RESET:
+    
+    case TRACK_RESET:
+       log("resetting train state");
         reset_train_state();
+       break;
+    case TRACK_TURNOUT:
+        update_turnout(args[0], args[1]);
         break;
+
+    case BENCHMARK:
+	Create(TASK_PRIORITY_MEDIUM, bench_msg);
+        break;
+    case STRESS:
+	Create(10, stress_root);
+        break;
+
     case ERROR:
         log("invalid command");
 	print_help();
