@@ -134,8 +134,6 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     }
 
     FOREVER {
-	Delay(10);
-
         Putc(TRAIN, SENSOR_POLL);
         for (int bank = 0; bank < 10; bank++) {
             int c = Getc(TRAIN);
