@@ -133,9 +133,9 @@ void kernel_init() {
     cbuf_init(&free_list);
 
     for (i = 0; i < 16; i++) {
-	tasks[i].tid   = i;
-	tasks[i].p_tid = -1;
-	cbuf_produce(&free_list, (char)i);
+        tasks[i].tid   = i;
+        tasks[i].p_tid = -1;
+        cbuf_produce(&free_list, (char)i);
     }
 
     // get the party started
@@ -150,9 +150,9 @@ void kernel_init() {
     task_create(TASK_PRIORITY_MEDIUM,      train_station);
 
     for (; i < TASK_MAX; i++) {
-	tasks[i].tid   = i;
-	tasks[i].p_tid = -1;
-	cbuf_produce(&free_list, (char)i);
+        tasks[i].tid   = i;
+        tasks[i].p_tid = -1;
+        cbuf_produce(&free_list, (char)i);
     }
 
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
