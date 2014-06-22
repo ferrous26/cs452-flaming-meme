@@ -5,7 +5,6 @@
 #include <parse.h>
 #include <debug.h>
 
-
 static int consume_integer(const char* const str, int* const index) {
     int result = 0;
     for (; isdigit( str[*index] ); *index += 1) {
@@ -91,7 +90,12 @@ static command parse_r(const char* const cmd, int* const buffer) {
     case 'e':
         if (!isspace(cmd[index])) return ERROR;
         return TRACK_RESET;
+    case 'l':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (!isspace(cmd[index]))                     return ERROR;
+        return REVERSE_LOOKUP;
     }
+
     return ERROR;
 }
 

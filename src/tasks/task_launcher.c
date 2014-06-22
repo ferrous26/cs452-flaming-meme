@@ -78,8 +78,7 @@ static void action(command cmd, int args[]) {
         break;
     
     case TRACK_RESET:
-       log("resetting train state");
-        reset_train_state();
+       reset_train_state();
        break;
     case TRACK_TURNOUT:
         update_turnout(args[0], args[1]);
@@ -91,7 +90,15 @@ static void action(command cmd, int args[]) {
     case STRESS:
 	Create(10, stress_root);
         break;
-
+    case REVERSE_LOOKUP: {
+        char name[8];
+        if (WhoTid(args[0], name) < 0) {
+            log("tid %d is not registered", args[0]);
+        } else {
+            log("tid %d is %s", args[0], name);
+        }
+        break;
+    }
     case ERROR:
         log("invalid command");
 	print_help();

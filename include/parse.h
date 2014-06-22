@@ -6,7 +6,8 @@ typedef enum {
     
     STRESS,
     BENCHMARK,
-    
+    REVERSE_LOOKUP,
+
     TRACK_RESET,
     TRACK_TURNOUT,
     
