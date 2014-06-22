@@ -9,11 +9,12 @@ typedef enum {
 
     TRACK_RESET,
     TRACK_TURNOUT,
-    
+
     LOC_LIGHT,
     LOC_SPEED,
     LOC_REVERSE,
-    
+    LOC_HORN,
+
     QUIT,
     ERROR,
 } command;

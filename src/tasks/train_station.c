@@ -226,6 +226,8 @@ static void train() {
 	    break;
 	case TRAIN_HORN_SOUND:
 	    log("Train horn not implemented");
+	    toggle_train_horn(train_num);
+	    log("Toggling the train horn for train %d", train_num);
 	    break;
 	}
     }

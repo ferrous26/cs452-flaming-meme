@@ -66,7 +66,7 @@ static void action(command cmd, int args[]) {
         break;
     case QUIT:
         Shutdown();
-    
+
     case LOC_SPEED:
         train_set_speed(args[0], args[1]);
         break;
@@ -76,9 +76,10 @@ static void action(command cmd, int args[]) {
     case LOC_LIGHT:
         train_toggle_light(args[0]);
         break;
-    
+    case LOC_HORN:
+	train_sound_horn(args[0]);
+	break;
     case TRACK_RESET:
-       log("resetting train state");
         reset_train_state();
        break;
     case TRACK_TURNOUT:
@@ -90,7 +91,6 @@ static void action(command cmd, int args[]) {
     case CMD_STRESS:
 	Create(10, stress_root);
         break;
-
     case ERROR:
         log("invalid command");
 	print_help();

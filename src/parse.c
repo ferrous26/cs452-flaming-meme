@@ -118,6 +118,18 @@ static command parse_benchmark(const char* const cmd) {
     return CMD_BENCHMARK;
 }
 
+static command parse_horn(const char* const cmd, int* const buffer) {
+    int index = 1;
+
+    switch (cmd[index++]) {
+    case 'r':
+	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+	return LOC_HORN;
+    }
+
+    return ERROR;
+}
+
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
@@ -127,6 +139,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'r':  return parse_r(cmd, buffer);
     case 's':  return parse_s(cmd, buffer);
     case 'l':  return parse_light(cmd, buffer);
+    case 'h':  return parse_horn(cmd, buffer);
     default:   return ERROR;
     }
 }
