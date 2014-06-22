@@ -88,7 +88,7 @@ static int __attribute__((const, unused)) train_to_pos(const int train) {
         return train - 47 + 2;
     }
 
-    assert(false, "invalid train number %d", tr_num);
+    assert(false, "invalid train number %d", train);
     return -1;
 }
 
