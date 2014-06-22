@@ -261,7 +261,7 @@ static void mc_toggle_light(mc_context* ctxt,
 
     char buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_LIGHT_COL);
-    if (ctxt->horn[pos])
+    if (ctxt->trains[pos] & TRAIN_LIGHT)
 	ptr   = sprintf_string(ptr, COLOUR(YELLOW) "L" COLOUR_RESET);
     else
 	*(ptr++) = ' ';
