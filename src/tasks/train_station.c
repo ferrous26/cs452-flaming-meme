@@ -222,7 +222,7 @@ static void train() {
 	    update_train_speed(train_num, speed);
 	    break;
 	case TRAIN_TOGGLE_LIGHT:
-	    log("Train light not implemented");
+	    toggle_train_light(train_num);
 	    break;
 	case TRAIN_HORN_SOUND:
 	    log("Train horn not implemented");
