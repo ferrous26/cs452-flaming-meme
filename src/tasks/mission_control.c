@@ -50,16 +50,15 @@ typedef struct {
 
 #define TRAIN_ROW           6
 #define TRAIN_COL           1
-#define TRAIN_SPEED_COL     (TRAIN_COL + 9)
-#define TRAIN_DIRECTION_COL (TRAIN_SPEED_COL + 7)
-#define TRAIN_LIGHT_COL     (TRAIN_DIRECTION_COL + 6)
-#define TRAIN_HORN_COL      (TRAIN_LIGHT_COL + 2)
+#define TRAIN_SPEED_COL     (TRAIN_COL + 8)
+#define TRAIN_LIGHT_COL     (TRAIN_SPEED_COL + 6)
+#define TRAIN_HORN_COL      (TRAIN_LIGHT_COL + 4)
 
 #define TURNOUT_ROW TRAIN_ROW
-#define TURNOUT_COL 36
+#define TURNOUT_COL 30
 
 #define SENSOR_ROW (TRAIN_ROW - 1)
-#define SENSOR_COL 64
+#define SENSOR_COL 58
 
 static void train_ui() {
     char buffer[1024];
@@ -67,15 +66,15 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed  Dir.  Special     Turnouts/Gates/Switches     __Sensor__\n"
-"---------------------------    +-----------------------+    |        | Newest\n"
-" 43                            | 1   | 2   | 3   | 4   |    |        |\n"
-" 45                            | 5   | 6   | 7   | 8   |    |        |\n"
-" 47                            | 9   |10   |11   |12   |    |        |\n"
-" 48                            |13   |14   |15   |16   |    |        |\n"
-" 49                            |17   |18   |-----------|    |        |\n"
-" 50                            |19    20   |21    22   |    |        |\n"
-" 51                            +-----------------------+    |        | Oldest");
+"Train  Speed  Special     Turnouts/Gates/Switches     __Sensor__\n"
+"---------------------    +-----------------------+    |        | Newest\n"
+" 43                      | 1   | 2   | 3   | 4   |    |        |\n"
+" 45                      | 5   | 6   | 7   | 8   |    |        |\n"
+" 47                      | 9   |10   |11   |12   |    |        |\n"
+" 48                      |13   |14   |15   |16   |    |        |\n"
+" 49                      |17   |18   |-----------|    |        |\n"
+" 50                      |19    20   |21    22   |    |        |\n"
+" 51                      +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
 }
 
