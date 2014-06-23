@@ -246,7 +246,10 @@ static void mc_update_train_speed(mc_context* ctxt,
 
     char  buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_SPEED_COL);
-    ptr = sprintf(ptr, "%d ", tr_speed);
+    if (tr_speed == 0)
+        ptr = sprintf_string(ptr, "- ");
+    else
+        ptr = sprintf(ptr, "%d ", tr_speed);
 
     Puts(buffer, ptr-buffer);
 }
