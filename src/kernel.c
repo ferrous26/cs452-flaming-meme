@@ -562,7 +562,7 @@ inline static void task_destroy() {
     }
 
     // put the task back into the allocation pool
-    cbuf_produce(&free_list, (char)mod2((uint)task_active->tid, TASK_MAX));
+    cbuf_produce(&free_list, (char)task_index_from_tid(task_active->tid));
 }
 
 
