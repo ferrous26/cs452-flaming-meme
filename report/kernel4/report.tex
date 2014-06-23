@@ -574,16 +574,33 @@ following errors:
   receive buffer large enough for \ttt{msg}
 \end{description}
 
-
 \subsection*{Hardware Events}
 
-\subsubsection*{AwaitEvent}
+All hardware events are handled though the use of a single system call. Since
+the interface of the call allowed us to be quite flexible with what is passed
+to the kernel to handle the event it was was to ensure that user land never
+needs to ever access hardware directly.
 
-\subsection*{Message Passing Wrappers}
+\subsubsection*{int AwaitEvent(int eventid, char* event, int eventlen)}
 
-\subsubsection*{WhoIs}
+\begin{description}
+\item[\ttt{eventid}] An identifier for the event action to wait upon
+\item[\ttt{event}] A pointer to the buffer for use with a particular event
+\item[\ttt{eventlen}] The size, in bytes, of the \ttt{event} buffer
+\end{description}
 
-And all the rest\ldots
+We chose this signature for use in the await event signature since it allowed
+for us to perform actions that could send or return more than a word of data
+at a time. This is quite handily when having to deal with performing actions
+with the FIFO's that are enabled on \ttt{UART2}. The action that is performed
+on the buffer is different depending on which event is being waited upon.
+
+The functions return differs depending on the event that is waited upon but a
+good rule of thumb is that on success it will return how many characters in the
+buffer have been processed. For failures we do not use any error codes since
+they are all directly from the misuse of the function. Instead of an error
+being thrown we shut down the kernel and notify the user what was wrong with
+the await call so the user can then go fix it.
 
 \section*{Hardware Interrupts}
 
@@ -929,9 +946,34 @@ All of the turnout states are placed into a standard array that uses a mapping
 function to zero index off the the switch numbers into a position that is
 contiguous in respect to the other turnouts.
 
+\subsection*{Terminal Server}
+
 \subsection*{Train Server}
 
-\subsection*{Terminal Server}
+The train server works like a slightly simpler terminal server. When the train
+server starts up the first thing it does is register its self with the
+Nameserver. Next, it creates a task to act as a Notifier to get characters that
+are sent by the train and another task that will take characters from the
+server and forward them to the train server.
+
+The train server uses 2 circular character buffers to store both the incoming
+and outgoing characters while it waits for their appropriate tasks to pick them
+up for processing. the Train server doesn't have logic to block tasks as the
+number of commands that need to be sent to the train server at a time are
+relatively small and trying to overflow the buffers would require trying to
+make everything on the train set do opposing actions at the same time.
+
+\subsubsection*{Train Write Carrier}
+
+The train write character tries to grab up to 4 characters at a time from the
+server and stream them one at a time over to the train set. Between every
+\ttt{UART1\_SEND} event the carrier ensures that the clear to send line has
+both gone down and up to ensure that the train set has had enough time to
+process the previous character. This is done though both the \ttt{UART1\_CTS}
+and \ttt{UART1\_DOWN} events.
+
+\subsubsection*{Train Receive Notifier}
+
 
 \subsection*{Idle Task}
 
