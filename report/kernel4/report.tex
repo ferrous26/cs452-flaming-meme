@@ -896,6 +896,41 @@ debugging.
 
 \subsection*{Terminal Server}
 
+\subsection*{Idle Task}
+
+The idle task is created at startup and runs at the lowest priority in
+the system. The task constantly polls the 40-bit timer in the system
+and checks the difference from the last time the timer was polled. If
+the difference is greater than 2 ticks, then we know that the system
+was interrupted performing real work between pollings. In this case,
+the difference is added to a counter for the total number of non-idle
+time. This sum can be compared against the amount of time since the
+system started to calculate the percentage of non-idle time. The
+complement of this value is the idle time of the system.
+
+This works because the system can poll the 40-bit timer in much less
+than 2 ticks of the timer. However, if the idle task is interrupted by
+hardware events it will take the system at least two context switches
+before it can return to the idle task.
+
+Measuring idle time in this way does not impact the scheduler or any
+important component of the system. However, the accuracy of idle time
+calculation decreases as the amount of non-idle time increases.
+
+\subsubsection*{Idle UI}
+
+A separate task, running at a higher priority, polls the idle time
+counter once per second and calculates the idle time for the past
+second. The counter is then reset and the idle time, as a percentage,
+is then printed to the screen.
+
+An indicator is printed after the idle time that will change every
+time the idle value is printed. This is to indicate that the idle time
+is being updated and the system has not hung.
+
+An update time of one second was chosen because it needed to be stable
+on screen long enough for a human to read the value. Though, we may
+need to make it update more frequently in the future.
 
 \section*{Terminal Commands}
 
