@@ -43,7 +43,7 @@ typedef struct task_q_pointers {
 
 
 CHAR_BUFFER(TASK_MAX)
-static char_buffer free_list DATA_HOT;
+static char_buffer free_list;
 
 static struct task_manager {
     uint32 state; // bitmap for accelerating queue selection
@@ -87,10 +87,10 @@ static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
  * @return tid of new task, or an error code as defined by CreateTask()
  */
 inline static int  task_create(const task_pri pri,
-			       void (*const start)(void)) TEXT_HOT;
-inline static void task_destroy(void) TEXT_HOT;
-inline static void scheduler_schedule(task* const t) TEXT_HOT;
-inline static void scheduler_get_next(void) TEXT_HOT;
+			       void (*const start)(void));
+inline static void task_destroy(void);
+inline static void scheduler_schedule(task* const t);
+inline static void scheduler_get_next(void);
 
 static void _print_train() {
 
