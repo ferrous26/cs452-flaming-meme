@@ -938,8 +938,66 @@ A full list of the commands that the terminal supports.
 
 \section*{Abortions And Assertions}
 
-This is where we talk about how we choose to detect and handle errors.
+Consistency checks are peppered liberally throughout the code base
+asserting that arguments and messages contain valid values. In the
+kernel we also have several checks to make sure that task state is not
+corrupted between system calls and hardware interrupts.
 
+Corruption checks include checking that the task stack pointer is in a
+valid range and that the program counter for the task is within the
+text range for the kernel. If a corruption check fails then execution
+of the system is aborted.
+
+System calls will return an error code in almost all error cases,
+allowing the calling task to handle the error. However, most tasks
+will handle the error by aborting execution as system call errors are
+not an expected behaviour for any task currently implemented.
+
+Other errors in task land that we think that we can recover from are
+usually handled by returning from the function with an error code
+indicating the error. If the caller does not want to handle the error
+then execution is aborted.
+
+In general, the vast majority most consistency checks are in the form
+of assertions and will cause execution to abort if the check fails.
+
+\subsection*{Magic SysRq Key}
+
+Borrowing the concept of the magic system request key from
+Linux. Pressing the tilde (\ttt{`}) key at any point during runtime
+will cause execution of the system to abort and print out the full
+debug tableau.
+
+The request key should respond no matter what state tasks are in as
+long as the kernel itself has not become corrupt. The value of being
+able to do this is an abortion will dump the debug tableau to the
+terminal.
+
+\subsection**{Debug Tableau}
+
+As mentioned in the \ttt{Abort} system call documentation, when
+execution is aborted the full state of the kernel is dumped to the
+terminal. This information includes the full table of task
+descriptors, the currently active task, and a listing of all tasks
+waiting on hardware interrupts.
+
+The task descriptor table will include every descriptor that has been
+allocated, even if the descriptor is currently unused. Unused
+descriptors are indicated by having a \ttt{-} value in the stack
+pointer column.
+
+To make mental reconstruction of the task state easier, we attempt to
+replace all task identifiers with names by performing a reverse lookup
+in the name server.
+
+The table contains enough information to reconstruct what state each
+task was in, including the stack pointer and program counter. The
+table includes information about messaging, including which task was
+blocked sending or waiting for a message. The scheduling priority
+queues and message receive queues can be reconstructed from the table
+with some effort. Information about which tasks were blocked on
+particular hardware events, and the currently active task, are listed
+above the table.
 
 \section*{Known Bugs}
 
