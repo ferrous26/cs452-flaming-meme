@@ -77,15 +77,16 @@ char* vt_scroll_down(char* buffer);
 
 
 // coloured output
-#define BLACK   "30"
-#define RED     "31"
-#define GREEN   "32"
-#define YELLOW  "33"
-#define BLUE    "34"
-#define MAGENTA "35"
-#define CYAN    "36"
-#define WHITE   "37"
-#define DEFAULT "37"
+#define BLACK    "30"
+#define RED      "31"
+#define GREEN    "32"
+#define YELLOW   "33"
+#define BLUE     "34"
+#define MAGENTA  "35"
+#define CYAN     "36"
+#define WHITE    "37"
+#define DEFAULT  "37"
+#define BG_WHITE "47"
 
 #define COLOUR_RESET ESC_CODE "0m"
 #define COLOUR(c) ESC_CODE c "m"
