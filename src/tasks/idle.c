@@ -10,12 +10,6 @@
 // best case number of Timer4 ticks for a context switch
 #define MINIMUM_NON_IDLE_TIME 2
 
-#define IDLE_ASSERT if (result) idle_failure(result, __LINE__)
-static void __attribute__ ((noreturn)) idle_failure(int result, uint line) {
-    log("Action failed in idle UI at line %u (%d)", line, result);
-    Shutdown();
-}
-
 static uint non_idle_ticks = 0;
 
 static inline char twirler(const char prev) {
