@@ -596,8 +596,6 @@ static char* _abort_tid(char* ptr, task* const t) {
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
-    if (!t) return ptr;
-
     if (t->p_tid == -1)
 	return sprintf_string(ptr, "-           ");
 
@@ -611,8 +609,6 @@ static char* _abort_priority(char* ptr, task* const t) {
 }
 
 static char* _abort_next(char* ptr, task* const t) {
-    if (!t) return ptr;
-
     if (t->next == RECV_BLOCKED)
 	return sprintf_string(ptr, "RECV        ");
 
@@ -623,23 +619,23 @@ static char* _abort_next(char* ptr, task* const t) {
 }
 
 static char* _abort_sp(char* ptr, task* const t) {
-    if (!t) return ptr;
-
     if (t->sp)
 	return sprintf(ptr, "%p  ", t->sp);
     return sprintf_string(ptr, "-           ");
 }
 
-static char* _abort_receiver(char* ptr, task* const t) {
-    if (!t) return ptr;
+static char* _abort_pc(char* ptr, task* const t) {
+    if (t->sp)
+	return sprintf(ptr, "%p  ", t->sp[2]);
+    return sprintf_string(ptr, "-           ");
+}
 
+static char* _abort_receiver(char* ptr, task* const t) {
     task_q* const q = &recv_q[task_index_from_tid(t->tid)];
     return _abort_tid(ptr, q->head);
 }
 
 static char* _abort_send(char* ptr, task* const t) {
-    if (!t) return ptr;
-
     if (t->next != RPLY_BLOCKED)
 	return sprintf_string(ptr, "-           ");
 
@@ -687,9 +683,10 @@ void abort(const kreq_abort* const req) {
 			 "Priority    "
 			 "Next        "
 			 "Stack       "
+                         "PC          "
 			 "Receiver    "
-			 "Reply/Send\n");
-    for (int i = 0; i < 84; i++)
+			 "Send      \n");
+    for (int i = 0; i < 96; i++)
 	ptr = sprintf_char(ptr, '#');
     ptr = sprintf_char(ptr, '\n');
 
@@ -704,6 +701,7 @@ void abort(const kreq_abort* const req) {
 	ptr = _abort_priority(ptr, t);
 	ptr = _abort_next(ptr, t);
 	ptr = _abort_sp(ptr, t);
+        ptr = _abort_pc(ptr, t);
 	ptr = _abort_receiver(ptr, t);
 	ptr = _abort_send(ptr, t);
 	ptr = sprintf_string(ptr, "\n");

@@ -602,6 +602,76 @@ they are all directly from the misuse of the function. Instead of an error
 being thrown we shut down the kernel and notify the user what was wrong with
 the await call so the user can then go fix it.
 
+
+\subsubsection*{int Delay(int ticks)}
+
+\begin{description}
+\item[\ttt{ticks}] The number of clocks ticks to delay the task
+\end{description}
+
+Suspend execution of the the caller task for \ttt{ticks} clock
+ticks. The actual delay is guaranteed to be at least \ttt{ticks} clock
+ticks, but may be longer if the system is under heavy load.
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call function before context switching into the
+kernel. Negative or zero delays are interpreted as an indicator that
+the system is missing deadlines and by checking the value before
+calling into the kernel we save some time by not having to actually
+pass the message to the clock server. In this case an error code value
+is returned. However, we plan to add some sort of visual notifier
+for this case in the future as it is important for debugging.
+
+A successful delay will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call or are one of the following:
+
+\begin{description}
+\item[\ttt{INVALID\_DELAY (-60)}] The \ttt{ticks} value was less or
+  equal to $0$
+\end{description}
+
+
+\subsubsection*{int DelayUntil(int ticks)}
+
+\begin{description}
+\item[\ttt{ticks}] The system time which the task should be delayed
+  until
+\end{description}
+
+Suspend execution of the caller task until the system time is \ttt{ticks}.
+The actual delay is guaranteed to be at least until \ttt{ticks}
+clock ticks for the system, but may be longer if the system is under
+heavy load.
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call function before context switching into the
+kernel. However, unlike \ttt{Delay}, this value cannot be fully
+checked without knowing the current system time, which is not known
+until the clock server has the request.
+
+A successful delay will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call or are one of the following:
+
+\begin{description}
+\item[\ttt{INVALID\_DELAY (-60)}] The \ttt{ticks} value was less or
+  equal to $0$
+\end{description}
+
+
+\subsubsection*{int Time()}
+
+Returns the current system time.
+
+A successful call will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call.
+
+
 \section*{Hardware Interrupts}
 
 When we were designing our interrupt code we wanted the user space tasks to
@@ -690,7 +760,7 @@ via a clear to send bit the general interrupt is used to pick up the modem
 interrupts.
 
 A \ttt{UART1\_SEND} is hooked up to the \ttt{UART1} send interrupt. The user
-task passes in the character that they would like to send to the train set 
+task passes in the character that they would like to send to the train set
 in the event call and execution will resume after the character has been
 forwarded to the train set.
 
@@ -831,63 +901,6 @@ $0.1$ seconds. The UI task will synchronize its time with the
 time does not drift from the stored time.
 
 
-\subsubsection*{int Delay(int ticks)}
-
-\begin{description}
-\item[\ttt{ticks}] The number of clocks ticks to delay the task
-\end{description}
-
-Delay the calling task by \ttt{ticks} clock ticks. The actual delay is
-guaranteed to be at least \ttt{ticks} clock ticks, but may be longer
-if the system is under heavy load.
-
-Negative and zero time delay values for \ttt{ticks} are checked by the
-system call function before context switching into the
-kernel. Negative or zero delays are interpreted as an indicator that
-the system is missing deadlines and by checking the value before
-calling into the kernel we save some time by not passing through the
-full delay logic. However, we plan to add some sort of visual notifier
-for this case in the future as it is important for debugging.
-
-A successful delay will return the current system time, a positive
-value. A failure in the message sending will cause a negative integer
-value to be returned. The error codes correspond to that of the
-\ttt{Send} system call.
-
-
-\subsubsection*{int DelayUntil(int ticks)}
-
-\begin{description}
-\item[\ttt{ticks}] The system time which the task should be delayed
-  until
-\end{description}
-
-Delay the calling task until the system time is \ttt{ticks} clock
-ticks. The actual delay is guaranteed to be at least until \ttt{ticks}
-clock ticks, but may be longer if the system is under heavy load.
-
-Negative and zero time delay values for \ttt{ticks} are checked by the
-system call function before context switching into the
-kernel. However, unlike \ttt{Delay}, this value cannot be fully
-checked without knowing the current system time, which is not known
-until the clock server has the request.
-
-A successful delay will return the current system time, a positive
-value. A failure in the message sending will cause a negative integer
-value to be returned. The error codes correspond to that of the
-\ttt{Send} system call.
-
-
-\subsubsection*{int Time()}
-
-Returns the current system time.
-
-A successful call will return the current system time, a positive
-value. A failure in the message sending will cause a negative integer
-value to be returned. The error codes correspond to that of the
-\ttt{Send} system call.
-
-
 \subsection*{Name Server}
 
 The Nameserver is the first task that is started up on the
@@ -975,6 +988,40 @@ and \ttt{UART1\_DOWN} events.
 \subsubsection*{Train Receive Notifier}
 
 
+\subsection*{Train Station}
+
+All train commands are buffered in a warehouse task called the train
+station. The train station maintains a separate circular buffer of
+commands for each train and instantiates a \ttt{train} task for each
+possible train in the lab.
+
+When a train task is ready to execute a new operation it will request
+a job from the train station. If no jobs are available then the train
+task will block until there are jobs available.
+
+Buffering commands in a warehouse allows long running commands, such
+as reversing the train, to not block the command prompt.
+
+
+\subsection*{Train}
+
+Train tasks anthropomorphize trains on the track. They will simply ask
+for jobs from the train station warehouse task and be blocked until
+there is a job to perform.
+
+Jobs include changing speed, stopping, reversing, toggling lights, and
+toggling the horn function. Implementing train control logic in this
+way made handling train reverse operations trivial as a train task can
+block without having to worry about blocking while waiting for the
+train to stop without having to block the command prompt or any
+other part of the system.
+
+There are seven instances of the train task running by default, one
+for each train in the lab. Each train task asks the train station
+which train it represents at boot time and then registers the
+name ``TRAINnn'' with the name server, where ``nn'' is the trains
+number.
+
 \subsection*{Idle Task}
 
 The idle task is created at startup and runs at the lowest priority in
@@ -1017,18 +1064,77 @@ A full list of the commands that the terminal supports.
 
 \section*{Abortions And Assertions}
 
-This is where we talk about how we choose to detect and handle errors.
+Consistency checks are peppered liberally throughout the code base
+asserting that arguments and messages contain valid values. In the
+kernel we also have several checks to make sure that task state is not
+corrupted between system calls and hardware interrupts.
 
+Corruption checks include checking that the task stack pointer is in a
+valid range and that the program counter for the task is within the
+text range for the kernel. If a corruption check fails then execution
+of the system is aborted.
+
+System calls will return an error code in almost all error cases,
+allowing the calling task to handle the error. However, most tasks
+will handle the error by aborting execution as system call errors are
+not an expected behaviour for any task currently implemented.
+
+Other errors in task land that we think that we can recover from are
+usually handled by returning from the function with an error code
+indicating the error. If the caller does not want to handle the error
+then execution is aborted.
+
+In general, the vast majority most consistency checks are in the form
+of assertions and will cause execution to abort if the check fails.
+
+\subsection*{Magic SysRq Key}
+
+Borrowing the concept of the magic system request key from
+Linux. Pressing the tilde (\ttt{`}) key at any point during runtime
+will cause execution of the system to abort and print out the full
+debug tableau.
+
+The request key should respond no matter what state tasks are in as
+long as the kernel itself has not become corrupt. The value of being
+able to do this is an abortion will dump the debug tableau to the
+terminal.
+
+\subsection**{Debug Tableau}
+
+As mentioned in the \ttt{Abort} system call documentation, when
+execution is aborted the full state of the kernel is dumped to the
+terminal. This information includes the full table of task
+descriptors, the currently active task, and a listing of all tasks
+waiting on hardware interrupts.
+
+The task descriptor table will include every descriptor that has been
+allocated, even if the descriptor is currently unused. Unused
+descriptors are indicated by having a \ttt{-} value in the stack
+pointer column.
+
+To make mental reconstruction of the task state easier, we attempt to
+replace all task identifiers with names by performing a reverse lookup
+in the name server.
+
+The table contains enough information to reconstruct what state each
+task was in, including the stack pointer and program counter. The
+table includes information about messaging, including which task was
+blocked sending or waiting for a message. The scheduling priority
+queues and message receive queues can be reconstructed from the table
+with some effort. Information about which tasks were blocked on
+particular hardware events, and the currently active task, are listed
+above the table.
 
 \section*{Known Bugs}
 
 \begin{itemize}
-\item Clock UI stops updating at 100 minutes. Internal time continues to
-	increase.
-\item On rare occasion when trying to restart the OS the clock will be in a
-	bad state and cause the terminal UI to lock up. Restarting the
-	application again will fix the issue, this issue will also never
-	manifest on the first run after the box has been reset.
+\item The clock UI will stop updating at 100 minutes. However, the
+  system time will continue to increment normally.
+\item On rare occasion when trying to restart the OS, the clock will be in a
+  bad state and cause the terminal UI to lock up. Restarting the
+  application again will fix the issue. This issue has never
+  manifested on the first run after the box has been reset, only
+  during every other subsequent run.
 \end{itemize}
 
 \end{document}

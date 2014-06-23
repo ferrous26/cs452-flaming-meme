@@ -12,8 +12,8 @@
 
 #define Putc_TERMINAL(ch) put_term_char(ch)
 #define Putc_2(ch)        Putc_TERMINAL(ch)
-#define Getc_TERMINAL get_term_char()
-#define Getc_2        Getc_TERMINAL
+#define Getc_TERMINAL     get_term_char()
+#define Getc_2            Getc_TERMINAL
 
 void __attribute__ ((noreturn)) term_server(void);
 
@@ -21,8 +21,8 @@ int get_term_char(void);
 int put_term_char(char ch);
 
 #define Puts(str, len) {						\
-	int puts_result = term_put_string(str, len);			\
-	if (puts_result != 0) ABORT("Failed to Puts! (%d)", puts_result); \
+        int puts_result = term_put_string(str, len);			\
+        if (puts_result != 0) ABORT("Failed to Puts! (%d)", puts_result); \
     }
 
 int term_put_string(char* const str, int length);
