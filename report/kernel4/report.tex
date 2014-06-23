@@ -574,6 +574,7 @@ following errors:
   receive buffer large enough for \ttt{msg}
 \end{description}
 
+\newpage
 \subsection*{Hardware Events}
 
 All hardware events are handled though the use of a single system call. Since
@@ -632,7 +633,7 @@ value to be returned. The error codes correspond to that of the
   equal to $0$
 \end{description}
 
-
+\newpage
 \subsubsection*{int DelayUntil(int ticks)}
 
 \begin{description}
@@ -850,6 +851,7 @@ Similarly, \ttt{UART2} uses a combination of 3 different interrupts:
 	applicable amount of time will also cause an error in the operation of
 	the hardware. Due to the use of the FIFO we have quite a bit more time
 	before bytes start getting lost.
+\newpage
 \item[Interrupt 26 - \ttt{UART2} Send] \hfill \\
 	This interrupt is enabled with the lowest priority inside of
 	\ttt{VIC1}. The reason for this is because the terminal has a high
@@ -1025,8 +1027,6 @@ All of the turnout states are placed into a standard array that uses a mapping
 function to zero index off the the switch numbers into a position that is
 contiguous in respect to the other turnouts.
 
-\subsection*{Terminal Server}
-
 \subsection*{Train Server}
 
 The train server works like a slightly simpler terminal server. When the train
@@ -1051,8 +1051,7 @@ both gone down and up to ensure that the train set has had enough time to
 process the previous character. This is done though both the \ttt{UART1\_CTS}
 and \ttt{UART1\_DOWN} events.
 
-\subsubsection*{Train Receive Notifier}
-
+\subsection*{Terminal Server}
 
 The terminal server serializes and manages all output to the terminal
 serial line. It creates a send carrier and receive notifier task to
