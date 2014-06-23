@@ -47,23 +47,23 @@ static void __attribute__ ((noreturn)) clock_notifier() {
     RegisterAs((char*)CLOCK_NOTIFIER_NAME);
 
     FOREVER {
-	int result = AwaitEvent(CLOCK_TICK, NULL, 0);
-	CLOCK_ASSERT(result == 0, result);
+        int result = AwaitEvent(CLOCK_TICK, NULL, 0);
+        CLOCK_ASSERT(result == 0, result);
 
-	// We don't actually need to send anything to the clock
-	// server, but sending 0 bytes is going to go down a bad path
-	// in memcpy, so send the most optimal case (one word).
-	result = Send(clock,
-		      (char*)&msg, sizeof(msg),
-		      (char*)&msg, sizeof(msg));
-	CLOCK_ASSERT(result == 0, result);
+        // We don't actually need to send anything to the clock
+        // server, but sending 0 bytes is going to go down a bad path
+        // in memcpy, so send the most optimal case (one word).
+        result = Send(clock,
+                      (char*)&msg, sizeof(msg),
+                      (char*)&msg, sizeof(msg));
+        CLOCK_ASSERT(result == 0, result);
     }
 }
 
 static void __attribute__ ((noreturn)) clock_ui() {
     RegisterAs((char*)CLOCK_UI_NAME);
 
-// CLOCK MM:SS.D
+    // CLOCK MM:SS.D
 #define CLOCK_ROW     1
 #define CLOCK_MINUTES 7
 #define CLOCK_SECONDS 10
@@ -81,47 +81,47 @@ static void __attribute__ ((noreturn)) clock_ui() {
     int  tenths = 0;
 
     FOREVER {
-	int time = Delay(10);
-	CLOCK_ASSERT(time, time);
+        int time = Delay(10);
+        CLOCK_ASSERT(time, time);
 
-	tenths++;
-	if (tenths == 10) {
-	    seconds++;
-	    tenths = 0;
+        tenths++;
+        if (tenths == 10) {
+            seconds++;
+            tenths = 0;
 
-	    if (seconds == 60) {
-		// sync with the actual time
-		tenths  = time    / 10;
-		seconds = tenths  / 10;
-		minutes = seconds / 60;
-		tenths  = tenths  % 10;
-		seconds = seconds % 60;
-		minutes = minutes % 100;
+            if (seconds == 60) {
+                // sync with the actual time
+                tenths  = time    / 10;
+                seconds = tenths  / 10;
+                minutes = seconds / 60;
+                tenths  = tenths  % 10;
+                seconds = seconds % 60;
+                minutes = minutes % 100;
 
-		if (minutes >= 100) Exit(); // avoid killing UI
+                if (minutes >= 100) Exit(); // avoid killing UI
 
-		ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_MINUTES);
-		ptr    = sprintf(ptr, "%c%c:%c%c.%c",
-				 '0' + (minutes / 10),
-				 '0' + (minutes % 10),
-				 '0' + (seconds / 10),
-				 '0' + (seconds % 10),
-				 '0' + tenths);
-		Puts(buffer, ptr - buffer);
-	    }
-	    else { // need to update seconds and tenths
-		ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_SECONDS);
-		ptr    = sprintf(ptr, "%c%c.0",
-				 '0' + (seconds / 10),
-				 '0' + (seconds % 10));
-		Puts(buffer, ptr - buffer);
-	    }
-	}
-	else { // only need to update deciseconds
-	    ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_TENTHS);
-	    ptr    = sprintf_char(ptr, '0' + (char)tenths);
-	    Puts(buffer, ptr - buffer);
-	}
+                ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_MINUTES);
+                ptr    = sprintf(ptr, "%c%c:%c%c.%c",
+                                 '0' + (minutes / 10),
+                                 '0' + (minutes % 10),
+                                 '0' + (seconds / 10),
+                                 '0' + (seconds % 10),
+                                 '0' + tenths);
+                Puts(buffer, ptr - buffer);
+            }
+            else { // need to update seconds and tenths
+                ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_SECONDS);
+                ptr    = sprintf(ptr, "%c%c.0",
+                                 '0' + (seconds / 10),
+                                 '0' + (seconds % 10));
+                Puts(buffer, ptr - buffer);
+            }
+        }
+        else { // only need to update deciseconds
+            ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_TENTHS);
+            ptr    = sprintf_char(ptr, '0' + (char)tenths);
+            Puts(buffer, ptr - buffer);
+        }
     }
 }
 
@@ -130,8 +130,8 @@ static void pq_init(clock_pq* q) {
     q->delays[0].time = 0;
     q->delays[0].tid  = 0;
     for (uint i = 1; i < TASK_MAX; i++) {
-	q->delays[i].time = INT_MAX;
-	q->delays[i].tid  = -1;
+        q->delays[i].time = INT_MAX;
+        q->delays[i].tid  = -1;
     }
 }
 
@@ -156,27 +156,27 @@ static int pq_delete(clock_pq* q) {
 
     // bubble down until we can bubble no more
     FOREVER {
-	int left     = LEFT(curr);
-	int right    = RIGHT(curr);
-	int smallest = curr;
+        int left     = LEFT(curr);
+        int right    = RIGHT(curr);
+        int smallest = curr;
 
-	if (delays[left].time < delays[curr].time)
-	    smallest = left;
+        if (delays[left].time < delays[curr].time)
+            smallest = left;
 
-	if (delays[right].time < delays[smallest].time)
-	    smallest = right;
+        if (delays[right].time < delays[smallest].time)
+            smallest = right;
 
-	// if no swapping needed, then brak
-	if (smallest == curr) break;
+        // if no swapping needed, then brak
+        if (smallest == curr) break;
 
-	// else, swap and prepare for next iteration
-	int stime = delays[smallest].time;
-	int  stid = delays[smallest].tid;
-	delays[smallest].time = delays[curr].time;
-	delays[smallest].tid  = delays[curr].tid;
-	delays[curr].time     = stime;
-	delays[curr].tid      = stid;
-	curr = smallest;
+        // else, swap and prepare for next iteration
+        int stime = delays[smallest].time;
+        int  stid = delays[smallest].tid;
+        delays[smallest].time = delays[curr].time;
+        delays[smallest].tid  = delays[curr].tid;
+        delays[curr].time     = stime;
+        delays[curr].tid      = stid;
+        curr = smallest;
     }
 
     return tid;
@@ -192,15 +192,15 @@ static void pq_add(clock_pq* q, int time, int tid) {
     delays[curr].tid  = tid;
 
     FOREVER {
-	// is it smaller than it's parent?
-	if (delays[curr].time >= delays[parent].time) break;
+        // is it smaller than it's parent?
+        if (delays[curr].time >= delays[parent].time) break;
 
-	delays[curr].time   = delays[parent].time;
-	delays[curr].tid    = delays[parent].tid;
-	delays[parent].time = time;
-	delays[parent].tid  = tid;
-	curr                = parent;
-	parent              = PARENT(curr);
+        delays[curr].time   = delays[parent].time;
+        delays[curr].tid    = delays[parent].tid;
+        delays[parent].time = time;
+        delays[parent].tid  = tid;
+        curr                = parent;
+        parent              = PARENT(curr);
     }
 }
 
@@ -212,7 +212,7 @@ static void __attribute__ ((unused)) pq_debug(clock_pq* q) {
     clock_delay* delays = q->delays;
 
     for (uint i = 1; i < TASK_MAX; i++)
-	debug_log("q->delays[%u] = %u - %u", i, delays[i].time, delays[i].tid);
+        debug_log("q->delays[%u] = %u - %u", i, delays[i].time, delays[i].tid);
 }
 #endif
 
@@ -226,15 +226,15 @@ static void _startup(clock_pq* pq) {
 
     int result = RegisterAs((char*)CLOCK_SERVER_NAME);
     if (result)
-	ABORT("Failed to register clock server name (%d)", result);
+        ABORT("Failed to register clock server name (%d)", result);
 
     result = Create(TASK_PRIORITY_HIGH, clock_notifier);
     if (result < 0)
-	ABORT("Failed to create clock_notifier (%d)", result);
+        ABORT("Failed to create clock_notifier (%d)", result);
 
     result = Create(TASK_PRIORITY_MEDIUM_LOW, clock_ui);
     if (result < 0)
-	ABORT("Failed to create clock_ui (%d)", result);
+        ABORT("Failed to create clock_ui (%d)", result);
 
     pq_init(pq);
 }
@@ -249,74 +249,74 @@ void clock_server() {
     _startup(&q);
 
     FOREVER {
-	int tid;
-	int siz = Receive(&tid, (char*)&req, sizeof(req));
+        int tid;
+        int siz = Receive(&tid, (char*)&req, sizeof(req));
 
-        UNUSED(siz);
-	assert(req.type >= CLOCK_NOTIFY && req.type <= CLOCK_DELAY_UNTIL,
-	       "CS: Invalid message type from %u (%d) size = %u",
-	       tid, req.type, siz);
+        UNUSED(siz); // TODO: assert siz is minimum size
+        assert(req.type >= CLOCK_NOTIFY && req.type <= CLOCK_DELAY_UNTIL,
+               "CS: Invalid message type from %u (%d) size = %u",
+               tid, req.type, siz);
 
-	switch (req.type) {
-	case CLOCK_NOTIFY:
-	    // reset notifier ASAP
-	    result = Reply(tid, NULL, 0);
-	    if (result)
-		log("Failed to reply to clock_notifier (%d)", result);
+        switch (req.type) {
+        case CLOCK_NOTIFY:
+            // reset notifier ASAP
+            result = Reply(tid, NULL, 0);
+            if (result)
+                log("Failed to reply to clock_notifier (%d)", result);
 
-	    // tick-tock
-	    time++;
+            // tick-tock
+            time++;
 
-	    while (pq_peek(&q) <= time) {
-		tid = pq_delete(&q);
-		result = Reply(tid, (char*)&time, sizeof(time));
-		if (result) _error(tid, result);
+            while (pq_peek(&q) <= time) {
+                tid = pq_delete(&q);
+                result = Reply(tid, (char*)&time, sizeof(time));
+                if (result) _error(tid, result);
+            }
+            break;
+
+        case CLOCK_DELAY:
+            // value is checked on the calling task
+            pq_add(&q, req.ticks + time, tid);
+            break;
+
+        case CLOCK_TIME:
+            result = Reply(tid, (char*)&time, sizeof(time));
+            if (result) _error(tid, result);
+            break;
+
+        case CLOCK_DELAY_UNTIL:
+            // if we missed the deadline, wake task up right away?
+            if (req.ticks <= time) {
+                result = Reply(tid, (char*)&timex, sizeof(time));
+                if (result) _error(tid, result);
 	    }
-	    break;
+            else {
+                pq_add(&q, req.ticks, tid);
+            }
+            break;
 
-	case CLOCK_DELAY:
-	    // value is checked on the calling task
-	    pq_add(&q, req.ticks + time, tid);
-	    break;
-
-	case CLOCK_TIME:
-	    result = Reply(tid, (char*)&time, sizeof(time));
-	    if (result) _error(tid, result);
-	    break;
-
-	case CLOCK_DELAY_UNTIL:
-	    // if we missed the deadline, wake task up right away?
-	    if (req.ticks <= time) {
-		result = Reply(tid, (char*)&req, sizeof(clock_req_type));
-		if (result) _error(tid, result);
-	    }
-	    else {
-		pq_add(&q, req.ticks, tid);
-	    }
-	    break;
-
-	}
+        }
     }
 }
 
 int Time() {
     clock_req req = {
-	.type = CLOCK_TIME
+        .type = CLOCK_TIME
     };
 
     int time;
     int result = Send(clock_server_tid,
-		      (char*)&req,  sizeof(clock_req_type),
-		      (char*)&time, sizeof(time));
+                      (char*)&req,  sizeof(clock_req_type),
+                      (char*)&time, sizeof(time));
 
     // Note: since we return _result_ in error cases, we inherit
     // additional error codes not in the kernel spec for this function
     if (result == sizeof(time))
-	return time;
+        return time;
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	ABORT("Clock server died");
+        ABORT("Clock server died");
 
     // else, error out
     return result;
@@ -324,48 +324,48 @@ int Time() {
 
 int Delay(int ticks) {
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return 0;
+    if (ticks <= 0) return Time();
 
     clock_req req = {
-	.type  = CLOCK_DELAY,
-	.ticks = ticks
+        .type  = CLOCK_DELAY,
+        .ticks = ticks
     };
 
     int time;
     int result = Send(clock_server_tid,
-		      (char*)&req,  sizeof(clock_req),
-		      (char*)&time, sizeof(time));
+                      (char*)&req,  sizeof(clock_req),
+                      (char*)&time, sizeof(time));
 
     if (result == sizeof(int))
-	return time;
+        return time;
 
     // maybe clock server died
     if (result == INVALID_TASK || result == INCOMPLETE)
-	ABORT("Clock server died");
+        ABORT("Clock server died");
 
     return result;
 }
 
 int DelayUntil(int ticks) {
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return 0;
+    if (ticks <= 0) return Time();
 
     clock_req req = {
-	.type = CLOCK_DELAY_UNTIL,
-	.ticks = ticks
+        .type = CLOCK_DELAY_UNTIL,
+        .ticks = ticks
     };
 
     int time;
     int result = Send(clock_server_tid,
-		      (char*)&req,  sizeof(clock_req),
-		      (char*)&time, sizeof(time));
+                      (char*)&req,  sizeof(clock_req),
+                      (char*)&time, sizeof(time));
 
     if (result == sizeof(time))
-	return time;
+        return time;
 
     // maybe clock server died, so we can try again
     if (result == INVALID_TASK || result == INCOMPLETE)
-	ABORT("Clock server died");
+        ABORT("Clock server died");
 
     return result;
 }
