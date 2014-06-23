@@ -134,11 +134,12 @@ void task_launcher() {
                 line[insert++] = c;
             }
 
+            ptr = sprintf_string(ptr, COLOUR(BG_WHITE) " " COLOUR_RESET);
             Puts(buffer, ptr - buffer);
         }
 
         line[insert] = '\0';
-	log("%s%s", line_mark, line);
+	log(line);
 
         int args[5];
         action(parse_command(line, args), args);
