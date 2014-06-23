@@ -1,6 +1,6 @@
 task :default => :build
 
-ELF_NAME = 'k4'
+ELF_NAME = 'm1'
 UW_HOME  = ENV['UW_HOME']
 UW_USER  = ENV['UW_USER']
 
