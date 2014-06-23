@@ -585,6 +585,76 @@ following errors:
 
 And all the rest\ldots
 
+
+\subsubsection*{int Delay(int ticks)}
+
+\begin{description}
+\item[\ttt{ticks}] The number of clocks ticks to delay the task
+\end{description}
+
+Suspend execution of the the caller task for \ttt{ticks} clock
+ticks. The actual delay is guaranteed to be at least \ttt{ticks} clock
+ticks, but may be longer if the system is under heavy load.
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call function before context switching into the
+kernel. Negative or zero delays are interpreted as an indicator that
+the system is missing deadlines and by checking the value before
+calling into the kernel we save some time by not having to actually
+pass the message to the clock server. In this case an error code value
+is returned. However, we plan to add some sort of visual notifier
+for this case in the future as it is important for debugging.
+
+A successful delay will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call or are one of the following:
+
+\begin{description}
+\item[\ttt{INVALID\_DELAY (-60)}] The \ttt{ticks} value was less or
+  equal to $0$
+\end{description}
+
+
+\subsubsection*{int DelayUntil(int ticks)}
+
+\begin{description}
+\item[\ttt{ticks}] The system time which the task should be delayed
+  until
+\end{description}
+
+Suspend execution of the caller task until the system time is \ttt{ticks}.
+The actual delay is guaranteed to be at least until \ttt{ticks}
+clock ticks for the system, but may be longer if the system is under
+heavy load.
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call function before context switching into the
+kernel. However, unlike \ttt{Delay}, this value cannot be fully
+checked without knowing the current system time, which is not known
+until the clock server has the request.
+
+A successful delay will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call or are one of the following:
+
+\begin{description}
+\item[\ttt{INVALID\_DELAY (-60)}] The \ttt{ticks} value was less or
+  equal to $0$
+\end{description}
+
+
+\subsubsection*{int Time()}
+
+Returns the current system time.
+
+A successful call will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call.
+
+
 \section*{Hardware Interrupts}
 
 When we were designing our interrupt code we wanted the user space tasks to
@@ -673,7 +743,7 @@ via a clear to send bit the general interrupt is used to pick up the modem
 interrupts.
 
 A \ttt{UART1\_SEND} is hooked up to the \ttt{UART1} send interrupt. The user
-task passes in the character that they would like to send to the train set 
+task passes in the character that they would like to send to the train set
 in the event call and execution will resume after the character has been
 forwarded to the train set.
 
@@ -812,63 +882,6 @@ which will delay the task for 10 clock ticks, which is equivalent to
 $0.1$ seconds. The UI task will synchronize its time with the
 \ttt{clock\_server} once per minute to make sure that the displayed
 time does not drift from the stored time.
-
-
-\subsubsection*{int Delay(int ticks)}
-
-\begin{description}
-\item[\ttt{ticks}] The number of clocks ticks to delay the task
-\end{description}
-
-Delay the calling task by \ttt{ticks} clock ticks. The actual delay is
-guaranteed to be at least \ttt{ticks} clock ticks, but may be longer
-if the system is under heavy load.
-
-Negative and zero time delay values for \ttt{ticks} are checked by the
-system call function before context switching into the
-kernel. Negative or zero delays are interpreted as an indicator that
-the system is missing deadlines and by checking the value before
-calling into the kernel we save some time by not passing through the
-full delay logic. However, we plan to add some sort of visual notifier
-for this case in the future as it is important for debugging.
-
-A successful delay will return the current system time, a positive
-value. A failure in the message sending will cause a negative integer
-value to be returned. The error codes correspond to that of the
-\ttt{Send} system call.
-
-
-\subsubsection*{int DelayUntil(int ticks)}
-
-\begin{description}
-\item[\ttt{ticks}] The system time which the task should be delayed
-  until
-\end{description}
-
-Delay the calling task until the system time is \ttt{ticks} clock
-ticks. The actual delay is guaranteed to be at least until \ttt{ticks}
-clock ticks, but may be longer if the system is under heavy load.
-
-Negative and zero time delay values for \ttt{ticks} are checked by the
-system call function before context switching into the
-kernel. However, unlike \ttt{Delay}, this value cannot be fully
-checked without knowing the current system time, which is not known
-until the clock server has the request.
-
-A successful delay will return the current system time, a positive
-value. A failure in the message sending will cause a negative integer
-value to be returned. The error codes correspond to that of the
-\ttt{Send} system call.
-
-
-\subsubsection*{int Time()}
-
-Returns the current system time.
-
-A successful call will return the current system time, a positive
-value. A failure in the message sending will cause a negative integer
-value to be returned. The error codes correspond to that of the
-\ttt{Send} system call.
 
 
 \subsection*{Name Server}

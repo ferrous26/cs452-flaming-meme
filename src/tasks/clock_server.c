@@ -287,7 +287,7 @@ void clock_server() {
         case CLOCK_DELAY_UNTIL:
             // if we missed the deadline, wake task up right away?
             if (req.ticks <= time) {
-                result = Reply(tid, (char*)&timex, sizeof(time));
+                result = Reply(tid, (char*)&time, sizeof(time));
                 if (result) _error(tid, result);
 	    }
             else {
@@ -324,7 +324,7 @@ int Time() {
 
 int Delay(int ticks) {
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return Time();
+    if (ticks <= 0) return INVALID_DELAY;
 
     clock_req req = {
         .type  = CLOCK_DELAY,
@@ -348,7 +348,7 @@ int Delay(int ticks) {
 
 int DelayUntil(int ticks) {
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return Time();
+    if (ticks <= 0) return INVALID_DELAY;
 
     clock_req req = {
         .type = CLOCK_DELAY_UNTIL,

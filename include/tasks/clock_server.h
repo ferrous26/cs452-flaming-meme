@@ -10,6 +10,10 @@
 
 void __attribute__ ((noreturn)) clock_server(void);
 
+typedef enum {
+    INVALID_DELAY = -60
+} clock_err;
+
 int Time(void);
 int Delay(int ticks);
 int DelayUntil(int ticks);
