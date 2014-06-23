@@ -379,9 +379,6 @@ void term_server() {
     term_req req;
 
     FOREVER {
-#ifdef DEBUG
-	memset(&req, 0, sizeof(req));
-#endif
 	int result = Receive(&tid, (char*)&req, sizeof(req));
 
 	UNUSED(result);
@@ -397,10 +394,9 @@ void term_server() {
 	    _term_try_getc(&state);
 	    break;
 
-	case PUTS: {
+	case PUTS:
 	    _term_try_puts(&state, &req, tid);
 	    break;
-	}
 
 	case CARRIER:
 	    state.carrier = tid;
