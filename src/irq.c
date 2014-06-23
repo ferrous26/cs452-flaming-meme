@@ -21,15 +21,15 @@ static void default_isr() {}
 
 inline static void _init_all_vector_irq() {
     //setup VEC1
-    _init_vector_irq(25, 0, irq_uart2_recv);
-    _init_vector_irq(23, 1, irq_uart1_recv);
-    _init_vector_irq(26, 2, irq_uart2_send);
-    _init_vector_irq(24, 3, irq_uart1_send);
+    _init_vector_irq(23, 0, irq_uart1_recv);
+    _init_vector_irq(25, 1, irq_uart2_recv);
+    _init_vector_irq(24, 2, irq_uart1_send);
+    _init_vector_irq(26, 3, irq_uart2_send);
 
     //setup VEC2
-    _init_vector_irq(54, 0, irq_uart2);
-    _init_vector_irq(52, 1, irq_uart1);
-    _init_vector_irq(51, 2, irq_clock);
+    _init_vector_irq(52, 0, irq_uart1);
+    _init_vector_irq(51, 1, irq_clock);
+    _init_vector_irq(54, 2, irq_uart2);
 
     *(voidf*)(VIC1_BASE|VICDEFVECTADDR_OFFSET) = default_isr;
     *(voidf*)(VIC2_BASE|VICDEFVECTADDR_OFFSET) = default_isr;

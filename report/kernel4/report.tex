@@ -162,7 +162,7 @@ Task creation and initialization is implemented in the
 \ttt{task\_create} function.
 
 To get a descriptor, we consume a value from the free list, which
-is a circular buffer of descriptor indicies. If the free list is empty
+is a circular buffer of descriptor indices. If the free list is empty
 then no descriptors are available and an error code is returned
 indicating the problem.
 
@@ -177,7 +177,7 @@ the \ttt{Create} system call.
 
 The initial \ttt{sp} is then set and the default trap frame is
 initialized in place on the task's stack. A task descriptor will
-always be given the same inital stack pointer based on the index of
+always be given the same initial stack pointer based on the index of
 the descriptor.
 
 The default trap frame sets the correct values for the program
@@ -293,7 +293,7 @@ it allowed us to make our user land easier to program in as well as allowing us
 ensure that while interacting with the hardware an interrupt can not cause us
 to perform an action that no longer reflects the state of the system.
 
-\subsection*{Context Switch}
+\subsection*{Hardware Context Switch}
 
 The Hardware interrupt code is built such that it encapsulates the software
 interrupt. Since the software interrupt does not save scratch registers that
@@ -317,8 +317,11 @@ interrupt controllers \ttt{VEC1} and \ttt{VEC2}. They are set up in a daisy
 chained configuration such that the priority of any action on \ttt{VEC1} will
 take priority over the actions on \ttt{VEC2}. This was the nature of hardware
 and not a decision that was made by us. The decision to use the \ttt{VIC}s was
-because it allowed us to greatly simply out interrupt handling code by
-offloading a non-trivial amount of work onto the available hardware.
+because it allowed us to greatly simply our interrupt handling code by
+offloading a non-trivial amount of work onto the available hardware. As well
+as the code simplification we also get increased performance as the work
+required to get the appropriate interrupt service routine can be performed in
+parallel to the program execution.
 
 When we enter the kernel to handle a hardware interrupt we get the interrupt
 service routine by reading the function pointer off of the \ttt{VEC1}
@@ -333,14 +336,77 @@ We were able to work around this by using a void function that does nothing but
 return allowing for us to retrieve the next interrupt service routine from the
 \ttt{VIC}.
 
-\subsection*{UART1 Events}
+\subsection*{\ttt{UART1} Events}
+To interact with \ttt{UART1} we enable and use a combination of 3 different
+interrupts. The reason that we use 3 different interrupts instead of just the
+\ttt{UART1} or interrupt is because with the use of the \ttt{VIC} we can make
+assumptions of the state of \ttt{UART1} based on which ISR gets run simplifying
+the \ttt{UART} handling code greatly.
 
+The interrupts are:
+\begin{description}
+\item[Interrupt 23 - \ttt{UART1} Receive] \hfill \\
+	This is the Interrupt that is enabled with the highest priority on
+	\ttt{VEC1}. The reason for this is because it has the smallest window
+	of time before the byte in the hold register is lost so we ensure that
+	it will always be handled first.
+\item[Interrupt 24 - \ttt{UART1} Send] \hfill \\
+	This interrupt has the second lowest priority on \ttt{VIC1}. This is
+	because most actions that are going to be sent to the train controller
+	are time sensitive and should go out when possible. However, the
+	interrupt its self does not require for us to handle it before some
+	amount of time has passed.
+\item[Interrupt 52 - \ttt{UART1} General] \hfill \\
+	This Interrupt is an or of all of the interrupt cases of \ttt{UART2}.
+	Since the \ttt{UART1} Send and Receive interrupts are of a higher
+	priority if the ISR for this interrupt gets invoked then it should be
+	because of a modem interrupt. This Interrupt is handled with the
+	highest priority on \ttt{VEC2} due to the requirement that the events
+	of this interrupt are handled as fast as possible in order to ensure
+	that the \ttt{UART1} send carrier can maintain proper flow control
+	with the train controller.
+\end{description}
 
-\subsection*{UART2 Events}
+\subsection*{\ttt{UART2} Events}
+Similarly, \ttt{UART2} uses a combination of 3 different interrupts:
+\begin{description}
+\item[Interrupt 25 - \ttt{UART2} Receive] \hfill \\
+	This is the Interrupt that is enabled with the second highest priority
+	on \ttt{VEC1}. The reason for this is because it is the only other
+	interrupt inside of \ttt{VEC1} that if we do not service it in an
+	applicible amount of time will also cause an error in the operation of
+	the hardware. Due to the use of the FIFO we have quite a bit more time
+	before bytes start getting lost.
+\item[Interrupt 26 - \ttt{UART2} Send] \hfill \\
+	This interrupt is enabled with the lowest priority inside of
+	\ttt{VIC1}. The reason for this is because the terminal has a high
+	enough bandwidth that the throughput to it only seems to be an issue
+	in extrodinary circumstances and the interrupt its self is not time
+	sensitive with regards to when it needs to be fulfilled.
+\item[Interrupt 54 - \ttt{UART2} General] \hfill \\
+	This Interrupt is an or of all of the interrupt cases of UART2.
+	Since the \ttt{UART2} Send and Receive interrupts are of a higher
+	priority if the ISR for this interrupt gets invoked then it should
+	be because of a receive timeout interrupt. This interrupt is handled
+	with the lowest priority of \ttt{VEC2} since if too many characters
+	get into the receive queue then the \ttt{UART2} receive interrupt
+	will then go off instead. With this guarantee we know that at this
+	point it is not pertinent to clear the receive queue.
+\end{description}
 
 
 \subsection*{Clock Events}
 
+\begin{description}
+\item [Interrupt 51 - Clock Underflow] \hfill \\
+	This interrupt is run at a priority between the 2 \ttt{UART} priorities.
+	This decision was because the timer has a relatively large window of
+	time before we need to reset the interrupt state.
+\end{description}
+
+The clock only has 1 event that is triggered every time that the clock
+underflow interrupt is thrown. If there is no task to wake up then we know
+that a clock tick will have been missed and will log a message with the system.
 
 
 \section*{Tasks}
@@ -351,6 +417,94 @@ that they run at.
 In the case of server tasks, we need to refer back to the wrapper
 functions on how to interact.
 
+\subsection*{Clock Server}
+
+The clock server is implemented in two parts. The first part, the
+\ttt{clock\_notifier}, notifies the second part, the
+\ttt{clock\_server}, on clock ticks.
+
+The \ttt{clock\_notifier} starts by finding out \ttt{WhoIs(``clock'')}
+and caching that \ttt{tid} for later. Then it enters a \ttt{FOREVER}
+loop where it \ttt{Await}s for \ttt{CLOCK\_TICK} events from hardware
+and notifies the \ttt{clock\_server} with a \ttt{Send} message whenever it
+is woken up.
+
+The \ttt{clock\_server} starts by registering itself with the name
+server under the name \ttt{clock}. It then \ttt{Create}s the
+\ttt{clock\_notifier} task at a higher priority level. The
+\ttt{clock\_notifier} is run at the second highest priority level so
+that it can perform its work as quickly as possible. The highest
+priority level is reserved for emergency tasks.
+
+After setting everything up, the \ttt{clock\_server} enters a
+\ttt{FOREVER} loop and begins \ttt{Receive}ing messages from client
+tasks. The primary client task is the \ttt{clock\_notifier}, which
+causes the server to increment the \ttt{time} and check if any tasks
+waiting for \ttt{Delay}s need to be woken up.
+
+The server keeps track of tasks that wish to be \ttt{Delay}ed in a
+heap based priority queue. The queue is large enough to store the
+maximum number of concurrent tasks for the system. A priority queue
+allows us to check if any task needs to be woken up in constant
+time. A heap implementation, combined with our hypothetical use case
+for the clock server, also has the property that new \ttt{Delay}
+requests can be inserted into the queue in near constant time in the
+average case, or at least less than logarithmic time in many
+cases. All other operations occur in logarithmic time, which we expect
+to be sufficient for small and medium work loads.
+
+We had considered an alternative implementation for the priority queue
+based on sorted doubly linked lists, as the only non-constant time
+operation would have been to add a new element to the list. However,
+the performance did not appear to improve, possibly because of the
+overhead of dealing with allocating nodes for the queue.
+
+\subsection*{Name Server}
+
+The Nameserver is the first task that is started up on the
+initialization of task launcher. Since the Nameserver is pivotal to
+the proper operation of the OS if something goes wrong with the
+initialization of the Nameserver the task launcher will abort causing
+the kernel to terminate. Due to the importance and the requirement of
+all tasks to be able to communicate with it the Task Launcher stores
+the Nameserver’s task id in a global variable that all tasks are able
+reach.
+
+The Nameserver takes in a null terminated character sequence of no
+more than 8 characters (including the null terminator) and provides a
+querying task with the task id that corresponds to that string. If a
+new task tries to register the same name as another task that
+registered with the name server then the lookup will now point to the
+task that registered most recently. The internal storage of the server
+allows for up to 32 different lookups to be registered with it.
+
+The Nameserver stores all of the names into a single unsorted array
+and all of the tasks that each name into a separate array such the the
+index of both arrays correspond to the same element. Since the name
+size is 8 characters or less the server does word comparison though
+the name array until a match is found or all of the currently
+registered names have been exhausted. The reason we used 8 as the size
+is it allows for a sufficient large space of names and fits nicely
+into two words so only two full comparisons need to be performed for
+every name speeding up the liner search by a little while still
+maintaining a simple approach for storage. Liner search was chosen due
+to its simplicity and the Nameserver while important should only
+require use during the initialization or when having a longer
+operating time is of little consequence.
+
+Another benefit of the method chosen for storage is that it makes reverse
+lookup as easy as searching though the task list for the first occurrence 
+of a particular task id. The ability for the name server to also be able to
+perform a reverse lookup is also greatly beneficial for many stages of our
+debugging.
+
+\subsection*{Mission Control}
+
+\subsection*{Train Server}
+
+\subsection{Terminal Server}
+
+
 \section*{Terminal Commands}
 
 A full list of the commands that the terminal supports.
@@ -359,14 +513,18 @@ A full list of the commands that the terminal supports.
 
 This is where we talk about how we choose to detect and handle errors.
 
+
+
+
 \section*{Known Bugs}
 
 \begin{itemize}
 \item Clock UI stops updating at 100 minutes. Internal time continues to 
 	increase.
 \item On rare occasion when trying to restart the OS the clock will be in a
-	bad state causing the ui to lock up. Restarting the application again
-	will fix the issue.
+	bad state and cause the terminal ui to lock up. Restarting the
+	application again will fix the issue, this Issue will also never
+	manifest on the first run after the box has been reset.
 \end{itemize}
 
 \end{document}
