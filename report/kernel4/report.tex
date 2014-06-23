@@ -259,7 +259,47 @@ currently active task will be set to the selected task.
 
 \section*{System Calls}
 
-Just talk about the mechanism here, not any specific calls.
+Software system calls are invoked via the wrapper function
+\ttt{\_syscall()}. The reason we use this is so we can ensure the the
+parameters are placed in the correct registers when the \ttt{swi} call
+is performed. Another advantage to this is that GCC will ensure that
+registers \ttt{r0-r3} as well as the \ttt{ip} are required for any further
+task execution will be backed up.
+
+When the user task is rescheduled, the return value from the system
+call will be in \ttt{r0}, which follows the standard function calling
+convention.
+
+The immediate value associated with the \ttt{swi} instruction is not
+used. Instead, we pass the system call number via \ttt{r0}. Additional
+arguments for the system call are stored in a \ttt{kernel\_req}uest
+structure on the task's stack and a pointer to the structure is left
+in \ttt{r1}.
+
+When the system call jump is performed the \ttt{spsr} and \ttt{lr} are
+placed into \ttt{r3} and \ttt{r2} respectively. After this all of the
+registers are saved onto the task's stack to they can be reloaded when
+the task is rescheduled. At this point the kernel stack pointer is reset
+and the function \ttt{syscall\_handle} is invoked such that its first
+argument is the system call code, the second argument is the pointer request
+structure holding the arguments of the specific system call and the third
+argument is the stack pointer of active user task. This allows for the kernel
+to service the user task and maintain where all of the users state is stored.
+
+On kernel exit the \ttt{r0} location was used by the kernel to write 
+back return value of the system call and \ttt{r2} and \ttt{r3} now
+hold information required to restore the user back to the state in which it
+left.
+
+Since our kernel is designed to not be reentrant we never actually save
+any of the kernel's working registers. Every time we enter the kernel off
+of an interrupt just before the branch into \ttt{syscall\_handle} the
+kernel's \ttt{sp} is reset to the value 0x300000. This was done to all us
+to have a much faster context switching time. This decision has also
+allowed us to make \ttt{syscall\_handle} a naked function and greatly
+reduces the amount of time spent inside of the kernel during the runtime
+of the system.
+
 
 \subsection*{Core System Calls}
 
@@ -394,9 +434,27 @@ Similarly, \ttt{UART2} uses a combination of 3 different interrupts:
 	point it is not pertinent to clear the receive queue.
 \end{description}
 
+These three interrupts can be combined into 2 different events that are used to
+perfrom all of the tasks required by the terminal server. Since we use the FIFO
+queue on the \ttt{UART} we need to ensure that when less than 8 characters are
+are placed into the buffer that we will still make them available to the system.
+
+A \ttt{UART2\_RECV} event will wake up a task after data has been picked up
+from \ttt{UART2}. The data is placed into the buffer provided by the task and
+returns to number of character that have been placed into the tasks buffer. If
+the \ttt{UART} has more characters than buffer space is available then the event
+will only fill the buffer hoping that a task will wait on the event again
+before the FIFO overflows.
+
+A \ttt{UART2\_SEND} event takes a buffer from a task and will place up to 8
+characters into the \ttt{UART2} FIFO queue. If less characters are available then
+all of the characters will get placed into the queue. This event will return
+the number of characters it was able to successfully place into the \ttt{UART}
+before it rescheduled the user task.
 
 \subsection*{Clock Events}
 
+The clock only requires the use of one interrupt:
 \begin{description}
 \item [Interrupt 51 - Clock Underflow] \hfill \\
 	This interrupt is run at a priority between the 2 \ttt{UART} priorities.
@@ -404,7 +462,7 @@ Similarly, \ttt{UART2} uses a combination of 3 different interrupts:
 	time before we need to reset the interrupt state.
 \end{description}
 
-The clock only has 1 event that is triggered every time that the clock
+The clock only has one event that is triggered every time that the clock
 underflow interrupt is thrown. If there is no task to wake up then we know
 that a clock tick will have been missed and will log a message with the system.
 
@@ -502,7 +560,7 @@ debugging.
 
 \subsection*{Train Server}
 
-\subsection{Terminal Server}
+\subsection*{Terminal Server}
 
 
 \section*{Terminal Commands}
