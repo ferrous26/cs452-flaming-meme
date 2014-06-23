@@ -158,6 +158,9 @@ those values when interested in a particular state.
 
 \subsection*{Task Initialization}
 
+Task creation and initialization is implemented in the
+\ttt{task\_create} function.
+
 To get a descriptor, we consume a value from the free list, which
 is a circular buffer of descriptor indicies. If the free list is empty
 then no descriptors are available and an error code is returned
@@ -187,6 +190,8 @@ Finally, the task is given to the scheduler and scheduled to run.
 
 \subsection*{Task Cleanup}
 
+Task cleanup is implemented in the \ttt{task\_destroy} function.
+
 A task is only cleaned up when it calls \ttt{Exit} and enters the
 \ttt{ZOMBIE} state.
 
@@ -203,6 +208,54 @@ it can be allocated to a new task.
 
 
 \section*{Scheduling}
+
+Task scheduling is implemented in the \ttt{schedule\_schedule}
+function.
+
+The task scheduler is implemented as a bit field, which maps bits to
+priority levels, and an array of \ttt{head} and \ttt{tail} pointers,
+which are used for priority queues. The \ttt{next} pointer in the task
+descriptors is also used for priority queues when needed.
+
+When a task is scheduled, the scheduler is given a pointer to the
+descriptor of the task to be scheduled. With the descriptor, the
+\ttt{priority} level can be looked up, and the correct bit in the bit
+field can be turned on to indicate a waiting job at that priority
+level.
+
+The correct pair of \ttt{head} and \ttt{tail} pointers are also looked
+up using the \ttt{priority}. Using the value of the \ttt{tail}
+pointer, the descriptor that is currently at the end of the list can
+have its \ttt{next} pointer updated to point to the task being
+scheduled. However, if there were no other task in the queue, then
+the \ttt{head} pointer is set instead.
+
+The \ttt{tail} pointer is always set to the task that was scheduled,
+and the \ttt{next} pointer of the task being scheduled is always set
+to \ttt{NULL} to indicate the end of the list.
+
+By using the \ttt{next} index of the descriptor we saves the need to
+allocate a full queue for each priority level. The \ttt{next} pointers
+are also used for messaging queues to provide even more memory
+savings.
+
+\subsection*{Activation Selection}
+
+Activation selection is implemented in the \ttt{scheduler\_get\_next}
+function.
+
+When the scheduler is asked to find the next task to be activated
+during a system call or hardware interrupt, it will look for the
+highest bit set in the bit field to select the priority queue and look
+up the \ttt{head} pointer for that queue and then retrieve the correct
+task descriptor.
+
+Then, the \ttt{head} pointer is moved up using the \ttt{next} pointer
+of the \ttt{head} task. If \ttt{next} was \ttt{NULL} then we know that
+the queue is empty and the bit in the bit field should be turned off.
+
+Finally, the \ttt{task\_active} global, which is a pointer to the
+currently active task will be set to the selected task.
 
 \section*{System Calls}
 
