@@ -423,9 +423,152 @@ This system call does not return and cannot fail.
 
 \subsection*{Message Passing}
 
-\subsubsection*{Send}
-\subsubsection*{Receive}
-\subsubsection*{Reply}
+Message sending is implemented using messaging queues. The queue
+implementation uses the same logic as that of the priority queues for
+scheduling, but the producers and consumers of the queue are
+different. The instance data for both queues have some overlap as they
+share use of the \ttt{next} pointer in task descriptors for their
+queueing.
+
+When a message is sent using the \ttt{Send} system call, the
+descriptor enters the receive queue for the receiving task. If the
+receiving task was already waiting for the message, then it is given
+the message right away and woken up.
+
+When a task wants to receive a message it uses the \ttt{Receive}
+system call to check if there are any messages in its receive
+queue. If a message is available it consumes the message from the
+queue and sets the message sender into the \ttt{RPLY\_BLOCED} state.
+If no message is available then it itself as being blocked waiting for a
+message by setting its own \ttt{next} pointer to \ttt{RECV\_BLOCKED}.
+
+The \ttt{RPLY\_BLOCKED} state is marked using the \ttt{next} pointer
+of the message sender. Only tasks in the \ttt{RPLY\_BLOCKED} state can
+be replied to using the \ttt{Reply} system call.
+
+After a message has been received and processed, the receiver can
+reply using the \ttt{Reply} system call. The \ttt{Reply} call must be
+to a task in the \ttt{RPLY\_BLOCKED} state or it will fail.
+
+In this system, we do not need to know if a task is
+\ttt{SEND\_BLOCKED}, but we can still determine if a task
+\ttt{SEND\_BLOCKED}, for debugging, by searching through the receive
+queues.
+
+The \ttt{RECV\_BLOCKED} and \ttt{RPLY\_BLOCKED} state are represented
+as pointers to low memory addresses. The low memory addresses are
+guaranteed to be invalid pointers to data from the kernel. This makes
+it easy and reliable to have assertions in the kernel regarding task
+state. The small addresses also can be represented in any assembly
+instruction immediate slot, so it is also efficient.
+
+
+\subsubsection*{int Send(int tid, char* msg, int msglen, char* reply, int replylen)}
+
+\begin{description}
+\item[\ttt{tid}] The task identifier of the receiver of the message
+\item[\ttt{msg}] A pointer to the buffer containing the message
+\item[\ttt{msglen}] The size, in bytes, of the buffer containing the message
+\item[\ttt{reply}] A pointer to the buffer where the message reply can
+  be placed
+\item[\ttt{replylen}] The size, in bytes, of the \ttt{reply} buffer
+\end{description}
+
+Send a message to another task. Using this function, a task can send an
+arbitrary message (possibly an empty message) to any task in the
+system except for itself. The message can be any data structure, it
+does not need to be a string.
+
+The task will remain blocked until it receives a \ttt{Reply}. The
+\ttt{reply} buffer will contain the reply when the call
+returns. However, the \ttt{reply} might be empty and the return value
+must be checked to know the size of the reply.
+
+If a task sends a message to itself it will deadlock itself. In debug
+builds of the kernel this case is asserted against. However, release
+builds do not include this check as it is an incredibly unlikely case
+should have been caught during testing with debug builds.
+
+If the receiver never receives the message then the sender will block
+until the receiver \ttt{Exit}s.
+
+If the receiver does not provide a receive buffer at least
+\ttt{msglen} bytes in size then the sender will be rejected with an
+appropriate error code.
+
+This function returns the actual size of the \ttt{reply} if the
+message send was successful, otherwise a negative value is returned
+that corresponds to one the following errors:
+
+\begin{description}
+\item[\ttt{IMPOSSIBLE\_TASK (-1)}] The \ttt{tid} argument was negative
+  and therefore impossible
+\item[\ttt{INVALID\_TASK (-2)}] The \ttt{tid} argument does not
+  correspond to a task this is currently alive
+\item[\ttt{INCOMPLETE (-3)}] The receiver of the message died before
+  receiving the message
+\item[\ttt{NOT\_ENUF\_MEMORY (-4)}] The receiver did not provide a
+  receive buffer large enough for \ttt{msg}
+\end{description}
+
+
+\subsubsection*{int Receive(int* tid, char* msg, int msglen)}
+
+\begin{description}
+\item[\ttt{tid}] The task identifier of the sender of the message
+\item[\ttt{msg}] A pointer to the buffer where to place the message
+\item[\ttt{msglen}] The size, in bytes, of the buffer for the message
+\end{description}
+
+Receive a, possibly empty, message from another task. This function
+will block until a message is received. The received message will be
+placed into the \ttt{msg} buffer that was given and the task
+identifier of the message sender will be copied into \ttt{tid}.
+
+If the message is larger than \ttt{msglen} then the sender will be
+refused an the receiver will continue to block waiting for a message.
+
+This function returns the actual size of the \ttt{msg} if the
+message send was successful. There are no error codes returned by this
+function as error handling is forced onto the message sender.
+
+
+\subsubsection*{int Reply(int tid, char* reply, int replylen)}
+
+\begin{description}
+\item[\ttt{tid}] The task identifier of the receiver of the message
+\item[\ttt{reply}] A pointer to the buffer with the reply message
+\item[\ttt{replylen}] The size, in bytes, of the \ttt{reply} buffer
+\end{description}
+
+Reply to a message sender. Using this function, a task can unblock a
+task that is \ttt{RPLY\_BLOCKED} waiting for a message
+reply. Technically, any task can reply to a message, it does not have
+to be the receiver of the message. However, in our kernel message
+passing has only ever been between two tasks.
+
+As with \ttt{Send}, the reply can be any arbitrary message, even an
+empty message is permitted.
+
+The task will not get blocked trying to reply. If the reply message
+cannot be copied into the replyee's buffer then an error code is
+returned.
+
+This function returns \ttt{OK} ($0$) to indicate that the reply was
+successful and the replyee has been unblocked. If an error occurred,
+then a negative value is returned that corresponds to one of the
+following errors:
+
+\begin{description}
+\item[\ttt{IMPOSSIBLE\_TASK (-1)}] The \ttt{tid} argument was negative
+  and therefore impossible
+\item[\ttt{INVALID\_TASK (-2)}] The \ttt{tid} argument does not
+  correspond to a task this is currently alive
+\item[\ttt{INVALID\_RECVER (-3)}] The replyee is not \ttt{RPLY\_BLOCKED}
+\item[\ttt{NOT\_ENUF\_MEMORY (-4)}] The replyee did not provide a
+  receive buffer large enough for \ttt{msg}
+\end{description}
+
 
 \subsection*{Hardware Events}
 
@@ -663,7 +806,7 @@ require use during the initialization or when having a longer
 operating time is of little consequence.
 
 Another benefit of the method chosen for storage is that it makes reverse
-lookup as easy as searching though the task list for the first occurrence 
+lookup as easy as searching though the task list for the first occurrence
 of a particular task id. The ability for the name server to also be able to
 perform a reverse lookup is also greatly beneficial for many stages of our
 debugging.
