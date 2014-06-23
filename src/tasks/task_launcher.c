@@ -64,7 +64,7 @@ static void action(command cmd, int args[]) {
         update_turnout(args[0], args[1]);
         break;
     case CMD_BENCHMARK:
-	Create(TASK_PRIORITY_MEDIUM, bench_msg);
+	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
         break;
     case CMD_STRESS:
 	Create(10, stress_root);
