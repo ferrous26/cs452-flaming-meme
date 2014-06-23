@@ -628,7 +628,7 @@ static char* _abort_sp(char* ptr, task* const t) {
 
 static char* _abort_pc(char* ptr, task* const t) {
     if (t->sp)
-	return sprintf(ptr, "%p  ", sp[2] == 0 ? sp[17] : sp[2]);
+	return sprintf(ptr, "%p  ", t->sp[2] ? t->sp[2] : t->sp[17]);
     return sprintf_string(ptr, "-           ");
 }
 
