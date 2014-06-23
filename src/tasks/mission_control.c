@@ -32,6 +32,7 @@ typedef enum {
     TRAIN_TOGGLE_LIGHT,
     TRAIN_TOGGLE_HORN,
     RESET_STATE,
+    SENSOR_DELAY,
 
     MC_TYPE_COUNT
 } mc_type;
@@ -160,10 +161,11 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
+    int          sensor_delay[5*16];
 
-    int turnouts[NUM_TURNOUTS];
-    int trains[NUM_TRAINS];
-    bool horn[NUM_TRAINS];
+    int   turnouts[NUM_TURNOUTS];
+    int   trains[NUM_TRAINS];
+    bool  horn[NUM_TRAINS];
 } mc_context;
 
 inline static void mc_update_sensors(mc_context* const ctxt,
@@ -175,6 +177,14 @@ inline static void mc_update_sensors(mc_context* const ctxt,
         ctxt->insert = ctxt->recent_sensors;
     }
     memset(ctxt->insert, 0, sizeof(ctxt->insert));
+
+    const int sensor_pos = 'A' - sensor->bank + sensor->num - 1;
+    const int waiter = ctxt->sensor_delay[sensor_pos];
+    if (-1 != waiter) {
+        Reply(waiter, NULL, 0);
+        ctxt->sensor_delay[sensor_pos] = -1;
+    }
+
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
@@ -192,10 +202,21 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     }
 }
 
+static void mc_sensor_delay(mc_context* const ctxt,
+                            const int tid,
+                            const sensor_name* const sensor) {
+
+    const int sensor_pos = 'A'-sensor->bank + sensor->num - 1;
+    assert(-1 == ctxt->sensor_delay[sensor_pos],
+           "Task Already waiting at %c %d", sensor->bank, sensor->num);
+    
+    ctxt->sensor_delay[sensor_pos] = tid;
+}
+
+
 static void mc_update_turnout(mc_context* const ctxt,
                               const int         turn_num,
                               int               turn_state) {
-
     char state;
     char* ptr;
     char buffer[32];
@@ -211,7 +232,6 @@ static void mc_update_turnout(mc_context* const ctxt,
 		      TURNOUT_ROW + 5,
 		      TURNOUT_COL + (mod2(pos - 18, 4) * 6));
     }
-
 
     switch(turn_state) {
     case 'c': turn_state = 'C';
@@ -246,10 +266,11 @@ static void mc_update_train_speed(mc_context* ctxt,
 
     char  buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_SPEED_COL);
-    if (tr_speed == 0)
+    if (tr_speed == 0) {
         ptr = sprintf_string(ptr, "- ");
-    else
+    } else {
         ptr = sprintf(ptr, "%d ", tr_speed);
+    }
 
     Puts(buffer, ptr-buffer);
 }
@@ -264,7 +285,7 @@ static void mc_toggle_light(mc_context* ctxt,
     char buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_LIGHT_COL);
     if (ctxt->trains[pos] & TRAIN_LIGHT)
-	ptr   = sprintf_string(ptr, COLOUR(YELLOW) "L" COLOUR_RESET);
+	ptr = sprintf_string(ptr, COLOUR(YELLOW) "L" COLOUR_RESET);
     else
 	*(ptr++) = ' ';
 
@@ -281,11 +302,12 @@ static void mc_toggle_horn(mc_context* ctxt,
 
     char buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_HORN_COL);
-    if (ctxt->horn[pos])
+    
+    if (ctxt->horn[pos]) {
 	ptr   = sprintf_string(ptr, COLOUR(RED) "H" COLOUR_RESET);
-    else
+    } else {
 	*(ptr++) = ' ';
-
+    }
     Puts(buffer, ptr - buffer);
 }
 
@@ -311,6 +333,7 @@ static int mission_control_tid;
 void mission_control() {
     mc_context context;
     memset(&context, 0, sizeof(context));
+    memset(context.sensor_delay, -1, sizeof(context.sensor_delay));
 
     mission_control_tid = myTid();
 
@@ -339,34 +362,61 @@ void mission_control() {
         switch (req.type) {
         case SENSOR_UPDATE:
             mc_update_sensors(&context, &req.payload.sensor);
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
 	    break;
         case TURNOUT_UPDATE:
             mc_update_turnout(&context,
                               req.payload.turnout.num,
                               req.payload.turnout.state);
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
             break;
         case TRAIN_SPEED_UPDATE:
             mc_update_train_speed(&context,
                                   req.payload.train_speed.num,
                                   req.payload.train_speed.speed);
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
             break;
         case RESET_STATE:
             mc_reset_train_state(&context);
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
             break;
         case TRAIN_TOGGLE_LIGHT:
             mc_toggle_light(&context, req.payload.int_value);
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
             break;
         case TRAIN_TOGGLE_HORN:
-            mc_toggle_horn(&context, req.payload.int_value);
+            mc_toggle_horn(&context,  req.payload.int_value);
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
+            break;
+        case SENSOR_DELAY:
+            mc_sensor_delay(&context, tid, &req.payload.sensor);
             break;
         case MC_TYPE_COUNT:
+            result = Reply(tid, NULL, 0);
+            if (result < 0)
+                ABORT("Failed to reply to mission control req %d (%d)",
+                      req.type, result);
             break;
         }
 
-	result = Reply(tid, NULL, 0);
-	if (result < 0)
-	    ABORT("Failed to reply to mission control req %d (%d)",
-		  req.type, result);
     }
 }
 
@@ -445,3 +495,42 @@ int toggle_train_horn(int train) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
+
+int delay_sensor(int sensor_bank, int sensor_num) {
+
+    switch (sensor_bank) {
+    case 'a': sensor_bank = 'A';
+    case 'A': break;
+    
+    case 'b': sensor_bank = 'B';
+    case 'B': break;
+    
+    case 'c': sensor_bank = 'C';
+    case 'C': break;
+    
+    case 'd': sensor_bank = 'D';
+    case 'D': break;
+    
+    case 'e': sensor_bank = 'E';
+    case 'E': break; 
+    default:
+        log("Invalid sensor bank %c", sensor_bank);
+        return -1;
+    }
+
+    if( sensor_num < 1 || sensor_num > 16 ) {
+        log("Invalid sensor num %d", sensor_num);
+        return -1;
+    }
+    
+    mc_req req = {
+        .type           = SENSOR_DELAY,
+        .payload.sensor = {
+            .bank   = (short)sensor_bank,
+            .num    = (short)sensor_num
+        }
+    };
+
+    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+

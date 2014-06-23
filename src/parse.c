@@ -58,6 +58,12 @@ static int parse_s(const char* const cmd, int* buffer) {
         if (parse_argument(cmd, 'c', &index, &buffer[1] )) return ERROR;
         if (!isspace(cmd[index]))                          return ERROR;
         return TRACK_TURNOUT;
+    case 's':
+        if (parse_argument(cmd, 'c', &index, buffer))     return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return SWITCH_STOP;
     default:
         return ERROR;
     }

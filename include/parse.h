@@ -11,6 +11,7 @@ typedef enum {
 
     TRACK_RESET,
     TRACK_TURNOUT,
+    SWITCH_STOP,
 
     LOC_LIGHT,
     LOC_SPEED,
