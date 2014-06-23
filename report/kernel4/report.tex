@@ -1086,12 +1086,13 @@ above the table.
 \section*{Known Bugs}
 
 \begin{itemize}
-\item Clock UI stops updating at 100 minutes. Internal time continues to
-	increase.
-\item On rare occasion when trying to restart the OS the clock will be in a
-	bad state and cause the terminal UI to lock up. Restarting the
-	application again will fix the issue, this issue will also never
-	manifest on the first run after the box has been reset.
+\item The clock UI will stop updating at 100 minutes. However, the
+  system time will continue to increment normally.
+\item On rare occasion when trying to restart the OS, the clock will be in a
+  bad state and cause the terminal UI to lock up. Restarting the
+  application again will fix the issue. This issue has never
+  manifested on the first run after the box has been reset, only
+  during every other subsequent run.
 \end{itemize}
 
 \end{document}
