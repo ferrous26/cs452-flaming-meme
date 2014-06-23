@@ -147,6 +147,8 @@ task metadata:
     stack will conveniently also point to the trap frame for the task.
 \end{description}
 
+\newpage
+
 Task \ttt{state} is not explicitly stored in a task descriptor because
 our kernel implementation only needs to know state in cases where the
 \ttt{next} pointer or \ttt{sp} pointer will not be used. The
@@ -259,15 +261,119 @@ currently active task will be set to the selected task.
 
 \section*{System Calls}
 
-Just talk about the mechanism here, not any specific calls.
+System calls are implemented in the standard way using the \ttt{swi}
+instruction. Arguments, including the system call type, are passed
+into the kernel via a pointer to a request object. The request object
+itself lives on the stack of the task making the system call.
+
+After completing the system call request, the calling task is
+rescheduled and the next task to be run is activated.
+
+The software interrupt code path is implemented in a totally
+non-reentrant way which requires that hardware interrupts be disabled
+while in the kernel. However, this did allow us to make certain
+optimizations that shorten the time spent in the kernel for system calls.
+
+As a general pattern, we try to perform argument checking outside of
+the kernel in order to reduce the time that is spent inside of the
+kernel where hardware interrupts are ignored.
 
 \subsection*{Core System Calls}
 
-\subsubsection*{Create}
-\subsubsection*{Pass}
-\subsubsection*{Exit}
-\subsubsection*{Abort}
-\subsubsection*{Shutdown}
+\subsubsection*{int Create(int priority, void (*code)(void))}
+
+\begin{description}
+\item[\ttt{priority}] the priority level of the task to be created
+\item[\ttt{code}] pointer to the function where the new task will begin
+\end{description}
+
+Create and schedule a new task.
+
+Returns the \ttt{tid} of the created task if successful, otherwise
+negative corresponding to one the following errors:
+
+\begin{description}
+\item[\ttt{NO\_DESCRIPTORS (-1)}] No task descriptors are available for
+  allocation
+\item[\ttt{INVALID\_PRIORITY (-2)}] Priority level is negative or greater
+  than \ttt{TASK\_PRIORITY\_MAX}
+\end{description}
+
+
+\subsubsection*{int myTid(void)}
+
+Fetch the task identifier for the calling task.
+
+Returns the \ttt{tid} of the calling task. This system call cannot
+fail (except for maybe if there is a catastrophic hardware failure).
+
+
+\subsubsection*{int myParentTid(void)}
+
+Fetch the task identifier for the calling task's parent task.
+
+Returns the \ttt{p\_tid} of the calling task. This system call cannot fail.
+
+
+\subsubsection*{int myPriority(void)}
+
+Fetch the task priority for the calling task.
+
+Returns the \ttt{priority} of the calling task. This system call cannot fail.
+
+
+\subsubsection*{int ChangePriority(int priority)}
+
+\begin{description}
+\item[\ttt{priority}] the new priority level for the calling task
+\end{description}
+
+Change the priority level of the calling task.
+
+Returns the \ttt{priority} of the calling task. This system call cannot fail.
+
+
+\subsubsection*{void Pass(void)}
+
+This system call effectively does nothing. However, it can be used to
+give up execution to the next task to run.
+
+
+\subsubsection*{void Exit(void)}
+
+Cease execution of the calling task. This system call does not return
+and the descriptor for the calling task is cleaned. This system call
+cannot fail.
+
+
+\subsubsection*{void Abort(char* file, unsigned int line, char* msg, \ldots)}
+
+Cease execution of the entire system and print out diagnostic
+information, including the format string given by \ttt{msg}.
+
+This system call is not usually called directly, but is instead called
+by an assertion failure. Output is generated in the kernel to avoid
+being interrupted by hardware and output using busy-wait I/O.
+
+In addition to source information and the format string, output will
+include a full dump of the kernel state. Kernel state includes the
+descriptor table and information about tasks waiting on
+interrupts. The tableau can be used to reconstruct what was going on
+inside of the kernel, and, to a limited extent, what was going on in
+each running task.
+
+This system call cannot fail (unless the failure also causes the
+kernel to become severely corrupted).
+
+
+\subsubsection*{void Shutdown(void)}
+
+Cease execution of the system. Unlike the \ttt{Abort} system call,
+this exit does not include any debugging information and is meant to
+be used for cleanly shutting down the system.
+
+This system call does not return and cannot fail.
+
 
 \subsection*{Message Passing}
 
