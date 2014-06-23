@@ -516,6 +516,7 @@ that corresponds to one the following errors:
 \end{description}
 
 
+\newpage
 \subsubsection*{int Receive(int* tid, char* msg, int msglen)}
 
 \begin{description}
@@ -736,22 +737,29 @@ functions on how to interact.
 
 \subsection*{Clock Server}
 
-The clock server is implemented in two parts. The first part, the
+The clock server is implemented in three parts. The first part, the
 \ttt{clock\_notifier}, notifies the second part, the
-\ttt{clock\_server}, on clock ticks.
+\ttt{clock\_server}, on clock ticks. The third component is the UI for
+the clock, which is implemented as a client of the
+\ttt{clock\_server}.
 
-The \ttt{clock\_notifier} starts by finding out \ttt{WhoIs(``clock'')}
-and caching that \ttt{tid} for later. Then it enters a \ttt{FOREVER}
-loop where it \ttt{Await}s for \ttt{CLOCK\_TICK} events from hardware
-and notifies the \ttt{clock\_server} with a \ttt{Send} message whenever it
-is woken up.
+\subsubsection*{Clock Notifier}
+
+The \ttt{clock\_notifier} starts by asking for \ttt{myParentTid()} to
+find out the task identifier of the \ttt{clock\_server}. It then
+registers itself as ``CLOCK\_NOTE'' with the name server.
+Then it enters a \ttt{FOREVER} loop where it \ttt{Await}s for
+\ttt{CLOCK\_TICK} events from hardware and notifies the
+\ttt{clock\_server} with a \ttt{Send} message whenever it
+is woken up. The notifier runs at priority level 25, higher than any
+non-notifier task, in order to mitigate the risk of missing a clock
+tick event.
+
+\subsubsection*{Clock Server}
 
 The \ttt{clock\_server} starts by registering itself with the name
-server under the name \ttt{clock}. It then \ttt{Create}s the
-\ttt{clock\_notifier} task at a higher priority level. The
-\ttt{clock\_notifier} is run at the second highest priority level so
-that it can perform its work as quickly as possible. The highest
-priority level is reserved for emergency tasks.
+server under the name ``CLOCK''. It then \ttt{Create}s the
+\ttt{clock\_notifier} and the \ttt{clock\_ui} task.
 
 After setting everything up, the \ttt{clock\_server} enters a
 \ttt{FOREVER} loop and begins \ttt{Receive}ing messages from client
@@ -775,6 +783,73 @@ based on sorted doubly linked lists, as the only non-constant time
 operation would have been to add a new element to the list. However,
 the performance did not appear to improve, possibly because of the
 overhead of dealing with allocating nodes for the queue.
+
+\subsubsection*{Clock UI}
+
+The \ttt{clock\_ui} task prints the current time to the screen
+periodically. After each printing, the task calls \ttt{Delay(10)},
+which will delay the task for 10 clock ticks, which is equivalent to
+$0.1$ seconds. The UI task will synchronize its time with the
+\ttt{clock\_server} once per minute to make sure that the displayed
+time does not drift from the stored time.
+
+
+\subsubsection*{int Delay(int ticks)}
+
+\begin{description}
+\item[\ttt{ticks}] The number of clocks ticks to delay the task
+\end{description}
+
+Delay the calling task by \ttt{ticks} clock ticks. The actual delay is
+guaranteed to be at least \ttt{ticks} clock ticks, but may be longer
+if the system is under heavy load.
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call function before context switching into the
+kernel. Negative or zero delays are interpretted as an indicator that
+the system is missing deadlines and by checking the value before
+calling into the kernel we save some time by not passing through the
+full delay logic. However, we plan to add some sort of visual notifier
+for this case in the future as it is important for debugging.
+
+A successful delay will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call.
+
+
+\subsubsection*{int DelayUntil(int ticks)}
+
+\begin{description}
+\item[\ttt{ticks}] The system time which the task should be delayed
+  until
+\end{description}
+
+Delay the calling task until the system time is \ttt{ticks} clock
+ticks. The actual delay is guaranteed to be at least until \ttt{ticks}
+clock ticks, but may be longer if the system is under heavy load.
+
+Negative and zero time delay values for \ttt{ticks} are checked by the
+system call function before context switching into the
+kernel. However, unlike \ttt{Delay}, this value cannot be fully
+checked without knowing the current system time, which is not known
+until the clock server has the request.
+
+A successful delay will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call.
+
+
+\subsubsection*{int Time()}
+
+Returns the current system time.
+
+A successful call will return the current system time, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call.
+
 
 \subsection*{Name Server}
 
