@@ -13,8 +13,8 @@ typedef enum {
     INVALID_TASK     = -2, // task no longer alive (or has not yet been created)
     CORRUPT_DATA     = -2,
     INCOMPLETE       = -3, // receiver Exit()'d before receiving the message
-    INVALID_RECVER   = -3, // receiver was not in the RPLY_BLOCKED state
-    NOT_ENUF_MEMORY  = -4, // receiver buffer was not big enough
+    INVALID_RECVER   = -3, // replyee was not in the RPLY_BLOCKED state
+    NOT_ENUF_MEMORY  = -4, // receiver/replyee buffer was not big enough
     INVALID_MESSAGE  = -5, // the receiver did not understand the message
     INVALID_CHANNEL  = -6
 } err;
