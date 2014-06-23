@@ -655,6 +655,72 @@ value to be returned. The error codes correspond to that of the
 \ttt{Send} system call.
 
 
+\subsubsection*{int Putc(int channel, char c)}
+
+\begin{description}
+\item[\ttt{channel}] The serial channel to print the character to
+\item[\ttt{c}] The character to print
+\end{description}
+
+Print a character to an arbitrary serial channel. This call will block
+the caller until the character has been buffered in the serial server.
+
+The only valid values for \ttt{channel} are \ttt{TERMINAL} ($2$) and
+\ttt{TRAIN} ($1$). Any other value for \ttt{channel} will result in a
+compile time error.
+
+In the case of the \ttt{TERMINAL} channel, this function is a wrapper
+for the \ttt{Puts} system call.
+
+A successful \ttt{Putc} will return \ttt{OK}. A failure in the message
+sending will cause a negative integer value to be returned. The error
+codes correspond to that of the \ttt{Send} system call.
+
+
+\subsubsection*{int Getc(int channel)}
+
+\begin{description}
+\item[\ttt{channel}] The serial channel where to get the character from
+\end{description}
+
+Get a character from an arbitrary serial channel. This call will block
+the caller until a character is available from the given \ttt{channel}.
+
+The only valid values for \ttt{channel} are \ttt{TERMINAL} ($2$) and
+\ttt{TRAIN} ($1$). Any other value for \ttt{channel} will result in a
+compile time error.
+
+A successful \ttt{Getc} will return the input character, a positive
+value. A failure in the message sending will cause a negative integer
+value to be returned. The error codes correspond to that of the
+\ttt{Send} system call.
+
+
+\subsubsection*{int Puts(char* str, int length)}
+
+\begin{description}
+\item[\ttt{str}] The string to be printed to the terminal
+\item[\ttt{length}] The length of the string to be printed to the terminal
+\end{description}
+
+Print a string to the terminal. This call will block the caller until
+the string has been buffered in the terminal server.
+
+Format strings and control sequences should be buffered in a string in
+the calling task using the \ttt{sprintf} family of functions defined
+in \ttt{vt100.h}.
+
+Strings are not assumed to be null terminated and the given
+\ttt{length} is taken as the strings length. As we use \ttt{sprintf}
+for formatting strings, we are able to calculate the string length as
+it is being formatted and can easily pass the length to the system
+call.
+
+A successful \ttt{Puts} will return \ttt{OK}. A failure in the message
+sending will cause a negative integer value to be returned. The error
+codes correspond to that of the \ttt{Send} system call.
+
+
 \section*{Hardware Interrupts}
 
 When we were designing our interrupt code we wanted the user space tasks to
@@ -945,6 +1011,51 @@ contiguous in respect to the other turnouts.
 \subsection*{Train Server}
 
 \subsection*{Terminal Server}
+
+The terminal server serializes and manages all output to the terminal
+serial line. It creates a send carrier and receive notifier task to
+handle hardware events for sending and receiving data from UART2, the
+serial connection to the terminal.
+
+Output is normally buffered in the terminal server to avoid blocking
+tasks that want to print to the screen. However, if the system is
+under load and cannot pump characters onto the line fast enough, then
+tasks will be blocked and queued in a circular buffer until their
+output can be handled. This situation has only come up for under while
+intentionally stressing the system.
+
+To streamline the process of output, we make the observation that most
+output is of strings of characters. We added the \ttt{Puts} system
+call to optimize passing strings to the terminal server instead of
+going through the \ttt{Putc} system call. Strings are fully formatted
+on the calling task and the terminal server only handles output.
+
+We use two buffers for output. We use a ping pong buffering strategy
+between the terminal server and the send carrier. This simplifies
+managing buffers between the two tasks and eliminates the need to make
+an additional copy of the buffer.
+
+All input is buffered in the terminal server. Once input comes in from
+the receive notifier task, it is added to a circular buffer in the
+terminal server. Tasks can get input using the \ttt{Getc} system
+call. If no input is available then the task requesting input will be
+blocked until data comes in.
+
+However, only a single task can be blocked waiting for input. Our
+system has checks to ensure that only one task is ever handling input
+at a time. Our system is implemented so that only the task launcher
+task will be processing input.
+
+Since the system will need to process input character by character, we
+did not bother to create an optimized code path for getting large
+amounts of characters from the terminal server. However, our system
+does make use of the UART FIFOs, so the receive notifier can cause
+multiple characters to be buffered in the terminal server in a single
+notification.
+
+\subsection*{Task Launcher}
+
+Handles the command prompt. Parses input. Sends commands off.
 
 \subsection*{Train Station}
 
