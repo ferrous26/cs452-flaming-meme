@@ -667,6 +667,26 @@ The interrupts are:
 	with the train controller.
 \end{description}
 
+These 3 events get combined into 4 separate events used to drive all IO to the
+train set. Since we do not use the FIFO's and flow control to the train is done
+via a clear to send bit the general interrupt is used to pick up the modem
+interrupts.
+
+A \ttt{UART1\_SEND} is hooked up to the \ttt{UART1} send interrupt. The user
+task passes in the character that they would like to send to the train set 
+in the event call and execution will resume after the character has been
+forwarded to the train set.
+
+A \ttt{UART1\_RECV} is hooked up directly to the \ttt{UART1} send interrupt.
+The user task provides a buffer for the train set to push a character into.
+When a character is received for the train execution will continue with the
+train input placed into the provided buffer.
+
+Finally there are the {UART1\_DOWN} and {UART1\_CTS} events. These events
+are both hooked up to the \ttt{UART} modem interrupt and are used to notify
+the application that the clear to send bit has changed to off or on
+respectively.
+
 \subsection*{\ttt{UART2} Events}
 Similarly, \ttt{UART2} uses a combination of 3 different interrupts:
 \begin{description}
@@ -695,7 +715,7 @@ Similarly, \ttt{UART2} uses a combination of 3 different interrupts:
 \end{description}
 
 These three interrupts can be combined into 2 different events that are used to
-perfrom all of the tasks required by the terminal server. Since we use the FIFO
+perform all of the tasks required by the terminal server. Since we use the FIFO
 queue on the \ttt{UART} we need to ensure that when less than 8 characters are
 are placed into the buffer that we will still make them available to the system.
 
@@ -806,7 +826,7 @@ if the system is under heavy load.
 
 Negative and zero time delay values for \ttt{ticks} are checked by the
 system call function before context switching into the
-kernel. Negative or zero delays are interpretted as an indicator that
+kernel. Negative or zero delays are interpreted as an indicator that
 the system is missing deadlines and by checking the value before
 calling into the kernel we save some time by not passing through the
 full delay logic. However, we plan to add some sort of visual notifier
@@ -892,6 +912,23 @@ debugging.
 
 \subsection*{Mission Control}
 
+Mission Control is the task that is set up to be in control of the current
+state of the track on the train set. The first thing that Mission Control
+does is send out a grouping of commands to reset all of the switches into a
+state that is known by the OS. After the track has been reset successfully
+it kicks off a task to act as a sensor poller to notify mission control when
+one of the sensors on the track is hit so the track can update the GUI
+accordingly.
+
+The switches are placed into a null terminated circular buffer. The reason why
+we chose to null terminate this particular buffer is that it made it easier to
+print out the contents in a FILO order that works nicely when the queue is
+also not completely full during the beginning of the application.
+
+All of the turnout states are placed into a standard array that uses a mapping
+function to zero index off the the switch numbers into a position that is
+contiguous in respect to the other turnouts.
+
 \subsection*{Train Server}
 
 \subsection*{Terminal Server}
@@ -902,7 +939,7 @@ The idle task is created at startup and runs at the lowest priority in
 the system. The task constantly polls the 40-bit timer in the system
 and checks the difference from the last time the timer was polled. If
 the difference is greater than 2 ticks, then we know that the system
-was interrupted performing real work between pollings. In this case,
+was interrupted performing real work between polling. In this case,
 the difference is added to a counter for the total number of non-idle
 time. This sum can be compared against the amount of time since the
 system started to calculate the percentage of non-idle time. The
