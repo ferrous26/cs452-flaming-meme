@@ -1060,7 +1060,27 @@ need to make it update more frequently in the future.
 
 \section*{Terminal Commands}
 
-A full list of the commands that the terminal supports.
+The following commands are recognized by the OS:
+\begin{description}
+\item[\ttt{tr train\_number train\_speed}] \hfill \\
+	Set a given train to a valid speed in the interval of [0,14] where
+	0 is stopped and 14 is the top speed of the train
+\item[\ttt{rv train\_number}] \hfill \\
+	Get a specified train to first stop and then change direction.
+\item[\ttt{sw turnout\_number direction}] \hfill \\
+	Change the given turnout to direction Straight ('S') or Curved ('C').
+\item[\ttt{q}] \hfill \\
+	Exit the OS cleanly into RedBoot
+\item[\ttt{lt train\_number}] \hfill \\
+	Toggle the lights of a particular train.
+\item[\ttt{hr train\_number}] \hfill \\
+	Toggle the horn of a particular train.
+\item[\ttt{re}] \hfill \\
+	Reset the track back to the initial track state.
+\item[\ttt{bm}] \hfill \\
+	A benchmarking task, requires a special build to work successfully,
+	on a release build will just waste time.
+\end{description}
 
 \section*{Abortions And Assertions}
 
