@@ -462,6 +462,10 @@ it easy and reliable to have assertions in the kernel regarding task
 state. The small addresses also can be represented in any assembly
 instruction immediate slot, so it is also efficient.
 
+Message passing is implemented in a simple way with minimal
+overhead. A 4 byte message can be sent and replied to with another 4
+byte message in approximately $\sim6.0\mu$seconds.
+
 
 \subsubsection*{int Send(int tid, char* msg, int msglen, char* reply, int replylen)}
 
