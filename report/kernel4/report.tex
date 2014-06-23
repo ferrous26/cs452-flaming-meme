@@ -946,6 +946,40 @@ contiguous in respect to the other turnouts.
 
 \subsection*{Terminal Server}
 
+\subsection*{Train Station}
+
+All train commands are buffered in a warehouse task called the train
+station. The train station maintains a separate circular buffer of
+commands for each train and instantiates a \ttt{train} task for each
+possible train in the lab.
+
+When a train task is ready to execute a new operation it will request
+a job from the train station. If no jobs are available then the train
+task will block until there are jobs available.
+
+Buffering commands in a warehouse allows long running commands, such
+as reversing the train, to not block the command prompt.
+
+
+\subsection*{Train}
+
+Train tasks anthropomorphize trains on the track. They will simply ask
+for jobs from the train station warehouse task and be blocked until
+there is a job to perform.
+
+Jobs include changing speed, stopping, reversing, toggling lights, and
+toggling the horn function. Implementing train control logic in this
+way made handling train reverse operations trivial as a train task can
+block without having to worry about blocking while waiting for the
+train to stop without having to block the command prompt or any
+other part of the system.
+
+There are seven instances of the train task running by default, one
+for each train in the lab. Each train task asks the train station
+which train it represents at boot time and then registers the
+name ``TRAINnn'' with the name server, where ``nn'' is the trains
+number.
+
 \subsection*{Idle Task}
 
 The idle task is created at startup and runs at the lowest priority in
