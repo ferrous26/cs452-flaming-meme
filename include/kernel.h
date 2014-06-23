@@ -100,6 +100,10 @@ extern task* task_active;
 extern task* int_queue[EVENT_COUNT];
 
 void scheduler_first_run(void);
+
+/**
+ * The non-inlined, but still important, version of scheduler_schedule().
+ */
 void scheduler_reschedule(task* const t) TEXT_HOT;
 
 #endif

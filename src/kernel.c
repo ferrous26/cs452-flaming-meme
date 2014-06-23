@@ -165,14 +165,14 @@ void kernel_deinit() {
 }
 
 inline static void ksyscall_pass() {
-    scheduler_schedule((task*)task_active);
+    scheduler_reschedule(task_active);
 }
 
 inline static void ksyscall_irq() {
     voidf handler = (voidf)VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS);
     handler();
     VIC_PTR(VIC1_BASE, VIC_VECTOR_ADDRESS) = (void*)handler;
-    ksyscall_pass();
+    scheduler_schedule(task_active);
 }
 
 inline static void ksyscall_create(const kreq_create* const req,
@@ -228,7 +228,7 @@ inline static void ksyscall_recv(task* const receiver) {
 	// validate that there is enough space in the receiver buffer
 	if (sender_req->msglen > receiver_req->msglen) {
 	    sender->sp[0] = NOT_ENUF_MEMORY;
-	    scheduler_schedule(sender);
+            ksyscall_pass();
 	    ksyscall_recv(receiver); // DANGER: recursive call
 	    return;
 	}
@@ -257,7 +257,7 @@ inline static void ksyscall_send(const kreq_send* const req,
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
 	*result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
-	ksyscall_pass();
+        ksyscall_pass();
         return;
     }
 
@@ -323,7 +323,7 @@ inline static void ksyscall_reply(const kreq_reply* const req,
     // the case where they are the same priority level we want the sender
     // to run first
     scheduler_schedule(sender);
-    ksyscall_pass();
+    scheduler_schedule(task_active);
 }
 
 inline static void ksyscall_change_priority(const int32 priority,
