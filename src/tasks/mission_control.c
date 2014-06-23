@@ -78,7 +78,7 @@ static void train_ui() {
     Puts(buffer, ptr - buffer);
 }
 
-static int __attribute__((const, unused)) train_to_pos(const int train) {
+static int __attribute__ ((const)) train_to_pos(const int train) {
     switch (train) {
     case 43: return 0;
     case 45: return 1;
@@ -92,7 +92,7 @@ static int __attribute__((const, unused)) train_to_pos(const int train) {
     return -1;
 }
 
-static int __attribute__((const, unused)) pos_to_train(const int pos) {
+static int __attribute__ ((const, unused)) pos_to_train(const int pos) {
     switch (pos) {
     case 0: return 43;
     case 1: return 45;
@@ -104,7 +104,7 @@ static int __attribute__((const, unused)) pos_to_train(const int pos) {
     return -1;
 }
 
-static int __attribute__((const, unused)) turnout_to_pos(const int turnout) {
+static int __attribute__ ((const)) turnout_to_pos(const int turnout) {
     if (turnout <  1)   return -1;
     if (turnout <= 18)  return turnout - 1;
     if (turnout <  153) return -1;
@@ -112,7 +112,7 @@ static int __attribute__((const, unused)) turnout_to_pos(const int turnout) {
     return -1;
 }
 
-static int __attribute__((const, unused)) pos_to_turnout(const int pos) {
+static int __attribute__ ((const, unused)) pos_to_turnout(const int pos) {
     if (pos < 0)  return -1;
     if (pos < 18) return pos + 1;
     if (pos < 22) return pos + (153-18);
@@ -371,6 +371,7 @@ void mission_control() {
 }
 
 int update_turnout(int num, int state) {
+    // TODO: do not wastefully do translation here and also in server
     int pos = turnout_to_pos(num);
     if (pos < 0) {
         log("Invalid Turnout Number %d", num);

@@ -186,7 +186,7 @@ void train_sound_horn(int train) {
 	log("Failed to send horn sounding command (%d)", result);
 }
 
-static void train() {
+static void __attribute__ ((noreturn)) train() {
 
     int train_num = train_station_whoami();
 
@@ -210,7 +210,6 @@ static void train() {
 	case TRAIN_WHOAMI:
 	case TRAIN_REQUEST:
 	    ABORT("Illegal train request (%d)", req.type);
-	    break;
 	case TRAIN_CHANGE_SPEED:
 	    speed = req.arg;
 	    update_train_speed(train_num, speed);

@@ -29,7 +29,7 @@ inline static void print_help() {
     log("  q                      ~ Quit");
 }
 
-static void __attribute__((unused)) echo_test() {
+static void __attribute__((noreturn)) echo_test() {
     char buffer[32];
     char* ptr = buffer;
     ptr = vt_reset_scroll_region(ptr);
