@@ -52,10 +52,10 @@ After Initialization the kernel will print
 ``\ttt{Welcome to Task Launcher}'' into the message logging area of
 the screen and a command prompt will appear near the center of the
 screen titled ``TERM> ''. At this point commands can be entered; keys
-pressed should be echoed back at the command prompt. Pressing the
-return key will confirm a command and cause it to be processed. An
-online listing of the commands can be printed by using the ``help''
-command.
+pressed should be echoed back at the command prompt in place of the
+white cursor. Pressing the return key will confirm a command and cause
+it to be processed. An online listing of the commands can be printed
+by entering an empty command.
 
 \subsection*{Submitted Files}
 \begin{center}
@@ -70,7 +70,137 @@ command.
 \newpage
 \part*{The Kernel}
 
-\section*{Task Descriptors}
+The kernel is organized into four sections: task management,
+scheduling tasks, system calls between tasks, and handling interrupt
+driven hardware events.
+
+\section*{Task Management}
+
+Task metadata is stored in a static array of task descriptors. The
+array holds 64 descriptors, allowing for up to 64 concurrent tasks to
+run on our system. The constant \ttt{TASK\_MAX} is used to represent
+the maximum number of concurrent tasks and is used by various other
+components of the system to provide upper limits on data structures
+and calculations.
+
+Each task descriptor, defined as type \ttt{task}, tracks the following
+task metadata:
+
+\begin{description}
+  \item[\ttt{int tid}] \hfill \\
+    Task identifier. A globally unique identifier for the task. The
+    identifier is stored as a signed integer as it is the simplest way
+    to maintain consistency with the required API for the
+    \ttt{Create} system call.
+
+    The task identifier value is tied to the array index of the
+    descriptor so that no two live tasks can have the same task
+    identifier. When a task \ttt{Exit}s the descriptor will increment
+    the \ttt{tid} by \ttt{TASK\_MAX} so that the next task to use the
+    descriptor will not reuse a previously allocated task
+    identifier. This scheme also allows us to calculate the index of
+    the descriptor in a single instruction given the task's identifier.
+
+    No safety is provided at the point where the task identifier
+    values overflow, though we do not have any use cases which
+    approach the possibility of causing an overflow.
+
+  \item[\ttt{int p\_tid}] \hfill \\
+    Parent task Identifier. A copy of the \ttt{tid} of the task which
+    \ttt{Create}d the task occupying the descriptor. This value is a
+    copy because the only time that the parent is guaranteed to be
+    alive concurrently with the child is during the \ttt{Create} call
+    that allocates the child task. The first task that is run by our
+    kernel has a \ttt{p\_tid} value of its own \ttt{tid}---the task is
+    effectively its own parent.
+
+  \item[\ttt{int priority}] \hfill \\
+    Priority level. Valid priority values are between $0$ and $31$,
+    with $31$ being the highest priority and $0$ being the lowest
+    priority. This range of priorities is efficiently represented by a
+    single word bitmap during scheduling. Though this value
+    does not require the full 32 bits of space provided by an integer,
+    storing it as a full word sized value makes memory access easier
+    (faster) for the hardware.
+
+    We have defined constants for some priority levels, such as
+    \ttt{TASK\_PRIORITY\_EMERGENCY} for level $31$ and
+    \ttt{TASK\_PRIORITY\_MEDIUM} for level $15$.
+
+  \item[\ttt{task* next}] \hfill \\
+    Next task. This meaning of this value depends on the state of the
+    task.
+
+    During message passing the value is either a valid pointer
+    to another task descriptor, \ttt{NULL}, or it contains a special
+    value that indicates that the process is blocked.
+
+    During all other times, the \ttt{next} pointer will contain a
+    valid pointer to the next task of the same \ttt{priority} which is
+    ready to run, or \ttt{NULL} if no such task exists.
+
+  \item[\ttt{int* sp}] \hfill \\
+    Task stack pointer. This value is \ttt{NULL} for descriptors which
+    are not allocated to live tasks. When belonging to a live task,
+    this value points to the top of the stack for the task at the
+    point when the task execution was last interrupted. The top of the
+    stack will conveniently also point to the trap frame for the task.
+\end{description}
+
+Task \ttt{state} is not explicitly stored in a task descriptor because
+our kernel implementation only needs to know state in cases where the
+\ttt{next} pointer or \ttt{sp} pointer will not be used. The
+\ttt{next} pointer and \ttt{sp} pointer are overloaded to contain
+\ttt{state} information in a way that has no performance overhead for
+task scheduling and such that we only need to check exactly one of
+those values when interested in a particular state.
+
+
+\subsection*{Task Initialization}
+
+To get a descriptor, we consume a value from the free list, which
+is a circular buffer of descriptor indicies. If the free list is empty
+then no descriptors are available and an error code is returned
+indicating the problem.
+
+The descriptor will already have the correct \ttt{tid} value, either
+set during system initialization or during task cleanup from the
+previous user of the descriptor.
+
+The \ttt{p\_tid} is set using the calling task's \ttt{tid}. The
+\ttt{priority} value is set using an argument passed to the task
+creation function which would normally map to the same value passed to
+the \ttt{Create} system call.
+
+The initial \ttt{sp} is then set and the default trap frame is
+initialized in place on the task's stack. A task descriptor will
+always be given the same inital stack pointer based on the index of
+the descriptor.
+
+The default trap frame sets the correct values for the program
+counter, stack, and CPSR registers. Notably, the default link register
+for a task is a pointer to the \ttt{Exit} system call, which ensures
+that any task that does not explicitly call \ttt{Exit} instead of
+simply \ttt{return}ing will still cleanup properly.
+
+Finally, the task is given to the scheduler and scheduled to run.
+
+\subsection*{Task Cleanup}
+
+A task is only cleaned up when it calls \ttt{Exit} and enters the
+\ttt{ZOMBIE} state.
+
+First, the \ttt{tid} of the descriptor is updated for the next
+descriptor occupant. Then the \ttt{sp} is set to \ttt{NULL} to
+indicate that the descriptor does not contain a live task.
+
+Then the receive queue, used in message passing, must be flushed in
+order to unblock any tasks that were trying to send a message to
+now-zombified task.
+
+Finally, the descriptor is added to the end of the free list so that
+it can be allocated to a new task.
+
 
 \section*{Scheduling}
 
