@@ -71,7 +71,7 @@ int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
     return _syscall(SYS_SEND, &req);
 }
 
-int Receive(int *tid, char *msg, int msglen) {
+int Receive(int* tid, char* msg, int msglen) {
     volatile kreq_recv req = {
         .tid    = tid,
         .msg    = msg,
@@ -80,7 +80,7 @@ int Receive(int *tid, char *msg, int msglen) {
     return _syscall(SYS_RECV, &req);
 }
 
-int Reply(int tid, char *reply, int replylen) {
+int Reply(int tid, char* reply, int replylen) {
     volatile kreq_reply req = {
         .tid      = tid,
         .reply    = reply,
