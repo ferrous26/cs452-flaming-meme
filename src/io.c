@@ -132,9 +132,6 @@ void irq_uart2_recv() {
 
     assert(!(*flag & RXFE_MASK), "UART2 Had An Empty Recv");
 
-    char c = *data;
-    if (c == '`') magic_sysreq();
-
     task* const t = int_queue[UART2_RECV];
     int_queue[UART2_RECV] = NULL;
 
@@ -143,6 +140,8 @@ void irq_uart2_recv() {
     if (t) {
         kreq_event* const req = (kreq_event*) t->sp[1];
 
+        char c = *data;
+        if (c == '`') magic_sysreq();
 	req->event[0] = c;
 
         int i;

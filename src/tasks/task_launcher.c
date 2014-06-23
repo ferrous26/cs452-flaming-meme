@@ -19,14 +19,14 @@
 #define TERM_COL 6
 
 inline static void print_help() {
-    log("\ttr <train_num> [0-14]  ~ Set <train_num> to speed 0-14");
-    log("\trv <train_num>         ~ Reverse the direction of <train_num>");
-    log("\lt  <train_num>         ~ Toggle the lights of <train_num>");
-    log("\hr  <train_num>         ~ Toggle the horn function of <train_num>");
-    log("\tsw <switch_num> [C|S]  ~ Set <train_num> to speed <speed>");
-    log("\tre                     ~ Reset the track layout");
-    log("\th                      ~ Print this Help Message");
-    log("\tq                      ~ Quit");
+    log("  tr <train_num> [0-14]  ~ Set <train_num> to speed 0-14");
+    log("  rv <train_num>         ~ Reverse the direction of <train_num>");
+    log("  lt <train_num>         ~ Toggle the lights of <train_num>");
+    log("  hr <train_num>         ~ Toggle the horn function of <train_num>");
+    log("  sw <switch_num> [C|S]  ~ Set <train_num> to speed <speed>");
+    log("  re                     ~ Reset the track layout");
+    log("  h                      ~ Print this Help Message");
+    log("  q                      ~ Quit");
 }
 
 static void __attribute__((unused)) echo_test() {
