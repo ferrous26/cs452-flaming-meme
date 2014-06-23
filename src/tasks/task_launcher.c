@@ -45,6 +45,7 @@ static void __attribute__((noreturn)) echo_test() {
 static void action(command cmd, int args[]) {
     switch(cmd) {
     case NONE:
+        print_help();
         break;
     case QUIT:
         Shutdown();
@@ -95,9 +96,7 @@ static void action(command cmd, int args[]) {
 
 void task_launcher() {
 
-    log("Welcome to ferOS build %u", __BUILD__);
-    log("Built %s %s", __DATE__, __TIME__);
-    log("Enter h for help");
+    log("Enter an empty command for help");
 
     char  buffer[128];
     char* ptr = buffer;
@@ -109,6 +108,7 @@ void task_launcher() {
     FOREVER {
         ptr = vt_goto(ptr, TERM_ROW, 1);
         ptr = sprintf_string(ptr, line_mark);
+        ptr = sprintf_string(ptr, COLOUR(BG_WHITE) " " COLOUR_RESET);
 	ptr = vt_kill_line(ptr);
         Puts(buffer, ptr - buffer);
 
@@ -124,7 +124,8 @@ void task_launcher() {
                 if (insert == 0) goto retry_term;
                 insert--;
                 ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL+1);
-                *(ptr++) = ' ';
+                ptr = vt_kill_line(ptr);
+                ptr = sprintf_string(ptr, COLOUR(BG_WHITE) " " COLOUR_RESET);
                 break;
 
             case 0x1B: // swallow escape characters
@@ -136,9 +137,11 @@ void task_launcher() {
                 ptr = vt_goto(buffer, TERM_ROW, insert + TERM_COL+1);
                 *(ptr++) = c;
                 line[insert++] = c;
+
+                if (c != '\r')
+                    ptr = sprintf_string(ptr, COLOUR(BG_WHITE) " " COLOUR_RESET);
             }
 
-            ptr = sprintf_string(ptr, COLOUR(BG_WHITE) " " COLOUR_RESET);
             Puts(buffer, ptr - buffer);
         }
 
