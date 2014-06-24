@@ -12,6 +12,8 @@ int toggle_train_light(int train);
 int toggle_train_horn(int train);
 int update_turnout(int num, int state);
 int update_train_speed(int train, int speed);
+
 int delay_sensor(int sensor_bank, int sensor_num);
+int delay_all_sensor(void);
 
 #endif

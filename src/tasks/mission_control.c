@@ -32,7 +32,9 @@ typedef enum {
     TRAIN_TOGGLE_LIGHT,
     TRAIN_TOGGLE_HORN,
     RESET_STATE,
+
     SENSOR_DELAY,
+    SENSOR_DELAY_ALL,
 
     MC_TYPE_COUNT
 } mc_type;
@@ -120,6 +122,11 @@ static int __attribute__ ((const, unused)) pos_to_turnout(const int pos) {
     return -1;
 }
 
+static int __attribute__ ((const, always_inline))
+sensorname_to_pos(const int bank, const int num) {
+    return ((bank-'A') << 4) + (num-1);
+}
+
 static void __attribute__ ((noreturn)) sensor_poll() {
     RegisterAs((char*)SENSOR_POLL_NAME);
     Putc(TRAIN, SENSOR_RESET);
@@ -162,6 +169,7 @@ typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
     int          sensor_delay[5*16];
+    int          wait_all;
 
     int   turnouts[NUM_TURNOUTS];
     int   trains[NUM_TRAINS];
@@ -178,11 +186,17 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     }
     memset(ctxt->insert, 0, sizeof(ctxt->insert));
 
-    const int sensor_pos = 'A' - sensor->bank + sensor->num - 1;
+    const int sensor_pos = sensorname_to_pos(sensor->bank, sensor->num);
     const int waiter = ctxt->sensor_delay[sensor_pos];
+    
     if (-1 != waiter) {
         Reply(waiter, NULL, 0);
         ctxt->sensor_delay[sensor_pos] = -1;
+    }
+
+    if (-1 != ctxt->wait_all) {
+        Reply(ctxt->wait_all, NULL, 0);
+        ctxt->wait_all = -1;
     }
 
 
@@ -206,7 +220,7 @@ static void mc_sensor_delay(mc_context* const ctxt,
                             const int tid,
                             const sensor_name* const sensor) {
 
-    const int sensor_pos = 'A'-sensor->bank + sensor->num - 1;
+    const int sensor_pos = sensorname_to_pos(sensor->bank, sensor->num);
     assert(-1 == ctxt->sensor_delay[sensor_pos],
            "Task Already waiting at %c %d", sensor->bank, sensor->num);
     
@@ -234,14 +248,14 @@ static void mc_update_turnout(mc_context* const ctxt,
     }
 
     switch(turn_state) {
-    case 'c': turn_state = 'C';
-    case 'C': state      = TURNOUT_CURVED;
-              ptr        = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
-              break;
-    case 's': turn_state = 'S';
-    case 'S': state      = TURNOUT_STRAIGHT;
-              ptr        = sprintf_string(ptr, COLOUR(CYAN) "S" COLOUR_RESET);
-              break;
+    case 'c': case 'C': 
+        state = TURNOUT_CURVED;
+        ptr   = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
+        break;
+    case 's': case 'S':
+        state = TURNOUT_STRAIGHT;
+        ptr   = sprintf_string(ptr, COLOUR(CYAN) "S" COLOUR_RESET);
+        break;
     default:
         log("Invalid Turnout State %d", turn_state);
         return;
@@ -334,6 +348,7 @@ void mission_control() {
     mc_context context;
     memset(&context, 0, sizeof(context));
     memset(context.sensor_delay, -1, sizeof(context.sensor_delay));
+    context.wait_all = -1;
 
     mission_control_tid = myTid();
 
@@ -408,6 +423,10 @@ void mission_control() {
             break;
         case SENSOR_DELAY:
             mc_sensor_delay(&context, tid, &req.payload.sensor);
+            break;
+
+        case SENSOR_DELAY_ALL:
+            context.wait_all = tid;
             break;
         case MC_TYPE_COUNT:
             result = Reply(tid, NULL, 0);
@@ -533,4 +552,12 @@ int delay_sensor(int sensor_bank, int sensor_num) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
+
+int delay_all_sensor() {
+    mc_req req = {
+        .type           = SENSOR_DELAY_ALL,
+    };
+    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
 

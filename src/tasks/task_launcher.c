@@ -75,6 +75,14 @@ static void action(command cmd, int args[]) {
         log("THUNDER STRUCK YEAH YEAH YEAH THUNDER STRUCK");
         train_set_speed(args[2], 0);
         break;
+    case SWITCH_TIME: {
+        delay_all_sensor();
+        int time = Time();
+        delay_all_sensor();
+        time = Time() - time;
+        log("time interval took %d", time);
+        break;
+    }
 
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
