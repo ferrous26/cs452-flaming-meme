@@ -221,7 +221,7 @@ static void __attribute__ ((noreturn)) train() {
 
 	    Delay(TRAIN_REVERSE_DELAY_FACTOR * speed);
 	    update_train_speed(train_num, TRAIN_REVERSE);
-	    log("Reversing train %d");
+	    log("Reversing train %d", train_num);
 
 	    update_train_speed(train_num, speed);
 	    log("Starting train %d at speed %d", train_num, speed);
