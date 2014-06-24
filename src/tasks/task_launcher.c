@@ -12,6 +12,7 @@
 #include <tasks/train_server.h>
 #include <tasks/mission_control.h>
 #include <tasks/train_station.h>
+#include <tasks/calibrate.h>
 
 #include <tasks/task_launcher.h>
 
@@ -70,9 +71,7 @@ static void action(command cmd, int args[]) {
         break;
 
     case SWITCH_STOP:
-        log("THUNDER STRUCK");
         delay_sensor(args[0], args[1]);
-        log("THUNDER STRUCK YEAH YEAH YEAH THUNDER STRUCK");
         train_set_speed(args[2], 0);
         break;
     case SWITCH_TIME: {
@@ -83,6 +82,9 @@ static void action(command cmd, int args[]) {
         log("time interval took %d", time);
         break;
     }
+    case CALIBRATE:
+        Create(5, calibrate);
+        break;
 
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
@@ -111,7 +113,6 @@ static void action(command cmd, int args[]) {
 }
 
 void task_launcher() {
-
     log("Enter an empty command for help");
 
     char  buffer[128];

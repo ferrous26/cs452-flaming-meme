@@ -19,6 +19,8 @@ typedef enum {
     LOC_REVERSE,
     LOC_HORN,
 
+
+    CALIBRATE,
     QUIT,
     ERROR,
 } command;
