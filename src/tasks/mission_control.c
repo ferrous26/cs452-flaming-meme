@@ -206,10 +206,10 @@ static void mc_sensor_delay(mc_context* const ctxt,
                             const int tid,
                             const sensor_name* const sensor) {
 
-    const int sensor_pos = 'A'-sensor->bank + sensor->num - 1;
+    const int sensor_pos = 'A' - sensor->bank + sensor->num - 1;
     assert(-1 == ctxt->sensor_delay[sensor_pos],
            "Task Already waiting at %c %d", sensor->bank, sensor->num);
-    
+
     ctxt->sensor_delay[sensor_pos] = tid;
 }
 
@@ -302,7 +302,7 @@ static void mc_toggle_horn(mc_context* ctxt,
 
     char buffer[16];
     char* ptr = vt_goto(buffer, TRAIN_ROW + pos, TRAIN_HORN_COL);
-    
+
     if (ctxt->horn[pos]) {
 	ptr   = sprintf_string(ptr, COLOUR(RED) "H" COLOUR_RESET);
     } else {
@@ -501,18 +501,18 @@ int delay_sensor(int sensor_bank, int sensor_num) {
     switch (sensor_bank) {
     case 'a': sensor_bank = 'A';
     case 'A': break;
-    
+
     case 'b': sensor_bank = 'B';
     case 'B': break;
-    
+
     case 'c': sensor_bank = 'C';
     case 'C': break;
-    
+
     case 'd': sensor_bank = 'D';
     case 'D': break;
-    
+
     case 'e': sensor_bank = 'E';
-    case 'E': break; 
+    case 'E': break;
     default:
         log("Invalid sensor bank %c", sensor_bank);
         return -1;
@@ -522,7 +522,7 @@ int delay_sensor(int sensor_bank, int sensor_num) {
         log("Invalid sensor num %d", sensor_num);
         return -1;
     }
-    
+
     mc_req req = {
         .type           = SENSOR_DELAY,
         .payload.sensor = {
@@ -533,4 +533,3 @@ int delay_sensor(int sensor_bank, int sensor_num) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-
