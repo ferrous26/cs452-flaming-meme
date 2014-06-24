@@ -486,18 +486,18 @@ inline static void scheduler_schedule(task* const t) {
     task_q* const q = &manager.q[t->priority];
 
     assert(t >= tasks && t < &tasks[TASK_MAX],
-	   "schedule: cannot schedule task at %p (%p-%p)",
-	   t, tasks, &tasks[TASK_MAX]);
+           "schedule: cannot schedule task at %p (%p-%p)",
+           t, tasks, &tasks[TASK_MAX]);
 
     // _always_ turn on the bit in the manager state
     manager.state |= (1 << t->priority);
 
     // if there was something in the queue, append to it
     if (q->head)
-	q->tail->next = t;
+      q->tail->next = t;
     // else the queue was off, so set the head
     else
-	q->head = t;
+      q->head = t;
 
     // then we set the tail pointer
     q->tail = t;
@@ -519,7 +519,7 @@ inline static void scheduler_get_next() {
 
     // if we hit the end of the list, then turn off the queue
     if (!q->head)
-	manager.state ^= (1 << priority);
+      manager.state ^= (1 << priority);
 }
 
 inline static int task_create(const task_pri pri,
