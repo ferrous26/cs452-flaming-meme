@@ -33,5 +33,5 @@ struct track_node {
   track_edge edge[2];
 };
 
-
 #endif
+

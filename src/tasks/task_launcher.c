@@ -96,6 +96,9 @@ static void action(command cmd, int args[]) {
 	Create(TASK_PRIORITY_MEDIUM, echo_test);
 	Exit();
 	break;
+    case TRACK_LOAD:
+        load_track(args[0]);
+        break;
     case REVERSE_LOOKUP: {
         char name[8];
         if (WhoTid(args[0], name) < 0) {
