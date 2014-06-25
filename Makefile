@@ -100,6 +100,8 @@ LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2
 endif
 endif
 
+TC   = track_data/parse_track
+TOBJ = track_data/tracka track_data/trackb
 
 all: kernel.elf
 
@@ -115,8 +117,10 @@ kernel.elf: $(OBJS)
 %.o: %.asm Makefile
 	$(AS) $(ASFLAGS) $< -o $@
 
-
 .PHONY: clean
+
+track:
+	$(TC) -H include/track_data.h -C src/track_data.c $(TOBJ)
 
 clean:
 	-rm -f kernel.elf kernel.map
