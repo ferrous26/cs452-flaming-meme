@@ -175,6 +175,7 @@ typedef struct {
 
     int          sensor_delay[5*16];
     int          wait_all;
+    int          track_loaded;
 
     int   turnouts[NUM_TURNOUTS];
     int   trains[NUM_TRAINS];
@@ -192,18 +193,29 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     memset(ctxt->insert, 0, sizeof(ctxt->insert));
 
     const int sensor_pos = sensorname_to_pos(sensor->bank, sensor->num);
-    const int waiter = ctxt->sensor_delay[sensor_pos];
+    const int waiter     = ctxt->sensor_delay[sensor_pos];
     
     if (-1 != waiter) {
         Reply(waiter, NULL, 0);
         ctxt->sensor_delay[sensor_pos] = -1;
     }
-
     if (-1 != ctxt->wait_all) {
         Reply(ctxt->wait_all, NULL, 0);
         ctxt->wait_all = -1;
     }
 
+    track_node* node = &ctxt->track[sensor_pos];
+
+    if (ctxt->track_loaded) { 
+        log("%d %s\t--(%dmm)-->\t%d %s",
+            node->num, node->name, node->edge->dist,
+            node->edge->dest->num, node->edge->dest->name);
+
+        log("%d %s\t-f(%dmm)f->\t%d %s",
+            node->num, node->name,
+            node->edge->dist + node->edge->dest->edge->dist,
+            node->edge->dest->edge->dest->num, node->edge->dest->edge->dest->name);
+    }
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
@@ -346,6 +358,23 @@ static void mc_reset_train_state(mc_context* context) {
     mc_update_turnout(context, 156, 'C');
 }
 
+static void mc_load_track(mc_context* const ctxt,
+                          int track_num) {
+    switch (track_num) {
+    case 'a': case 'A':
+        init_tracka(ctxt->track);
+        break;
+    case 'b': case 'B':
+        init_trackb(ctxt->track);
+        break;
+    default:
+        return;
+    }
+
+    ctxt->track_loaded = 1;
+    log("loading track %c ...", track_num);
+}
+
 static int mission_control_tid;
 
 void mission_control() {
@@ -402,13 +431,7 @@ void mission_control() {
             mc_toggle_horn(&context,  req.payload.int_value);
             break;
         case TRACK_LOAD:
-            if(req.payload.int_value == 'a') {
-                init_tracka(context.track);
-                log("loading track a ...");
-            } else if (req.payload.int_value == 'b') {
-                init_trackb(context.track);
-                log("loading track b ...");
-            }
+            mc_load_track(&context, req.payload.int_value);
             break;
         
         case MC_TYPE_COUNT:
