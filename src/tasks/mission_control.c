@@ -81,7 +81,8 @@ static void train_ui() {
     Puts(buffer, ptr - buffer);
 }
 
-static int __attribute__ ((const)) train_to_pos(const int train) {
+static inline int __attribute__ ((const))
+train_to_pos(const int train) {
     switch (train) {
     case 43: return 0;
     case 45: return 1;
@@ -95,7 +96,8 @@ static int __attribute__ ((const)) train_to_pos(const int train) {
     return -1;
 }
 
-static int __attribute__ ((const, unused)) pos_to_train(const int pos) {
+static inline int __attribute__ ((const, unused))
+pos_to_train(const int pos) {
     switch (pos) {
     case 0: return 43;
     case 1: return 45;
@@ -107,7 +109,8 @@ static int __attribute__ ((const, unused)) pos_to_train(const int pos) {
     return -1;
 }
 
-static int __attribute__ ((const)) turnout_to_pos(const int turnout) {
+static inline int __attribute__ ((const))
+turnout_to_pos(const int turnout) {
     if (turnout <  1)   return -1;
     if (turnout <= 18)  return turnout - 1;
     if (turnout <  153) return -1;
@@ -115,7 +118,8 @@ static int __attribute__ ((const)) turnout_to_pos(const int turnout) {
     return -1;
 }
 
-static int __attribute__ ((const, unused)) pos_to_turnout(const int pos) {
+static inline int __attribute__ ((const, unused))
+pos_to_turnout(const int pos) {
     if (pos < 0)  return -1;
     if (pos < 18) return pos + 1;
     if (pos < 22) return pos + (153-18);
