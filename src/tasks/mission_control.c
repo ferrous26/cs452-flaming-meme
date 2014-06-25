@@ -150,8 +150,8 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
             for (int mask = 0x80, i = 1; mask > 0; mask = mask >> 1, i++) {
                 if((c & mask) > (sensor_state[bank] & mask)) {
-                    req.payload.sensor.bank = 'A' + (bank>>1);
-                    req.payload.sensor.num  =  i + 8 * (bank & 1);
+                    req.payload.sensor.bank = (short)('A' + (bank>>1));
+                    req.payload.sensor.num  = (short)(i + 8 * (bank & 1));
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }
@@ -180,15 +180,15 @@ inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
 
     sensor_name* next = ctxt->insert++;
-    memcpy(next, sensor, sizeof(sensor));
+    memcpy(next, sensor, sizeof(sensor_name));
     if(ctxt->insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
         ctxt->insert = ctxt->recent_sensors;
     }
-    memset(ctxt->insert, 0, sizeof(ctxt->insert));
+    memset(ctxt->insert, 0, sizeof(sensor_name));
 
     const int sensor_pos = sensorname_to_pos(sensor->bank, sensor->num);
     const int waiter = ctxt->sensor_delay[sensor_pos];
-    
+
     if (-1 != waiter) {
         Reply(waiter, NULL, 0);
         ctxt->sensor_delay[sensor_pos] = -1;
@@ -202,8 +202,8 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
-        char* output = next->num < 10 ? "%c 0%d": "%c %d";
-        char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
+        const char* const output = next->num < 10 ? "%c 0%d": "%c %d";
+        char*                pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
 
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
@@ -239,15 +239,15 @@ static void mc_update_turnout(mc_context* const ctxt,
     if (pos < 18) {
         ptr = vt_goto(buffer,
 		      TURNOUT_ROW + (pos>>2),
-		      TURNOUT_COL + (mod2(pos, 4) * 6));
+		      TURNOUT_COL + (mod2_int(pos, 4) * 6));
     } else {
         ptr = vt_goto(buffer,
 		      TURNOUT_ROW + 5,
-		      TURNOUT_COL + (mod2(pos - 18, 4) * 6));
+		      TURNOUT_COL + (mod2_int(pos - 18, 4) * 6));
     }
 
     switch(turn_state) {
-    case 'c': case 'C': 
+    case 'c': case 'C':
         state = TURNOUT_CURVED;
         ptr   = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
         break;
@@ -269,7 +269,7 @@ static void mc_update_turnout(mc_context* const ctxt,
     Puts(buffer, ptr - buffer);
 }
 
-static void mc_update_train_speed(mc_context* ctxt,
+static void mc_update_train_speed(mc_context* const ctxt,
                                   const int   tr_num,
                                   const int   tr_speed) {
     int pos = train_to_pos(tr_num);
@@ -288,7 +288,7 @@ static void mc_update_train_speed(mc_context* ctxt,
     Puts(buffer, ptr-buffer);
 }
 
-static void mc_toggle_light(mc_context* ctxt,
+static void mc_toggle_light(mc_context* const ctxt,
                             const int   tr_num) {
     int pos = train_to_pos(tr_num);
 
@@ -305,7 +305,7 @@ static void mc_toggle_light(mc_context* ctxt,
     Puts(buffer, ptr-buffer);
 }
 
-static void mc_toggle_horn(mc_context* ctxt,
+static void mc_toggle_horn(mc_context* const ctxt,
 			   const int   tr_num) {
     int pos = train_to_pos(tr_num);
 
@@ -324,7 +324,7 @@ static void mc_toggle_horn(mc_context* ctxt,
     Puts(buffer, ptr - buffer);
 }
 
-static void mc_reset_train_state(mc_context* context) {
+static void mc_reset_train_state(mc_context* const context) {
     // Kill any existing command so we're in a good state
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -544,8 +544,8 @@ int delay_sensor(int sensor_bank, int sensor_num) {
     mc_req req = {
         .type           = SENSOR_DELAY,
         .payload.sensor = {
-            .bank   = (short)sensor_bank,
-            .num    = (short)sensor_num
+            .bank = (short)sensor_bank,
+            .num  = (short)sensor_num
         }
     };
 
@@ -558,4 +558,3 @@ int delay_all_sensor() {
     };
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-

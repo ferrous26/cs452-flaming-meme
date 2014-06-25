@@ -46,7 +46,7 @@ static int parse_argument(const char* const cmd,
     return 0;
 }
 
-static int parse_s(const char* const cmd, int* buffer) {
+static command parse_s(const char* const cmd, int* buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
@@ -72,7 +72,7 @@ static int parse_s(const char* const cmd, int* buffer) {
     }
 }
 
-static int parse_train(const char* const cmd, int* const buffer) {
+static command parse_train(const char* const cmd, int* const buffer) {
     int index = 1;
     if (cmd[index++] != 'r')                          return ERROR;
     if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
@@ -82,7 +82,7 @@ static int parse_train(const char* const cmd, int* const buffer) {
     return LOC_SPEED;
 }
 
-static int parse_stop(const char* const cmd) {
+static command parse_stop(const char* const cmd) {
     int index = 1;
 
     if (!isspace(cmd[index])) return ERROR;
