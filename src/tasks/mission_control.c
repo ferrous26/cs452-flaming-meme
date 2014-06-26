@@ -3,6 +3,7 @@
 #include <debug.h>
 #include <train.h>
 #include <syscall.h>
+#include <track_data.h>
 
 #include <tasks/train_server.h>
 #include <tasks/term_server.h>
@@ -26,6 +27,8 @@ typedef struct {
 } train_speed;
 
 typedef enum {
+    TRACK_LOAD,
+
     SENSOR_UPDATE,
     TURNOUT_UPDATE,
     TRAIN_SPEED_UPDATE,
@@ -172,6 +175,8 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 typedef struct {
     sensor_name* insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
+    track_node   track[TRACK_MAX];
+
     int          sensor_delay[5*16];
     int          wait_all;
 
@@ -380,65 +385,50 @@ void mission_control() {
         switch (req.type) {
         case SENSOR_UPDATE:
             mc_update_sensors(&context, &req.payload.sensor);
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
 	    break;
         case TURNOUT_UPDATE:
             mc_update_turnout(&context,
                               req.payload.turnout.num,
                               req.payload.turnout.state);
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
             break;
         case TRAIN_SPEED_UPDATE:
             mc_update_train_speed(&context,
                                   req.payload.train_speed.num,
                                   req.payload.train_speed.speed);
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
             break;
         case RESET_STATE:
             mc_reset_train_state(&context);
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
             break;
         case TRAIN_TOGGLE_LIGHT:
             mc_toggle_light(&context, req.payload.int_value);
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
             break;
         case TRAIN_TOGGLE_HORN:
             mc_toggle_horn(&context,  req.payload.int_value);
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
+            break;
+        case TRACK_LOAD:
+            if(req.payload.int_value == 'a') {
+                init_tracka(context.track);
+                log("loading track a ...");
+            } else if (req.payload.int_value == 'b') {
+                init_trackb(context.track);
+                log("loading track b ...");
+            }
+            break;
+        
+        case MC_TYPE_COUNT:
             break;
         case SENSOR_DELAY:
             mc_sensor_delay(&context, tid, &req.payload.sensor);
-            break;
-
+            continue;
         case SENSOR_DELAY_ALL:
             context.wait_all = tid;
-            break;
-        case MC_TYPE_COUNT:
-            result = Reply(tid, NULL, 0);
-            if (result < 0)
-                ABORT("Failed to reply to mission control req %d (%d)",
-                      req.type, result);
-            break;
+            continue;
         }
 
+        result = Reply(tid, NULL, 0);
+        if (result < 0)
+            ABORT("Failed to reply to mission control req %d (%d)",
+                  req.type, result);
     }
 }
 
@@ -560,5 +550,15 @@ int delay_all_sensor() {
     mc_req req = {
         .type           = SENSOR_DELAY_ALL,
     };
+
+    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int load_track(int track_value) {
+    mc_req req = {
+        .type              = TRACK_LOAD,
+        .payload.int_value = track_value
+    };
+
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
