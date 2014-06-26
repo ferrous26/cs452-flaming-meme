@@ -162,6 +162,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'l':  return parse_light(cmd, buffer);
     case 'h':  return parse_horn(cmd, buffer);
     case 'c':  return CALIBRATE;
+    case 'a':  return ACCELERATE;
     default:   return ERROR;
     }
 }

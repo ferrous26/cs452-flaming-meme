@@ -21,6 +21,8 @@ typedef enum {
 
 
     CALIBRATE,
+    ACCELERATE,
+
     QUIT,
     ERROR,
 } command;
