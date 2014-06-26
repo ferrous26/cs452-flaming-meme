@@ -82,10 +82,12 @@ static void action(command cmd, int args[]) {
         log("time interval took %d", time);
         break;
     }
-    case CALIBRATE:
+
+    case CALIBRATE: {
         int tid = Create(5, calibrate);
         Send(tid, (char*)args, sizeof(int), NULL, 0);
         break;
+    }
 
     case ACCELERATE: {
         int tid = Create(5, accelerate);
