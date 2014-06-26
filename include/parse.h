@@ -22,6 +22,8 @@ typedef enum {
     TRACK_LOAD,
 
     CALIBRATE,
+    ACCELERATE,
+
     QUIT,
     ERROR,
 } command;

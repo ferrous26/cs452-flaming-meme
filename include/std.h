@@ -39,6 +39,9 @@ static inline uint __attribute__ ((const)) mod2(uint top, uint mod) {
     return (top & (mod - 1));
 }
 
+static inline int __attribute__ ((const)) mod2_int(int top, int mod) {
+    return (top & (mod - 1));
+}
 
 
 #endif

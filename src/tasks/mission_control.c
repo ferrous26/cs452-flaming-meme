@@ -80,7 +80,8 @@ static void train_ui() {
     Puts(buffer, ptr - buffer);
 }
 
-static int __attribute__ ((const)) train_to_pos(const int train) {
+static inline int __attribute__ ((const))
+train_to_pos(const int train) {
     switch (train) {
     case 43: return 0;
     case 45: return 1;
@@ -94,7 +95,8 @@ static int __attribute__ ((const)) train_to_pos(const int train) {
     return -1;
 }
 
-static int __attribute__ ((const, unused)) pos_to_train(const int pos) {
+static inline int __attribute__ ((const, unused))
+pos_to_train(const int pos) {
     switch (pos) {
     case 0: return 43;
     case 1: return 45;
@@ -106,7 +108,8 @@ static int __attribute__ ((const, unused)) pos_to_train(const int pos) {
     return -1;
 }
 
-static int __attribute__ ((const)) turnout_to_pos(const int turnout) {
+static inline int __attribute__ ((const))
+turnout_to_pos(const int turnout) {
     if (turnout <  1)   return -1;
     if (turnout <= 18)  return turnout - 1;
     if (turnout <  153) return -1;
@@ -114,7 +117,8 @@ static int __attribute__ ((const)) turnout_to_pos(const int turnout) {
     return -1;
 }
 
-static int __attribute__ ((const, unused)) pos_to_turnout(const int pos) {
+static inline int __attribute__ ((const, unused))
+pos_to_turnout(const int pos) {
     if (pos < 0)  return -1;
     if (pos < 18) return pos + 1;
     if (pos < 22) return pos + (153-18);
@@ -149,8 +153,8 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
             for (int mask = 0x80, i = 1; mask > 0; mask = mask >> 1, i++) {
                 if((c & mask) > (sensor_state[bank] & mask)) {
-                    req.payload.sensor.bank = 'A' + (bank>>1);
-                    req.payload.sensor.num  =  i + 8 * (bank & 1);
+                    req.payload.sensor.bank = (short)('A' + (bank>>1));
+                    req.payload.sensor.num  = (short)(i + 8 * (bank & 1));
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }
@@ -201,11 +205,11 @@ inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
 
     sensor_name* next = ctxt->insert++;
-    memcpy(next, sensor, sizeof(sensor));
+    memcpy(next, sensor, sizeof(sensor_name));
     if(ctxt->insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
         ctxt->insert = ctxt->recent_sensors;
     }
-    memset(ctxt->insert, 0, sizeof(ctxt->insert));
+    memset(ctxt->insert, 0, sizeof(sensor_name));
 
     const int sensor_pos = sensorname_to_pos(sensor->bank, sensor->num);
     const int waiter     = ctxt->sensor_delay[sensor_pos];
@@ -232,8 +236,8 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
-        char* output = next->num < 10 ? "%c 0%d": "%c %d";
-        char* pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
+        const char* const output = next->num < 10 ? "%c 0%d": "%c %d";
+        char*                pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
 
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
@@ -269,15 +273,15 @@ static void mc_update_turnout(mc_context* const ctxt,
     if (pos < 18) {
         ptr = vt_goto(buffer,
 		      TURNOUT_ROW + (pos>>2),
-		      TURNOUT_COL + (mod2(pos, 4) * 6));
+		      TURNOUT_COL + (mod2_int(pos, 4) * 6));
     } else {
         ptr = vt_goto(buffer,
 		      TURNOUT_ROW + 5,
-		      TURNOUT_COL + (mod2(pos - 18, 4) * 6));
+		      TURNOUT_COL + (mod2_int(pos - 18, 4) * 6));
     }
 
     switch(turn_state) {
-    case 'c': case 'C': 
+    case 'c': case 'C':
         state = TURNOUT_CURVED;
         ptr   = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
         ctxt->turnouts[pos] = DIR_CURVED;
@@ -299,7 +303,7 @@ static void mc_update_turnout(mc_context* const ctxt,
     Puts(buffer, ptr - buffer);
 }
 
-static void mc_update_train_speed(mc_context* ctxt,
+static void mc_update_train_speed(mc_context* const ctxt,
                                   const int   tr_num,
                                   const int   tr_speed) {
     int pos = train_to_pos(tr_num);
@@ -318,7 +322,7 @@ static void mc_update_train_speed(mc_context* ctxt,
     Puts(buffer, ptr-buffer);
 }
 
-static void mc_toggle_light(mc_context* ctxt,
+static void mc_toggle_light(mc_context* const ctxt,
                             const int   tr_num) {
     int pos = train_to_pos(tr_num);
 
@@ -335,7 +339,7 @@ static void mc_toggle_light(mc_context* ctxt,
     Puts(buffer, ptr-buffer);
 }
 
-static void mc_toggle_horn(mc_context* ctxt,
+static void mc_toggle_horn(mc_context* const ctxt,
 			   const int   tr_num) {
     int pos = train_to_pos(tr_num);
 
@@ -354,7 +358,7 @@ static void mc_toggle_horn(mc_context* ctxt,
     Puts(buffer, ptr - buffer);
 }
 
-static void mc_reset_train_state(mc_context* context) {
+static void mc_reset_train_state(mc_context* const context) {
     // Kill any existing command so we're in a good state
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -570,8 +574,8 @@ int delay_sensor(int sensor_bank, int sensor_num) {
     mc_req req = {
         .type           = SENSOR_DELAY,
         .payload.sensor = {
-            .bank   = (short)sensor_bank,
-            .num    = (short)sensor_num
+            .bank = (short)sensor_bank,
+            .num  = (short)sensor_num
         }
     };
 
@@ -594,5 +598,3 @@ int load_track(int track_value) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-
-

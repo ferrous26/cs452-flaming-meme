@@ -86,6 +86,10 @@ static void action(command cmd, int args[]) {
         Create(5, calibrate);
         break;
 
+    case ACCELERATE:
+        Create(5, accelerate);
+        break;
+
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
         break;
