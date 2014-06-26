@@ -67,7 +67,9 @@ static command parse_s(const char* const cmd, int* buffer) {
     case 'd':
         if (!isspace(cmd[index])) return ERROR;
         return SWITCH_TIME;
-        default:
+    case 'z':
+        return SIZES;
+    default:
         return ERROR;
     }
 }
