@@ -83,12 +83,15 @@ static void action(command cmd, int args[]) {
         break;
     }
     case CALIBRATE:
-        Create(5, calibrate);
+        int tid = Create(5, calibrate);
+        Send(tid, (char*)args, sizeof(int), NULL, 0);
         break;
 
-    case ACCELERATE:
-        Create(5, accelerate);
+    case ACCELERATE: {
+        int tid = Create(5, accelerate);
+        Send(tid, (char*)args, sizeof(int), NULL, 0);
         break;
+    }
 
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
