@@ -5,6 +5,11 @@
 #define MISSION_CONTROL_NAME "BORIS"
 #define SENSOR_POLL_NAME     "SR_POLL"
 
+typedef struct {
+    short bank;
+    short num;
+} sensor_name;
+
 void mission_control(void) __attribute__((noreturn));
 
 int reset_train_state(void);

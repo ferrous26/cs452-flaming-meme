@@ -186,22 +186,31 @@ void train_sound_horn(int train) {
 	log("Failed to send horn sounding command (%d)", result);
 }
 
-static void __attribute__ ((noreturn)) train() {
-
-    int train_num = train_station_whoami();
-
+struct train_context {
+    int  train_num;
     char name[8];
-    sprintf(name, "TRAIN%d", train_num);
-    name[7] = '\0';
+    int  speed;
+};
 
-    int result = RegisterAs(name);
+static void tr_setup(struct train_context* const ctxt) {
+    ctxt->train_num = train_station_whoami();
+    sprintf(ctxt->name, "TRAIN%d", ctxt->train_num);
+    ctxt->name[7] = '\0';
+}
+
+static void __attribute__ ((noreturn)) train() {
+    struct train_context context;
+    tr_setup(&context);
+
+
+    int result = RegisterAs(context.name);
     if (result != 0)
-	ABORT("Failed to register train %d (%d)", train_num, result);
+	ABORT("Failed to register train %d (%d)", context.train_num, result);
 
-    result = update_train_speed(train_num, 0);
+    result = update_train_speed(context.train_num, 0);
     if (result < 0) log("Failed to stop train %d", result);
+    context.speed = 0;
 
-    int speed = 0;
     train_req req;
 
     FOREVER {
@@ -211,28 +220,29 @@ static void __attribute__ ((noreturn)) train() {
 	case TRAIN_REQUEST:
 	    ABORT("Illegal train request (%d)", req.type);
 	case TRAIN_CHANGE_SPEED:
-	    speed = req.arg;
-	    update_train_speed(train_num, speed);
-	    log("Set train %d to %d", train_num, speed);
+	    context.speed = req.arg;
+	    update_train_speed(context.train_num, context.speed);
+	    log("Set train %d to %d", context.train_num, context.speed);
 	    break;
 	case TRAIN_REVERSE_DIRECTION:
-	    update_train_speed(train_num, 0);
-	    log("Stopping train %d", train_num);
+	    update_train_speed(context.train_num, 0);
+	    log("Stopping train %d", context.train_num);
 
-	    Delay(TRAIN_REVERSE_DELAY_FACTOR * speed);
-	    update_train_speed(train_num, TRAIN_REVERSE);
-	    log("Reversing train %d", train_num);
+	    Delay(TRAIN_REVERSE_DELAY_FACTOR * context.speed);
+	    update_train_speed(context.train_num, TRAIN_REVERSE);
+	    log("Reversing train %d", context.train_num);
 
-	    update_train_speed(train_num, speed);
-	    log("Starting train %d at speed %d", train_num, speed);
+	    update_train_speed(context.train_num, context.speed);
+	    log("Starting train %d at speed %d",
+                context.train_num, context.speed);
 	    break;
 	case TRAIN_TOGGLE_LIGHT:
-	    toggle_train_light(train_num);
-	    log("Toggling lights on train %d", train_num);
+	    toggle_train_light(context.train_num);
+	    log("Toggling lights on train %d", context.train_num);
 	    break;
 	case TRAIN_HORN_SOUND:
-	    toggle_train_horn(train_num);
-	    log("Toggling the train horn for train %d", train_num);
+	    toggle_train_horn(context.train_num);
+	    log("Toggling the train horn for train %d", context.train_num);
 	    break;
 	}
     }

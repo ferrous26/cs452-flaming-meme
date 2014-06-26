@@ -11,10 +11,6 @@
 #include <tasks/clock_server.h>
 #include <tasks/mission_control.h>
 
-typedef struct {
-    short bank;
-    short num;
-} sensor_name;
 
 typedef struct {
     short num;
@@ -166,6 +162,7 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
 #define NUM_TURNOUTS     22
 #define NUM_TRAINS       7
+#define NUM_SENSORS      (5*16)
 #define SENSOR_LIST_SIZE 9
 
 typedef struct {
@@ -173,14 +170,32 @@ typedef struct {
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
     track_node   track[TRACK_MAX];
 
-    int          sensor_delay[5*16];
-    int          wait_all;
-    int          track_loaded;
-
-    int   turnouts[NUM_TURNOUTS];
-    int   trains[NUM_TRAINS];
+    int track_loaded;
+    int wait_all;
+    int sensor_delay[NUM_SENSORS];
+    int turnouts[NUM_TURNOUTS];
+    
+    int trains[NUM_TRAINS];
     bool  horn[NUM_TRAINS];
 } mc_context;
+
+int get_next_sensor(const track_node* node,
+                    const int turnouts[NUM_TURNOUTS],
+                    const track_node** rtrn) {
+    int dist = 0;
+
+    do {
+        const int index = node->type == NODE_BRANCH ?
+                          turnouts[turnout_to_pos(node->num)] :
+                          DIR_AHEAD;
+        dist += node->edge[index].dist;
+        node  = node->edge[index].dest;
+    } while (node->type != NODE_SENSOR);
+
+    *rtrn = node;
+    return dist;
+}
+
 
 inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
@@ -207,14 +222,12 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     track_node* node = &ctxt->track[sensor_pos];
 
     if (ctxt->track_loaded) { 
-        log("%d %s\t--(%dmm)-->\t%d %s",
-            node->num, node->name, node->edge->dist,
-            node->edge->dest->num, node->edge->dest->name);
+        const track_node* node_next;
+        int dist = get_next_sensor(node, ctxt->turnouts, &node_next);
 
-        log("%d %s\t-f(%dmm)f->\t%d %s",
-            node->num, node->name,
-            node->edge->dist + node->edge->dest->edge->dist,
-            node->edge->dest->edge->dest->num, node->edge->dest->edge->dest->name);
+        log("%d %s\t--(%dmm)-->\t%d %s",
+            node->num, node->name, dist,
+            node_next->num, node_next->name);
     }
 
     char buffer[64];
@@ -267,17 +280,17 @@ static void mc_update_turnout(mc_context* const ctxt,
     case 'c': case 'C': 
         state = TURNOUT_CURVED;
         ptr   = sprintf_string(ptr, COLOUR(MAGENTA) "C" COLOUR_RESET);
+        ctxt->turnouts[pos] = DIR_CURVED;
         break;
     case 's': case 'S':
         state = TURNOUT_STRAIGHT;
         ptr   = sprintf_string(ptr, COLOUR(CYAN) "S" COLOUR_RESET);
+        ctxt->turnouts[pos] = DIR_STRAIGHT;
         break;
     default:
         log("Invalid Turnout State %d", turn_state);
         return;
     }
-
-    ctxt->turnouts[pos] = turn_state;
 
     int result = put_train_turnout((char)turn_num, (char)state);
     assert(result == 0, "Failed setting turnout %d to %c", turn_num, turn_state);
@@ -350,7 +363,7 @@ static void mc_reset_train_state(mc_context* context) {
     Putc(TRAIN, TRAIN_ALL_START);
 
     for (int i = 1; i < 19; i++) {
-        mc_update_turnout(context, i, i == 14 ? 'S' : 'C');
+        mc_update_turnout(context, i, 'C');
     }
     mc_update_turnout(context, 153, 'S');
     mc_update_turnout(context, 154, 'C');
