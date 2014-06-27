@@ -230,7 +230,7 @@ inline static void ksyscall_recv(task* const receiver) {
 	// validate that there is enough space in the receiver buffer
 	if (sender_req->msglen > receiver_req->msglen) {
 	    sender->sp[0] = NOT_ENUF_MEMORY;
-            ksyscall_pass();
+            scheduler_reschedule(sender);
 	    ksyscall_recv(receiver); // DANGER: recursive call
 	    return;
 	}
