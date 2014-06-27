@@ -110,11 +110,10 @@ void shutdown(void) {
 	   "Trying to shutdown from non-supervisor mode");
 
     vt_deinit();
-    _flush_caches();
-
     clock_deinit();
     kernel_deinit();
     irq_deinit();
+    _flush_caches();
 
     asm volatile ("mov  sp, %0\n"
 		  "mov	pc, %1\n"
