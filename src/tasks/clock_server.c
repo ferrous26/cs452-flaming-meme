@@ -34,11 +34,8 @@ typedef struct {
     clock_delay delays[TASK_MAX];
 } clock_pq;
 
-#define CLOCK_ASSERT(expr, result) if (!(expr)) clock_failure(result, __LINE__)
-static void __attribute__ ((noreturn)) clock_failure(int result, uint line) {
-    log("Action failed in clock at line %u (%d)", line, result);
-    Shutdown();
-}
+#define CLOCK_ASSERT(expr, result)              \
+    if (!(expr)) ABORT("Action failed in clock (%d)", result);
 
 static void __attribute__ ((noreturn)) clock_notifier() {
     int clock = myParentTid();
