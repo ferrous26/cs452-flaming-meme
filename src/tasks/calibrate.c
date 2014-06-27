@@ -41,11 +41,11 @@ void accelerate() {
         // in position, so stop!
         delay_sensor('E', 8);
         train_set_speed(train_num, 0);
-        Delay(200); // wait for full stop (estimate)
+        Delay(400); // wait for full stop (estimate)
 
         // start the test
         train_set_speed(train_num, speed);
-        Delay(400);
+        Delay(600);
 
         // done, so reset
         train_reverse(train_num);
@@ -60,7 +60,7 @@ void accelerate() {
         // in position, so stop!
         delay_sensor('E', 8);
         train_set_speed(train_num, 0);
-        Delay(200); // wait for full stop (estimate)
+        Delay(400); // wait for full stop (estimate)
 
         // start the test
         train_set_speed(train_num, speed);
