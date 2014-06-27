@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include <syscall.h>
 #include <tasks/name_server_kernel.h>
+#include <tasks/clock_server_kernel.h>
 
 #define TEXT_HOT __attribute__ ((section (".text.kern")))
 #define DATA_HOT __attribute__ ((section (".data.kern")))

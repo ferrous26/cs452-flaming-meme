@@ -142,8 +142,13 @@ void kernel_init() {
     task_active = &tasks[0];
     task_create(TASK_PRIORITY_IDLE + 1,    task_launcher);
     task_create(TASK_PRIORITY_IDLE,        idle);
-    task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
-    task_create(TASK_PRIORITY_MEDIUM_HIGH, clock_server);
+
+    // avoid potential race conditions...
+    clock_server_tid =
+        task_create(TASK_PRIORITY_MEDIUM_HIGH, clock_server);
+    name_server_tid =
+        task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
+
     task_create(TASK_PRIORITY_MEDIUM,      term_server);
     task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
     task_create(TASK_PRIORITY_MEDIUM,      train_server);

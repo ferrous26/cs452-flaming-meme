@@ -164,7 +164,8 @@ void irq_uart2_recv() {
     if (*flag & RXFF_MASK) ABORT("UART2 dropped %c", *data);
     // however, we should be disabling interrupts when we are
     // not waiting for input, so we should not be here if the
-    // notifier is not waiting
+    // notifier is not waiting, something is wrong with the way
+    // that we mask interrupts
 }
 
 void irq_uart2_send() {

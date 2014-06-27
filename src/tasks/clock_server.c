@@ -10,7 +10,7 @@
 #define RIGHT(i)  (LEFT(i) + 1)
 #define PARENT(i) (i >> 1)
 
-static int clock_server_tid;
+int clock_server_tid;
 
 typedef enum {
     CLOCK_NOTIFY      = 1,
@@ -47,12 +47,9 @@ static void __attribute__ ((noreturn)) clock_notifier() {
         int result = AwaitEvent(CLOCK_TICK, NULL, 0);
         CLOCK_ASSERT(result == 0, result);
 
-        // We don't actually need to send anything to the clock
-        // server, but sending 0 bytes is going to go down a bad path
-        // in memcpy, so send the most optimal case (one word).
         result = Send(clock,
                       (char*)&msg, sizeof(msg),
-                      (char*)&msg, sizeof(msg));
+                      NULL, 0);
         CLOCK_ASSERT(result == 0, result);
     }
 }
@@ -221,13 +218,13 @@ static void _startup(clock_pq* pq) {
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
 
-    int result = RegisterAs((char*)CLOCK_SERVER_NAME);
-    if (result)
-        ABORT("Failed to register clock server name (%d)", result);
-
-    result = Create(TASK_PRIORITY_HIGH, clock_notifier);
+    int result = Create(TASK_PRIORITY_HIGH, clock_notifier);
     if (result < 0)
         ABORT("Failed to create clock_notifier (%d)", result);
+
+    result = RegisterAs((char*)CLOCK_SERVER_NAME);
+    if (result)
+        ABORT("Failed to register clock server name (%d)", result);
 
     result = Create(TASK_PRIORITY_MEDIUM_LOW, clock_ui);
     if (result < 0)
@@ -258,8 +255,7 @@ void clock_server() {
         case CLOCK_NOTIFY:
             // reset notifier ASAP
             result = Reply(tid, NULL, 0);
-            if (result)
-                log("Failed to reply to clock_notifier (%d)", result);
+            CLOCK_ASSERT(result == 0, result);
 
             // tick-tock
             time++;
