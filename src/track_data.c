@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <include/track_data.h>
 
-void init_tracka(track_node *track) {
+void init_tracka(track_node* const track) {
   memset(track, 0, TRACK_MAX*sizeof(track_node));
   track[0].name = "A1";
   track[0].type = NODE_SENSOR;
@@ -1187,7 +1187,7 @@ void init_tracka(track_node *track) {
   track[143].reverse = &track[142];
 }
 
-void init_trackb(track_node *track) {
+void init_trackb(track_node* const track) {
   memset(track, 0, TRACK_MAX*sizeof(track_node));
   track[0].name = "A1";
   track[0].type = NODE_SENSOR;
