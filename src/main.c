@@ -106,10 +106,8 @@ static inline void _init() {
 }
 
 void shutdown(void) {
-#ifdef DEBUG
     assert(debug_processor_mode() == SUPERVISOR,
 	   "Trying to shutdown from non-supervisor mode");
-#endif
 
     vt_deinit();
     _flush_caches();
