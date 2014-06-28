@@ -15,7 +15,7 @@ void accelerate() {
     Receive(&tid, (char*)&train_num, sizeof(train_num));
     Reply(tid, NULL, 0);
 
-    int adjust_speed = train_num == 51 ? 5 : 2;
+    const int adjust_speed = 2;
 
     reset_train_state();
     update_turnout(8,  'S');
