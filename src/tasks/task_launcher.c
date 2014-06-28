@@ -61,7 +61,7 @@ static void action(command cmd, int args[]) {
         train_toggle_light(args[0]);
         break;
     case LOC_HORN:
-	train_sound_horn(args[0]);
+	train_toggle_horn(args[0]);
 	break;
     case TRACK_RESET:
        reset_train_state();
