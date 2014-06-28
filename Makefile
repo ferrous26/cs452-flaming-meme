@@ -29,6 +29,7 @@ LDFLAGS = # reset
 
 ifdef RELEASE
 CFLAGS += -O$(RELEASE) -Wuninitialized
+KCFLAGS = -O3
 
 ifdef CLANG
 CFLAGS +=
@@ -106,6 +107,8 @@ TOBJ = track_data/tracka track_data/trackb
 all: kernel.elf
 
 kernel.elf: $(OBJS)
+	$(CC) -S $(CFLAGS) $(KCFLAGS) src/kernel.c -o src/kernel.s
+	$(AS) $(ASFLAGS) src/kernel.s -o src/kernel.o
 	$(LD) $(LDFLAGS) -o $@ $(OBJS) -lgcc
 
 # C.

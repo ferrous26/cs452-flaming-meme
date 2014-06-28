@@ -142,8 +142,13 @@ void kernel_init() {
     task_active = &tasks[0];
     task_create(TASK_PRIORITY_IDLE + 1,    task_launcher);
     task_create(TASK_PRIORITY_IDLE,        idle);
-    task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
-    task_create(TASK_PRIORITY_MEDIUM_HIGH, clock_server);
+
+    // avoid potential race conditions...
+    clock_server_tid =
+        task_create(TASK_PRIORITY_MEDIUM_HIGH, clock_server);
+    name_server_tid =
+        task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
+
     task_create(TASK_PRIORITY_MEDIUM,      term_server);
     task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
     task_create(TASK_PRIORITY_MEDIUM,      train_server);
@@ -229,7 +234,7 @@ inline static void ksyscall_recv(task* const receiver) {
 	// validate that there is enough space in the receiver buffer
 	if (sender_req->msglen > receiver_req->msglen) {
 	    sender->sp[0] = NOT_ENUF_MEMORY;
-            ksyscall_pass();
+            scheduler_reschedule(sender);
 	    ksyscall_recv(receiver); // DANGER: recursive call
 	    return;
 	}
@@ -358,7 +363,7 @@ static inline void ksyscall_await(const kreq_event* const req) {
     }
     case UART2_RECV: {
         int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
-        *ctlr |= RTIEN_MASK | RIEN_MASK;
+        *ctlr |= RTIEN_MASK;
 
         int_queue[UART2_RECV] = task_active;
         break;

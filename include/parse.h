@@ -23,6 +23,7 @@ typedef enum {
 
     CALIBRATE,
     ACCELERATE,
+    SIZES,
 
     QUIT,
     ERROR,

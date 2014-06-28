@@ -32,10 +32,11 @@ typedef struct {
     int tasks[NAME_MAX];
 } ns_context;
 
+int name_server_tid;
+
 /*
  * Static data
  */
-static int name_server_tid;
 static ns_context ctxt;
 
 /*
@@ -102,11 +103,11 @@ lookup_name(const ns_payload* const data) {
 void name_server() {
     int        tid;
     ns_req     buffer;
+
     memset(&ctxt, 0, sizeof(ctxt));
-
-    name_server_tid = myTid();
-
     memset((void*)&buffer, 0, sizeof(buffer));
+
+    // let the name server register itself
     sprintf_string(buffer.payload.text, (char*)NAME_SERVER_NAME);
     register_tid(name_server_tid, &buffer.payload);
 

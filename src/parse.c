@@ -67,7 +67,9 @@ static command parse_s(const char* const cmd, int* buffer) {
     case 'd':
         if (!isspace(cmd[index])) return ERROR;
         return SWITCH_TIME;
-        default:
+    case 'z':
+        return SIZES;
+    default:
         return ERROR;
     }
 }
@@ -157,6 +159,30 @@ static command parse_echo(const char* const cmd) {
     return CMD_ECHO;
 }
 
+static command parse_accelerate(const char* const cmd, int* const buffer) {
+    int index = 1;
+
+    switch (cmd[index++]) {
+    case 'l':
+	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+	return ACCELERATE;
+    }
+
+    return ERROR;
+}
+
+static command parse_calibrate(const char* const cmd, int* const buffer) {
+    int index = 1;
+
+    switch (cmd[index++]) {
+    case 'l':
+	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+	return CALIBRATE;
+    }
+
+    return ERROR;
+}
+
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
@@ -168,8 +194,8 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 's':  return parse_s(cmd, buffer);
     case 'l':  return parse_light(cmd, buffer);
     case 'h':  return parse_horn(cmd, buffer);
-    case 'c':  return CALIBRATE;
-    case 'a':  return ACCELERATE;
+    case 'c':  return parse_calibrate(cmd, buffer);
+    case 'a':  return parse_accelerate(cmd, buffer);
     default:   return ERROR;
     }
 }

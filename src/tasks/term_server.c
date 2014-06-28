@@ -114,10 +114,8 @@ static inline void pbuf_consume(puts_buffer* const cb) {
 // There are some checks that we want to make that should always be used
 // so we have a special assertion function that doesn't disappear during
 // a release build
-#define TERM_ASSERT(expr, var) if (!(expr))  term_failure(var, __LINE__)
-static void __attribute__ ((noreturn)) term_failure(int result, uint line) {
-    Abort(__FILE__, line, "Action failed in terminal server (%d)", result);
-}
+#define TERM_ASSERT(expr, var)                  \
+    if (!(expr)) ABORT("Action failed in terminal server (%d)", var);
 
 // data coming from the UART
 static void __attribute__ ((noreturn)) recv_notifier() {

@@ -16,6 +16,17 @@
 
 #include <tasks/task_launcher.h>
 
+extern uint* _DataStart;
+extern uint* _DataKernEnd;
+extern uint* _DataEnd;
+extern uint* _BssStart;
+extern uint* _BssEnd;
+extern uint* _RODataStart;
+extern uint* _RODataEnd;
+extern uint* _TextStart;
+extern uint* _TextKernEnd;
+extern uint* _TextEnd;
+
 #define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
 #define TERM_COL 6
 
@@ -82,24 +93,54 @@ static void action(command cmd, int args[]) {
         log("time interval took %d", time);
         break;
     }
-    case CALIBRATE:
-        Create(5, calibrate);
-        break;
 
-    case ACCELERATE:
-        Create(5, accelerate);
+    case CALIBRATE: {
+        int tid = Create(5, calibrate);
+        Send(tid, (char*)args, sizeof(int), NULL, 0);
         break;
+    }
+
+    case ACCELERATE: {
+        int tid = Create(5, accelerate);
+        Send(tid, (char*)args, sizeof(int), NULL, 0);
+        break;
+    }
 
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
         break;
+
     case CMD_STRESS:
 	Create(10, stress_root);
         break;
+
     case CMD_ECHO:
 	Create(TASK_PRIORITY_MEDIUM, echo_test);
 	Exit();
 	break;
+
+    case SIZES:
+        log("\n"
+            "Data:\n"
+            "    Kernel: %u bytes\n"
+            "      Task: %u bytes\n"
+            "     Total: %u bytes\n"
+            "Text:\n"
+            "    Kernel: %u bytes\n"
+            "      Task: %u bytes\n"
+            "     Total: %u bytes\n"
+            "BSS:        %u bytes\n"
+            "ROData:     %u bytes\n",
+            &_DataKernEnd - &_DataStart,
+            &_DataEnd     - &_DataKernEnd,
+            &_DataEnd     - &_DataStart,
+            &_TextKernEnd - &_TextStart,
+            &_TextEnd     - &_TextKernEnd,
+            &_TextEnd     - &_TextStart,
+            &_BssEnd      - &_BssStart,
+            &_RODataEnd   - &_RODataStart);
+        break;
+
     case TRACK_LOAD:
         load_track(args[0]);
         break;

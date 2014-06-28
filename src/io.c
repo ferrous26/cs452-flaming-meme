@@ -50,7 +50,7 @@ inline static void uart_setoptions(const uint base,
 
 inline static void uart_initirq(const uint base) {
     int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
-    *ctlr = UARTEN_MASK | MSIEN_MASK;
+    *ctlr = UARTEN_MASK | MSIEN_MASK | RIEN_MASK;
 }
 
 inline static void uart_drain(const uint base) {
@@ -65,10 +65,6 @@ void uart_init() {
 
     uart_initirq(UART1_BASE);
     uart_initirq(UART2_BASE);
-
-    // also enable the receive interrupts for UART1
-    int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
-    *ctlr |= RTIEN_MASK | RIEN_MASK;
 
     NOP(55);
 
@@ -150,7 +146,7 @@ void irq_uart2_recv() {
         }
 
         t->sp[0] = i;
-	*ctlr &= ~(RTIS_MASK | RIS_MASK);
+	*ctlr &= ~RTIS_MASK;
         scheduler_reschedule(t);
 
         return;
@@ -164,7 +160,8 @@ void irq_uart2_recv() {
     if (*flag & RXFF_MASK) ABORT("UART2 dropped %c", *data);
     // however, we should be disabling interrupts when we are
     // not waiting for input, so we should not be here if the
-    // notifier is not waiting
+    // notifier is not waiting, something is wrong with the way
+    // that we mask interrupts
 }
 
 void irq_uart2_send() {

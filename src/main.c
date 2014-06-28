@@ -106,17 +106,14 @@ static inline void _init() {
 }
 
 void shutdown(void) {
-#ifdef DEBUG
     assert(debug_processor_mode() == SUPERVISOR,
 	   "Trying to shutdown from non-supervisor mode");
-#endif
 
     vt_deinit();
-    _flush_caches();
-
     clock_deinit();
     kernel_deinit();
     irq_deinit();
+    _flush_caches();
 
     asm volatile ("mov  sp, %0\n"
 		  "mov	pc, %1\n"
