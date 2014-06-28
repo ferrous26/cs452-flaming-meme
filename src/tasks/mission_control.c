@@ -43,7 +43,7 @@ typedef struct {
     int wait_all;
     int sensor_delay[NUM_SENSORS];
     int turnouts[NUM_TURNOUTS];
-    
+
     int  trains[NUM_TRAINS];
     bool horn[NUM_TRAINS];
 
@@ -163,24 +163,33 @@ static inline void mc_try_send_train(mc_context* const ctxt,
                                      const int pos) {
     train_req req;
 
-
     if (-1 == ctxt->drivers[pos]) return;
+
     if (ctxt->pickup[pos].reverse) {
         req.type                  = TRAIN_REVERSE_DIRECTION;
         ctxt->pickup[pos].reverse = 0;
-    } else if (ctxt->pickup[pos].speed >= 0) {
+    }
+    else if (ctxt->pickup[pos].speed >= 0) {
         req.type                = TRAIN_CHANGE_SPEED;
         req.arg                 = ctxt->pickup[pos].speed;
         ctxt->pickup[pos].speed = -1;
-    } else if (ctxt->pickup[pos].light) {
+    }
+    else if (ctxt->pickup[pos].light) {
         req.type                = TRAIN_TOGGLE_LIGHT;
         ctxt->pickup[pos].light = 0;
-    } else if (ctxt->pickup[pos].horn) {
+    }
+    else if (ctxt->pickup[pos].horn) {
         req.type               = TRAIN_HORN_SOUND;
         ctxt->pickup[pos].horn = 0;
-    } else { return; }
+    }
+    else {
+        return;
+    }
 
-    Reply(ctxt->drivers[pos], (char*)&req, sizeof(req));
+    int result = Reply(ctxt->drivers[pos], (char*)&req, sizeof(req));
+    if (!result) ABORT("Failed to send to train %d (%d)",
+                       pos,
+                       result);
     ctxt->drivers[pos] = -1;
 }
 
@@ -215,7 +224,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 
     const int sensor_pos = sensorname_to_pos(sensor->bank, sensor->num);
     const int waiter     = ctxt->sensor_delay[sensor_pos];
-    
+
     if (-1 != waiter) {
         Reply(waiter, NULL, 0);
         ctxt->sensor_delay[sensor_pos] = -1;
@@ -227,7 +236,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
 
     track_node* node = &ctxt->track[sensor_pos];
 
-    if (ctxt->track_loaded) { 
+    if (ctxt->track_loaded) {
         const track_node* node_next;
         int dist = get_next_sensor(node, ctxt->turnouts, &node_next);
         log("%d %s\t--(%dmm)-->\t%d %s",
@@ -264,12 +273,12 @@ static void mc_sensor_delay(mc_context* const ctxt,
 
 static void mc_update_turnout(mc_context* const ctxt,
                               const int         turn_num,
-                              int               turn_state) {
+                              const int         turn_state) {
     char state;
     char* ptr;
     char buffer[32];
     const int pos = turnout_to_pos(turn_num);
-    
+
     assert(pos >= 0, "%d", turn_num)
 
     if (pos < 18) {
@@ -299,7 +308,8 @@ static void mc_update_turnout(mc_context* const ctxt,
     }
 
     int result = put_train_turnout((char)turn_num, (char)state);
-    assert(result == 0, "Failed setting turnout %d to %c", turn_num, turn_state);
+    assert(result == 0,
+           "Failed setting turnout %d to %c", turn_num, turn_state);
     UNUSED(result);
 
     Puts(buffer, ptr - buffer);
@@ -338,7 +348,8 @@ static void mc_reset_track_state(mc_context* const context) {
 }
 
 static void mc_load_track(mc_context* const ctxt,
-                          int track_num) {
+                          const int track_num) {
+
     switch (track_num) {
     case 'a': case 'A':
         init_tracka(ctxt->track);
@@ -347,6 +358,7 @@ static void mc_load_track(mc_context* const ctxt,
         init_trackb(ctxt->track);
         break;
     default:
+        log("Invalid track name `%c'", track_num);
         return;
     }
 
@@ -356,11 +368,11 @@ static void mc_load_track(mc_context* const ctxt,
 
 static inline void mc_spawn_train_drivers() {
     for (int i=0;; i++) {
-        int train_num = pos_to_train(i); 
+        int train_num = pos_to_train(i);
         if (train_num < 0) break;
 
         log("Spawning Train %d", train_num);
-        
+
         int setup[2] = {train_num, i};
         int tid      = Create(5, train_driver);
         assert(tid > 0, "Failed to create train driver (%d)", tid);
@@ -389,11 +401,12 @@ static inline void mc_initalize(mc_context* const ctxt) {
     train_ui();
 
     mc_reset_track_state(ctxt);
-    mc_spawn_train_drivers(); 
+    mc_spawn_train_drivers();
     mc_flush_sensors();
-    
+
     int tid = Create(15, sensor_poll);
-    if (tid < 0) ABORT("Mission Control failed creating sensor poll (%d)", tid);
+    if (tid < 0)
+        ABORT("Mission Control failed creating sensor poll (%d)", tid);
 }
 
 void mission_control() {
@@ -407,8 +420,8 @@ void mission_control() {
     Putc(TRAIN, TRAIN_ALL_START);
 
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
-    assert(tid == 0, "Mission Control has failed to register (%d)", tid); 
-    
+    assert(tid == 0, "Mission Control has failed to register (%d)", tid);
+
     mc_initalize(&context);
     log("Mission Control Has Initalized (%d)", Time());
 
@@ -514,6 +527,7 @@ int train_set_speed(int train, int speed) {
             .speed = (short)speed
         }
     };
+
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
@@ -597,7 +611,7 @@ int train_reverse(int train) {
         .type              = MC_U_TRAIN_REVERSE,
         .payload.int_value = train
     };
-    
+
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
@@ -610,4 +624,3 @@ int load_track(int track_value) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-
