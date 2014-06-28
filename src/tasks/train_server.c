@@ -56,7 +56,7 @@ static void __attribute__((noreturn)) write_carrier() {
                 "Train Carrier Invalid Send Size (%d)", buffer.size);
 
         next = buffer.data;
-        for(int i = 0; i < buffer.size;) {
+        for (int i = 0; i < buffer.size;) {
             AwaitEvent(UART1_CTS, NULL, 0);
 
             ret = AwaitEvent(UART1_SEND, next, buffer.size);
@@ -125,11 +125,11 @@ void train_server() {
 
     int tid;
     train_req req;
+
     struct train_context context = {
         .send_tid = -1,
         .get_tid  = -1
     };
-
     cbuf_init(&context.train_in);
     cbuf_init(&context.train_out);
 

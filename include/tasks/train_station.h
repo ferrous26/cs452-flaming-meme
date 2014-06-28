@@ -4,11 +4,10 @@
 
 #define TRAIN_STATION_NAME (char*)"TRAINS"
 
-#define TRAIN_COUNT 7
-#define TRAIN_REVERSE_DELAY_FACTOR 40
+#define TRAIN_COUNT         7
+#define TRAIN_REVERSE_DELAY 40
 
 typedef enum {
-    TRAIN_WHOAMI,
     TRAIN_REQUEST,
     TRAIN_CHANGE_SPEED,
     TRAIN_REVERSE_DIRECTION,
@@ -18,15 +17,9 @@ typedef enum {
 
 typedef struct {
     train_req_type type;
-    int train;
-    int arg;
+    int            arg;
 } train_req;
 
-void train_reverse(int train);
-void train_set_speed(int train, int speed);
-void train_toggle_light(int train);
-void train_sound_horn(int train);
-
-void __attribute__ ((noreturn)) train_station(void);
+void __attribute__ ((noreturn)) train_driver(void);
 
 #endif
