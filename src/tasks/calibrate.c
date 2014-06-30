@@ -44,10 +44,10 @@ void velocitate() {
     // get it into the proper starting position
     train_reverse(train_num);
     train_set_speed(train_num, 14);
-    Delay(50);
+    Delay(600);
     train_set_speed(train_num, 10);
     train_reverse(train_num);
-    train_set_speed(train_num, 14);
+    train_set_speed(train_num, 8);
 
     int start;
     int curved;
@@ -71,7 +71,7 @@ void velocitate() {
             straight = Time() - start;
 
             // SPEED UP UNTIL WE CLOSE IN AGAIN
-            train_set_speed(train_num, 14);
+            train_set_speed(train_num, 9);
             log("%d,%d,%d,%d", train_num, speed, curved, straight);
 
             // getting close, set speed to correct value
@@ -80,9 +80,7 @@ void velocitate() {
         }
     }
 
-    train_set_speed(train_num, 1);
-
-    for (int speed = 1; speed < 15; speed++) {
+    for (int speed = 2; speed < 15; speed++) {
         train_set_speed(train_num, speed);
 
         for (int count = 0; count < 2; count++) {
@@ -99,7 +97,7 @@ void velocitate() {
             straight = Time() - start;
 
             // SPEED UP UNTIL WE CLOSE IN AGAIN
-            train_set_speed(train_num, 14);
+            train_set_speed(train_num, 9);
             log("%d,%d,%d,%d", train_num, speed, curved, straight);
 
             // getting close, set speed to correct value
