@@ -1,6 +1,6 @@
 /* THIS FILE IS GENERATED CODE -- DO NOT EDIT */
 
-#include <memory.h>
+#include <std.h>
 #include <include/track_data.h>
 
 void init_tracka(track_node* const track) {

@@ -317,7 +317,7 @@ fh.close()
 fh = open(options.c, 'w')
 fh.write('''/* THIS FILE IS GENERATED CODE -- DO NOT EDIT */
 
-#include <memory.h>
+#include <std.h>
 #include <%s>
 
 ''' % options.h)
