@@ -92,8 +92,6 @@ static void __attribute__ ((noreturn)) clock_ui() {
                 seconds = seconds % 60;
                 minutes = minutes % 100;
 
-                if (minutes >= 100) Exit(); // avoid killing UI
-
                 ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_MINUTES);
                 ptr    = sprintf(ptr, "%c%c:%c%c.%c",
                                  '0' + (minutes / 10),
