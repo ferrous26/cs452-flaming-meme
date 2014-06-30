@@ -5,6 +5,7 @@
 #include <syscall.h>
 #include <track_data.h>
 #include <ui_constants.h>
+#include <velocity.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -17,7 +18,6 @@
 #include <tasks/mission_control_types.h>
 
 #define NUM_TURNOUTS     22
-#define NUM_TRAINS       7
 #define NUM_SENSORS      (5*16)
 #define SENSOR_LIST_SIZE 9
 
@@ -164,7 +164,7 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
         ctxt->pickup[train_index].light = 0;
-    
+
     } else if (ctxt->pickup[train_index].horn) {
         req.type                       = TRAIN_HORN_SOUND;
         ctxt->pickup[train_index].horn = 0;
@@ -422,6 +422,8 @@ void mission_control() {
 
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
+
+    velocity_init();
 
     mc_initalize(&context);
     log("Mission Control Has Initalized (%d)", Time());
