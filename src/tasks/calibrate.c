@@ -44,7 +44,7 @@ void velocitate() {
     // get it into the proper starting position
     train_reverse(train_num);
     train_set_speed(train_num, 14);
-    Delay(600);
+    Delay(800);
     train_set_speed(train_num, 10);
     train_reverse(train_num);
     train_set_speed(train_num, 8);
@@ -70,13 +70,8 @@ void velocitate() {
             delay_sensor('E', 7);
             straight = Time() - start;
 
-            // SPEED UP UNTIL WE CLOSE IN AGAIN
-            train_set_speed(train_num, 9);
             log("%d,%d,%d,%d", train_num, speed, curved, straight);
-
-            // getting close, set speed to correct value
-            delay_sensor('D', 13);
-            train_set_speed(train_num, speed);
+            if (speed == 1) break;
         }
     }
 
@@ -96,13 +91,7 @@ void velocitate() {
             delay_sensor('E', 7);
             straight = Time() - start;
 
-            // SPEED UP UNTIL WE CLOSE IN AGAIN
-            train_set_speed(train_num, 9);
             log("%d,%d,%d,%d", train_num, speed, curved, straight);
-
-            // getting close, set speed to correct value
-            delay_sensor('D', 13);
-            train_set_speed(train_num, speed);
         }
     }
 }
