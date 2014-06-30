@@ -105,7 +105,7 @@ static void action(command cmd, int args[]) {
     }
 
     case ACCELERATE: {
-        int tid = Create(5, accelerate);
+        int tid = Create(5, velocitate);
         Send(tid, (char*)args, sizeof(int), NULL, 0);
         break;
     }
