@@ -470,7 +470,6 @@ void mission_control() {
             break;
 
         case MC_TD_CALL:
-            log("Got Driver %d for %d", tid, req.payload.int_value);
             context.drivers[req.payload.int_value] = tid;
             mc_try_send_train(&context, req.payload.int_value);
             continue;
