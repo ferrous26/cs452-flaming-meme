@@ -67,8 +67,8 @@ static void td_update_train_speed(train_context* const ctxt,
     Puts(buffer, ptr-buffer);
 
     // TEMPORARY
-    log("Speed of %d is %d",
-        ctxt->off, velocity_for_speed(ctxt->off, new_speed));
+    log("Speed of %d is %d mm/s",
+        ctxt->off, velocity_for_speed(ctxt->off, new_speed) / 1000);
 }
 
 static inline void td_toggle_light(train_context* const ctxt) {
