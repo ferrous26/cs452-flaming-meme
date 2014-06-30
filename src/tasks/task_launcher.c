@@ -41,6 +41,9 @@ inline static void print_help() {
     log("  q                      ~ Quit");
 }
 
+static void seppuku() {
+}
+
 static void __attribute__((noreturn)) echo_test() {
     char buffer[32];
     char* ptr = buffer;
@@ -118,6 +121,10 @@ static void action(command cmd, int args[]) {
 	Create(TASK_PRIORITY_MEDIUM, echo_test);
 	Exit();
 	break;
+
+    case SEPPUKU:
+        Create(TASK_PRIORITY_EMERGENCY, seppuku);
+        break;
 
     case SIZES:
         log("\n"

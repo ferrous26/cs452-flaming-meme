@@ -24,6 +24,7 @@ typedef enum {
     CALIBRATE,
     ACCELERATE,
     SIZES,
+    SEPPUKU,
 
     QUIT,
     ERROR,
