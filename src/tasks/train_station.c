@@ -1,6 +1,7 @@
 #include <std.h>
 #include <train.h>
 #include <debug.h>
+#include <ui_constants.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -12,23 +13,6 @@
 #include <tasks/mission_control_types.h>
 
 #include <tasks/train_station.h>
-
-#define NUM_TURNOUTS     22
-#define NUM_TRAINS       7
-#define NUM_SENSORS      (5*16)
-#define SENSOR_LIST_SIZE 9
-
-#define TRAIN_ROW           6
-#define TRAIN_COL           1
-#define TRAIN_SPEED_COL     (TRAIN_COL + 8)
-#define TRAIN_LIGHT_COL     (TRAIN_SPEED_COL + 6)
-#define TRAIN_HORN_COL      (TRAIN_LIGHT_COL + 4)
-
-#define TURNOUT_ROW TRAIN_ROW
-#define TURNOUT_COL 30
-
-#define SENSOR_ROW (TRAIN_ROW - 1)
-#define SENSOR_COL 58
 
 typedef struct {
     const int num;
@@ -134,6 +118,9 @@ void train_driver() {
         assert(result == sizeof(req),
                "received weird request in train %d", context.num);
 
+        int time = Time();
+        log("received train command %d at %d", req.type, time);
+
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
             td_update_train_speed(&context, req.arg);
@@ -143,7 +130,7 @@ void train_driver() {
             
             td_update_train_speed(&context, 0);    
             Delay(old_speed * 40);
-            put_train_cmd(context.num, 15); 
+            put_train_cmd((char)context.num, 15); 
             Delay(1);
             td_update_train_speed(&context, old_speed);
             
@@ -155,9 +142,6 @@ void train_driver() {
         case TRAIN_HORN_SOUND:
             td_toggle_horn(&context);
             break;   
-        
-        case TRAIN_REQUEST:
-        default: break;
         }
     }
 }
