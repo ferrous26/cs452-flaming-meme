@@ -72,9 +72,9 @@ static inline uint32 __attribute__ ((pure)) choose_priority(const uint32 v) {
     uint  tt;
 
     if ((tt = v >> 16))
-	result = (t = tt >> 8) ? 24 + table[t] : 16 + table[tt];
+        result = (t = tt >> 8) ? 24 + table[t] : 16 + table[tt];
     else
-	result = (t = v >> 8) ? 8 + table[t] : table[v];
+        result = (t = v >> 8) ? 8 + table[t] : table[v];
 
     return result;
 }
@@ -87,7 +87,7 @@ static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
  * @return tid of new task, or an error code as defined by CreateTask()
  */
 inline static int  task_create(const task_pri pri,
-			       void (*const start)(void));
+                               void (*const start)(void));
 inline static void task_destroy(void);
 inline static void scheduler_schedule(task* const t);
 inline static void scheduler_get_next(void);
@@ -122,7 +122,7 @@ void kernel_init() {
     // initialize the lookup table for lg()
     table[0] = table[1] = 0;
     for (i = 2; i < 256; i++)
-	table[i] = 1 + table[i >> 1];
+        table[i] = 1 + table[i >> 1];
     table[0] = 32; // if you want log(0) to return -1, change to -1
 
     memset(&manager,  0, sizeof(manager));
@@ -215,60 +215,63 @@ inline static void ksyscall_recv(task* const receiver) {
 
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
 
+    // only if we actually have a message to get
     if (q->head) {
-	task* const sender = q->head;
+
+        task* const sender = q->head;
 
         assert((uint)sender < 0x200000 && (uint)sender > 0x100000,
-	       "Receive: %d Invalid head pointer!", receiver->tid);
+               "Receive: %d Invalid head pointer!", receiver->tid);
 
-        assert((uint) q->head->next < 0x200000 &&
-	       ((uint)q->head->next > 0x100000 || (uint)q->head->next == NULL),
-	       "Receive: %d Invalid head next! %p",
-	       receiver->tid, sender->next);
+        assert((uint)q->head->next < 0x200000 &&
+               ((uint)q->head->next > 0x100000 ||
+                (uint)q->head->next == NULL),
+               "Receive: %d Invalid head next! %p",
+               receiver->tid, sender->next);
 
         q->head = q->head->next; // consume
 
-	kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
-	kreq_recv* const receiver_req = (kreq_recv* const)receiver->sp[1];
+        kreq_send* const   sender_req = (kreq_send* const)sender->sp[1];
+        kreq_recv* const receiver_req = (kreq_recv* const)receiver->sp[1];
 
-	// validate that there is enough space in the receiver buffer
-	if (sender_req->msglen > receiver_req->msglen) {
-	    sender->sp[0] = NOT_ENUF_MEMORY;
+        // validate that there is enough space in the receiver buffer
+        if (sender_req->msglen > receiver_req->msglen) {
+            sender->sp[0] = NOT_ENUF_MEMORY;
             scheduler_reschedule(sender);
-	    ksyscall_recv(receiver); // DANGER: recursive call
-	    return;
-	}
+            ksyscall_recv(receiver); // DANGER: recursive call
+            return;
+        }
 
-	// all is good, copy the message over and get back to work!
-	*receiver_req->tid = sender->tid;
-	receiver->sp[0]    = sender_req->msglen;
-	sender->next       = RPLY_BLOCKED;
+        // all is good, copy the message over and get back to work!
+        *receiver_req->tid = sender->tid;
+        receiver->sp[0]    = sender_req->msglen;
+        sender->next       = RPLY_BLOCKED;
 
         if (sender_req->msglen)
-	    memcpy(receiver_req->msg,
-		   sender_req->msg,
-		   (uint)sender_req->msglen);
-	scheduler_schedule(receiver); // schedule this mofo
-	return;
+            memcpy(receiver_req->msg,
+                   sender_req->msg,
+                   (uint)sender_req->msglen);
+        scheduler_schedule(receiver); // schedule this mofo
+        return;
     }
 
     receiver->next = RECV_BLOCKED;
 }
 
 inline static void ksyscall_send(const kreq_send* const req,
-				 int* const result) {
+                                 int* const result) {
 
     task* const receiver = &tasks[task_index_from_tid(req->tid)];
 
     // validate the request arguments
     if (receiver->tid != req->tid || !receiver->sp) {
-	*result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
+        *result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
         ksyscall_pass();
         return;
     }
 
     assert(task_active->tid != req->tid,
-	   "Tried to Send to self! (%u)", task_active->tid);
+           "Tried to Send to self! (%u)", task_active->tid);
 
     /**
      * What we want to do is find the receive q and append to it, as we
@@ -277,11 +280,11 @@ inline static void ksyscall_send(const kreq_send* const req,
     task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
 
     if (!q->head)
-	q->head = (task*)task_active;
+        q->head = task_active;
     else
-	q->tail->next = (task*)task_active;
+        q->tail->next = task_active;
 
-    q->tail = (task*)task_active;
+    q->tail = task_active;
     task_active->next = NULL;
 
     /**
@@ -289,33 +292,33 @@ inline static void ksyscall_send(const kreq_send* const req,
      * up and schedule it so that it can receive the message.
      */
     if (receiver->next == RECV_BLOCKED)
-	ksyscall_recv(receiver);
+        ksyscall_recv(receiver);
 }
 
 inline static void ksyscall_reply(const kreq_reply* const req,
-				  int* const result) {
+                                  int* const result) {
 
     task* const sender = &tasks[task_index_from_tid(req->tid)];
 
     // first, validation of the request arguments
     if (sender->tid != req->tid || !sender->sp) {
-	*result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
+        *result = req->tid < 0 ? IMPOSSIBLE_TASK : INVALID_TASK;
         ksyscall_pass();
-	return;
+        return;
     }
 
     if (sender->next != RPLY_BLOCKED) {
-	*result = INVALID_RECVER;
+        *result = INVALID_RECVER;
         ksyscall_pass();
-	return;
+        return;
     }
 
     const kreq_send* const sender_req = (const kreq_send* const)sender->sp[1];
 
     if (req->replylen > sender_req->replylen) {
-	*result = NOT_ENUF_MEMORY;
+        *result = NOT_ENUF_MEMORY;
         ksyscall_pass();
-	return;
+        return;
     }
 
     task_active->sp[0] = 0; // success!
@@ -333,7 +336,7 @@ inline static void ksyscall_reply(const kreq_reply* const req,
 }
 
 inline static void ksyscall_change_priority(const int32 priority,
-					    int* const result) {
+                                            int* const result) {
     *result = task_active->priority = priority;
     ksyscall_pass();
 }
@@ -443,37 +446,37 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
         ksyscall_exit();
         break;
     case SYS_PRIORITY:
-	ksyscall_priority(sp);
-	break;
+        ksyscall_priority(sp);
+        break;
     case SYS_SEND:
-	ksyscall_send((const kreq_send* const)req, sp);
-	break;
+        ksyscall_send((const kreq_send* const)req, sp);
+        break;
     case SYS_RECV:
-	ksyscall_recv((task*)task_active);
-	break;
+        ksyscall_recv((task*)task_active);
+        break;
     case SYS_REPLY:
-	ksyscall_reply((const kreq_reply* const)req, sp);
-	break;
+        ksyscall_reply((const kreq_reply* const)req, sp);
+        break;
     case SYS_CHANGE:
-	ksyscall_change_priority((int)req, sp);
-	break;
+        ksyscall_change_priority((int)req, sp);
+        break;
     case SYS_AWAIT:
-	ksyscall_await((const kreq_event* const)req);
-	break;
+        ksyscall_await((const kreq_event* const)req);
+        break;
     case SYS_SHUTDOWN:
-	shutdown();
+        shutdown();
     case SYS_ABORT:
     case SYS_COUNT:
-	abort((const kreq_abort* const)req);
+        abort((const kreq_abort* const)req);
     }
 
     scheduler_get_next();
     //everythings done, just leave
     asm volatile ("mov  r0, %0     \n"
                   "b    kernel_exit\n"
-		  :
-		  : "r" (task_active->sp)
-		  : "r0");
+                  :
+                  : "r" (task_active->sp)
+                  : "r0");
 }
 
 void scheduler_first_run() {
@@ -527,7 +530,7 @@ inline static void scheduler_get_next() {
 }
 
 inline static int task_create(const task_pri pri,
-			      void (*const start)(void)) {
+                              void (*const start)(void)) {
 
     // double check that priority was checked in user land
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
@@ -549,7 +552,7 @@ inline static int task_create(const task_pri pri,
     tsk->sp[12]    = EXIT_ADDRESS; // set link register to auto-call Exit()
 
     // set tsk->next
-    scheduler_reschedule(tsk);
+    scheduler_schedule(tsk);
 
     return tsk->tid;
 }
@@ -562,9 +565,9 @@ inline static void task_destroy() {
     // empty the receive buffer
     task_q* q = &recv_q[task_index_from_tid(task_active->tid)];
     while (q->head) {
-	q->head->sp[0] = INCOMPLETE;
-	scheduler_reschedule(q->head);
-	q->head = q->head->next;
+        q->head->sp[0] = INCOMPLETE;
+        scheduler_reschedule(q->head);
+        q->head = q->head->next;
     }
 
     // put the task back into the allocation pool
@@ -580,15 +583,15 @@ static char* _abort_pad(char* ptr, const int val) {
     if (val == 0) count = 11;
 
     for (int i = 0; i < count; i++)
-	ptr = sprintf_char(ptr, ' ');
+        ptr = sprintf_char(ptr, ' ');
     return ptr;
 }
 
 static char* _abort_tid_num(char* ptr, int tid) {
     char* name = kWhoTid(tid);
     if (name) {
-	char* new_ptr = sprintf_string(ptr, name);
-	return _abort_pad(new_ptr, new_ptr - ptr);
+        char* new_ptr = sprintf_string(ptr, name);
+        return _abort_pad(new_ptr, new_ptr - ptr);
     }
 
     ptr = sprintf_int(ptr, tid);
@@ -597,14 +600,13 @@ static char* _abort_tid_num(char* ptr, int tid) {
 
 static char* _abort_tid(char* ptr, task* const t) {
     if (!t)
-	return sprintf_string(ptr, "-           ");
+        return sprintf_string(ptr, "-           ");
     return _abort_tid_num(ptr, t->tid);
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
     if (t->p_tid == -1)
-	return sprintf_string(ptr, "-           ");
-
+        return sprintf_string(ptr, "-           ");
     return _abort_tid_num(ptr, t->p_tid);
 }
 
@@ -616,23 +618,23 @@ static char* _abort_priority(char* ptr, task* const t) {
 
 static char* _abort_next(char* ptr, task* const t) {
     if (t->next == RECV_BLOCKED)
-	return sprintf_string(ptr, "RECV        ");
+        return sprintf_string(ptr, "RECV        ");
 
     if (t->next == RPLY_BLOCKED)
-	return sprintf_string(ptr, "RPLY        ");
+        return sprintf_string(ptr, "RPLY        ");
 
     return _abort_tid(ptr, t->next);
 }
 
 static char* _abort_sp(char* ptr, task* const t) {
     if (t->sp)
-	return sprintf(ptr, "%p  ", t->sp);
+        return sprintf(ptr, "%p  ", t->sp);
     return sprintf_string(ptr, "-           ");
 }
 
 static char* _abort_pc(char* ptr, task* const t) {
     if (t->sp)
-	return sprintf(ptr, "%p  ", t->sp[2] ? t->sp[2] : t->sp[17]);
+        return sprintf(ptr, "%p  ", t->sp[2] ? t->sp[2] : t->sp[17]);
     return sprintf_string(ptr, "-           ");
 }
 
@@ -643,7 +645,7 @@ static char* _abort_receiver(char* ptr, task* const t) {
 
 static char* _abort_send(char* ptr, task* const t) {
     if (t->next != RPLY_BLOCKED)
-	return sprintf_string(ptr, "-           ");
+        return sprintf_string(ptr, "-           ");
 
     const kreq_send* const req = (const kreq_send* const)t->sp[1];
     return _abort_tid(ptr, &tasks[task_index_from_tid(req->tid)]);
@@ -683,34 +685,34 @@ void abort(const kreq_abort* const req) {
 
     // Table header
     ptr = sprintf_string(ptr,
-			 "\n"
-			 "TID         "
-			 "PTID        "
-			 "Priority    "
-			 "Next        "
-			 "Stack       "
+                         "\n"
+                         "TID         "
+                         "PTID        "
+                         "Priority    "
+                         "Next        "
+                         "Stack       "
                          "PC          "
-			 "Receiver    "
-			 "Send      \n");
+                         "Receiver    "
+                         "Send      \n");
     for (int i = 0; i < 96; i++)
-	ptr = sprintf_char(ptr, '#');
+        ptr = sprintf_char(ptr, '#');
     ptr = sprintf_char(ptr, '\n');
 
     for (int i = 0; i < TASK_MAX; i++) {
-	task* t = &tasks[i];
+        task* t = &tasks[i];
 
-	// skip descriptors that have never been allocated
-	if (t->p_tid == -1) continue;
+        // skip descriptors that have never been allocated
+        if (t->p_tid == -1) continue;
 
-	ptr = _abort_tid(ptr, t);
-	ptr = _abort_ptid(ptr, t);
-	ptr = _abort_priority(ptr, t);
-	ptr = _abort_next(ptr, t);
-	ptr = _abort_sp(ptr, t);
-        ptr = _abort_pc(ptr, t);
-	ptr = _abort_receiver(ptr, t);
-	ptr = _abort_send(ptr, t);
-	ptr = sprintf_string(ptr, "\n");
+        ptr = _abort_tid(ptr, t);
+        ptr = _abort_ptid(ptr, t);
+        ptr = _abort_priority(ptr, t);
+        ptr = _abort_next(ptr, t);
+        ptr = _abort_sp(ptr, t);
+              ptr = _abort_pc(ptr, t);
+        ptr = _abort_receiver(ptr, t);
+        ptr = _abort_send(ptr, t);
+        ptr = sprintf_string(ptr, "\n");
     }
 
     uart2_bw_write(buffer, ptr - buffer);

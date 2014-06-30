@@ -187,9 +187,9 @@ static inline void mc_try_send_train(mc_context* const ctxt,
     }
 
     int result = Reply(ctxt->drivers[pos], (char*)&req, sizeof(req));
-    if (!result) ABORT("Failed to send to train %d (%d)",
-                       pos,
-                       result);
+    if (result) ABORT("Failed to send to train %d (%d)",
+                      pos,
+                      result);
     ctxt->drivers[pos] = -1;
 }
 
