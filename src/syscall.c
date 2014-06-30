@@ -111,14 +111,14 @@ void Abort(const char* const file,
     va_start(args, msg);
 
     volatile kreq_abort req = {
-	.file = (char*)file,
-	.line = line,
-	.msg  = (char*)msg,
-	.args = &args
+        .file = (char*)file,
+        .line = line,
+        .msg  = (char*)msg,
+        .args = &args
     };
 
     if (debug_processor_mode() == SUPERVISOR)
-	abort((const kreq_abort* const)&req);
+        abort((const kreq_abort* const)&req);
 
     _syscall(SYS_ABORT, &req);
 

@@ -164,7 +164,7 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
         ctxt->pickup[train_index].light = 0;
-
+    
     } else if (ctxt->pickup[train_index].horn) {
         req.type                       = TRAIN_HORN_SOUND;
         ctxt->pickup[train_index].horn = 0;
