@@ -15,7 +15,7 @@ void mission_control(void) __attribute__((noreturn));
 int reset_train_state(void);
 int update_turnout(int num, int state);
 
-int delay_all_sensor(void);
+int delay_all_sensor(sensor_name* const sensor);
 int delay_sensor(int sensor_bank, int sensor_num);
 
 int load_track(int track_value);
@@ -26,3 +26,4 @@ int train_toggle_light(int train);
 int train_toggle_horn(int train);
 
 #endif
+
