@@ -417,7 +417,8 @@ void syscall_handle(const uint code, const void* const req, int* const sp) {
 #ifdef DEBUG
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
 	   "Reply: task %d has Invalid heap %p", task_active->tid, sp);
-    assert(!is_valid_pc(sp), "Task %d has invalid return %p", is_valid_pc(sp));
+    assert(!is_valid_pc(sp), "Task %d has invalid return %p for call %d",
+           task_active->tid, is_valid_pc(sp), code);
 #endif
 
     assert(code < SYS_COUNT,
