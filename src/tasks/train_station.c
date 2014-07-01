@@ -63,10 +63,9 @@ static void td_update_train_direction(train_context* const ctxt, int dir) {
     char  buffer[16];
     char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL+3);
     
-    char printout;
-    if(dir > 0)        printout = 'F';
+    char               printout = 'F';
+    if (dir < 0)       printout = 'B';
     else if (dir == 0) printout = ' ';
-    else if (dir  < 0) printout = 'B';
 
     *(ptr++)        = printout;
     ctxt->direction = dir;
@@ -133,7 +132,7 @@ static inline void train_wait_use(train_context* const ctxt,
                           (char*)callin, sizeof(*callin),
                           (char*)&req,    sizeof(req));
         assert(result == sizeof(req), "Bad train init");
-
+        UNUSED(result);
 
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
