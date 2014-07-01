@@ -3,7 +3,7 @@
 
 #include <std.h>
 
-void velocity_init(void);
+void physics_init(void);
 
 int velocity_for_speed(const int train_offset, const int speed);
 

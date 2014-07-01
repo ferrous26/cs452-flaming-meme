@@ -420,7 +420,7 @@ void mission_control() {
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
-    velocity_init();
+    physics_init();
 
     mc_initalize(&context);
     log("Mission Control Has Initalized (%d)", Time());
