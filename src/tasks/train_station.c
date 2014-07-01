@@ -2,6 +2,7 @@
 #include <train.h>
 #include <debug.h>
 #include <ui_constants.h>
+#include <physics.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -35,13 +36,13 @@ make_speed_cmd(const train_context* const ctxt) {
 }
 
 static void tr_setup(train_context* const ctxt) {
-    int tid; 
+    int tid;
     int values[2];
-    
+
     memset(ctxt,               0, sizeof(train_context));
     Receive(&tid, (char*)&values, sizeof(values));
 
-    // Only place these should get set 
+    // Only place these should get set
     *((int*)&ctxt->num) = values[0];
     *((int*)&ctxt->off) = values[1];
 
@@ -50,7 +51,7 @@ static void tr_setup(train_context* const ctxt) {
 
     sprintf(ctxt->name, "TRAIN%d", ctxt->num);
     ctxt->name[7] = '\0';
-    
+
     if (RegisterAs(ctxt->name)) {
 	ABORT("Failed to register train %d", ctxt->num);
     }
@@ -81,6 +82,10 @@ static void td_update_train_speed(train_context* const ctxt,
 
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     Puts(buffer, ptr-buffer);
+
+    // TEMPORARY
+    log("Speed of %d is %d mm/s",
+        ctxt->off, velocity_for_speed(ctxt->off, new_speed) / 1000);
 }
 
 static void td_toggle_light(train_context* const ctxt) {
@@ -93,7 +98,7 @@ static void td_toggle_light(train_context* const ctxt) {
     } else {
         *(ptr++) = ' ';
     }
-        
+
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     Puts(buffer, ptr-buffer);
 }
@@ -159,6 +164,7 @@ void train_driver() {
         .payload.int_value = context.off
     };
 
+    td_toggle_light(&context); // turn on lights when we initialize!
     train_wait_use(&context, train_tid, &callin);
     
     // setup the detective here, call in so it knows to notify on sensor hit
@@ -172,6 +178,7 @@ void train_driver() {
     }
     // The above code can maybe? be moved into the detector or waiting for things
     
+
     FOREVER {
         result = Send(train_tid,
                       (char*)&callin, sizeof(callin),
@@ -190,14 +197,14 @@ void train_driver() {
             break;
         case TRAIN_REVERSE_DIRECTION: {
             int old_speed = context.speed;
-            
-            td_update_train_speed(&context, 0);    
+
+            td_update_train_speed(&context, 0);
             Delay(old_speed * 40);
             td_update_train_speed(&context, 15);
             Delay(2);
             td_update_train_direction(&context, -context.direction);
             td_update_train_speed(&context, old_speed);
-            
+
             break;
         }
         case TRAIN_TOGGLE_LIGHT:
@@ -205,7 +212,7 @@ void train_driver() {
             break;
         case TRAIN_HORN_SOUND:
             td_toggle_horn(&context);
-            break;   
+            break;
         }
     }
 }
@@ -217,4 +224,3 @@ static void td_reset_train(train_context* const ctxt) {
     if (ctxt->light) td_toggle_light(ctxt);
     td_update_train_speed(ctxt, 0);
 }
-

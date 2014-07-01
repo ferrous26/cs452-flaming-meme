@@ -4,6 +4,7 @@
 
 #define MISSION_CONTROL_NAME "BORIS"
 #define SENSOR_POLL_NAME     "SR_POLL"
+#define NUM_TRAINS           7
 
 typedef struct {
     short bank;
@@ -26,4 +27,3 @@ int train_toggle_light(int train);
 int train_toggle_horn(int train);
 
 #endif
-
