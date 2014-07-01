@@ -198,6 +198,31 @@ static int get_next_sensor(const track_node* node,
     return dist;
 }
 
+static void mc_get_next_sensor(mc_context* const ctxt,
+                               mc_req* const req,
+                               const int tid) {
+
+    assert(ctxt->track_loaded, "You forgot to load track data, dummy");
+
+    const int sensor_pos  = sensorname_to_pos(req->payload.sensor.bank,
+                                              req->payload.sensor.num);
+    const track_node* const node_curr = &ctxt->track[sensor_pos];
+    const track_node* node_next;
+
+    train_req reply = {
+        .type            = TRAIN_NEXT_SENSOR,
+        .one.int_value   = get_next_sensor(node_curr,
+                                           ctxt->turnouts,
+                                           &node_next)
+    };
+    reply.two.sensor.bank = (node_next->num >> 4) + 'A';
+    reply.two.sensor.num  = (node_next->num & 15) + 1;
+
+    int result = Reply(tid, (char*)&reply, sizeof(reply));
+    if (result)
+        ABORT("Train driver died! (%d)", result);
+}
+
 inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
 
@@ -474,6 +499,11 @@ void mission_control() {
             context.drivers[req.payload.int_value] = tid;
             mc_try_send_train(&context, req.payload.int_value);
             continue;
+
+        case MC_TD_GET_NEXT_SENSOR:
+            mc_get_next_sensor(&context, &req, tid);
+            continue;
+
         case MC_TYPE_COUNT:
             break;
         }
