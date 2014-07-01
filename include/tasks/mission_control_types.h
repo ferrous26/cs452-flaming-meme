@@ -30,6 +30,7 @@ typedef enum {
     MC_D_SENSOR_ANY,
     // workers
     MC_TD_CALL,
+    MC_TD_GET_NEXT_SENSOR,
     // misc
     MC_TYPE_COUNT
 } mc_type;
@@ -47,4 +48,3 @@ typedef struct {
 } mc_req;
 
 #endif
-

@@ -155,7 +155,7 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
 
     } else if (ctxt->pickup[train_index].speed >= 0) {
         req.type                        = TRAIN_CHANGE_SPEED;
-        req.arg                         = ctxt->pickup[train_index].speed;
+        req.one.int_value               = ctxt->pickup[train_index].speed;
         ctxt->pickup[train_index].speed = -1;
 
     } else if (ctxt->pickup[train_index].light) {
@@ -169,14 +169,16 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
     } else { return; }
 
     Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
-    int result = Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
+    int result = Reply(ctxt->drivers[train_index],
+                       (char*)&req,
+                       sizeof(req) - sizeof(int));
     if (!result) ABORT("Failed to send to train %d (%d)", train_index, result);
     ctxt->drivers[train_index] = -1;
 }
 
 static int get_next_sensor(const track_node* node,
-                           const int turnouts[NUM_TURNOUTS],
-                           const track_node** rtrn) {
+                                  const int turnouts[NUM_TURNOUTS],
+                                  const track_node** rtrn) {
     int dist = 0;
 
     do {
