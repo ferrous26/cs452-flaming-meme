@@ -220,7 +220,7 @@ void train_driver() {
 static void td_reset_train(train_context* const ctxt) {
     log("Resetting Train %d", ctxt->num);
 
-    if (ctxt->horn)  td_toggle_horn(ctxt);
-    if (ctxt->light) td_toggle_light(ctxt);
+    if (ctxt->horn)   td_toggle_horn(ctxt);
+    if (!ctxt->light) td_toggle_light(ctxt);
     td_update_train_speed(ctxt, 0);
 }
