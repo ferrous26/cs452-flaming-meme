@@ -212,12 +212,12 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     const int waiter     = ctxt->sensor_delay[sensor_pos];
 
     if (-1 != waiter) {
-        Reply(waiter, (char*)sensor, sizeof(sensor_name));
+    	const int time = Time();
+        Reply(waiter, (char*)&time, sizeof(time));
         ctxt->sensor_delay[sensor_pos] = -1;
     }
     if (-1 != ctxt->wait_all) {
-    	const int time = Time();
-        Reply(ctxt->wait_all, (char*)&time, sizeof(time));
+        Reply(ctxt->wait_all, (char*)sensor, sizeof(sensor_name));
         ctxt->wait_all = -1;
     }
 
@@ -623,7 +623,7 @@ int delay_all_sensor(sensor_name* const sensor) {
 
     return Send(mission_control_tid,
                 (char*)&req, sizeof(req),
-                (char*)&sensor, sizeof(sensor_name));
+                (char*)sensor, sizeof(sensor_name));
 }
 
 int train_reverse(int train) {
