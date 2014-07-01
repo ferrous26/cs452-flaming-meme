@@ -225,7 +225,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
         const track_node* node_next;
         int dist = get_next_sensor(node, ctxt->turnouts, &node_next);
         log("%d %s\t--(%dmm)-->\t%d %s",
-            node->num, node->name, dist,
+            node->num, node->name, dist / 1000,
             node_next->num, node_next->name);
     }
 
