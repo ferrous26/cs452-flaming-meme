@@ -69,12 +69,9 @@ train_to_pos(const int train) {
     case 43: return 0;
     case 45: return 1;
     }
-
     if (train >= 47 && train <=51) {
         return train - 47 + 2;
     }
-
-    assert(false, "invalid train number %d", train);
     return -1;
 }
 
@@ -519,7 +516,7 @@ int train_set_speed(int train, int speed) {
         log("Can't toggle horn of invalid train %d", train);
         return 0;
     }
-    if (speed < 0 || speed > TRAIN_REVERSE) {
+    if (speed < 0 || speed >= TRAIN_REVERSE) {
         log("can't set train number %d to invalid speed %d", train, speed);
         return 0;
     }
