@@ -150,6 +150,9 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_HORN_SOUND:
             td_toggle_horn(ctxt);
             break;
+        case TRAIN_NEXT_SENSOR:
+            ABORT("Something started up out of order!");
+            break;
         }
     }
 }
@@ -180,6 +183,10 @@ void train_driver() {
     // The above code can maybe? be moved into the detector or waiting for things
 
     FOREVER {
+        // TEMPORARY HACK
+        callin.type           = MC_TD_GET_NEXT_SENSOR;
+        callin.payload.sensor = context.last;
+
         result = Send(train_tid,
                       (char*)&callin, sizeof(callin),
                       (char*)&req,    sizeof(req));
@@ -213,6 +220,16 @@ void train_driver() {
         case TRAIN_HORN_SOUND:
             td_toggle_horn(&context);
             break;
+        case TRAIN_NEXT_SENSOR: {
+            int start    = Time();
+            int velocity = velocity_for_speed(context.off, context.speed);
+            int estimate = req.one.int_value / velocity;
+            int end = delay_sensor(req.two.sensor.bank, req.two.sensor.num);
+            log("ETA: %d\tTA: %d\tDelta: %d", start + (estimate * 100), end,
+                end - (start +(estimate * 100)));
+            context.last = req.two.sensor;
+            break;
+        }
         }
     }
 }
