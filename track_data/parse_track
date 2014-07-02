@@ -349,7 +349,7 @@ void %s(track_node* const track) {
           (idx, dir.upper(), idx))
         fh.write("  track[%d].edge[DIR_%s].dest = &track[%d];\n" % \
           (idx, dir.upper(), idx2))
-        fh.write("  track[%d].edge[DIR_%s].dist = %s;\n" % \
+        fh.write("  track[%d].edge[DIR_%s].dist = %s000;\n" % \
           (idx, dir.upper(), dist))
   fh.write("}\n")
 fh.close()

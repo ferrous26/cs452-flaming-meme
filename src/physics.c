@@ -8,7 +8,7 @@
 
 static int speeds[NUM_TRAINS][TRAIN_SPEEDS];
 
-void velocity_init() {
+void physics_init() {
 
     memset(speeds, 0, sizeof(int) * TRAIN_SPEEDS);
 

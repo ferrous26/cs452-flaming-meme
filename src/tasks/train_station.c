@@ -18,7 +18,7 @@
 typedef struct {
     const int num;
     const int off;
-    
+
     char name[8];
     int  speed;
     int  light;
@@ -136,20 +136,22 @@ static inline void train_wait_use(train_context* const ctxt,
 
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
-            td_update_train_speed(ctxt, req.arg);
-            if (req.arg > 0) return;
+            td_update_train_speed(ctxt, req.one.int_value);
+            if (req.one.int_value > 0) return;
             break;
         case TRAIN_REVERSE_DIRECTION:
-           td_update_train_speed(ctxt, 15);
-           Delay(2);
-           td_update_train_speed(ctxt, 0);
-           break;
+            td_update_train_speed(ctxt, 15);
+            Delay(2);
+            td_update_train_speed(ctxt, 0);
+            break;
         case TRAIN_TOGGLE_LIGHT:
-           td_toggle_light(ctxt);
-           break;
+            td_toggle_light(ctxt);
+            break;
         case TRAIN_HORN_SOUND:
-           td_toggle_horn(ctxt);
-           break;
+            td_toggle_horn(ctxt);
+            break;
+        case TRAIN_NEXT_SENSOR:
+            ABORT("Shes moving when we dont tell her to captain!");
         }
     }
 }
@@ -166,25 +168,24 @@ void train_driver() {
     };
 
     td_toggle_light(&context); // turn on lights when we initialize!
-    train_wait_use(&context, train_tid, &callin);
     
+    train_wait_use(&context, train_tid, &callin);
     // setup the detective here, call in so it knows to notify on sensor hit
     int result = delay_all_sensor(&context.last);
     assert(result > 0, "Failed to get next sensor hit by train");
-    
+
     if (context.last.bank == 'A' || context.last.bank == 'C') {
         td_update_train_direction(&context, -1);
     } else {
         td_update_train_direction(&context, 1);
     }
     // The above code can maybe? be moved into the detector or waiting for things
-    
 
     FOREVER {
         result = Send(train_tid,
                       (char*)&callin, sizeof(callin),
                       (char*)&req,    sizeof(req));
-        
+
         UNUSED(result);
         assert(result == sizeof(req),
                "received weird request in train %d", context.num);
@@ -194,7 +195,7 @@ void train_driver() {
 
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
-            td_update_train_speed(&context, req.arg);
+            td_update_train_speed(&context, req.one.int_value);
             break;
         case TRAIN_REVERSE_DIRECTION: {
             int old_speed = context.speed;
@@ -214,6 +215,8 @@ void train_driver() {
         case TRAIN_HORN_SOUND:
             td_toggle_horn(&context);
             break;
+        case TRAIN_NEXT_SENSOR:
+            break;
         }
     }
 }
@@ -221,7 +224,7 @@ void train_driver() {
 static void td_reset_train(train_context* const ctxt) {
     log("Resetting Train %d", ctxt->num);
 
-    if (ctxt->horn)  td_toggle_horn(ctxt);
-    if (ctxt->light) td_toggle_light(ctxt);
+    if (ctxt->horn)   td_toggle_horn(ctxt);
+    if (!ctxt->light) td_toggle_light(ctxt);
     td_update_train_speed(ctxt, 0);
 }

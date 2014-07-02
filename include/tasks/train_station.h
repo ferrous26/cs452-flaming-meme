@@ -2,6 +2,8 @@
 #ifndef __TRAIN_STATION_H__
 #define __TRAIN_STATION_H__
 
+#include <tasks/mission_control.h>
+
 #define TRAIN_STATION_NAME (char*)"TRAINS"
 
 #define TRAIN_COUNT         7
@@ -11,12 +13,19 @@ typedef enum {
     TRAIN_CHANGE_SPEED,
     TRAIN_REVERSE_DIRECTION,
     TRAIN_TOGGLE_LIGHT,
-    TRAIN_HORN_SOUND
+    TRAIN_HORN_SOUND,
+    TRAIN_NEXT_SENSOR
 } train_req_type;
+
+typedef union {
+    sensor_name sensor;
+    int         int_value;
+} thing;
 
 typedef struct {
     train_req_type type;
-    int            arg;
+    thing          one;
+    thing          two;
 } train_req;
 
 void __attribute__ ((noreturn)) train_driver(void);

@@ -155,7 +155,7 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
 
     } else if (ctxt->pickup[train_index].speed >= 0) {
         req.type                        = TRAIN_CHANGE_SPEED;
-        req.arg                         = ctxt->pickup[train_index].speed;
+        req.one.int_value               = ctxt->pickup[train_index].speed;
         ctxt->pickup[train_index].speed = -1;
 
     } else if (ctxt->pickup[train_index].light) {
@@ -169,14 +169,16 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
     } else { return; }
 
     Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
-    int result = Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
+    int result = Reply(ctxt->drivers[train_index],
+                       (char*)&req,
+                       sizeof(req) - sizeof(int));
     if (!result) ABORT("Failed to send to train %d (%d)", train_index, result);
     ctxt->drivers[train_index] = -1;
 }
 
 static int get_next_sensor(const track_node* node,
-                           const int turnouts[NUM_TURNOUTS],
-                           const track_node** rtrn) {
+                                  const int turnouts[NUM_TURNOUTS],
+                                  const track_node** rtrn) {
     int dist = 0;
 
     do {
@@ -196,6 +198,31 @@ static int get_next_sensor(const track_node* node,
     return dist;
 }
 
+static void mc_get_next_sensor(mc_context* const ctxt,
+                               mc_req* const req,
+                               const int tid) {
+
+    assert(ctxt->track_loaded, "You forgot to load track data, dummy");
+
+    const int sensor_pos  = sensorname_to_pos(req->payload.sensor.bank,
+                                              req->payload.sensor.num);
+    const track_node* const node_curr = &ctxt->track[sensor_pos];
+    const track_node* node_next;
+
+    train_req reply = {
+        .type            = TRAIN_NEXT_SENSOR,
+        .one.int_value   = get_next_sensor(node_curr,
+                                           ctxt->turnouts,
+                                           &node_next)
+    };
+    reply.two.sensor.bank = (node_next->num >> 4) + 'A';
+    reply.two.sensor.num  = (node_next->num & 15) + 1;
+
+    int result = Reply(tid, (char*)&reply, sizeof(reply));
+    if (result)
+        ABORT("Train driver died! (%d)", result);
+}
+
 inline static void mc_update_sensors(mc_context* const ctxt,
                                      const sensor_name* const sensor) {
 
@@ -210,12 +237,12 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     const int waiter     = ctxt->sensor_delay[sensor_pos];
 
     if (-1 != waiter) {
-        Reply(waiter, (char*)sensor, sizeof(sensor_name));
+    	const int time = Time();
+        Reply(waiter, (char*)&time, sizeof(time));
         ctxt->sensor_delay[sensor_pos] = -1;
     }
     if (-1 != ctxt->wait_all) {
-    	const int time = Time();
-        Reply(ctxt->wait_all, (char*)&time, sizeof(time));
+        Reply(ctxt->wait_all, (char*)sensor, sizeof(sensor_name));
         ctxt->wait_all = -1;
     }
 
@@ -225,7 +252,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
         const track_node* node_next;
         int dist = get_next_sensor(node, ctxt->turnouts, &node_next);
         log("%d %s\t--(%dmm)-->\t%d %s",
-            node->num, node->name, dist,
+            node->num, node->name, dist / 1000,
             node_next->num, node_next->name);
     }
 
@@ -420,7 +447,7 @@ void mission_control() {
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
-    velocity_init();
+    physics_init();
 
     mc_initalize(&context);
     log("Mission Control Has Initalized (%d)", Time());
@@ -472,6 +499,11 @@ void mission_control() {
             context.drivers[req.payload.int_value] = tid;
             mc_try_send_train(&context, req.payload.int_value);
             continue;
+
+        case MC_TD_GET_NEXT_SENSOR:
+            mc_get_next_sensor(&context, &req, tid);
+            continue;
+
         case MC_TYPE_COUNT:
             break;
         }
@@ -621,7 +653,7 @@ int delay_all_sensor(sensor_name* const sensor) {
 
     return Send(mission_control_tid,
                 (char*)&req, sizeof(req),
-                (char*)&sensor, sizeof(sensor_name));
+                (char*)sensor, sizeof(sensor_name));
 }
 
 int train_reverse(int train) {
