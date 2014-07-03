@@ -28,6 +28,7 @@ typedef struct {
     int  direction;
 
     sensor_name last;
+    int         dist_last;
     int         time_last;
     int         estim_next;
 
@@ -46,7 +47,7 @@ static void tr_setup(train_context* const ctxt) {
     int values[2];
 
     memset(ctxt,               0, sizeof(train_context));
-    
+
     int result = Receive(&tid, (char*)&values, sizeof(values));
     assert(result == sizeof(values), "Train Recived invalid statup data");
     UNUSED(result);
@@ -62,14 +63,14 @@ static void tr_setup(train_context* const ctxt) {
     ctxt->name[7] = '\0';
 
     if (RegisterAs(ctxt->name)) ABORT("Failed to register train %d", ctxt->num);
-    
+
     Reply(tid, NULL, 0);
 }
 
 static void td_update_train_direction(train_context* const ctxt, int dir) {
     char  buffer[16];
     char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL+3);
-    
+
     char               printout = 'F';
     if (dir < 0)       printout = 'B';
     else if (dir == 0) printout = ' ';
@@ -92,7 +93,7 @@ static void td_update_train_speed(train_context* const ctxt,
     // TEMPORARY
     if (new_speed < 15) {
         log("Speed of %d is %d mm/s",
-            ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 1000);
+            ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 10);
     }
 }
 
@@ -195,7 +196,7 @@ void train_driver() {
 
     assert(command_tid >= 0,
            "Error setting up command courier (%d)", command_tid);
-    
+
     int result = Send(command_tid, (char*)&package, sizeof(package), NULL, 0);
     assert(result == 0, "Error sending package to command courier %d", result);
 
@@ -237,40 +238,45 @@ void train_driver() {
             continue;
         }
         case TRAIN_HIT_SENSOR: {
-            int         dist;
             context.last = req.one.sensor;
 
             log("(%d) TRAIN HIT %c %d",
                 time, context.last.bank, context.last.num);
 
-            result = get_sensor_from(&req.one.sensor, &dist, &context.next);
+            result = get_sensor_from(&req.one.sensor, &context.dist_last, &context.next);
             assert(result >= 0, "failed");
-            
+
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
-            context.estim_next = dist / velocity;
+            context.estim_next = context.dist_last / velocity;
 
-            log("NEXT IS %d %c %d", dist, context.next.bank, context.next.num);
+            log("NEXT IS %d %c %d", context.dist_last, context.next.bank, context.next.num);
 
             Reply(tid, (char*)&context.next, sizeof(context.next));
             continue;
         }
         case TRAIN_EXPECTED_SENSOR: {
-            int         dist;
+
+            int expected = context.time_last + context.estim_next;
+            int actual   = time - context.time_last;
+            update_velocity_for_speed(context.off,
+                                      context.speed,
+                                      context.dist_last,
+                                      actual);
 
             log("%d\t%c%d -> %c%d\tETA: %d\tTA: %d\tDelta: %d",
                 context.num,
                 context.last.bank, context.last.num,
                 context.next.bank, context.next.num,
-                context.time_last + (context.estim_next * 100), time,
-                time - (context.time_last + (context.estim_next * 100)));
-            
+                expected, time,
+                time - (context.time_last + context.estim_next));
+
             context.last = context.next;
-            result = get_sensor_from(&context.last, &dist, &context.next);
-             
+            result = get_sensor_from(&context.last, &context.dist_last, &context.next);
+
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
-            context.estim_next = dist / velocity;
+            context.estim_next = context.dist_last / velocity;
 
             Reply(tid, (char*)&context.next, sizeof(context.next));
             continue;

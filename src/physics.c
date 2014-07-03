@@ -3,6 +3,7 @@
 #include <train.h>
 #include <debug.h>
 #include <tasks/mission_control.h>
+#include <vt100.h>
 
 #define TRAIN_SPEEDS 14
 
@@ -12,95 +13,95 @@ void physics_init() {
 
     memset(speeds, 0, sizeof(int) * TRAIN_SPEEDS);
 
-    speeds[1][0]  = 10897;
-    speeds[1][1]  = 78842;
-    speeds[1][2]  = 130162;
-    speeds[1][3]  = 179817;
-    speeds[1][4]  = 237927;
-    speeds[1][5]  = 294432;
-    speeds[1][6]  = 358585;
-    speeds[1][7]  = 394923;
-    speeds[1][8]  = 439065;
-    speeds[1][9]  = 476394;
-    speeds[1][10] = 520408;
-    speeds[1][11] = 507685; // hmmm
-    speeds[1][12] = 494057;
-    speeds[1][13] = 461907;
+    speeds[1][0]  = 209;
+    speeds[1][1]  = 757;
+    speeds[1][2]  = 1249;
+    speeds[1][3]  = 1726;
+    speeds[1][4]  = 2283;
+    speeds[1][5]  = 2826;
+    speeds[1][6]  = 3441;
+    speeds[1][7]  = 3790;
+    speeds[1][8]  = 4212;
+    speeds[1][9]  = 4570;
+    speeds[1][10] = 4994;
+    speeds[1][11] = 4869; // hmmm
+    speeds[1][12] = 4747;
+    speeds[1][13] = 4440;
 
-    speeds[2][0]  = 13190;
-    speeds[2][1]  = 78704;
-    speeds[2][2]  = 133797;
-    speeds[2][3]  = 184110;
-    speeds[2][4]  = 247349;
-    speeds[2][5]  = 304444;
-    speeds[2][6]  = 363228;
-    speeds[2][7]  = 397143;
-    speeds[2][8]  = 452802;
-    speeds[2][9]  = 486792;
-    speeds[2][10] = 513119;
-    speeds[2][11] = 533712;
-    speeds[2][12] = 513119; // hmmm
-    speeds[2][13] = 500259;
+    speeds[2][0]  = 253;
+    speeds[2][1]  = 755;
+    speeds[2][2]  = 1284;
+    speeds[2][3]  = 1767;
+    speeds[2][4]  = 2373;
+    speeds[2][5]  = 2921;
+    speeds[2][6]  = 3488;
+    speeds[2][7]  = 3813;
+    speeds[2][8]  = 4341;
+    speeds[2][9]  = 4673;
+    speeds[2][10] = 4931;
+    speeds[2][11] = 5129;
+    speeds[2][12] = 4931; // hmmm
+    speeds[2][13] = 4808;
 
-    speeds[3][0]  = 12699;
-    speeds[3][1]  = 78187;
-    speeds[3][2]  = 130274;
-    speeds[3][3]  = 182284;
-    speeds[3][4]  = 241653;
-    speeds[3][5]  = 296455;
-    speeds[3][6]  = 348567;
-    speeds[3][7]  = 390603;
-    speeds[3][8]  = 428900;
-    speeds[3][9]  = 478546;
-    speeds[3][10] = 526699;
-    speeds[3][11] = 537730;
-    speeds[3][12] = 524945; // hmmm
-    speeds[3][13] = 498687;
+    speeds[3][0]  = 244;
+    speeds[3][1]  = 750;
+    speeds[3][2]  = 1250;
+    speeds[3][3]  = 1749;
+    speeds[3][4]  = 2319;
+    speeds[3][5]  = 2846;
+    speeds[3][6]  = 3347;
+    speeds[3][7]  = 3748;
+    speeds[3][8]  = 4116;
+    speeds[3][9]  = 4597;
+    speeds[3][10] = 5060;
+    speeds[3][11] = 5161;
+    speeds[3][12] = 5044; // hmmm
+    speeds[3][13] = 4793;
 
-    speeds[4][0]  = 13046;
-    speeds[4][1]  = 82976;
-    speeds[4][2]  = 137165;
-    speeds[4][3]  = 189621;
-    speeds[4][4]  = 242780;
-    speeds[4][5]  = 298227;
-    speeds[4][6]  = 358324;
-    speeds[4][7]  = 413495;
-    speeds[4][8]  = 466854;
-    speeds[4][9]  = 534946;
-    speeds[4][10] = 579125;
-    speeds[4][11] = 583739;
-    speeds[4][12] = 554942; // hmmm
-    speeds[4][13] = 530278;
+    speeds[4][0]  = 250;
+    speeds[4][1]  = 796;
+    speeds[4][2]  = 1316;
+    speeds[4][3]  = 1820;
+    speeds[4][4]  = 2330;
+    speeds[4][5]  = 2861;
+    speeds[4][6]  = 3438;
+    speeds[4][7]  = 3967;
+    speeds[4][8]  = 4482;
+    speeds[4][9]  = 5130;
+    speeds[4][10] = 5557;
+    speeds[4][11] = 5598;
+    speeds[4][12] = 5324; // hmmm
+    speeds[4][13] = 5093;
 
-    speeds[5][0]  = 9531;
-    speeds[5][1]  = 76229;
-    speeds[5][2]  = 132496;
-    speeds[5][3]  = 179319;
-    speeds[5][4]  = 228635;
-    speeds[5][5]  = 281419;
-    speeds[5][6]  = 339891;
-    speeds[5][7]  = 391628;
-    speeds[5][8]  = 444525;
-    speeds[5][9]  = 496478;
-    speeds[5][10] = 539657;
-    speeds[5][11] = 584709;
-    speeds[5][12] = 544893; // hmmm
-    speeds[5][13] = 502863;
+    speeds[5][0]  = 183;
+    speeds[5][1]  = 731;
+    speeds[5][2]  = 1272;
+    speeds[5][3]  = 1720;
+    speeds[5][4]  = 2193;
+    speeds[5][5]  = 2701;
+    speeds[5][6]  = 3262;
+    speeds[5][7]  = 3758;
+    speeds[5][8]  = 4265;
+    speeds[5][9]  = 4762;
+    speeds[5][10] = 5179;
+    speeds[5][11] = 5608;
+    speeds[5][12] = 5231; // hmmm
+    speeds[5][13] = 4828;
 
-    speeds[6][0]  = 7427;
-    speeds[6][1]  = 21372;
-    speeds[6][2]  = 61325;
-    speeds[6][3]  = 104827;
-    speeds[6][4]  = 140683;
-    speeds[6][5]  = 180537;
-    speeds[6][6]  = 211307;
-    speeds[6][7]  = 253157;
-    speeds[6][8]  = 312243;
-    speeds[6][9]  = 382987;
-    speeds[6][10] = 477939;
-    speeds[6][11] = 570300;
-    speeds[6][12] = 610249;
-    speeds[6][13] = 640000;
+    speeds[6][0]  = 206;
+    speeds[6][1]  = 142;
+    speeds[6][2]  = 205;
+    speeds[6][3]  = 588;
+    speeds[6][4]  = 1006;
+    speeds[6][5]  = 1351;
+    speeds[6][6]  = 1732;
+    speeds[6][7]  = 2028;
+    speeds[6][8]  = 2429;
+    speeds[6][9]  = 2995;
+    speeds[6][10] = 3676;
+    speeds[6][11] = 4584;
+    speeds[6][12] = 5864;
+    speeds[6][13] = 6137;
 }
 
 int velocity_for_speed(const int train_offset, const int speed) {
@@ -113,4 +114,17 @@ int velocity_for_speed(const int train_offset, const int speed) {
            "Invalid speed %d", speed);
 
     return speeds[train_offset][speed - 1];
+}
+
+void update_velocity_for_speed(const int train_offset,
+                               const int speed,
+                               const int distance,
+                               const int time) {
+    //log("%d %d", distance, time);
+    //log("%d %d %d", speeds[train_offset][speed - 1], (distance / time),
+    //(speeds[train_offset][speed - 1] + (distance / time)) >> 2);
+
+    speeds[train_offset][speed - 1] =
+        (speeds[train_offset][speed - 1] + (distance / time)) >> 1;
+
 }
