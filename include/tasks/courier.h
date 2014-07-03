@@ -8,6 +8,7 @@ typedef struct {
     int   size;
 } courier_package;
 
+void sensor_notifier(void);
 void courier(void);
 
 #endif

@@ -13,6 +13,8 @@
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
 
+#include <tasks/courier.h>
+#include <tasks/train_console.h>
 #include <tasks/train_station.h>
 
 typedef struct {
@@ -26,6 +28,10 @@ typedef struct {
     int  direction;
 
     sensor_name last;
+    int         time_last;
+    int         estim_next;
+
+    sensor_name next;
 } train_context;
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
@@ -40,7 +46,10 @@ static void tr_setup(train_context* const ctxt) {
     int values[2];
 
     memset(ctxt,               0, sizeof(train_context));
-    Receive(&tid, (char*)&values, sizeof(values));
+    
+    int result = Receive(&tid, (char*)&values, sizeof(values));
+    assert(result == sizeof(values), "Train Recived invalid statup data");
+    UNUSED(result);
 
     // Only place these should get set
     *((int*)&ctxt->num) = values[0];
@@ -52,10 +61,8 @@ static void tr_setup(train_context* const ctxt) {
     sprintf(ctxt->name, "TRAIN%d", ctxt->num);
     ctxt->name[7] = '\0';
 
-    if (RegisterAs(ctxt->name)) {
-	ABORT("Failed to register train %d", ctxt->num);
-    }
-
+    if (RegisterAs(ctxt->name)) ABORT("Failed to register train %d", ctxt->num);
+    
     Reply(tid, NULL, 0);
 }
 
@@ -76,8 +83,8 @@ static void td_update_train_speed(train_context* const ctxt,
                                   const int new_speed) {
     char  buffer[16];
     char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL);
-    ptr            = sprintf(ptr, new_speed ? "%d " : "- ", new_speed);
     ctxt->speed    = new_speed & 0xF;
+    ptr            = sprintf(ptr, ctxt->speed ? "%d " : "- ", ctxt->speed);
 
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     Puts(buffer, ptr-buffer);
@@ -150,48 +157,58 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_HORN_SOUND:
             td_toggle_horn(ctxt);
             break;
+        case TRAIN_HIT_SENSOR:
         case TRAIN_NEXT_SENSOR:
-            ABORT("Shes moving when we dont tell her to captain!");
+        case TRAIN_REQUEST_COUNT:
+        case TRAIN_EXPECTED_SENSOR:
+            ABORT("Shes moving when we dont tell her too captain!");
+            break;
         }
     }
 }
 
 void train_driver() {
+    int           tid;
     train_req     req;
     train_context context;
+
     tr_setup(&context);
 
     const int train_tid = myParentTid();
-    mc_req callin       = {
+    const mc_req callin = {
         .type              = MC_TD_CALL,
         .payload.int_value = context.off
     };
 
     td_toggle_light(&context); // turn on lights when we initialize!
-    
     train_wait_use(&context, train_tid, &callin);
-    // setup the detective here, call in so it knows to notify on sensor hit
-    int result = delay_all_sensor(&context.last);
-    assert(result > 0, "Failed to get next sensor hit by train");
 
-    if (context.last.bank == 'A' || context.last.bank == 'C') {
-        td_update_train_direction(&context, -1);
-    } else {
-        td_update_train_direction(&context, 1);
-    }
-    // The above code can maybe? be moved into the detector or waiting for things
+    tid = Create(4, train_console);
+    assert(tid >= 0, "Failed creating the train console (%d)", tid);
+
+    const int command_tid         = Create(4, courier);
+    const courier_package package = {
+        .receiver = train_tid,
+        .message  = (char*)&callin,
+        .size     = sizeof(callin),
+    };
+
+    assert(command_tid >= 0,
+           "Error setting up command courier (%d)", command_tid);
+    
+    int result = Send(command_tid, (char*)&package, sizeof(package), NULL, 0);
+    assert(result == 0, "Error sending package to command courier %d", result);
 
     FOREVER {
-        result = Send(train_tid,
-                      (char*)&callin, sizeof(callin),
-                      (char*)&req,    sizeof(req));
+        result = Receive(&tid, (char*)&req, sizeof(req));
 
         UNUSED(result);
         assert(result == sizeof(req),
-               "received weird request in train %d", context.num);
+               "train %d recived malformed request from %d", context.num, tid);
+        assert(req.type < TRAIN_REQUEST_COUNT,
+                "Train %d got bad request %d", context.num, req.type);
 
         int time = Time();
-        log("received train command %d at %d", req.type, time);
 
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
@@ -215,9 +232,60 @@ void train_driver() {
         case TRAIN_HORN_SOUND:
             td_toggle_horn(&context);
             break;
-        case TRAIN_NEXT_SENSOR:
-            break;
+        case TRAIN_NEXT_SENSOR: {
+            context.last = req.two.sensor;
+            continue;
         }
+        case TRAIN_HIT_SENSOR: {
+            int         dist;
+            context.last = req.one.sensor;
+
+            log("(%d) TRAIN HIT %c %d",
+                time, context.last.bank, context.last.num);
+
+            result = get_sensor_from(&req.one.sensor, &dist, &context.next);
+            assert(result >= 0, "failed");
+            
+            context.time_last = time;
+            int velocity = velocity_for_speed(context.off, context.speed);
+            context.estim_next = dist / velocity;
+
+            log("NEXT IS %d %c %d", dist, context.next.bank, context.next.num);
+
+            Reply(tid, (char*)&context.next, sizeof(context.next));
+            continue;
+        }
+        case TRAIN_EXPECTED_SENSOR: {
+            int         dist;
+
+            log("%d\t%c%d -> %c%d\tETA: %d\tTA: %d\tDelta: %d",
+                context.num,
+                context.last.bank, context.last.num,
+                context.next.bank, context.next.num,
+                context.time_last + (context.estim_next * 100), time,
+                time - (context.time_last + (context.estim_next * 100)));
+            
+            context.last = context.next;
+            result = get_sensor_from(&context.last, &dist, &context.next);
+             
+            context.time_last = time;
+            int velocity = velocity_for_speed(context.off, context.speed);
+            context.estim_next = dist / velocity;
+
+            Reply(tid, (char*)&context.next, sizeof(context.next));
+            continue;
+        }
+        case TRAIN_REQUEST_COUNT:
+            ABORT("Train %d got request count request from %d",
+                  context.num, tid);
+        }
+
+        assert(tid == command_tid,
+               "TRAIN %d traing to reset invlaid command courier task %d",
+               context.num, tid);
+
+        result = Reply(tid, (char*)&callin, sizeof(callin));
+        if (result) ABORT("Failed responding to command courier (%d)", result);
     }
 }
 

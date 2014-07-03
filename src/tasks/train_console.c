@@ -1,110 +1,90 @@
 
 #include <std.h>
+#include <vt100.h>
 #include <debug.h>
 #include <syscall.h>
 
 #include <tasks/courier.h>
 #include <tasks/name_server.h>
+
 #include <tasks/train_station.h>
 #include <tasks/mission_control.h>
-#include <tasks/mission_control_types.h>
 
 typedef struct {
-    const int cmd_tid;
-    const int train_tid;
-    const int clock_tid;
+    const int driver_tid;
+    const int expected_tid;
 
-    int train_docked;
-
-    int cmd_waiting;
-    train_req stored_cmd;
-
-    const mc_req cmd_callin;
+    int       train_tid;
+    int       train_docked;
+    
+    train_req next_req;
 } train_detective_context;
 
+static void create_expected_child(train_detective_context* const ctxt,
+                                  const sensor_name* const sensor) {
+    *(int*)&ctxt->expected_tid = Create(4, sensor_notifier);
+
+    log("creating sensor process %d %c %d",
+        ctxt->expected_tid, sensor->bank, sensor->num);
+
+    Send(ctxt->expected_tid,
+         (char*)sensor, sizeof(*sensor),
+         NULL, 0);
+}
+
 static inline void _init_context(train_detective_context* const ctxt) {
-    int tid;
+    memset(ctxt, -1, sizeof(*ctxt));
 
-    ctxt->train_docked      = 1;
-    ctxt->cmd_waiting       = 0;
-    *(int*)&ctxt->train_tid = myParentTid();
-    int result              = Receive(&tid,
-                                      (char*)&ctxt->cmd_callin,
-                                      sizeof(ctxt->cmd_callin));
+    *(int*)&ctxt->driver_tid = Create(4, courier);
+    assert(ctxt->driver_tid >= 0, "Error creating Courier to Driver");
 
-    assert(tid == ctxt->train_tid,
-           "Invalid task called into setting up train console %d", tid);
-    assert(result == sizeof(ctxt->cmd_callin),
-           "received invalid return from %d (%d)", tid, result);
-
-    courier_package pack = {
-        .receiver = WhoIs((char*)MISSION_CONTROL_NAME),
-        .message  = (char*)&ctxt->cmd_callin,
-        .size     = sizeof(ctxt->cmd_callin),
+    train_req callin        = {
+        .type = TRAIN_HIT_SENSOR
     };
-
-    *(int*)&ctxt->cmd_tid = Create(4, courier);
-    assert(ctxt->cmd_tid >= 0,
-           "failed to create command listener (%d)", ctxt->cmd_tid);
-    result = Send(ctxt->cmd_tid, (char*)&pack, sizeof(pack), NULL, 0);
-    assert(result == 0, "Failed sending cmd packet to courier %d", result);
-}
-
-static void tc_send_command(train_detective_context* const ctxt,
-                            const train_req* const req) {
-    assert(ctxt->cmd_waiting == 0,
-           "Received train command while command buffer is blocked");
-
-    int result = Reply(ctxt->train_tid, (char*)req, sizeof(*req));
-    assert(result == 0, "Train Console Failed to notify train %d", result);
     
-    result = Reply(ctxt->cmd_tid,
-                   (char*)&ctxt->cmd_callin,
-                   sizeof(ctxt->cmd_callin));
-    assert(result == 0, "Train Console can't requery command %d", result);
+    int result = delay_all_sensor(&callin.one.sensor);
+    assert(result == sizeof(sensor_name),
+           "failed initalizing train %d", result);
+
+    courier_package package = {
+        .receiver = myParentTid(),
+        .message  = (char*)&callin,
+        .size     = sizeof(callin)
+    };
+    result = Send(ctxt->driver_tid ,(char*)&package, sizeof(package), NULL, 0);
+
+
+
+    assert(result == 0, "Failed handing off package to courier");
 }
 
-static void tc_handle_command(train_detective_context* const ctxt,
-                              const train_req* const req) {
-    if (ctxt->train_docked) {
-        tc_send_command(ctxt, req);
-        ctxt->train_docked = 0;
-    } else {
-        memcpy(&ctxt->stored_cmd, (void*)req, sizeof(*req));
-        ctxt->cmd_waiting = 1;
-    }
-}
+void train_console() {
+    int tid, result;
 
-static void tc_train_pickup(train_detective_context* const ctxt) {
-    if (ctxt->cmd_waiting) {
-        tc_send_command(ctxt, &ctxt->stored_cmd);
-        ctxt->cmd_waiting = 0;
-    } else {
-        ctxt->train_docked = 1;
-    }
-}
-
-void __attribute__((noreturn)) train_console() {
-    int tid, result; 
     train_detective_context context;
     _init_context(&context);
 
     union {
         sensor_name sensor;
-        train_req   train;
         int         int_value;
     } buffer;
 
+    train_req t_req;
+
     FOREVER {
         result = Receive(&tid, (char*)&buffer, sizeof(buffer));
-        assert(result >= 0, "hello");
 
-        if (tid == context.train_tid) {
-            assert(context.train_docked == 0,
-                   "Train somehow double docked int train console");
-            tc_train_pickup(&context);
-        } else if (tid == context.cmd_tid) {
-            tc_handle_command(&context, &buffer.train); 
+        if (context.driver_tid == tid) {
+            if (-1 == context.expected_tid) {
+                create_expected_child(&context, &buffer.sensor);
+            } else {
+                Reply(context.expected_tid,
+                      (char*)&buffer.sensor, sizeof(buffer.sensor));
+            }
+        } else if (context.expected_tid == tid) {
+            t_req.type          = TRAIN_EXPECTED_SENSOR;
+            t_req.one.int_value = buffer.int_value;
+            Reply(context.driver_tid, (char*)&t_req, sizeof(t_req));
         }
     }
 }

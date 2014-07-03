@@ -202,23 +202,25 @@ static void mc_get_next_sensor(mc_context* const ctxt,
                                mc_req* const req,
                                const int tid) {
 
+    // I read this in Dr. Brules voice
+    // https://www.youtube.com/watch?v=GkJowAcjT0A
     assert(ctxt->track_loaded, "You forgot to load track data, dummy");
 
-    const int sensor_pos  = sensorname_to_pos(req->payload.sensor.bank,
-                                              req->payload.sensor.num);
+    const int sensor_pos = sensorname_to_pos(req->payload.sensor.bank,
+                                             req->payload.sensor.num);
     const track_node* const node_curr = &ctxt->track[sensor_pos];
     const track_node* node_next;
 
-    train_req reply = {
-        .type            = TRAIN_NEXT_SENSOR,
-        .one.int_value   = get_next_sensor(node_curr,
-                                           ctxt->turnouts,
-                                           &node_next)
-    };
-    reply.two.sensor.bank = (node_next->num >> 4) + 'A';
-    reply.two.sensor.num  = (node_next->num & 15) + 1;
+    struct {
+        int dist;
+        sensor_name next;
+    } response;
 
-    int result = Reply(tid, (char*)&reply, sizeof(reply));
+    response.dist = get_next_sensor(node_curr, ctxt->turnouts, &node_next);
+    response.next.bank = (node_next->num >> 4) + 'A';
+    response.next.num  = (node_next->num & 15) + 1;
+
+    int result = Reply(tid, (char*)&response, sizeof(response));
     if (result)
         ABORT("Train driver died! (%d)", result);
 }
@@ -246,6 +248,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
         ctxt->wait_all = -1;
     }
 
+    /*
     track_node* node = &ctxt->track[sensor_pos];
 
     if (ctxt->track_loaded) {
@@ -255,6 +258,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
             node->num, node->name, dist / 1000,
             node_next->num, node_next->name);
     }
+    */
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
@@ -679,3 +683,26 @@ int load_track(int track_value) {
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
+
+int get_sensor_from(sensor_name* from, int* res_dist, sensor_name* res_name) {
+    mc_req req = {
+        .type           = MC_TD_GET_NEXT_SENSOR,
+        .payload.sensor = *from
+    };
+    
+    struct {
+        int         dist;
+        sensor_name sensor;
+    } values;
+
+    int result = Send(mission_control_tid,
+                      (char*)&req, sizeof(req),
+                      (char*)&values, sizeof(values));
+    if (result < 0) return result;
+
+    *res_dist = values.dist;
+    memcpy(res_name, &values.sensor, sizeof(*res_name));
+    
+    return 0;
+}
+

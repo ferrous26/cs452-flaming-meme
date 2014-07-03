@@ -26,4 +26,6 @@ int train_set_speed(int train, int speed);
 int train_toggle_light(int train);
 int train_toggle_horn(int train);
 
+int get_sensor_from(sensor_name* from, int* res_dist, sensor_name* res_name);
+
 #endif

@@ -4,12 +4,49 @@
 #include <debug.h>
 #include <syscall.h>
 
+#include <tasks/name_server.h>
+#include <tasks/clock_server.h>
+#include <tasks/mission_control.h>
+#include <tasks/mission_control_types.h>
+
 #include <tasks/courier.h>
+
+void sensor_notifier() {
+    int tid, time;
+    const int mc_tid = WhoIs((char*)MISSION_CONTROL_NAME);
+
+    mc_req request = {
+        .type = MC_D_SENSOR,
+    };
+    sensor_name* const sensor = &request.payload.sensor;
+
+    int result = Receive(&tid, (char*)sensor, sizeof(*sensor));
+    assert(result == sizeof(*sensor), "sensor notifier failed %d", result);
+    Reply(tid, NULL, 0);
+
+    do {
+        assert(sensor->bank >= 'A' && sensor->bank <= 'E',
+               "sensor notifier got invalid sensor bank from %d (%d)",
+               tid, sensor->bank);
+        assert(sensor->num > 0 && sensor->num <= 16,
+               "sensor notifier got invalid sensor num from %d (%d)",
+               tid, sensor->num);
+
+        result = Send(mc_tid,
+                      (char*)&request, sizeof(request),
+                      (char*)&time, sizeof(time));
+
+        result = Send(tid,
+                      (char*)&time, sizeof(time),
+                      (char*)sensor, sizeof(*sensor));
+    } while (sensor->bank != 0);
+}
 
 void courier() {
     int tid;
-    char buffer[256];
     courier_package package;
+    
+    char buffer[512];
 
     int result = Receive(&tid, (char*)&package, sizeof(package));
     assert(result == sizeof(package),

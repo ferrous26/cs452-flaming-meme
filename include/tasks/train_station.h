@@ -14,7 +14,12 @@ typedef enum {
     TRAIN_REVERSE_DIRECTION,
     TRAIN_TOGGLE_LIGHT,
     TRAIN_HORN_SOUND,
-    TRAIN_NEXT_SENSOR
+    TRAIN_NEXT_SENSOR,
+
+    TRAIN_HIT_SENSOR,
+    TRAIN_EXPECTED_SENSOR,
+
+    TRAIN_REQUEST_COUNT
 } train_req_type;
 
 typedef union {
