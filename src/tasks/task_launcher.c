@@ -88,10 +88,8 @@ static void action(command cmd, int args[]) {
     case TRACK_TURNOUT:
         update_turnout(args[0], args[1]);
         break;
-
     case SWITCH_STOP:
-        delay_sensor(args[0], args[1]);
-        train_set_speed(args[2], 0);
+        train_stop_at(args[2], args[0], args[1]);
         break;
     case SWITCH_TIME: {
         sensor_name trash;

@@ -33,6 +33,7 @@ typedef struct {
     int         estim_next;
 
     sensor_name next;
+    sensor_name stop;
 } train_context;
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
@@ -162,6 +163,7 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_NEXT_SENSOR:
         case TRAIN_REQUEST_COUNT:
         case TRAIN_EXPECTED_SENSOR:
+        case TRAIN_STOP:
             ABORT("She's moving when we dont tell her too captain!");
             break;
         }
@@ -237,6 +239,10 @@ void train_driver() {
             context.last = req.two.sensor;
             continue;
         }
+        case TRAIN_STOP: {
+            context.stop = req.one.sensor;
+            break;
+        }
         case TRAIN_HIT_SENSOR: {
             context.last = req.one.sensor;
 
@@ -256,6 +262,12 @@ void train_driver() {
             continue;
         }
         case TRAIN_EXPECTED_SENSOR: {
+
+            if (context.next.bank == context.stop.bank &&
+                context.next.num == context.stop.num) {
+                td_update_train_speed(&context, 0);
+                context.stop.bank = 0;
+            }
 
             int expected = context.time_last + context.estim_next;
             int actual   = time - context.time_last;

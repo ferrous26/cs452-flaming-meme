@@ -12,6 +12,12 @@ typedef struct {
     short speed;
 } train_speed;
 
+typedef struct {
+    short train;
+    char  bank;
+    char  num;
+} train_stop;
+
 typedef enum {
     // load
     MC_L_TRACK,
@@ -23,6 +29,7 @@ typedef enum {
     // toggle
     MC_T_TRAIN_LIGHT,
     MC_T_TRAIN_HORN,
+    MC_T_TRAIN_STOP,
     // reset
     MC_R_TRACK,
     // delay
@@ -39,6 +46,7 @@ typedef union {
     sensor_name   sensor;
     turnout_state turnout;
     train_speed   train_speed;
+    train_stop    train_stop;
     int           int_value;
 } mc_payload;
 

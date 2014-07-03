@@ -17,9 +17,11 @@
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
 
-#define NUM_TURNOUTS     22
-#define NUM_SENSORS      (5*16)
-#define SENSOR_LIST_SIZE 9
+#define NUM_TURNOUTS         22
+#define NUM_SENSOR_BANKS     5
+#define NUM_SENSORS_PER_BANK 16
+#define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
+#define SENSOR_LIST_SIZE     9
 
 static int mission_control_tid;
 
@@ -41,6 +43,7 @@ typedef struct {
         int speed;
         int light;
         int reverse;
+        sensor_name stop;
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } mc_context;
@@ -157,6 +160,11 @@ static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
         req.type                        = TRAIN_CHANGE_SPEED;
         req.one.int_value               = ctxt->pickup[train_index].speed;
         ctxt->pickup[train_index].speed = -1;
+
+    } else if (ctxt->pickup[train_index].stop.bank) {
+        req.type       = TRAIN_STOP;
+        req.one.sensor = ctxt->pickup[train_index].stop;
+        ctxt->pickup[train_index].stop.bank = 0;
 
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
@@ -384,6 +392,14 @@ static inline void mc_reverse_train(mc_context* const ctxt, const int index) {
     mc_try_send_train(ctxt, index);
 }
 
+static void mc_train_stop(mc_context* const ctxt, const mc_req* const req) {
+    const train_stop* const stop = &req->payload.train_stop;
+    const int train_num = train_to_pos(stop->train);
+    ctxt->pickup[train_num].stop.bank = stop->bank;
+    ctxt->pickup[train_num].stop.num  = stop->num;
+    mc_try_send_train(ctxt, train_num);
+}
+
 static void mc_reset_track_state(mc_context* const context) {
     for (int i = 1; i < 19; i++) {
         mc_update_turnout(context, i, 'C');
@@ -493,6 +509,9 @@ void mission_control() {
             break;
         case MC_T_TRAIN_HORN:
             mc_toggle_horn(&context, req.payload.int_value);
+            break;
+        case MC_T_TRAIN_STOP:
+            mc_train_stop(&context, &req);
             break;
 
         case MC_L_TRACK:
@@ -604,6 +623,24 @@ int train_toggle_horn(int train) {
         .type              = MC_T_TRAIN_HORN,
         .payload.int_value = train_index
     };
+    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int train_stop_at(const int train, const int bank, const int num) {
+    int train_index = train_to_pos(train);
+    if (train_index < 0) {
+        log("Can't stop train %d because it does not exist", train);
+        return 0;
+    }
+
+    mc_req req = {
+        .type = MC_T_TRAIN_STOP
+    };
+
+    req.payload.train_stop.train = train;
+    req.payload.train_stop.bank  = bank;
+    req.payload.train_stop.num   = num;
+
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
