@@ -1,7 +1,7 @@
 #include <std.h>
 #include <train.h>
 #include <debug.h>
-#include <ui_constants.h>
+#include <ui.h>
 #include <physics.h>
 
 #include <tasks/term_server.h>

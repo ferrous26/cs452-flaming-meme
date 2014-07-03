@@ -4,7 +4,7 @@
 #include <train.h>
 #include <syscall.h>
 #include <track_data.h>
-#include <ui_constants.h>
+#include <ui.h>
 #include <physics.h>
 
 #include <tasks/term_server.h>
@@ -689,7 +689,7 @@ int get_sensor_from(sensor_name* from, int* res_dist, sensor_name* res_name) {
         .type           = MC_TD_GET_NEXT_SENSOR,
         .payload.sensor = *from
     };
-    
+
     struct {
         int         dist;
         sensor_name sensor;
@@ -702,7 +702,6 @@ int get_sensor_from(sensor_name* from, int* res_dist, sensor_name* res_name) {
 
     *res_dist = values.dist;
     memcpy(res_name, &values.sensor, sizeof(*res_name));
-    
+
     return 0;
 }
-

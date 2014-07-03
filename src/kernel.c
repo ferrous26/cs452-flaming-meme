@@ -6,6 +6,7 @@
 #include <io.h>
 #include <debug.h>
 #include <char_buffer.h>
+#include <ui.h>
 
 #include <tasks/idle.h>
 #include <tasks/name_server.h>
@@ -579,24 +580,17 @@ inline static void task_destroy() {
 
 /** ABORT UI CODE **/
 
-static char* _abort_pad(char* ptr, const int val) {
-    int count = 12 - val;
-    if (val == 0) count = 11;
-
-    for (int i = 0; i < count; i++)
-        ptr = sprintf_char(ptr, ' ');
-    return ptr;
-}
+#define COLUMN_WIDTH 12
 
 static char* _abort_tid_num(char* ptr, int tid) {
     char* name = kWhoTid(tid);
     if (name) {
         char* new_ptr = sprintf_string(ptr, name);
-        return _abort_pad(new_ptr, new_ptr - ptr);
+        return ui_pad(new_ptr, new_ptr - ptr, COLUMN_WIDTH);
     }
 
     ptr = sprintf_int(ptr, tid);
-    return _abort_pad(ptr, log10(tid));
+    return ui_pad(ptr, log10(tid), COLUMN_WIDTH);
 }
 
 static char* _abort_tid(char* ptr, task* const t) {
@@ -614,7 +608,7 @@ static char* _abort_ptid(char* ptr, task* const t) {
 static char* _abort_priority(char* ptr, task* const t) {
     if (!t) return ptr;
     ptr = sprintf(ptr, "%d", t->priority);
-    return _abort_pad(ptr, log10(t->priority));
+    return ui_pad(ptr, log10(t->priority), COLUMN_WIDTH);
 }
 
 static char* _abort_next(char* ptr, task* const t) {

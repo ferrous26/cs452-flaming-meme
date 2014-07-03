@@ -1,6 +1,8 @@
 
-#ifndef __UI_CONSTANTS_H__
-#define __UI_CONSTANTS_H__
+#ifndef __UI_H__
+#define __UI_H__
+
+#include <std.h>
 
 #define TRAIN_ROW           6
 #define TRAIN_COL           1
@@ -14,5 +16,6 @@
 #define SENSOR_ROW (TRAIN_ROW - 1)
 #define SENSOR_COL 58
 
-#endif
+char* ui_pad(char* ptr, const int input_width, const int total_width);
 
+#endif
