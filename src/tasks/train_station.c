@@ -162,7 +162,7 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_NEXT_SENSOR:
         case TRAIN_REQUEST_COUNT:
         case TRAIN_EXPECTED_SENSOR:
-            ABORT("Shes moving when we dont tell her too captain!");
+            ABORT("She's moving when we dont tell her too captain!");
             break;
         }
     }
