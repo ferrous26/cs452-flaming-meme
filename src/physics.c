@@ -104,6 +104,36 @@ void physics_init() {
     speeds[6][13] = 6137;
 }
 
+
+
+void physics_dump() {
+    char buffer[1024];
+    char* ptr = log_start(buffer);
+
+    ptr = sprintf_char(ptr, '\n');
+
+    for (int i = 0; i < NUM_TRAINS; i++)
+        ptr = sprintf(ptr, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+                      i,
+                      speeds[i][0],
+                      speeds[i][1],
+                      speeds[i][2],
+                      speeds[i][3],
+                      speeds[i][4],
+                      speeds[i][5],
+                      speeds[i][6],
+                      speeds[i][7],
+                      speeds[i][8],
+                      speeds[i][9],
+                      speeds[i][10],
+                      speeds[i][11],
+                      speeds[i][12],
+                      speeds[i][13]);
+
+    ptr = log_end(ptr);
+    Puts(buffer, ptr - buffer);
+}
+
 int velocity_for_speed(const int train_offset, const int speed) {
     if (speed == 0) return 0;
 

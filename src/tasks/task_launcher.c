@@ -2,6 +2,7 @@
 #include <debug.h>
 #include <train.h>
 #include <parse.h>
+#include <physics.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -62,6 +63,10 @@ static void action(command cmd, int args[]) {
     case NONE:
         print_help();
         break;
+    case DUMP:
+        physics_dump();
+        break;
+
     case QUIT:
         Shutdown();
 
@@ -89,7 +94,7 @@ static void action(command cmd, int args[]) {
         train_set_speed(args[2], 0);
         break;
     case SWITCH_TIME: {
-        sensor_name trash;            
+        sensor_name trash;
         delay_all_sensor(&trash);
         int time = Time();
         delay_all_sensor(&trash);

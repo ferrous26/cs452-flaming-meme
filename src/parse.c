@@ -198,6 +198,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'h':  return parse_horn(cmd, buffer);
     case 'c':  return parse_calibrate(cmd, buffer);
     case 'a':  return parse_accelerate(cmd, buffer);
+    case 'd':  return DUMP;
     default:   return ERROR;
     }
 }

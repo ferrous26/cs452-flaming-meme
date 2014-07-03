@@ -25,6 +25,7 @@ typedef enum {
     ACCELERATE,
     SIZES,
     SEPPUKU,
+    DUMP,
 
     QUIT,
     ERROR,

@@ -5,6 +5,8 @@
 
 void physics_init(void);
 
+void physics_dump(void);
+
 int  velocity_for_speed(const int train_offset, const int speed);
 void update_velocity_for_speed(const int train_offset,
                                const int speed,
