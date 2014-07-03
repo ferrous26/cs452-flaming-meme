@@ -3,6 +3,7 @@
 #include <train.h>
 #include <debug.h>
 #include <tasks/mission_control.h>
+#include <tasks/term_server.h>
 #include <vt100.h>
 
 #define TRAIN_SPEEDS 14
@@ -88,10 +89,10 @@ void physics_init() {
     speeds[5][12] = 5231; // hmmm
     speeds[5][13] = 4828;
 
-    speeds[6][0]  = 206;
-    speeds[6][1]  = 142;
-    speeds[6][2]  = 205;
-    speeds[6][3]  = 588;
+    speeds[6][0]  = 142;
+    speeds[6][1]  = 205;
+    speeds[6][2]  = 588;
+    speeds[6][3]  = 1006;
     speeds[6][4]  = 1006;
     speeds[6][5]  = 1351;
     speeds[6][6]  = 1732;
@@ -146,15 +147,28 @@ int velocity_for_speed(const int train_offset, const int speed) {
     return speeds[train_offset][speed - 1];
 }
 
+
+#define FEEDBACK_THRESHOLD_CONSTANT 30
+
 void update_velocity_for_speed(const int train_offset,
                                const int speed,
                                const int distance,
                                const int time) {
+
     //log("%d %d", distance, time);
     //log("%d %d %d", speeds[train_offset][speed - 1], (distance / time),
     //(speeds[train_offset][speed - 1] + (distance / time)) >> 2);
 
-    speeds[train_offset][speed - 1] =
-        (speeds[train_offset][speed - 1] + (distance / time)) >> 1;
+    const int old_speed = speeds[train_offset][speed - 1];
+    const int new_speed = distance / time;
 
+    /* int delta = new_speed - old_speed; */
+    /* if (delta < 0) delta = -delta; */
+
+    /* if (delta > (FEEDBACK_THRESHOLD_CONSTANT * speed)) { */
+    /*     log("Feedback is off by too much (%d). I suspect foul play!", delta); */
+    /*     return; */
+    /* } */
+
+    speeds[train_offset][speed - 1] = ((old_speed << 2) + new_speed) / 5;
 }
