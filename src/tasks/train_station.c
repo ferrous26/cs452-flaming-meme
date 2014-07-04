@@ -15,7 +15,9 @@
 
 #include <tasks/courier.h>
 #include <tasks/train_console.h>
+#include <tasks/train_control.h>
 #include <tasks/train_station.h>
+
 
 typedef struct {
     const int num;
@@ -27,13 +29,14 @@ typedef struct {
     int  horn;
     int  direction;
 
-    sensor_name last;
-    int         dist_last;
-    int         time_last;
-    int         estim_next;
+    int  last;
+    int  dist_last;
+    int  time_last;
+    
+    int  next;
+    int  estim_next;
 
-    sensor_name next;
-    sensor_name stop;
+    int stop;
 } train_context;
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
@@ -47,8 +50,7 @@ static void tr_setup(train_context* const ctxt) {
     int tid;
     int values[2];
 
-    memset(ctxt,               0, sizeof(train_context));
-
+    memset(ctxt, 0, sizeof(train_context));
     int result = Receive(&tid, (char*)&values, sizeof(values));
     assert(result == sizeof(values), "Train Recived invalid statup data");
     UNUSED(result);
@@ -90,10 +92,9 @@ static void td_update_train_speed(train_context* const ctxt,
 
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     Puts(buffer, ptr-buffer);
-
     // TEMPORARY
     if (new_speed < 15) {
-        log("Speed of %d is %d mm/s",
+        log("[TRAIN%d]\tSpeed is %d mm/s",
             ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 10);
     }
 }
@@ -133,7 +134,7 @@ static void td_toggle_horn(train_context* const ctxt) {
 
 static inline void train_wait_use(train_context* const ctxt,
                                   const int train_tid,
-                                  const mc_req* const callin) {
+                                  const tc_req* const callin) {
     train_req req;
 
     FOREVER {
@@ -159,11 +160,10 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_HORN_SOUND:
             td_toggle_horn(ctxt);
             break;
+        case TRAIN_STOP:
         case TRAIN_HIT_SENSOR:
-        case TRAIN_NEXT_SENSOR:
         case TRAIN_REQUEST_COUNT:
         case TRAIN_EXPECTED_SENSOR:
-        case TRAIN_STOP:
             ABORT("She's moving when we dont tell her too captain!");
             break;
         }
@@ -178,8 +178,8 @@ void train_driver() {
     tr_setup(&context);
 
     const int train_tid = myParentTid();
-    const mc_req callin = {
-        .type              = MC_TD_CALL,
+    const tc_req callin = {
+        .type              = TC_REQ_WORK,
         .payload.int_value = context.off
     };
 
@@ -195,6 +195,8 @@ void train_driver() {
         .message  = (char*)&callin,
         .size     = sizeof(callin),
     };
+
+    td_update_train_direction(&context, 1);
 
     assert(command_tid >= 0,
            "Error setting up command courier (%d)", command_tid);
@@ -235,56 +237,50 @@ void train_driver() {
         case TRAIN_HORN_SOUND:
             td_toggle_horn(&context);
             break;
-        case TRAIN_NEXT_SENSOR: {
-            context.last = req.two.sensor;
-            continue;
-        }
-        case TRAIN_STOP: {
-            context.stop = req.one.sensor;
+        case TRAIN_STOP:
+            context.stop = req.one.int_value;
             break;
-        }
+        
         case TRAIN_HIT_SENSOR: {
-            context.last = req.one.sensor;
+            context.last = req.one.int_value;
 
-            log("(%d) TRAIN HIT %c %d",
-                time, context.last.bank, context.last.num);
-
-            result = get_sensor_from(&req.one.sensor, &context.dist_last, &context.next);
+            result = get_sensor_from(req.one.int_value,
+                                     &context.dist_last,
+                                     &context.next);
+            
             assert(result >= 0, "failed");
+            log("HIT SENSOR %d %d", req.one.int_value, context.next); 
 
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
             context.estim_next = context.dist_last / velocity;
 
-            log("NEXT IS %d %c %d", context.dist_last, context.next.bank, context.next.num);
-
             Reply(tid, (char*)&context.next, sizeof(context.next));
             continue;
         }
         case TRAIN_EXPECTED_SENSOR: {
-
-            if (context.next.bank == context.stop.bank &&
-                context.next.num == context.stop.num) {
+            if (context.next == context.stop) {
                 td_update_train_speed(&context, 0);
-                context.stop.bank = 0;
+                context.stop = -1;
             }
 
             int expected = context.time_last + context.estim_next;
             int actual   = time - context.time_last;
+
             update_velocity_for_speed(context.off,
                                       context.speed,
                                       context.dist_last,
                                       actual);
 
-            log("%d\t%c%d -> %c%d\tETA: %d\tTA: %d\tDelta: %d",
-                context.num,
-                context.last.bank, context.last.num,
-                context.next.bank, context.next.num,
+            log("[Train%d]\t%d->%d\tETA: %d\tTA: %d\tDelta: %d",
+                context.num, context.last, context.next,
                 expected, time,
                 time - (context.time_last + context.estim_next));
 
             context.last = context.next;
-            result = get_sensor_from(&context.last, &context.dist_last, &context.next);
+            result = get_sensor_from(context.last,
+                                     &context.dist_last,
+                                     &context.next);
 
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
@@ -294,7 +290,7 @@ void train_driver() {
             continue;
         }
         case TRAIN_REQUEST_COUNT:
-            ABORT("Train %d got request count request from %d",
+            ABORT("[Train%d] got request count request from %d",
                   context.num, tid);
         }
 
@@ -308,7 +304,7 @@ void train_driver() {
 }
 
 static void td_reset_train(train_context* const ctxt) {
-    log("Resetting Train %d", ctxt->num);
+    log("[TRAIN%d]\tResetting...", ctxt->num);
 
     if (ctxt->horn)   td_toggle_horn(ctxt);
     if (!ctxt->light) td_toggle_light(ctxt);

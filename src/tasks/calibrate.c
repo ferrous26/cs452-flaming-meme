@@ -2,10 +2,12 @@
 #include <vt100.h>
 #include <syscall.h>
 
-#include <tasks/calibrate.h>
 #include <tasks/clock_server.h>
 #include <tasks/train_station.h>
+#include <tasks/train_control.h>
 #include <tasks/mission_control.h>
+
+#include <tasks/calibrate.h>
 
 void velocitate() {
 
