@@ -14,12 +14,12 @@ typedef struct {
 void mission_control(void) __attribute__((noreturn));
 
 int reset_train_state(void);
+int load_track(int track_value);
 int update_turnout(int num, int state);
 
-int delay_all_sensor(sensor_name* const sensor);
+int delay_all_sensor(void);
 int delay_sensor(int sensor_bank, int sensor_num);
 
-int load_track(int track_value);
-int get_sensor_from(sensor_name* from, int* res_dist, sensor_name* res_name);
+int get_sensor_from(int from, int* const res_dist, int* const res_name);
 
 #endif

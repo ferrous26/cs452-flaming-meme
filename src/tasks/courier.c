@@ -18,19 +18,16 @@ void sensor_notifier() {
     mc_req request = {
         .type = MC_D_SENSOR,
     };
-    sensor_name* const sensor = &request.payload.sensor;
+    int* const sensor = &request.payload.int_value;
 
     int result = Receive(&tid, (char*)sensor, sizeof(*sensor));
     assert(result == sizeof(*sensor), "sensor notifier failed %d", result);
     Reply(tid, NULL, 0);
 
     do {
-        assert(sensor->bank >= 'A' && sensor->bank <= 'E',
+        assert(*sensor >= 0 && *sensor < 80,
                "sensor notifier got invalid sensor bank from %d (%d)",
-               tid, sensor->bank);
-        assert(sensor->num > 0 && sensor->num <= 16,
-               "sensor notifier got invalid sensor num from %d (%d)",
-               tid, sensor->num);
+               tid, *sensor);
 
         result = Send(mc_tid,
                       (char*)&request, sizeof(request),
@@ -39,7 +36,8 @@ void sensor_notifier() {
         result = Send(tid,
                       (char*)&time, sizeof(time),
                       (char*)sensor, sizeof(*sensor));
-    } while (sensor->bank != 0);
+    } while (*sensor != -1);
+    log ("sensor notifier dying now");
 }
 
 void courier() {

@@ -39,22 +39,20 @@ static inline void _init_context(train_detective_context* const ctxt) {
     assert(ctxt->driver_tid >= 0, "Error creating Courier to Driver");
 
     train_req callin        = {
-        .type = TRAIN_HIT_SENSOR
+        .type          = TRAIN_HIT_SENSOR,
+        .one.int_value = delay_all_sensor()
     };
     
-    int result = delay_all_sensor(&callin.one.sensor);
-    assert(result == sizeof(sensor_name),
-           "failed initalizing train %d", result);
+    assert(callin.one.int_value >= 0 && callin.one.int_value < 80,
+           "failed initalizing train %d", callin.one.int_value);
 
     courier_package package = {
         .receiver = myParentTid(),
         .message  = (char*)&callin,
         .size     = sizeof(callin)
     };
-    result = Send(ctxt->driver_tid ,(char*)&package, sizeof(package), NULL, 0);
-
-
-
+    int result = Send(ctxt->driver_tid,
+                      (char*)&package, sizeof(package), NULL, 0);
     assert(result == 0, "Failed handing off package to courier");
 }
 

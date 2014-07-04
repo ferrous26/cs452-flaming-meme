@@ -94,10 +94,9 @@ static void action(command cmd, int args[]) {
         train_stop_at(args[2], args[0], args[1]);
         break;
     case SWITCH_TIME: {
-        sensor_name trash;
-        delay_all_sensor(&trash);
+        delay_all_sensor();
         int time = Time();
-        delay_all_sensor(&trash);
+        delay_all_sensor();
         time = Time() - time;
         log("time interval took %d", time);
         break;
