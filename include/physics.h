@@ -13,4 +13,7 @@ void update_velocity_for_speed(const int train_offset,
                                const int distance,
                                const int time);
 
+int stopping_distance_for_speed(const int train_offset,
+                                const int speed);
+
 #endif
