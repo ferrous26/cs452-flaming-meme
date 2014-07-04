@@ -1,11 +1,11 @@
 
+#include <ui.h>
 #include <std.h>
 #include <debug.h>
 #include <train.h>
+#include <physics.h>
 #include <syscall.h>
 #include <track_data.h>
-#include <ui.h>
-#include <physics.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -37,15 +37,6 @@ typedef struct {
 
     int  trains[NUM_TRAINS];
     bool horn[NUM_TRAINS];
-
-    struct {
-        int horn;
-        int speed;
-        int light;
-        int reverse;
-        sensor_name stop;
-    }   pickup[NUM_TRAINS];
-    int drivers[NUM_TRAINS];
 } mc_context;
 
 static void train_ui() {
@@ -64,31 +55,6 @@ static void train_ui() {
 " 50                      |153   154  |155   156  |    |        |\n"
 " 51                      +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
-}
-
-static inline int __attribute__ ((const))
-train_to_pos(const int train) {
-    switch (train) {
-    case 43: return 0;
-    case 45: return 1;
-    }
-    if (train >= 47 && train <=51) {
-        return train - 47 + 2;
-    }
-    return -1;
-}
-
-static inline int __attribute__ ((const))
-pos_to_train(const int pos) {
-    switch (pos) {
-    case 0: return 43;
-    case 1: return 45;
-    }
-
-    if (pos >= 2  && pos <= 6) {
-        return pos + 47 - 2;
-    }
-    return -1;
 }
 
 static inline int __attribute__ ((const))
@@ -146,42 +112,6 @@ static void __attribute__ ((noreturn)) sensor_poll() {
             sensor_state[bank] = c;
         }
     }
-}
-
-static void mc_try_send_train(mc_context* const ctxt, const int train_index) {
-    train_req req;
-
-    if (-1 == ctxt->drivers[train_index]) return;
-    if (ctxt->pickup[train_index].reverse) {
-        req.type                          = TRAIN_REVERSE_DIRECTION;
-        ctxt->pickup[train_index].reverse = 0;
-
-    } else if (ctxt->pickup[train_index].speed >= 0) {
-        req.type                        = TRAIN_CHANGE_SPEED;
-        req.one.int_value               = ctxt->pickup[train_index].speed;
-        ctxt->pickup[train_index].speed = -1;
-
-    } else if (ctxt->pickup[train_index].stop.bank) {
-        req.type       = TRAIN_STOP;
-        req.one.sensor = ctxt->pickup[train_index].stop;
-        ctxt->pickup[train_index].stop.bank = 0;
-
-    } else if (ctxt->pickup[train_index].light) {
-        req.type                        = TRAIN_TOGGLE_LIGHT;
-        ctxt->pickup[train_index].light = 0;
-
-    } else if (ctxt->pickup[train_index].horn) {
-        req.type                       = TRAIN_HORN_SOUND;
-        ctxt->pickup[train_index].horn = 0;
-
-    } else { return; }
-
-    Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
-    int result = Reply(ctxt->drivers[train_index],
-                       (char*)&req,
-                       sizeof(req) - sizeof(int));
-    if (!result) ABORT("Failed to send to train %d (%d)", train_index, result);
-    ctxt->drivers[train_index] = -1;
 }
 
 static int get_next_sensor(const track_node* node,
@@ -250,23 +180,10 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     	const int time = Time();
         Reply(waiter, (char*)&time, sizeof(time));
         ctxt->sensor_delay[sensor_pos] = -1;
-    }
-    if (-1 != ctxt->wait_all) {
+    } else if (-1 != ctxt->wait_all) {
         Reply(ctxt->wait_all, (char*)sensor, sizeof(sensor_name));
         ctxt->wait_all = -1;
     }
-
-    /*
-    track_node* node = &ctxt->track[sensor_pos];
-
-    if (ctxt->track_loaded) {
-        const track_node* node_next;
-        int dist = get_next_sensor(node, ctxt->turnouts, &node_next);
-        log("%d %s\t--(%dmm)-->\t%d %s",
-            node->num, node->name, dist / 1000,
-            node_next->num, node_next->name);
-    }
-    */
 
     char buffer[64];
     for(int i =0; next->bank != 0; i++) {
@@ -355,51 +272,6 @@ static inline void mc_update_turnout(mc_context* const ctxt,
     Puts(buffer, ptr - buffer);
 }
 
-static inline void mc_spawn_train_drivers() {
-    for (int i=0; i < NUM_TRAINS; i++) {
-        int train_num = pos_to_train(i);
-
-        log("Spawning Train %d", train_num);
-
-        int setup[2] = {train_num, i};
-        int tid      = Create(5, train_driver);
-        assert(tid > 0, "Failed to create train driver (%d)", tid);
-
-        tid = Send(tid, (char*)&setup, sizeof(setup), NULL, 0);
-        assert(tid == 0, "Failed to send to train %d (%d)", train_num, tid);
-    }
-}
-
-static inline void mc_update_train_speed(mc_context* const ctxt,
-                                         const int index,
-                                         const int speed) {
-     ctxt->pickup[index].speed = speed;
-     mc_try_send_train(ctxt, index);
-}
-
-static inline void mc_toggle_light(mc_context* const ctxt, const int index) {
-    ctxt->pickup[index].light ^= 1;
-    mc_try_send_train(ctxt, index);
-}
-
-static inline void mc_toggle_horn(mc_context* const ctxt, const int index) {
-    ctxt->pickup[index].horn ^= 1;
-    mc_try_send_train(ctxt, index);
-}
-
-static inline void mc_reverse_train(mc_context* const ctxt, const int index) {
-    ctxt->pickup[index].reverse ^= 1;
-    mc_try_send_train(ctxt, index);
-}
-
-static void mc_train_stop(mc_context* const ctxt, const mc_req* const req) {
-    const train_stop* const stop = &req->payload.train_stop;
-    const int train_num = train_to_pos(stop->train);
-    ctxt->pickup[train_num].stop.bank = stop->bank;
-    ctxt->pickup[train_num].stop.num  = stop->num;
-    mc_try_send_train(ctxt, train_num);
-}
-
 static void mc_reset_track_state(mc_context* const context) {
     for (int i = 1; i < 19; i++) {
         mc_update_turnout(context, i, 'C');
@@ -434,7 +306,6 @@ static inline void __attribute__((always_inline)) mc_flush_sensors() {
 
 static inline void mc_init_context(mc_context* const ctxt) {
     memset(ctxt,                0, sizeof(*ctxt));
-    memset(ctxt->drivers,      -1, sizeof(ctxt->drivers));
     memset(ctxt->sensor_delay, -1, sizeof(ctxt->sensor_delay));
 
     ctxt->wait_all = -1;
@@ -446,7 +317,6 @@ static inline void mc_initalize(mc_context* const ctxt) {
     train_ui();
 
     mc_reset_track_state(ctxt);
-    mc_spawn_train_drivers();
     mc_flush_sensors();
 
     int tid = Create(15, sensor_poll);
@@ -495,33 +365,10 @@ void mission_control() {
         case MC_R_TRACK:
             mc_reset_track_state(&context);
             break;
-
-        case MC_U_TRAIN_SPEED:
-            mc_update_train_speed(&context,
-                                  req.payload.train_speed.num,
-                                  req.payload.train_speed.speed);
-            break;
-        case MC_U_TRAIN_REVERSE:
-            mc_reverse_train(&context, req.payload.int_value);
-            break;
-        case MC_T_TRAIN_LIGHT:
-            mc_toggle_light(&context, req.payload.int_value);
-            break;
-        case MC_T_TRAIN_HORN:
-            mc_toggle_horn(&context, req.payload.int_value);
-            break;
-        case MC_T_TRAIN_STOP:
-            mc_train_stop(&context, &req);
-            break;
-
+                
         case MC_L_TRACK:
             mc_load_track(&context, req.payload.int_value);
             break;
-
-        case MC_TD_CALL:
-            context.drivers[req.payload.int_value] = tid;
-            mc_try_send_train(&context, req.payload.int_value);
-            continue;
 
         case MC_TD_GET_NEXT_SENSOR:
             mc_get_next_sensor(&context, &req, tid);
@@ -566,80 +413,10 @@ int update_turnout(int num, int state) {
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int train_set_speed(int train, int speed) {
-    int train_index = train_to_pos(train);
-
-    if (train_index < 0) {
-        log("Can't toggle horn of invalid train %d", train);
-        return 0;
-    }
-    if (speed < 0 || speed >= TRAIN_REVERSE) {
-        log("can't set train number %d to invalid speed %d", train, speed);
-        return 0;
-    }
-
-    mc_req req = {
-        .type = MC_U_TRAIN_SPEED,
-        .payload.train_speed = {
-            .num   = (short)train_index,
-            .speed = (short)speed
-        }
-    };
-
-    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
-}
-
 int reset_train_state() {
     mc_req req = {
         .type = MC_R_TRACK,
     };
-
-    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
-}
-
-int train_toggle_light(int train) {
-    int train_index = train_to_pos(train);
-    if (train_index < 0) {
-        log("Can't toggle light of invalid train %d", train);
-        return 0;
-    }
-
-    mc_req req = {
-        .type              = MC_T_TRAIN_LIGHT,
-        .payload.int_value = train_index
-    };
-
-    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
-}
-
-int train_toggle_horn(int train) {
-    int train_index = train_to_pos(train);
-    if (train_index < 0) {
-        log("Can't toggle horn of invalid train %d", train);
-        return 0;
-    }
-
-    mc_req req = {
-        .type              = MC_T_TRAIN_HORN,
-        .payload.int_value = train_index
-    };
-    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
-}
-
-int train_stop_at(const int train, const int bank, const int num) {
-    int train_index = train_to_pos(train);
-    if (train_index < 0) {
-        log("Can't stop train %d because it does not exist", train);
-        return 0;
-    }
-
-    mc_req req = {
-        .type = MC_T_TRAIN_STOP
-    };
-
-    req.payload.train_stop.train = train;
-    req.payload.train_stop.bank  = bank;
-    req.payload.train_stop.num   = num;
 
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
@@ -697,22 +474,17 @@ int delay_all_sensor(sensor_name* const sensor) {
                 (char*)sensor, sizeof(sensor_name));
 }
 
-int train_reverse(int train) {
-    int train_index = train_to_pos(train);
-    if (train_index < 0) {
-        log("Can't Reverse Invalid Train %d", train);
-    	return 0;
+int load_track(int track_value) {
+    switch (track_value) {
+    case 'A': track_value = 'a';
+    case 'a': break;
+    case 'B': track_value = 'b';
+    case 'b': break;
+    default:
+        log("failed loading track, no such track %c", track_value);
+        return 1;
     }
 
-    mc_req req = {
-        .type              = MC_U_TRAIN_REVERSE,
-        .payload.int_value = train_index
-    };
-
-    return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
-}
-
-int load_track(int track_value) {
     mc_req req = {
         .type              = MC_L_TRACK,
         .payload.int_value = track_value

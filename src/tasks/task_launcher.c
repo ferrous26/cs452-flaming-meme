@@ -15,6 +15,8 @@
 #include <tasks/train_station.h>
 #include <tasks/calibrate.h>
 
+#include <tasks/train_control.h>
+
 #include <tasks/task_launcher.h>
 
 extern uint* _DataStart;
@@ -175,11 +177,21 @@ void task_launcher() {
     log("Enter an empty command for help");
 
     char  buffer[128];
-    char* ptr = buffer;
+    char* ptr;
     int   insert;
 
     const char* const line_mark = "TERM> ";
     char  line[80 - 6];
+
+    ptr = vt_goto(buffer, TERM_ROW, TERM_COL);
+    ptr = sprintf_string(ptr, "Please select track (a) or (b)... ");
+    Puts(buffer, ptr-buffer);
+    
+    do {
+        // quick hack to force track loading
+        buffer[0] = (char)Getc(TERMINAL);
+    } while (load_track(buffer[0]));
+    ptr = buffer;
 
     FOREVER {
         ptr = vt_goto(ptr, TERM_ROW, 1);

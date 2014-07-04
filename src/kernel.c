@@ -14,7 +14,10 @@
 #include <tasks/clock_server.h>
 #include <tasks/train_server.h>
 #include <tasks/task_launcher.h>
+
+#include <tasks/train_control.h>
 #include <tasks/mission_control.h>
+
 #include <tasks/train_station.h>
 
 
@@ -42,22 +45,19 @@ typedef struct task_q_pointers {
 } task_q;
 
 
-
-CHAR_BUFFER(TASK_MAX)
-static char_buffer free_list;
-
 static struct task_manager {
     uint32 state; // bitmap for accelerating queue selection
     task_q q[TASK_PRIORITY_LEVELS];
 } manager DATA_HOT;
 
+CHAR_BUFFER(TASK_MAX)
+static char_buffer free_list   DATA_HOT;
 
-task*  task_active DATA_HOT;
-task*  int_queue[EVENT_COUNT] DATA_HOT;
-
-static task   tasks[TASK_MAX] DATA_HOT;
+task*  task_active             DATA_HOT;
+task*  int_queue[EVENT_COUNT]  DATA_HOT;
+static task   tasks[TASK_MAX]  DATA_HOT;
 static task_q recv_q[TASK_MAX] DATA_HOT;
-static uint8  table[256] DATA_HOT;
+static uint8  table[256]       DATA_HOT;
 
 
 
@@ -107,7 +107,7 @@ static void _print_train() {
 "     (')  _________      '-'\n"
 "     ____[_________]                                         ________\n"
 "     \\__/ | _ \\  ||    ,;,;,,                               [________]\n"
-"     _][__|(\")/__||  ,;;;;;;;;,   __________   __________   _| LILI |_\n"
+"     _][__|(\")/__||  ,;;;;;;;;,   __________   __________   _| SHAQ |_\n"
 "    /             | |____      | |          | |  ___     | |      ____|\n"
 "   (| .--.    .--.| |     ___  | |   |  |   | |      ____| |____      |\n"
 "   /|/ .. \\~~/ .. \\_|_.-.__.-._|_|_.-:__:-._|_|_.-.__.-._|_|_.-.__.-._|\n"
@@ -151,8 +151,9 @@ void kernel_init() {
         task_create(TASK_PRIORITY_MEDIUM_HIGH, name_server);
 
     task_create(TASK_PRIORITY_MEDIUM,      term_server);
-    task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
     task_create(TASK_PRIORITY_MEDIUM,      train_server);
+    task_create(TASK_PRIORITY_MEDIUM - 1,  mission_control);
+    task_create(TASK_PRIORITY_MEDIUM - 2,  train_control);
 
     for (; i < TASK_MAX; i++) {
         tasks[i].tid   = i;

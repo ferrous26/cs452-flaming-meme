@@ -15,7 +15,9 @@
 
 #include <tasks/courier.h>
 #include <tasks/train_console.h>
+#include <tasks/train_control.h>
 #include <tasks/train_station.h>
+
 
 typedef struct {
     const int num;
@@ -133,7 +135,7 @@ static void td_toggle_horn(train_context* const ctxt) {
 
 static inline void train_wait_use(train_context* const ctxt,
                                   const int train_tid,
-                                  const mc_req* const callin) {
+                                  const tc_req* const callin) {
     train_req req;
 
     FOREVER {
@@ -178,8 +180,8 @@ void train_driver() {
     tr_setup(&context);
 
     const int train_tid = myParentTid();
-    const mc_req callin = {
-        .type              = MC_TD_CALL,
+    const tc_req callin = {
+        .type              = TC_REQ_WORK,
         .payload.int_value = context.off
     };
 
