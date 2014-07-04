@@ -18,9 +18,9 @@ typedef struct {
     int       train_docked;
     
     train_req next_req;
-} train_detective_context;
+} tc_context;
 
-static void create_expected_child(train_detective_context* const ctxt,
+static void create_expected_child(tc_context* const ctxt,
                                   const sensor_name* const sensor) {
     *(int*)&ctxt->expected_tid = Create(4, sensor_notifier);
 
@@ -32,7 +32,7 @@ static void create_expected_child(train_detective_context* const ctxt,
          NULL, 0);
 }
 
-static inline void _init_context(train_detective_context* const ctxt) {
+static inline void _init_context(tc_context* const ctxt) {
     memset(ctxt, -1, sizeof(*ctxt));
 
     *(int*)&ctxt->driver_tid = Create(4, courier);
@@ -60,7 +60,7 @@ static inline void _init_context(train_detective_context* const ctxt) {
 void train_console() {
     int tid, result;
 
-    train_detective_context context;
+    tc_context context;
     _init_context(&context);
 
     union {

@@ -75,23 +75,33 @@ static void __attribute__((noreturn)) receive_notifier() {
     train_req req = {
         .type = NOTIFIER,
         .payload = {
-            .size = 4,
+            .size = 0,
             .data = {0, 0, 0, 0}
         }
     };
 
-    req.payload.size = RegisterAs((char*) TRAIN_NOTIFIER_NAME);
-    assert(req.payload.size == 0,
+    int result = RegisterAs((char*) TRAIN_NOTIFIER_NAME);
+    assert(result == 0,
            "Train Notifier Failed to Register (%d)", req.payload.size);
 
     FOREVER {
-        req.payload.size = AwaitEvent(UART1_RECV,
-                                      req.payload.data,
-                                      sizeof(req.payload.data));
+        req.payload.size = 0;
 
-        int result = Send(ptid, (char*)&req, sizeof(req), NULL, 0);
+        do {
+            assert(req.payload.size < 4,
+                   "Train Notifier has overfilled it's buffer",
+                   req.payload.size);
+            
+            result = AwaitEvent(UART1_RECV,
+                                req.payload.data + req.payload.size,
+                                sizeof(req.payload.data));
+            
+            req.payload.size += result;
+            assert(result == 1,
+                   "Train Notifier had a bad receive (%d)", result);
+        } while (req.payload.size < 2);
 
-        UNUSED(result);
+        result = Send(ptid, (char*)&req, sizeof(req), NULL, 0);
         assert(!result, "failed to notify train server (%d)", result);
     }
 }
@@ -112,23 +122,40 @@ inline static void _startup() {
     assert(tid>0, "Failed to start up train read notifier (%d)", tid);
 }
 
-struct train_context {
-    int        get_tid;
-    int        send_tid;
+typedef struct {
+    int  get_tid;
+    uint get_expecting;
+    int  send_tid;
 
     char_buffer train_in;
     char_buffer train_out;
-};
+} ts_context;
+
+static void ts_deliver_request(ts_context* const ctxt,
+                               const int tid,
+                               const int size) {
+    assert(size > 0 && size <= 4,
+           "trying to deliver invalid size (%d)", size);
+    
+    char c[4] = {0};
+    int index = size-1;
+
+    do {
+        c[index] = cbuf_consume(&ctxt->train_in);
+    } while (index--);
+
+    Reply(tid, c, sizeof(c));
+}
 
 void train_server() {
     _startup();
 
-    int tid;
-    train_req req;
-
-    struct train_context context = {
-        .send_tid = -1,
-        .get_tid  = -1
+    int        tid;
+    train_req  req;
+    ts_context context = {
+        .send_tid      = -1,
+        .get_tid       = -1,
+        .get_expecting = 0
     };
     cbuf_init(&context.train_in);
     cbuf_init(&context.train_out);
@@ -156,37 +183,42 @@ void train_server() {
         }
         case NOTIFIER:
             Reply(tid, NULL, 0);
-
             assert(req.payload.size > 0 && req.payload.size <= 4,
-                    "Invalid size sent from server");
+                    "Invalid size sent from server %d", req.payload.size);
 
             for (int i = 0; i < req.payload.size; i++)
                 cbuf_produce(&context.train_in, req.payload.data[i]);
 
-            if (context.get_tid != -1) {
-                char c[4];
-                c[0] = cbuf_consume(&context.train_in);
-                Reply(context.get_tid, c, 1);
-                context.get_tid = -1;
+            if (-1 != context.get_tid &&
+                cbuf_count(&context.train_in) >= context.get_expecting) {
+
+                ts_deliver_request(&context,
+                                   context.get_tid,
+                                   context.get_expecting);
+                context.get_tid       = -1;
+                context.get_expecting =  0;
             }
             break;
 
         case GET:
-            if (cbuf_count(&context.train_in)) {
-                char c[4];
-                c[0] = cbuf_consume(&context.train_in);
-                Reply(tid, c, 1);
+            assert(req.payload.size > 0 && req.payload.size <= 4,
+                   "get command called in with invalid size (%d)",
+                   req.payload.size);
+
+            if (cbuf_count(&context.train_in) >= (uint)req.payload.size) {
+                ts_deliver_request(&context, tid, req.payload.size);
             } else {
-                assert(context.get_tid == -1,
+                assert(-1 == context.get_tid,
                        "task %d already waiting for train input",
                        context.get_tid);
-                context.get_tid = tid;
+                context.get_tid       = tid;
+                context.get_expecting = req.payload.size;
             }
             break;
-
         case PUT:
             assert(req.payload.size > 0 && req.payload.size <= 4,
                    "Invalid train req size (%d)", req.payload.size);
+            
             Reply(tid, NULL, 0);
             for(int i = 0; i < req.payload.size; i++)
                 cbuf_produce(&context.train_out, req.payload.data[i]);
@@ -245,7 +277,6 @@ int put_train_turnout(char turn, char cmd) {
 }
 
 int get_train_char() {
-    char c;
     train_req req = {
         .type    = GET,
         .payload = {
@@ -253,11 +284,28 @@ int get_train_char() {
         }
     };
 
+    int data;
+    int result = Send(train_server_tid,
+                      (char*)&req,  sizeof(req),
+                      (char*)&data, sizeof(data));
+    if (result < 0) return result;
+    return data & 0xFF;
+}
+
+int get_train_bank() {
+    int data;
+    train_req req = {
+        .type    = GET,
+        .payload = {
+            .size = 2
+        }
+    };
+
     int result = Send(train_server_tid,
                       (char*)&req, sizeof(req),
-                      &c, sizeof(c));
-    if(result < 0) return result;
-    return c;
+                      (char*)&data, sizeof(data));
+    if (result < 0) return result;
+    return data & 0xFFFF;
 }
 
 int get_train(char *buf, int buf_size) {
@@ -273,3 +321,4 @@ int get_train(char *buf, int buf_size) {
 
     return Send(train_server_tid, (char*)&req, sizeof(req), buf, buf_size);
 }
+

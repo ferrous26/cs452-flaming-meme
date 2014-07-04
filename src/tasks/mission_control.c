@@ -98,19 +98,20 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     };
 
     Putc(TRAIN, SENSOR_POLL);
-    for (int i = 0; i < 10; i++) {
-        sensor_state[i] = Getc(TRAIN);
+    for (int i = 0; i < NUM_SENSOR_BANKS; i++) {
+        // set up the inital state
+        sensor_state[i] = get_train_bank();
     }
 
     FOREVER {
         Putc(TRAIN, SENSOR_POLL);
-        for (int bank = 0; bank < 10; bank++) {
-            int c = Getc(TRAIN);
+        for (int bank = 0; bank < NUM_SENSOR_BANKS; bank++) {
+            int c = get_train_bank();
             assert(c >= 0, "sensor_poll got bad return (%d)", c);
 
-            for (int mask = 0x80, i = 0; mask > 0; mask = mask >> 1, i++) {
+            for (int mask = 0x8000, i = 0; mask > 0; mask = mask >> 1, i++) {
                 if((c & mask) > (sensor_state[bank] & mask)) {
-                    req.payload.int_value = (bank<<3) + i;
+                    req.payload.int_value = (bank<<4) + i;
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }

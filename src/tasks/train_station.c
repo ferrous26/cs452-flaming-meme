@@ -18,7 +18,6 @@
 #include <tasks/train_control.h>
 #include <tasks/train_station.h>
 
-
 typedef struct {
     const int num;
     const int off;
@@ -29,11 +28,11 @@ typedef struct {
     int  horn;
     int  direction;
 
-    int  last;
     int  dist_last;
     int  time_last;
+    int  sensor_last;
     
-    int  next;
+    int  sensor_next;
     int  estim_next;
 
     int stop;
@@ -105,7 +104,7 @@ static void td_toggle_light(train_context* const ctxt) {
     ctxt->light ^= -1;
 
     if (ctxt->light) {
-        ptr = sprintf_string(ptr, COLOUR(YELLOW) "L" COLOUR_RESET);
+        ptr      = sprintf_string(ptr, COLOUR(YELLOW) "L" COLOUR_RESET);
     } else {
         *(ptr++) = ' ';
     }
@@ -242,24 +241,26 @@ void train_driver() {
             break;
         
         case TRAIN_HIT_SENSOR: {
-            context.last = req.one.int_value;
+            context.sensor_last = req.one.int_value;
 
-            result = get_sensor_from(req.one.int_value,
+            result = get_sensor_from(context.sensor_last,
                                      &context.dist_last,
-                                     &context.next);
+                                     &context.sensor_next);
             
             assert(result >= 0, "failed");
-            log("HIT SENSOR %d %d", req.one.int_value, context.next); 
+            log("HIT SENSOR %d %d", context.sensor_last, context.sensor_next);
 
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
             context.estim_next = context.dist_last / velocity;
 
-            Reply(tid, (char*)&context.next, sizeof(context.next));
+            Reply(tid,
+                  (char*)&context.sensor_next,
+                  sizeof(context.sensor_next));
             continue;
         }
         case TRAIN_EXPECTED_SENSOR: {
-            if (context.next == context.stop) {
+            if (context.sensor_next == context.stop) {
                 td_update_train_speed(&context, 0);
                 context.stop = -1;
             }
@@ -273,20 +274,22 @@ void train_driver() {
                                       actual);
 
             log("[Train%d]\t%d->%d\tETA: %d\tTA: %d\tDelta: %d",
-                context.num, context.last, context.next,
+                context.num, context.sensor_last, context.sensor_next,
                 expected, time,
                 time - (context.time_last + context.estim_next));
 
-            context.last = context.next;
-            result = get_sensor_from(context.last,
-                                     &context.dist_last,
-                                     &context.next);
+            context.sensor_last = context.sensor_next;
+            result              = get_sensor_from(context.sensor_last,
+                                                  &context.dist_last,
+                                                  &context.sensor_next);
 
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
             context.estim_next = context.dist_last / velocity;
 
-            Reply(tid, (char*)&context.next, sizeof(context.next));
+            Reply(tid,
+                  (char*)&context.sensor_next,
+                  sizeof(context.sensor_next));
             continue;
         }
         case TRAIN_REQUEST_COUNT:
