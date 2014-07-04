@@ -18,8 +18,7 @@ typedef enum {
     // delay
     MC_D_SENSOR,
     MC_D_SENSOR_ANY,
-    MC_TD_GET_NEXT_SENSOR,
-    
+    MC_TD_GET_NEXT_SENSOR,    
     // misc
     MC_TYPE_COUNT
 } mc_type;

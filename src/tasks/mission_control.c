@@ -30,13 +30,10 @@ typedef struct {
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
     track_node   track[TRACK_MAX];
 
-    int track_loaded;
     int wait_all;
+    int track_loaded;
     int sensor_delay[NUM_SENSORS];
     int turnouts[NUM_TURNOUTS];
-
-    int  trains[NUM_TRAINS];
-    bool horn[NUM_TRAINS];
 } mc_context;
 
 static void train_ui() {
