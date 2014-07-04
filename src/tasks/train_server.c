@@ -1,4 +1,5 @@
 #include <std.h>
+#include <ui.h>
 #include <train.h>
 #include <debug.h>
 #include <syscall.h>
@@ -6,12 +7,14 @@
 #include <tasks/train_server.h>
 #include <tasks/name_server.h>
 #include <tasks/term_server.h>
+#include <tasks/clock_server.h>
 
 typedef enum {
     CARRIER,
     NOTIFIER,
     PUT,
-    GET
+    GET,
+    UI
 } treq_type;
 
 typedef struct {
@@ -24,6 +27,42 @@ typedef struct {
 
 CHAR_BUFFER(128)
 static int train_server_tid;
+
+static void __attribute__((noreturn)) train_server_ui() {
+    train_req req = {
+        .type = UI
+    };
+
+    int bytes[2];
+
+    char twirl = '|';
+    char buffer[64];
+    char* ptr = vt_goto(buffer, TRAIN_BANDWIDTH_ROW, TRAIN_BANDWIDTH_COL);
+    ptr = sprintf(ptr,
+                  "TRAIN    0 B/s Up    0 B/s Down %c",
+                  (twirl = ui_twirler(twirl)));
+    Puts(buffer, ptr - buffer);
+
+
+    FOREVER {
+        Delay(100);
+
+        int result = Send(train_server_tid,
+                          (char*)&req, sizeof(treq_type),
+                          (char*)bytes, sizeof(bytes));
+        if (result < 0)
+            ABORT("Failed to send to train server (%d)", result);
+
+        ptr = vt_goto(buffer, TRAIN_BANDWIDTH_ROW, TRAIN_BANDWIDTH_UP);
+        ptr = ui_pad(ptr, log10(bytes[0]), TRAIN_BANDWIDTH_WIDTH);
+        ptr = sprintf(ptr, "%d B/s Up  ",
+                      bytes[0]);
+        ptr = ui_pad(ptr, log10(bytes[1]), TRAIN_BANDWIDTH_WIDTH);
+        ptr = sprintf(ptr, "%d B/s Down %c",
+                      bytes[1], (twirl = ui_twirler(twirl)));
+        Puts(buffer, ptr - buffer);
+    }
+}
 
 static void __attribute__((noreturn)) write_carrier() {
     int ptid = myParentTid();
@@ -120,15 +159,20 @@ inline static void _startup() {
 
     tid = Create(TASK_PRIORITY_HIGH, receive_notifier);
     assert(tid>0, "Failed to start up train read notifier (%d)", tid);
+
+    tid = Create(TASK_PRIORITY_MEDIUM_LOW, train_server_ui);
+    assert(tid>0, "Failed to start up train server UI (%d)", tid);
 }
 
 typedef struct {
     int  get_tid;
-    uint get_expecting;
     int  send_tid;
+    uint get_expecting;
 
     char_buffer train_in;
     char_buffer train_out;
+    int         bytes_out;
+    int         bytes_in;
 } ts_context;
 
 static void ts_deliver_request(ts_context* const ctxt,
@@ -175,6 +219,7 @@ void train_server() {
             }
             if(i > 0) {
                 req.payload.size = i;
+                context.bytes_out += i;
                 Reply(tid, (char*)&req.payload, sizeof(req.payload));
             } else {
                 context.send_tid = tid;
@@ -185,6 +230,8 @@ void train_server() {
             Reply(tid, NULL, 0);
             assert(req.payload.size > 0 && req.payload.size <= 4,
                     "Invalid size sent from server %d", req.payload.size);
+
+            context.bytes_in += req.payload.size;
 
             for (int i = 0; i < req.payload.size; i++)
                 cbuf_produce(&context.train_in, req.payload.data[i]);
@@ -230,12 +277,17 @@ void train_server() {
                 }
                 if(i > 0) {
                     req.payload.size = i;
+                    context.bytes_out += i;
                     Reply(context.send_tid,
                           (char*)&req.payload, sizeof(req.payload));
                     context.send_tid = -1;
                 }
             }
             break;
+        case UI:
+            Reply(tid , (char*)&context.bytes_out, sizeof(int) * 2);
+            context.bytes_out = 0;
+            context.bytes_in  = 0;
         }
     }
 }

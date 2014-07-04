@@ -2,6 +2,7 @@
 #include <tasks/term_server.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
+#include <ui.h>
 #include <std.h>
 #include <clock.h>
 #include <debug.h>
@@ -11,16 +12,6 @@
 #define MINIMUM_NON_IDLE_TIME 2
 
 static uint non_idle_ticks = 0;
-
-static inline char twirler(const char prev) {
-    switch (prev) {
-    case  '/': return '-';
-    case  '-': return '\\';
-    case '\\': return '|';
-    case  '|': return '/';
-    }
-    return '|';
-}
 
 static void __attribute__ ((noreturn)) idle_ui() {
 
@@ -59,7 +50,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
         ptr = sprintf(ptr, "%c%c%c",
 		      '0' + (idle_time / 10),
                       '0' + (idle_time % 10),
-		      (twirl = twirler(twirl)));
+		      (twirl = ui_twirler(twirl)));
         Puts(buffer, ptr - buffer);
     }
 }

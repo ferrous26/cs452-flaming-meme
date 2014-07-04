@@ -76,7 +76,7 @@ static command parse_s(const char* const cmd, int* buffer) {
     }
 }
 
-static command parse_train(const char* const cmd, int* const buffer) {
+static command parse_t(const char* const cmd, int* const buffer) {
     int index = 1;
     switch(cmd[index++]) {
     case 'r':
@@ -84,10 +84,10 @@ static command parse_train(const char* const cmd, int* const buffer) {
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
         if (!isspace(cmd[index]))                         return ERROR;
         return LOC_SPEED;
-    case 'l':
-        if (parse_argument(cmd, 'c', &index, buffer)) return ERROR;
+    case 'h':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
         if (!isspace(cmd[index]))                     return ERROR;
-        return TRACK_LOAD;
+        return UPDATE_THRESHOLD;
     default:
         return ERROR;
     }
@@ -191,7 +191,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'e':  return parse_echo(cmd);
     case 'q':  return parse_stop(cmd);
     case 'b':  return parse_benchmark(cmd);
-    case 't':  return parse_train(cmd, buffer);
+    case 't':  return parse_t(cmd, buffer);
     case 'r':  return parse_r(cmd, buffer);
     case 's':  return parse_s(cmd, buffer);
     case 'l':  return parse_light(cmd, buffer);

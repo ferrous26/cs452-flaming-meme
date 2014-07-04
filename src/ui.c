@@ -9,3 +9,13 @@ char* ui_pad(char* ptr, const int input_width, const int total_width) {
         ptr = sprintf_char(ptr, ' ');
     return ptr;
 }
+
+char ui_twirler(const char prev) {
+    switch (prev) {
+    case  '/': return '-';
+    case  '-': return '\\';
+    case '\\': return '|';
+    case  '|': return '/';
+    }
+    return '|';
+}

@@ -1,0 +1,15 @@
+#!/usr/bin/ruby -w
+
+require 'csv'
+
+data = CSV.open(ARGV.shift).to_a
+
+data.each_with_index do |speeds, train|
+  puts "    /* Velocities for train offset #{train} */"
+  speeds.each_with_index do |speed, index|
+    next if index.zero?
+    puts "    train_data[#{train}].velocity[#{index}] = #{speed};"
+  end
+  puts "\n"
+end
+

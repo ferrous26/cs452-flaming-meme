@@ -153,9 +153,10 @@ static void action(command cmd, int args[]) {
             &_RODataEnd   - &_RODataStart);
         break;
 
-    case TRACK_LOAD:
-        load_track(args[0]);
+    case UPDATE_THRESHOLD:
+        physics_change_feedback_threshold(args[0]);
         break;
+
     case REVERSE_LOOKUP: {
         char name[8];
         if (WhoTid(args[0], name) < 0) {
@@ -185,7 +186,7 @@ void task_launcher() {
     ptr = vt_goto(buffer, TERM_ROW, TERM_COL);
     ptr = sprintf_string(ptr, "Please select track (a) or (b)... ");
     Puts(buffer, ptr-buffer);
-    
+
     do {
         // quick hack to force track loading
         buffer[0] = (char)Getc(TERMINAL);

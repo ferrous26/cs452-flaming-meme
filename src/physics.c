@@ -8,101 +8,148 @@
 
 #define TRAIN_SPEEDS 14
 
-static int speeds[NUM_TRAINS][TRAIN_SPEEDS];
+typedef struct {
+    int velocity[TRAIN_SPEEDS];
+    int stopping_slope;
+    int stopping_offset;
+} speed_data;
+
+static speed_data train_data[NUM_TRAINS];
+static int feedback_threshold;
+
+#define INITIAL_FEEDBACK_THRESHOLD 50
 
 void physics_init() {
 
-    memset(speeds, 0, sizeof(int) * TRAIN_SPEEDS);
+    feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
 
-    speeds[1][0]  = 209;
-    speeds[1][1]  = 757;
-    speeds[1][2]  = 1249;
-    speeds[1][3]  = 1726;
-    speeds[1][4]  = 2283;
-    speeds[1][5]  = 2826;
-    speeds[1][6]  = 3441;
-    speeds[1][7]  = 3790;
-    speeds[1][8]  = 4212;
-    speeds[1][9]  = 4570;
-    speeds[1][10] = 4994;
-    speeds[1][11] = 4869; // hmmm
-    speeds[1][12] = 4747;
-    speeds[1][13] = 4440;
+    /* Velocities for train offset 0 */
+    train_data[0].velocity[1] = 0;
+    train_data[0].velocity[2] = 0;
+    train_data[0].velocity[3] = 0;
+    train_data[0].velocity[4] = 0;
+    train_data[0].velocity[5] = 0;
+    train_data[0].velocity[6] = 0;
+    train_data[0].velocity[7] = 0;
+    train_data[0].velocity[8] = 0;
+    train_data[0].velocity[9] = 0;
+    train_data[0].velocity[10] = 0;
+    train_data[0].velocity[11] = 0;
+    train_data[0].velocity[12] = 0;
+    train_data[0].velocity[13] = 0;
+    train_data[0].velocity[14] = 0;
 
-    speeds[2][0]  = 253;
-    speeds[2][1]  = 755;
-    speeds[2][2]  = 1284;
-    speeds[2][3]  = 1767;
-    speeds[2][4]  = 2373;
-    speeds[2][5]  = 2921;
-    speeds[2][6]  = 3488;
-    speeds[2][7]  = 3813;
-    speeds[2][8]  = 4341;
-    speeds[2][9]  = 4673;
-    speeds[2][10] = 4931;
-    speeds[2][11] = 5129;
-    speeds[2][12] = 4931; // hmmm
-    speeds[2][13] = 4808;
+    /* Velocities for train offset 1 */
+    train_data[1].velocity[1] = 209;
+    train_data[1].velocity[2] = 757;
+    train_data[1].velocity[3] = 1249;
+    train_data[1].velocity[4] = 1726;
+    train_data[1].velocity[5] = 2283;
+    train_data[1].velocity[6] = 2826;
+    train_data[1].velocity[7] = 3441;
+    train_data[1].velocity[8] = 3790;
+    train_data[1].velocity[9] = 4212;
+    train_data[1].velocity[10] = 4570;
+    train_data[1].velocity[11] = 4994;
+    train_data[1].velocity[12] = 4869;
+    train_data[1].velocity[13] = 4747;
+    train_data[1].velocity[14] = 4440;
 
-    speeds[3][0]  = 244;
-    speeds[3][1]  = 750;
-    speeds[3][2]  = 1250;
-    speeds[3][3]  = 1749;
-    speeds[3][4]  = 2319;
-    speeds[3][5]  = 2846;
-    speeds[3][6]  = 3347;
-    speeds[3][7]  = 3748;
-    speeds[3][8]  = 4116;
-    speeds[3][9]  = 4597;
-    speeds[3][10] = 5060;
-    speeds[3][11] = 5161;
-    speeds[3][12] = 5044; // hmmm
-    speeds[3][13] = 4793;
+    /* Velocities for train offset 2 */
+    train_data[2].velocity[1] = 253;
+    train_data[2].velocity[2] = 755;
+    train_data[2].velocity[3] = 1284;
+    train_data[2].velocity[4] = 1767;
+    train_data[2].velocity[5] = 2373;
+    train_data[2].velocity[6] = 2921;
+    train_data[2].velocity[7] = 3488;
+    train_data[2].velocity[8] = 3621;
+    train_data[2].velocity[9] = 4250;
+    train_data[2].velocity[10] = 4661;
+    train_data[2].velocity[11] = 5025;
+    train_data[2].velocity[12] = 5249;
+    train_data[2].velocity[13] = 5276;
+    train_data[2].velocity[14] = 5583;
 
-    speeds[4][0]  = 250;
-    speeds[4][1]  = 796;
-    speeds[4][2]  = 1316;
-    speeds[4][3]  = 1820;
-    speeds[4][4]  = 2330;
-    speeds[4][5]  = 2861;
-    speeds[4][6]  = 3438;
-    speeds[4][7]  = 3967;
-    speeds[4][8]  = 4482;
-    speeds[4][9]  = 5130;
-    speeds[4][10] = 5557;
-    speeds[4][11] = 5598;
-    speeds[4][12] = 5324; // hmmm
-    speeds[4][13] = 5093;
+    /* Velocities for train offset 3 */
+    train_data[3].velocity[1] = 244;
+    train_data[3].velocity[2] = 750;
+    train_data[3].velocity[3] = 1250;
+    train_data[3].velocity[4] = 1749;
+    train_data[3].velocity[5] = 2319;
+    train_data[3].velocity[6] = 2846;
+    train_data[3].velocity[7] = 3347;
+    train_data[3].velocity[8] = 3748;
+    train_data[3].velocity[9] = 4116;
+    train_data[3].velocity[10] = 4597;
+    train_data[3].velocity[11] = 5060;
+    train_data[3].velocity[12] = 5161;
+    train_data[3].velocity[13] = 5044;
+    train_data[3].velocity[14] = 4793;
 
-    speeds[5][0]  = 183;
-    speeds[5][1]  = 731;
-    speeds[5][2]  = 1272;
-    speeds[5][3]  = 1720;
-    speeds[5][4]  = 2193;
-    speeds[5][5]  = 2701;
-    speeds[5][6]  = 3262;
-    speeds[5][7]  = 3758;
-    speeds[5][8]  = 4265;
-    speeds[5][9]  = 4762;
-    speeds[5][10] = 5179;
-    speeds[5][11] = 5608;
-    speeds[5][12] = 5231; // hmmm
-    speeds[5][13] = 4828;
+    /* Velocities for train offset 4 */
+    train_data[4].velocity[1] = 0;
+    train_data[4].velocity[2] = 250;
+    train_data[4].velocity[3] = 1298;
+    train_data[4].velocity[4] = 1810;
+    train_data[4].velocity[5] = 2272;
+    train_data[4].velocity[6] = 2824;
+    train_data[4].velocity[7] = 3378;
+    train_data[4].velocity[8] = 3966;
+    train_data[4].velocity[9] = 4512;
+    train_data[4].velocity[10] = 4913;
+    train_data[4].velocity[11] = 5535;
+    train_data[4].velocity[12] = 5718;
+    train_data[4].velocity[13] = 5472;
+    train_data[4].velocity[14] = 5733;
 
-    speeds[6][0]  = 142;
-    speeds[6][1]  = 205;
-    speeds[6][2]  = 588;
-    speeds[6][3]  = 1006;
-    speeds[6][4]  = 1006;
-    speeds[6][5]  = 1351;
-    speeds[6][6]  = 1732;
-    speeds[6][7]  = 2028;
-    speeds[6][8]  = 2429;
-    speeds[6][9]  = 2995;
-    speeds[6][10] = 3676;
-    speeds[6][11] = 4584;
-    speeds[6][12] = 5864;
-    speeds[6][13] = 6137;
+    /* Velocities for train offset 5 */
+    train_data[5].velocity[1] = 183;
+    train_data[5].velocity[2] = 731;
+    train_data[5].velocity[3] = 1272;
+    train_data[5].velocity[4] = 1720;
+    train_data[5].velocity[5] = 2193;
+    train_data[5].velocity[6] = 2701;
+    train_data[5].velocity[7] = 3262;
+    train_data[5].velocity[8] = 3758;
+    train_data[5].velocity[9] = 4265;
+    train_data[5].velocity[10] = 4762;
+    train_data[5].velocity[11] = 5179;
+    train_data[5].velocity[12] = 5608;
+    train_data[5].velocity[13] = 5231;
+    train_data[5].velocity[14] = 4828;
+
+    /* Velocities for train offset 6 */
+    train_data[6].velocity[1] = 142;
+    train_data[6].velocity[2] = 205;
+    train_data[6].velocity[3] = 588;
+    train_data[6].velocity[4] = 1006;
+    train_data[6].velocity[5] = 1006;
+    train_data[6].velocity[6] = 1351;
+    train_data[6].velocity[7] = 1732;
+    train_data[6].velocity[8] = 2028;
+    train_data[6].velocity[9] = 2429;
+    train_data[6].velocity[10] = 2995;
+    train_data[6].velocity[11] = 3676;
+    train_data[6].velocity[12] = 4584;
+    train_data[6].velocity[13] = 5864;
+    train_data[6].velocity[14] = 6137;
+
+
+    train_data[0].stopping_slope  = 0;
+    train_data[0].stopping_offset = 0;
+    train_data[1].stopping_slope  =  63827;
+    train_data[1].stopping_offset = -42353;
+    train_data[2].stopping_slope  =  67029;
+    train_data[2].stopping_offset = -38400;
+    train_data[3].stopping_slope  =  73574;
+    train_data[3].stopping_offset = -59043;
+    train_data[4].stopping_slope  =  63905;
+    train_data[4].stopping_offset = -41611;
+    train_data[5].stopping_slope  = 0;
+    train_data[5].stopping_offset = 0;
+    train_data[6].stopping_slope  = 0;
+    train_data[6].stopping_offset = 0;
 }
 
 
@@ -116,20 +163,20 @@ void physics_dump() {
     for (int i = 0; i < NUM_TRAINS; i++)
         ptr = sprintf(ptr, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
                       i,
-                      speeds[i][0],
-                      speeds[i][1],
-                      speeds[i][2],
-                      speeds[i][3],
-                      speeds[i][4],
-                      speeds[i][5],
-                      speeds[i][6],
-                      speeds[i][7],
-                      speeds[i][8],
-                      speeds[i][9],
-                      speeds[i][10],
-                      speeds[i][11],
-                      speeds[i][12],
-                      speeds[i][13]);
+                      train_data[i].velocity[0],
+                      train_data[i].velocity[1],
+                      train_data[i].velocity[2],
+                      train_data[i].velocity[3],
+                      train_data[i].velocity[4],
+                      train_data[i].velocity[5],
+                      train_data[i].velocity[6],
+                      train_data[i].velocity[7],
+                      train_data[i].velocity[8],
+                      train_data[i].velocity[9],
+                      train_data[i].velocity[10],
+                      train_data[i].velocity[11],
+                      train_data[i].velocity[12],
+                      train_data[i].velocity[13]);
 
     ptr = log_end(ptr);
     Puts(buffer, ptr - buffer);
@@ -144,31 +191,38 @@ int velocity_for_speed(const int train_offset, const int speed) {
     assert(speed > 0 && speed <= TRAIN_SPEEDS,
            "Invalid speed %d", speed);
 
-    return speeds[train_offset][speed - 1];
+    return train_data[train_offset].velocity[speed - 1];
 }
 
-
-#define FEEDBACK_THRESHOLD_CONSTANT 30
 
 void update_velocity_for_speed(const int train_offset,
                                const int speed,
                                const int distance,
-                               const int time) {
+                               const int time,
+                               const int delta) {
 
     //log("%d %d", distance, time);
-    //log("%d %d %d", speeds[train_offset][speed - 1], (distance / time),
-    //(speeds[train_offset][speed - 1] + (distance / time)) >> 2);
+    //log("%d %d %d", train_data[train_offset][speed - 1], (distance / time),
+    //(train_data[train_offset][speed - 1] + (distance / time)) >> 2);
 
-    const int old_speed = speeds[train_offset][speed - 1];
+    if (delta > feedback_threshold) {
+        log("Feedback is off by too much (%d). I suspect foul play!", delta);
+        return;
+    }
+
+    const int old_speed = train_data[train_offset].velocity[speed - 1];
     const int new_speed = distance / time;
 
-    /* int delta = new_speed - old_speed; */
-    /* if (delta < 0) delta = -delta; */
+    // the ratio is 9:1 right now
+    train_data[train_offset].velocity[speed - 1] =
+        ((old_speed << 3) + (new_speed << 1)) / 10;
+}
 
-    /* if (delta > (FEEDBACK_THRESHOLD_CONSTANT * speed)) { */
-    /*     log("Feedback is off by too much (%d). I suspect foul play!", delta); */
-    /*     return; */
-    /* } */
+int stopping_distance_for_speed(const int train_offset, const int speed) {
+    return (train_data[train_offset].stopping_slope * speed) +
+        train_data[train_offset].stopping_offset;
+}
 
-    speeds[train_offset][speed - 1] = ((old_speed << 2) + new_speed) / 5;
+void physics_change_feedback_threshold(const int threshold) {
+    feedback_threshold = threshold;
 }

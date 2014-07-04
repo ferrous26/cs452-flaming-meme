@@ -28,14 +28,15 @@ typedef struct {
     int  horn;
     int  direction;
 
+    int  accelerating;
+    
     int  dist_last;
     int  time_last;
     int  sensor_last;
     
     int  sensor_next;
     int  estim_next;
-
-    int stop;
+    int  stop;
 } train_context;
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
@@ -96,6 +97,8 @@ static void td_update_train_speed(train_context* const ctxt,
         log("[TRAIN%d]\tSpeed is %d mm/s",
             ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 10);
     }
+
+    ctxt->accelerating = Time();
 }
 
 static void td_toggle_light(train_context* const ctxt) {
@@ -239,7 +242,7 @@ void train_driver() {
         case TRAIN_STOP:
             context.stop = req.one.int_value;
             break;
-        
+
         case TRAIN_HIT_SENSOR: {
             context.sensor_last = req.one.int_value;
 
@@ -265,18 +268,26 @@ void train_driver() {
                 context.stop = -1;
             }
 
-            int expected = context.time_last + context.estim_next;
-            int actual   = time - context.time_last;
+            const int expected = context.time_last + context.estim_next;
+            const int actual   = time - context.time_last;
+            const int delta    = actual > context.estim_next ?
+                actual - context.estim_next : -(actual - context.estim_next);
 
-            update_velocity_for_speed(context.off,
-                                      context.speed,
-                                      context.dist_last,
-                                      actual);
+            if (time - context.accelerating > 500) {
+                update_velocity_for_speed(context.off,
+                                          context.speed,
+                                          context.dist_last,
+                                          actual,
+                                          delta);
+            }
+            else {
+                log("Accelerating, not feeding back.");
+            }
 
             log("[Train%d]\t%d->%d\tETA: %d\tTA: %d\tDelta: %d",
                 context.num, context.sensor_last, context.sensor_next,
                 expected, time,
-                time - (context.time_last + context.estim_next));
+                delta);
 
             context.sensor_last = context.sensor_next;
             result              = get_sensor_from(context.sensor_last,
