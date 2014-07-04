@@ -11,8 +11,7 @@ typedef struct {
 
 typedef struct {
     short train;
-    char  bank;
-    char  num;
+    short sensor;
 } train_stop;
 
 typedef enum {

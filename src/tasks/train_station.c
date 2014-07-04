@@ -94,7 +94,7 @@ static void td_update_train_speed(train_context* const ctxt,
     Puts(buffer, ptr-buffer);
     // TEMPORARY
     if (new_speed < 15) {
-        log("Speed of %d is %d mm/s",
+        log("[TRAIN%d]\tSpeed is %d mm/s",
             ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 10);
     }
 }
@@ -304,7 +304,7 @@ void train_driver() {
 }
 
 static void td_reset_train(train_context* const ctxt) {
-    log("Resetting Train %d", ctxt->num);
+    log("[TRAIN%d]\tResetting...", ctxt->num);
 
     if (ctxt->horn)   td_toggle_horn(ctxt);
     if (!ctxt->light) td_toggle_light(ctxt);

@@ -52,8 +52,6 @@ void courier() {
            tid, result, sizeof(package));
     memcpy(buffer, package.message, package.size);
 
-    log ("courier sending to %d %p(%d)", package.receiver, package.message, package.size);
-    
     result = Reply(tid, NULL, 0);
     assert(result == 0,
            "Courier Problem sending back instancing task %d", tid);
@@ -75,7 +73,7 @@ void courier() {
         assert(result >= 0, "Error sending response to %d", tid);
     } while (result > 0);
 
-    log("Courier %d prefers death...", myTid());
+    log("[Courier %d] has died...", myTid());
 }
 
 

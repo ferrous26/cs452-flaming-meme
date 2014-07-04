@@ -15,13 +15,23 @@
 
 static int train_control_tid;
 
+
+#define TRAIN_ASSERT(TN)                                        \
+assert(TN >= 0 && TN < NUM_TRAINS,                              \
+       "[Train Control] %d is an invalid train number", TN)
+
+#define SENSOR_ASSERT(SN)                                       \
+assert(SN >= 0 && SN < 80,                                      \
+       "[Train Control] %d is an invalid sensor number", SN)
+
+
 typedef struct {
     struct {
         int horn;
         int speed;
         int light;
         int reverse;
-        sensor_name stop;
+        int stop;
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } tc_context;
@@ -55,8 +65,6 @@ static inline void tc_spawn_train_drivers() {
     for (int i=0; i < NUM_TRAINS; i++) {
         int train_num = pos_to_train(i);
         
-        log("Spawning Train %d", train_num);
-        
         int setup[2] = {train_num, i};
         int tid      = Create(DRIVER_PRIORITY, train_driver);
         assert(tid > 0, "Failed to create train driver (%d)", tid);
@@ -79,10 +87,10 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
         req.one.int_value               = ctxt->pickup[train_index].speed;
         ctxt->pickup[train_index].speed = -1;
         
-    } else if (ctxt->pickup[train_index].stop.bank) {
-        req.type       = TRAIN_STOP;
-        req.one.sensor = ctxt->pickup[train_index].stop;
-        ctxt->pickup[train_index].stop.bank = 0;
+    } else if (-1 != ctxt->pickup[train_index].stop) {
+        req.type          = TRAIN_STOP;
+        req.one.int_value = ctxt->pickup[train_index].stop;
+        ctxt->pickup[train_index].stop = -1;
         
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
@@ -105,39 +113,46 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
 static inline void mc_update_train_speed(tc_context* const ctxt,
                                          const int index,
                                          const int speed) {
+    TRAIN_ASSERT(index);
     ctxt->pickup[index].speed = speed;
     mc_try_send_train(ctxt, index);
 }
 
 static inline void mc_toggle_light(tc_context* const ctxt, const int index) {
+    TRAIN_ASSERT(index);
     ctxt->pickup[index].light ^= 1;
     mc_try_send_train(ctxt, index);
 }
 
 static inline void mc_toggle_horn(tc_context* const ctxt, const int index) {
+    TRAIN_ASSERT(index);
     ctxt->pickup[index].horn ^= 1;
     mc_try_send_train(ctxt, index);
 }
 
 static inline void mc_reverse_train(tc_context* const ctxt, const int index) {
+    TRAIN_ASSERT(index);
     ctxt->pickup[index].reverse ^= 1;
     mc_try_send_train(ctxt, index);
 }
 
 static inline void mc_train_stop(tc_context* const ctxt,
-                                 const tc_req* const req) {
-    const train_stop* const stop = &req->payload.train_stop;
-    const int train_num = train_to_pos(stop->train);
+                                 const int train_num,
+                                 const int sensor_num) {
+    TRAIN_ASSERT(train_num);
+    SENSOR_ASSERT(sensor_num);
     
-    ctxt->pickup[train_num].stop.bank = stop->bank;
-    ctxt->pickup[train_num].stop.num  = stop->num;
-    
+    ctxt->pickup[train_num].stop = sensor_num;
     mc_try_send_train(ctxt, train_num);
 }
 
 static inline void tc_init_context(tc_context* const ctxt) {
     memset(ctxt,           0, sizeof(*ctxt));
     memset(ctxt->drivers, -1, sizeof(ctxt->drivers));
+
+    for(int i = 0; i < NUM_TRAINS; i++) {
+        ctxt->pickup[i].stop = -1;
+    }
 }
 
 void train_control() {
@@ -172,7 +187,9 @@ void train_control() {
             mc_toggle_horn(&context, req.payload.int_value);
             break;
         case TC_T_TRAIN_STOP:
-            mc_train_stop(&context, &req);
+            mc_train_stop(&context,
+                          req.payload.train_stop.train,
+                          req.payload.train_stop.sensor);
             break;
 
         case TC_REQ_WORK:
@@ -269,9 +286,8 @@ int train_stop_at(const int train, const int bank, const int num) {
     tc_req req = {
         .type               = TC_T_TRAIN_STOP,
         .payload.train_stop = {
-            .train = train,
-            .bank  = bank,
-            .num   = num
+            .train  = train_index,
+            .sensor = (bank-'A') * 16 + (num-1)
         }
     };
     

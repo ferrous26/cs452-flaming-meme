@@ -54,6 +54,7 @@ static inline void _init_context(train_detective_context* const ctxt) {
     int result = Send(ctxt->driver_tid,
                       (char*)&package, sizeof(package), NULL, 0);
     assert(result == 0, "Failed handing off package to courier");
+    UNUSED(result);
 }
 
 void train_console() {
