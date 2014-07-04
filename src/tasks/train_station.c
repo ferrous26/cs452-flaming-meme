@@ -268,14 +268,17 @@ void train_driver() {
                 context.stop = -1;
             }
 
-            int expected = context.time_last + context.estim_next;
-            int actual   = time - context.time_last;
+            const int expected = context.time_last + context.estim_next;
+            const int actual   = time - context.time_last;
+            const int delta    = actual > context.estim_next ?
+                actual - context.estim_next : -(actual - context.estim_next);
 
             if (time - context.accelerating > 500) {
                 update_velocity_for_speed(context.off,
                                           context.speed,
                                           context.dist_last,
-                                          actual);
+                                          actual,
+                                          delta);
             }
             else {
                 log("Accelerating, not feeding back.");
@@ -284,7 +287,7 @@ void train_driver() {
             log("[Train%d]\t%d->%d\tETA: %d\tTA: %d\tDelta: %d",
                 context.num, context.last, context.next,
                 expected, time,
-                time - (context.time_last + context.estim_next));
+                delta);
 
             context.last = context.next;
             result = get_sensor_from(context.last,

@@ -15,8 +15,13 @@ typedef struct {
 } speed_data;
 
 static speed_data train_data[NUM_TRAINS];
+static int feedback_threshold;
+
+#define INITIAL_FEEDBACK_THRESHOLD 50
 
 void physics_init() {
+
+    feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
 
     /* Velocities for train offset 0 */
     train_data[0].velocity[1] = 0;
@@ -190,33 +195,34 @@ int velocity_for_speed(const int train_offset, const int speed) {
 }
 
 
-#define FEEDBACK_THRESHOLD_CONSTANT 30
-
 void update_velocity_for_speed(const int train_offset,
                                const int speed,
                                const int distance,
-                               const int time) {
+                               const int time,
+                               const int delta) {
 
     //log("%d %d", distance, time);
     //log("%d %d %d", train_data[train_offset][speed - 1], (distance / time),
     //(train_data[train_offset][speed - 1] + (distance / time)) >> 2);
 
+    if (delta > feedback_threshold) {
+        log("Feedback is off by too much (%d). I suspect foul play!", delta);
+        return;
+    }
+
     const int old_speed = train_data[train_offset].velocity[speed - 1];
     const int new_speed = distance / time;
 
-    /* int delta = new_speed - old_speed; */
-    /* if (delta < 0) delta = -delta; */
-
-    /* if (delta > (FEEDBACK_THRESHOLD_CONSTANT * speed)) { */
-    /*     log("Feedback is off by too much (%d). I suspect foul play!", delta); */
-    /*     return; */
-    /* } */
-
+    // the ratio is 9:1 right now
     train_data[train_offset].velocity[speed - 1] =
-        ((old_speed << 2) + new_speed) / 5;
+        ((old_speed << 3) + (new_speed << 1)) / 10;
 }
 
 int stopping_distance_for_speed(const int train_offset, const int speed) {
     return (train_data[train_offset].stopping_slope * speed) +
         train_data[train_offset].stopping_offset;
+}
+
+void physics_change_feedback_threshold(const int threshold) {
+    feedback_threshold = threshold;
 }

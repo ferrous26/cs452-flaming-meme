@@ -19,7 +19,7 @@ typedef enum {
     LOC_REVERSE,
     LOC_HORN,
 
-    TRACK_LOAD,
+    UPDATE_THRESHOLD,
 
     CALIBRATE,
     ACCELERATE,
