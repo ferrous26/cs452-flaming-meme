@@ -29,10 +29,12 @@ typedef struct {
     int  horn;
     int  direction;
 
+    int  accelerating;
+
     int  last;
     int  dist_last;
     int  time_last;
-    
+
     int  next;
     int  estim_next;
 
@@ -97,6 +99,8 @@ static void td_update_train_speed(train_context* const ctxt,
         log("[TRAIN%d]\tSpeed is %d mm/s",
             ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 10);
     }
+
+    ctxt->accelerating = Time();
 }
 
 static void td_toggle_light(train_context* const ctxt) {
@@ -240,16 +244,16 @@ void train_driver() {
         case TRAIN_STOP:
             context.stop = req.one.int_value;
             break;
-        
+
         case TRAIN_HIT_SENSOR: {
             context.last = req.one.int_value;
 
             result = get_sensor_from(req.one.int_value,
                                      &context.dist_last,
                                      &context.next);
-            
+
             assert(result >= 0, "failed");
-            log("HIT SENSOR %d %d", req.one.int_value, context.next); 
+            log("HIT SENSOR %d %d", req.one.int_value, context.next);
 
             context.time_last = time;
             int velocity = velocity_for_speed(context.off, context.speed);
@@ -267,10 +271,15 @@ void train_driver() {
             int expected = context.time_last + context.estim_next;
             int actual   = time - context.time_last;
 
-            update_velocity_for_speed(context.off,
-                                      context.speed,
-                                      context.dist_last,
-                                      actual);
+            if (time - context.accelerating > 500) {
+                update_velocity_for_speed(context.off,
+                                          context.speed,
+                                          context.dist_last,
+                                          actual);
+            }
+            else {
+                log("Accelerating, not feeding back.");
+            }
 
             log("[Train%d]\t%d->%d\tETA: %d\tTA: %d\tDelta: %d",
                 context.num, context.last, context.next,
