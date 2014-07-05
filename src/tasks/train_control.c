@@ -27,11 +27,12 @@ assert(SN >= 0 && SN < 80,                                      \
 
 typedef struct {
     struct {
-        int horn;
-        int speed;
-        int light;
-        int reverse;
-        int stop;
+        int  horn;
+        int  speed;
+        int  light;
+        int  reverse;
+        int  stop;
+        bool where;
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } tc_context;
@@ -54,7 +55,7 @@ pos_to_train(const int pos) {
         case 0: return 43;
         case 1: return 45;
     }
-    
+
     if (pos >= 2  && pos <= 6) {
         return pos + 47 - 2;
     }
@@ -64,11 +65,11 @@ pos_to_train(const int pos) {
 static inline void tc_spawn_train_drivers() {
     for (int i=0; i < NUM_TRAINS; i++) {
         int train_num = pos_to_train(i);
-        
+
         int setup[2] = {train_num, i};
         int tid      = Create(DRIVER_PRIORITY, train_driver);
         assert(tid > 0, "Failed to create train driver (%d)", tid);
-        
+
         tid = Send(tid, (char*)&setup, sizeof(setup), NULL, 0);
         assert(tid == 0, "Failed to send to train %d (%d)", train_num, tid);
     }
@@ -76,32 +77,36 @@ static inline void tc_spawn_train_drivers() {
 
 static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
     train_req req;
-    
+
     if (-1 == ctxt->drivers[train_index]) return;
     if (ctxt->pickup[train_index].reverse) {
         req.type                          = TRAIN_REVERSE_DIRECTION;
         ctxt->pickup[train_index].reverse = 0;
-        
+
     } else if (ctxt->pickup[train_index].speed >= 0) {
         req.type                        = TRAIN_CHANGE_SPEED;
         req.one.int_value               = ctxt->pickup[train_index].speed;
         ctxt->pickup[train_index].speed = -1;
-        
+
     } else if (-1 != ctxt->pickup[train_index].stop) {
         req.type          = TRAIN_STOP;
         req.one.int_value = ctxt->pickup[train_index].stop;
         ctxt->pickup[train_index].stop = -1;
-        
+
+    } else if (ctxt->pickup[train_index].where) {
+        req.type                        = TRAIN_WHERE_ARE_YOU;
+        ctxt->pickup[train_index].where = false;
+
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
         ctxt->pickup[train_index].light = 0;
-        
+
     } else if (ctxt->pickup[train_index].horn) {
         req.type                       = TRAIN_HORN_SOUND;
         ctxt->pickup[train_index].horn = 0;
-        
+
     } else { return; }
-    
+
     Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
     int result = Reply(ctxt->drivers[train_index],
                        (char*)&req,
@@ -141,8 +146,15 @@ static inline void mc_train_stop(tc_context* const ctxt,
                                  const int sensor_num) {
     TRAIN_ASSERT(train_num);
     SENSOR_ASSERT(sensor_num);
-    
+
     ctxt->pickup[train_num].stop = sensor_num;
+    mc_try_send_train(ctxt, train_num);
+}
+
+static inline void mc_train_where_are_you(tc_context* const ctxt,
+                                          const int train_num) {
+    TRAIN_ASSERT(train_num);
+    ctxt->pickup[train_num].where = true;
     mc_try_send_train(ctxt, train_num);
 }
 
@@ -192,16 +204,20 @@ void train_control() {
                           req.payload.train_stop.sensor);
             break;
 
+        case TC_Q_TRAIN_WHEREIS:
+            mc_train_where_are_you(&context, req.payload.int_value);
+            break;
+
         case TC_REQ_WORK:
             context.drivers[req.payload.int_value] = tid;
             mc_try_send_train(&context, req.payload.int_value);
             continue;
-       
+
         default:
         case TC_TYPE_COUNT:
             ABORT("[TRAIN CONTROL] INVALID REQUEST TYPE %d", req.type);
         }
-        
+
         result = Reply(tid, NULL, 0);
         if (result < 0)
             ABORT("[TRAIN CONTROL] failed to reply to  %d (%d)",
@@ -209,9 +225,9 @@ void train_control() {
     }
 }
 
-int train_set_speed(int train, int speed) {
-    int train_index = train_to_pos(train);
-    
+int train_set_speed(const int train, const int speed) {
+    const int train_index = train_to_pos(train);
+
     if (train_index < 0) {
         log("Can't toggle horn of invalid train %d", train);
         return 0;
@@ -220,7 +236,7 @@ int train_set_speed(int train, int speed) {
         log("can't set train number %d to invalid speed %d", train, speed);
         return 0;
     }
-    
+
     tc_req req = {
         .type = TC_U_TRAIN_SPEED,
         .payload.train_speed = {
@@ -228,47 +244,50 @@ int train_set_speed(int train, int speed) {
             .speed = (short)speed
         }
     };
-    
+
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int train_reverse(int train) {
-    int train_index = train_to_pos(train);
+int train_reverse(const int train) {
+    const int train_index = train_to_pos(train);
+
     if (train_index < 0) {
         log("Can't Reverse Invalid Train %d", train);
     	return 0;
     }
-    
+
     tc_req req = {
         .type              = TC_U_TRAIN_REVERSE,
         .payload.int_value = train_index
     };
-    
+
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int train_toggle_light(int train) {
-    int train_index = train_to_pos(train);
+int train_toggle_light(const int train) {
+    const int train_index = train_to_pos(train);
+
     if (train_index < 0) {
         log("Can't toggle light of invalid train %d", train);
         return 0;
     }
-    
+
     tc_req req = {
         .type              = TC_T_TRAIN_LIGHT,
         .payload.int_value = train_index
     };
-    
+
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int train_toggle_horn(int train) {
-    int train_index = train_to_pos(train);
+int train_toggle_horn(const int train) {
+    const int train_index = train_to_pos(train);
+
     if (train_index < 0) {
         log("Can't toggle horn of invalid train %d", train);
         return 0;
     }
-    
+
     tc_req req = {
         .type              = TC_T_TRAIN_HORN,
         .payload.int_value = train_index
@@ -277,12 +296,13 @@ int train_toggle_horn(int train) {
 }
 
 int train_stop_at(const int train, const int bank, const int num) {
-    int train_index = train_to_pos(train);
+    const int train_index = train_to_pos(train);
+
     if (train_index < 0) {
         log("Can't stop train %d because it does not exist", train);
         return 0;
     }
-    
+
     tc_req req = {
         .type               = TC_T_TRAIN_STOP,
         .payload.train_stop = {
@@ -290,6 +310,22 @@ int train_stop_at(const int train, const int bank, const int num) {
             .sensor = (bank-'A') * 16 + (num-1)
         }
     };
-    
+
+    return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int train_where_are_you(const int train) {
+    const int train_index = train_to_pos(train);
+
+    if (train_index < 0) {
+        log("Train %d does not exist!", train);
+        return 0;
+    }
+
+    tc_req req = {
+        .type              = TC_Q_TRAIN_WHEREIS,
+        .payload.int_value = train_index
+    };
+
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }

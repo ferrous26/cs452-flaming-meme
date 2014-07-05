@@ -8,7 +8,7 @@ data.each_with_index do |speeds, train|
   puts "    /* Velocities for train offset #{train} */"
   speeds.each_with_index do |speed, index|
     next if index.zero?
-    puts "    train_data[#{train}].velocity[#{index}] = #{speed};"
+    puts "    train_data[#{train}].velocity[#{index - 1}] = #{speed};"
   end
   puts "\n"
 end

@@ -12,14 +12,14 @@
 #define TRAIN_ROW           6
 #define TRAIN_COL           1
 #define TRAIN_SPEED_COL     (TRAIN_COL + 8)
-#define TRAIN_LIGHT_COL     (TRAIN_SPEED_COL + 6)
+#define TRAIN_LIGHT_COL     (TRAIN_SPEED_COL + 8)
 #define TRAIN_HORN_COL      (TRAIN_LIGHT_COL + 4)
 
 #define TURNOUT_ROW TRAIN_ROW
-#define TURNOUT_COL 30
+#define TURNOUT_COL 32
 
 #define SENSOR_ROW (TRAIN_ROW - 1)
-#define SENSOR_COL 58
+#define SENSOR_COL 60
 
 char* ui_pad(char* ptr, const int input_width, const int total_width);
 char  ui_twirler(const char prev);

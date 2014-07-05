@@ -93,6 +93,18 @@ static command parse_t(const char* const cmd, int* const buffer) {
     }
 }
 
+static command parse_where(const char* const cmd, int* const buffer) {
+    int index = 1;
+    switch(cmd[index++]) {
+    case 'h':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (!isspace(cmd[index]))                     return ERROR;
+        return WHEREIS;
+    default:
+        return ERROR;
+    }
+}
+
 static command parse_stop(const char* const cmd) {
     int index = 1;
 
@@ -199,6 +211,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'c':  return parse_calibrate(cmd, buffer);
     case 'a':  return parse_accelerate(cmd, buffer);
     case 'd':  return DUMP;
+    case 'w':  return parse_where(cmd, buffer);
     default:   return ERROR;
     }
 }

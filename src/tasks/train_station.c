@@ -29,14 +29,17 @@ typedef struct {
     int  direction;
 
     int  accelerating;
-    
+
     int  dist_last;
-    int  time_last;
+    int  dist_next;
+
+    int  time_last;         // time last sensor was hit
+    int  time_next_estim;   // estimated time to next sensor
+
     int  sensor_last;
-    
     int  sensor_next;
-    int  estim_next;
-    int  stop;
+    int  sensor_next_estim;
+    int  sensor_stop;       // from an ss command
 } train_context;
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
@@ -46,14 +49,23 @@ make_speed_cmd(const train_context* const ctxt) {
     return (ctxt->speed & 0xf) | (ctxt->light & 0x10);
 }
 
+static inline sensor_name __attribute__ ((const))
+sensornum_to_name(const int num) {
+    sensor_name name = {
+        .bank = 'A' + (num >>4),
+        .num  = (num & 15) + 1
+    };
+    return name;
+}
+
 static void tr_setup(train_context* const ctxt) {
     int tid;
     int values[2];
 
     memset(ctxt, 0, sizeof(train_context));
     int result = Receive(&tid, (char*)&values, sizeof(values));
-    assert(result == sizeof(values), "Train Recived invalid statup data");
-    UNUSED(result);
+    if (result != sizeof(values))
+        ABORT("Train Recived invalid statup data (%d)", result);
 
     // Only place these should get set
     *((int*)&ctxt->num) = values[0];
@@ -65,14 +77,15 @@ static void tr_setup(train_context* const ctxt) {
     sprintf(ctxt->name, "TRAIN%d", ctxt->num);
     ctxt->name[7] = '\0';
 
-    if (RegisterAs(ctxt->name)) ABORT("Failed to register train %d", ctxt->num);
+    if (RegisterAs(ctxt->name))
+        ABORT("Failed to register train %d", ctxt->num);
 
     Reply(tid, NULL, 0);
 }
 
 static void td_update_train_direction(train_context* const ctxt, int dir) {
     char  buffer[16];
-    char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL+3);
+    char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL+4);
 
     char               printout = 'F';
     if (dir < 0)       printout = 'B';
@@ -83,54 +96,59 @@ static void td_update_train_direction(train_context* const ctxt, int dir) {
     Puts(buffer, ptr-buffer);
 }
 
-static void td_update_train_speed(train_context* const ctxt,
-                                  const int new_speed) {
+static inline void td_update_ui_speed(train_context* const ctxt) {
+    // TODO: this should update based on the velocity estimate
+    //       and not the exact mapping; but is not important until
+    //       we factor in acceleration
+
+    // NOTE: we currently display in units of (integer) rounded off mm/s
     char  buffer[16];
     char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL);
-    ctxt->speed    = new_speed & 0xF;
-    ptr            = sprintf(ptr, ctxt->speed ? "%d " : "- ", ctxt->speed);
+    ptr            = sprintf(ptr,
+                             ctxt->speed && ctxt->speed < 15 ? "%d " : "- ",
+                             velocity_for_speed(ctxt->off, ctxt->speed) / 10);
+    Puts(buffer, ptr - buffer);
+}
 
+static void td_update_train_speed(train_context* const ctxt,
+                                  const int new_speed) {
+
+    ctxt->speed        = new_speed & 0xF;
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
-    Puts(buffer, ptr-buffer);
-    // TEMPORARY
-    if (new_speed < 15) {
-        log("[TRAIN%d]\tSpeed is %d mm/s",
-            ctxt->num, velocity_for_speed(ctxt->off, new_speed) / 10);
-    }
-
-    ctxt->accelerating = Time();
+    ctxt->accelerating = Time(); // TEMPORARY
+    td_update_ui_speed(ctxt);
 }
 
 static void td_toggle_light(train_context* const ctxt) {
+
+    ctxt->light ^= -1;
+    put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
+
     char  buffer[32];
     char* ptr    = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_LIGHT_COL);
-    ctxt->light ^= -1;
 
-    if (ctxt->light) {
+    if (ctxt->light)
         ptr      = sprintf_string(ptr, COLOUR(YELLOW) "L" COLOUR_RESET);
-    } else {
+    else
         *(ptr++) = ' ';
-    }
 
-    put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     Puts(buffer, ptr-buffer);
 }
 
 static void td_toggle_horn(train_context* const ctxt) {
-    char  horn_cmd;
-    char  buffer[32];
+
     ctxt->horn ^= -1;
+    const char horn_cmd = ctxt->horn ? TRAIN_HORN : TRAIN_FUNCTION_OFF;
+    put_train_cmd((char) ctxt->num, horn_cmd);
+
+    char  buffer[32];
     char* ptr   = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_HORN_COL);
 
-    if (ctxt->horn) {
-        horn_cmd = TRAIN_HORN;
+    if (ctxt->horn)
         ptr      = sprintf_string(ptr, COLOUR(RED) "H" COLOUR_RESET);
-    } else {
-        horn_cmd = TRAIN_FUNCTION_OFF;
+    else
         *(ptr++) = ' ';
-    }
 
-    put_train_cmd((char) ctxt->num, horn_cmd);
     Puts(buffer, ptr-buffer);
 }
 
@@ -143,8 +161,8 @@ static inline void train_wait_use(train_context* const ctxt,
         int result = Send(train_tid,
                           (char*)callin, sizeof(*callin),
                           (char*)&req,    sizeof(req));
-        assert(result == sizeof(req), "Bad train init");
-        UNUSED(result);
+        if (result != sizeof(req))
+            ABORT("Bad train init (%d)", result);
 
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
@@ -152,7 +170,7 @@ static inline void train_wait_use(train_context* const ctxt,
             if (req.one.int_value > 0) return;
             break;
         case TRAIN_REVERSE_DIRECTION:
-            td_update_train_speed(ctxt, 15);
+            td_update_train_speed(ctxt, TRAIN_REVERSE);
             Delay(2);
             td_update_train_speed(ctxt, 0);
             break;
@@ -164,6 +182,7 @@ static inline void train_wait_use(train_context* const ctxt,
             break;
         case TRAIN_STOP:
         case TRAIN_HIT_SENSOR:
+        case TRAIN_WHERE_ARE_YOU:
         case TRAIN_REQUEST_COUNT:
         case TRAIN_EXPECTED_SENSOR:
             ABORT("She's moving when we dont tell her too captain!");
@@ -225,7 +244,7 @@ void train_driver() {
             int old_speed = context.speed;
 
             td_update_train_speed(&context, 0);
-            Delay(old_speed * 40);
+            Delay(old_speed * 40); // TODO: use acceleration function
             td_update_train_speed(&context, 15);
             Delay(2);
             td_update_train_direction(&context, -context.direction);
@@ -240,22 +259,30 @@ void train_driver() {
             td_toggle_horn(&context);
             break;
         case TRAIN_STOP:
-            context.stop = req.one.int_value;
+            context.sensor_stop = req.one.int_value;
             break;
 
         case TRAIN_HIT_SENSOR: {
+            context.dist_last   = context.dist_next;
+            context.time_last   = time;
             context.sensor_last = req.one.int_value;
 
-            result = get_sensor_from(context.sensor_last,
-                                     &context.dist_last,
+            result = get_sensor_from(req.one.int_value,
+                                     &context.dist_next,
                                      &context.sensor_next);
-            
-            assert(result >= 0, "failed");
-            log("HIT SENSOR %d %d", context.sensor_last, context.sensor_next);
+            assert(result >= 0, "failed to get next sensor");
 
-            context.time_last = time;
-            int velocity = velocity_for_speed(context.off, context.speed);
-            context.estim_next = context.dist_last / velocity;
+            const sensor_name last = sensornum_to_name(context.sensor_last);
+            const sensor_name next = sensornum_to_name(context.sensor_next);
+            log("[Train%d] Hit unexpected sensor %c%d, "
+                "next expected sensor is %c%d",
+                context.num,
+                last.bank, last.num,
+                next.bank, next.num);
+
+            const int velocity = velocity_for_speed(context.off,
+                                                    context.speed);
+            context.sensor_next_estim = context.dist_next / velocity;
 
             Reply(tid,
                   (char*)&context.sensor_next,
@@ -263,45 +290,72 @@ void train_driver() {
             continue;
         }
         case TRAIN_EXPECTED_SENSOR: {
-            if (context.sensor_next == context.stop) {
+            if (context.sensor_next == context.sensor_stop) {
                 td_update_train_speed(&context, 0);
-                context.stop = -1;
+                context.sensor_stop = -1;
             }
 
-            const int expected = context.time_last + context.estim_next;
+            const int expected = context.time_last + context.sensor_next_estim;
             const int actual   = time - context.time_last;
-            const int delta    = actual > context.estim_next ?
-                actual - context.estim_next : -(actual - context.estim_next);
+            const int delta    = actual > context.sensor_next_estim ?
+                  actual - context.sensor_next_estim :
+                -(actual - context.sensor_next_estim);
 
+            // TODO: this should be a function of acceleration and not a
+            //       constant value
             if (time - context.accelerating > 500) {
                 update_velocity_for_speed(context.off,
                                           context.speed,
                                           context.dist_last,
                                           actual,
                                           delta);
-            }
-            else {
-                log("Accelerating, not feeding back.");
+                td_update_ui_speed(&context);
             }
 
-            log("[Train%d]\t%d->%d\tETA: %d\tTA: %d\tDelta: %d",
-                context.num, context.sensor_last, context.sensor_next,
-                expected, time,
-                delta);
+            const sensor_name last = sensornum_to_name(context.sensor_last);
+            const sensor_name next = sensornum_to_name(context.sensor_next);
+            char buffer[128];
+            char* ptr = log_start(buffer);
+            ptr = sprintf(ptr, "[Train%d] %c%d",
+                          context.num, last.bank, last.num);
+            if (last.num < 10)
+                *(ptr++) = ' ';
+            ptr = sprintf(ptr, "-> %c%d", next.bank, next.num);
+            if (next.num < 10)
+                *(ptr++) = ' ';
+            ptr = sprintf(ptr, "ETA: %d", expected);
+            ptr = ui_pad(ptr, log10(expected), 8);
+            ptr = sprintf(ptr, "TA: %d", time);
+            ptr = ui_pad(ptr, log10(time), 8);
+            ptr = sprintf(ptr, "Delta: %d", delta);
+            ptr = log_end(ptr);
+            Puts(buffer, ptr-buffer);
 
+            context.dist_last   = context.dist_next;
+            context.time_last   = time;
             context.sensor_last = context.sensor_next;
-            result              = get_sensor_from(context.sensor_last,
-                                                  &context.dist_last,
-                                                  &context.sensor_next);
+            result = get_sensor_from(context.sensor_last,
+                                     &context.dist_last,
+                                     &context.sensor_next);
 
-            context.time_last = time;
-            int velocity = velocity_for_speed(context.off, context.speed);
-            context.estim_next = context.dist_last / velocity;
+            const int velocity = velocity_for_speed(context.off,
+                                                    context.speed);
+            context.sensor_next_estim = context.dist_last / velocity;
 
             Reply(tid,
                   (char*)&context.sensor_next,
                   sizeof(context.sensor_next));
             continue;
+        }
+        case TRAIN_WHERE_ARE_YOU: {
+            // TODO: this will be more complicated when we have acceleration
+            const sensor_name last = sensornum_to_name(context.sensor_last);
+            const     int velocity = velocity_for_speed(context.off,
+                                                        context.speed);
+            const         int dist = velocity * (time - context.time_last);
+            log("[TRAIN%d] %c%d + %d mm",
+                context.num, last.bank, last.num, dist / 1000);
+            break;
         }
         case TRAIN_REQUEST_COUNT:
             ABORT("[Train%d] got request count request from %d",
