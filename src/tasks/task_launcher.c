@@ -72,6 +72,9 @@ static void action(command cmd, int args[]) {
     case QUIT:
         Shutdown();
 
+    case WHEREIS:
+        train_where_are_you(args[0]);
+        break;
     case LOC_SPEED:
         train_set_speed(args[0], args[1]);
         break;

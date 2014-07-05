@@ -24,6 +24,7 @@ void physics_init() {
     feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
 
     /* Velocities for train offset 0 */
+    train_data[0].velocity[0] = 0;
     train_data[0].velocity[1] = 0;
     train_data[0].velocity[2] = 0;
     train_data[0].velocity[3] = 0;
@@ -37,9 +38,9 @@ void physics_init() {
     train_data[0].velocity[11] = 0;
     train_data[0].velocity[12] = 0;
     train_data[0].velocity[13] = 0;
-    train_data[0].velocity[14] = 0;
 
     /* Velocities for train offset 1 */
+    train_data[1].velocity[0] = 0;
     train_data[1].velocity[1] = 209;
     train_data[1].velocity[2] = 757;
     train_data[1].velocity[3] = 1249;
@@ -53,9 +54,9 @@ void physics_init() {
     train_data[1].velocity[11] = 4994;
     train_data[1].velocity[12] = 4869;
     train_data[1].velocity[13] = 4747;
-    train_data[1].velocity[14] = 4440;
 
     /* Velocities for train offset 2 */
+    train_data[2].velocity[0] = 0;
     train_data[2].velocity[1] = 253;
     train_data[2].velocity[2] = 755;
     train_data[2].velocity[3] = 1284;
@@ -69,9 +70,9 @@ void physics_init() {
     train_data[2].velocity[11] = 5025;
     train_data[2].velocity[12] = 5249;
     train_data[2].velocity[13] = 5276;
-    train_data[2].velocity[14] = 5583;
 
     /* Velocities for train offset 3 */
+    train_data[3].velocity[0] = 0;
     train_data[3].velocity[1] = 244;
     train_data[3].velocity[2] = 750;
     train_data[3].velocity[3] = 1250;
@@ -85,25 +86,25 @@ void physics_init() {
     train_data[3].velocity[11] = 5060;
     train_data[3].velocity[12] = 5161;
     train_data[3].velocity[13] = 5044;
-    train_data[3].velocity[14] = 4793;
 
     /* Velocities for train offset 4 */
-    train_data[4].velocity[1] = 0;
-    train_data[4].velocity[2] = 250;
-    train_data[4].velocity[3] = 1298;
-    train_data[4].velocity[4] = 1810;
-    train_data[4].velocity[5] = 2272;
-    train_data[4].velocity[6] = 2824;
-    train_data[4].velocity[7] = 3378;
-    train_data[4].velocity[8] = 3966;
-    train_data[4].velocity[9] = 4512;
-    train_data[4].velocity[10] = 4913;
-    train_data[4].velocity[11] = 5535;
-    train_data[4].velocity[12] = 5718;
-    train_data[4].velocity[13] = 5472;
-    train_data[4].velocity[14] = 5733;
+    train_data[4].velocity[0] = 0;
+    train_data[4].velocity[1] = 250;
+    train_data[4].velocity[2] = 1298;
+    train_data[4].velocity[3] = 1810;
+    train_data[4].velocity[4] = 2272;
+    train_data[4].velocity[5] = 2824;
+    train_data[4].velocity[6] = 3378;
+    train_data[4].velocity[7] = 3966;
+    train_data[4].velocity[8] = 4512;
+    train_data[4].velocity[9] = 4913;
+    train_data[4].velocity[10] = 5535;
+    train_data[4].velocity[11] = 5718;
+    train_data[4].velocity[12] = 5472;
+    train_data[4].velocity[13] = 5733;
 
     /* Velocities for train offset 5 */
+    train_data[5].velocity[0] = 0;
     train_data[5].velocity[1] = 183;
     train_data[5].velocity[2] = 731;
     train_data[5].velocity[3] = 1272;
@@ -117,9 +118,9 @@ void physics_init() {
     train_data[5].velocity[11] = 5179;
     train_data[5].velocity[12] = 5608;
     train_data[5].velocity[13] = 5231;
-    train_data[5].velocity[14] = 4828;
 
     /* Velocities for train offset 6 */
+    train_data[6].velocity[0] = 0;
     train_data[6].velocity[1] = 142;
     train_data[6].velocity[2] = 205;
     train_data[6].velocity[3] = 588;
@@ -133,7 +134,6 @@ void physics_init() {
     train_data[6].velocity[11] = 3676;
     train_data[6].velocity[12] = 4584;
     train_data[6].velocity[13] = 5864;
-    train_data[6].velocity[14] = 6137;
 
 
     train_data[0].stopping_slope  = 0;

@@ -43,15 +43,15 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed  Special     Turnouts/Gates/Switches     __Sensor__\n"
-"---------------------    +-----------------------+    |        | Newest\n"
-" 43                      | 1   | 2   | 3   | 4   |    |        |\n"
-" 45                      | 5   | 6   | 7   | 8   |    |        |\n"
-" 47                      | 9   |10   |11   |12   |    |        |\n"
-" 48                      |13   |14   |15   |16   |    |        |\n"
-" 49                      |17   |18   |-----------|    |        |\n"
-" 50                      |153   154  |155   156  |    |        |\n"
-" 51                      +-----------------------+    |        | Oldest");
+"Train  Speed    Special     Turnouts/Gates/Switches     __Sensor__\n"
+"-----------------------    +-----------------------+    |        | Newest\n"
+" 43                        | 1   | 2   | 3   | 4   |    |        |\n"
+" 45                        | 5   | 6   | 7   | 8   |    |        |\n"
+" 47                        | 9   |10   |11   |12   |    |        |\n"
+" 48                        |13   |14   |15   |16   |    |        |\n"
+" 49                        |17   |18   |-----------|    |        |\n"
+" 50                        |153   154  |155   156  |    |        |\n"
+" 51                        +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
 }
 
@@ -152,7 +152,7 @@ static void mc_get_next_sensor(mc_context* const ctxt,
     const track_node* const node_curr = &ctxt->track[sensor_num];
     const track_node* node_next;
     int               response[2];
-    
+
     response[0] = get_next_sensor(node_curr, ctxt->turnouts, &node_next);
     response[1] = node_next->num;
 
@@ -168,7 +168,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     sensor_name* next = ctxt->sensor_insert++;
     *next             = sensornum_to_name(sensor_num);
     const int waiter  = ctxt->sensor_delay[sensor_num];
-    
+
     if(ctxt->sensor_insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
         ctxt->sensor_insert = ctxt->recent_sensors;
     }
@@ -177,7 +177,7 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     if (-1 != waiter) {
     	const int time                 = Time();
         ctxt->sensor_delay[sensor_num] = -1;
-        
+
         Reply(waiter, (char*)&time, sizeof(time));
     } else if (-1 != ctxt->wait_all) {
         Reply(ctxt->wait_all, (char*)&sensor_num, sizeof(sensor_num));
@@ -205,7 +205,7 @@ static inline void mc_sensor_delay(mc_context* const ctxt,
                                    const int sensor_num) {
     assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
            "[MISSION CONTROL] can't delay on invalid sensor %d", sensor_num);
-    
+
     const int task_waiter = ctxt->sensor_delay[sensor_num];
     if (-1 != task_waiter) {
         log("[MISSION CONTROL] %d kicked out task %d from sensor %d",
@@ -364,7 +364,7 @@ void mission_control() {
 
         case MC_R_TRACK:
             mc_reset_track_state(&context);
-            break;    
+            break;
         case MC_L_TRACK:
             mc_load_track(&context, req.payload.int_value);
             break;

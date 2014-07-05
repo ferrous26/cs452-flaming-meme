@@ -26,6 +26,7 @@ typedef enum {
     SIZES,
     SEPPUKU,
     DUMP,
+    WHEREIS,
 
     QUIT,
     ERROR,
