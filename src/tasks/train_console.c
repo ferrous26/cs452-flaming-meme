@@ -7,7 +7,7 @@
 #include <tasks/courier.h>
 #include <tasks/name_server.h>
 
-#include <tasks/train_station.h>
+#include <tasks/train_driver.h>
 #include <tasks/mission_control.h>
 
 typedef struct {
@@ -16,7 +16,7 @@ typedef struct {
 
     int       train_tid;
     int       train_docked;
-    
+
     train_req next_req;
 } tc_context;
 
@@ -42,7 +42,7 @@ static inline void _init_context(tc_context* const ctxt) {
         .type          = TRAIN_HIT_SENSOR,
         .one.int_value = delay_all_sensor()
     };
-    
+
     assert(callin.one.int_value >= 0 && callin.one.int_value < 80,
            "failed initalizing train %d", callin.one.int_value);
 
