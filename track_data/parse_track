@@ -351,7 +351,7 @@ void %s(track_node* const track) {
       if nd.__dict__[dir] != None:
         idx2      = nd.__dict__[dir].index
         dist      = nd.__dict__[dir+"_edge"].dist
-        edge_type = nd.__dict__[dir+"_edge"].edge_type
+#        edge_type = nd.__dict__[dir+"_edge"].edge_type
         for dir2 in ['ahead', 'straight', 'curved']:
           if nd.__dict__[dir].reverse.__dict__[dir2] == nd.reverse:
             fh.write(("  track[%d].edge[DIR_%s].reverse =" + \
@@ -364,7 +364,7 @@ void %s(track_node* const track) {
           (idx, dir.upper(), idx2))
         fh.write("  track[%d].edge[DIR_%s].dist = %s000;\n" % \
           (idx, dir.upper(), dist))
-        fh.write("  track[%d].edge[DIR_%s].type = EDGE_%s;\n" % \
-          (idx, dir.upper(), edge_type))
+#        fh.write("  track[%d].edge[DIR_%s].type = EDGE_%s;\n" % \
+#          (idx, dir.upper(), edge_type))
   fh.write("}\n")
 fh.close()
