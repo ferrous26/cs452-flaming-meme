@@ -17,6 +17,7 @@ typedef struct {
 typedef enum {
     TC_U_TRAIN_SPEED,
     TC_U_TRAIN_REVERSE,
+    TC_U_GOTO,
 
     TC_T_TRAIN_LIGHT,
     TC_T_TRAIN_HORN,
@@ -48,5 +49,6 @@ int train_toggle_light(const int train);
 int train_toggle_horn(const int train);
 int train_stop_at(const int train, const int bank, const int num);
 int train_where_are_you(const int train);
+int train_goto(const int train);
 
 #endif

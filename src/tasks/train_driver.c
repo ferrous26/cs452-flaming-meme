@@ -18,6 +18,50 @@
 #include <tasks/train_control.h>
 #include <tasks/train_driver.h>
 
+/* Path finding crap */
+
+#define MAX_PATH_COMMANDS 32
+
+typedef enum {
+    SENSOR_COMMAND,
+    REVERSE_COMMAND,
+    TURNOUT_COMMAND
+} command_type;
+
+typedef struct {
+    int sensor;
+    int dist; // distance to next sensor
+} sensor_command;
+
+typedef struct {
+    int distance; // offset from previous location
+    int reserved; // crap space
+} reverse_command;
+
+typedef struct {
+    int number;
+    int direction;
+} turnout_command;
+
+typedef union {
+    sensor_command  sensor;
+    reverse_command reverse;
+    turnout_command turnout;
+} command_body;
+
+typedef struct {
+    command_type type;
+    command_body data;
+} command;
+
+typedef struct {
+    int count;
+    int dist_total;
+    command cmd[MAX_PATH_COMMANDS];
+} path;
+
+/* End of path finding crap */
+
 typedef struct {
     const int num;
     const int off;
@@ -40,6 +84,9 @@ typedef struct {
     int  sensor_next;
     int  sensor_next_estim;
     int  sensor_stop;       // from an ss command
+
+    bool pathing;
+    path path;
 } train_context;
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
@@ -184,6 +231,7 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_HIT_SENSOR:
         case TRAIN_WHERE_ARE_YOU:
         case TRAIN_REQUEST_COUNT:
+        case TRAIN_GO_TO:
         case TRAIN_EXPECTED_SENSOR:
             ABORT("She's moving when we dont tell her too captain!");
             break;
@@ -195,6 +243,19 @@ void train_driver() {
     int           tid;
     train_req     req;
     train_context context;
+
+    // TEMPORARY
+            path g = {
+                .count      = 1,
+                .dist_total = 738000
+            };
+            g.cmd[1].type                = SENSOR_COMMAND;
+            g.cmd[1].data.sensor.sensor  = 44;
+            g.cmd[1].data.sensor.dist    = 67000;
+
+            g.cmd[0].type                = SENSOR_COMMAND;
+            g.cmd[0].data.sensor.sensor  = 70;
+            g.cmd[0].data.sensor.dist    = 783000;
 
     tr_setup(&context);
 
@@ -284,6 +345,11 @@ void train_driver() {
                                                     context.speed);
             context.sensor_next_estim = context.dist_next / velocity;
 
+            if (context.pathing) {
+                context.pathing = false;
+                log("Aborted path finding...fix me to re-route");
+            }
+
             Reply(tid,
                   (char*)&context.sensor_next,
                   sizeof(context.sensor_next));
@@ -312,24 +378,28 @@ void train_driver() {
                 td_update_ui_speed(&context);
             }
 
-            const sensor_name last = sensornum_to_name(context.sensor_last);
-            const sensor_name next = sensornum_to_name(context.sensor_next);
-            char buffer[128];
-            char* ptr = log_start(buffer);
-            ptr = sprintf(ptr, "[Train%d] %c%d",
-                          context.num, last.bank, last.num);
-            if (last.num < 10)
-                *(ptr++) = ' ';
-            ptr = sprintf(ptr, "-> %c%d", next.bank, next.num);
-            if (next.num < 10)
-                *(ptr++) = ' ';
-            ptr = sprintf(ptr, "ETA: %d", expected);
-            ptr = ui_pad(ptr, log10(expected), 8);
-            ptr = sprintf(ptr, "TA: %d", time);
-            ptr = ui_pad(ptr, log10(time), 8);
-            ptr = sprintf(ptr, "Delta: %d", delta);
-            ptr = log_end(ptr);
-            Puts(buffer, ptr-buffer);
+            // TODO: move this block of code out and make it more efficient
+            {
+                const sensor_name last =
+                    sensornum_to_name(context.sensor_last);
+                const sensor_name next =
+                    sensornum_to_name(context.sensor_next);
+
+                char buffer[128];
+                char* ptr = log_start(buffer);
+                ptr = sprintf(ptr, "[Train%d] %c%d",
+                              context.num, last.bank, last.num);
+                if (last.num < 10)
+                    *(ptr++) = ' ';
+                ptr = sprintf(ptr, "-> %c%d", next.bank, next.num);
+                if (next.num < 10)
+                    *(ptr++) = ' ';
+                ptr = sprintf(ptr,
+                              " ETA: %d\tTA:%d\tDelta: %d",
+                              expected, time, delta);
+                ptr = log_end(ptr);
+                Puts(buffer, ptr-buffer);
+            }
 
             context.dist_last   = context.dist_next;
             context.time_last   = time;
@@ -345,8 +415,43 @@ void train_driver() {
             Reply(tid,
                   (char*)&context.sensor_next,
                   sizeof(context.sensor_next));
+
+
+            // the path info comes into play here
+            if (context.pathing &&
+                context.path.cmd[context.path.count].data.sensor.sensor == context.sensor_last) {
+                log("pathing");
+
+                // is this the next sensor in the path?
+                context.path.dist_total -=
+                    context.path.cmd[context.path.count].data.sensor.dist;
+
+                const int stop_dist =
+                    stopping_distance_for_speed(context.off, context.speed);
+
+                if (context.path.dist_total <= stop_dist) {
+                    const int dist_until_stop =
+                        context.path.cmd[context.path.count].data.sensor.dist -
+                        (stop_dist - context.path.dist_total);
+                    const int delay_time = dist_until_stop / velocity;
+                    Delay(delay_time);
+                    td_update_train_speed(&context, 0);
+                }
+
+                if (context.path.count == 0) {
+                    context.pathing = false;
+                }
+                else {
+                    do {
+                        context.path.count--;
+                    } while (context.path.cmd[context.path.count].type
+                             != SENSOR_COMMAND);
+                }
+            }
+
             continue;
         }
+
         case TRAIN_WHERE_ARE_YOU: {
             // TODO: this will be more complicated when we have acceleration
             const sensor_name last = sensornum_to_name(context.sensor_last);
@@ -357,6 +462,24 @@ void train_driver() {
                 context.num, last.bank, last.num, dist / 1000);
             break;
         }
+
+        case TRAIN_GO_TO: {
+            context.pathing = true;
+
+            // assume that we just got g as the path
+            memcpy(&context.path, &g, sizeof(path));
+
+            // TEMP HACK
+            for (int i = context.path.count; i; i--) {
+                if (context.path.cmd[i].type == TURNOUT_COMMAND) {
+                    const turnout_command* const t =
+                        &context.path.cmd[i].data.turnout;
+                    update_turnout(t->number, t->direction);
+                }
+            }
+            break;
+        }
+
         case TRAIN_REQUEST_COUNT:
             ABORT("[Train%d] got request count request from %d",
                   context.num, tid);

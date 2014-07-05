@@ -33,6 +33,7 @@ typedef struct {
         int  reverse;
         int  stop;
         bool where;
+        bool go_to;
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } tc_context;
@@ -97,6 +98,10 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
         req.type                        = TRAIN_WHERE_ARE_YOU;
         ctxt->pickup[train_index].where = false;
 
+    } else if (ctxt->pickup[train_index].go_to) {
+        req.type                        = TRAIN_GO_TO;
+        ctxt->pickup[train_index].go_to = false;
+
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
         ctxt->pickup[train_index].light = 0;
@@ -158,6 +163,13 @@ static inline void mc_train_where_are_you(tc_context* const ctxt,
     mc_try_send_train(ctxt, train_num);
 }
 
+static inline void mc_goto(tc_context* const ctxt,
+                           const int train_num) {
+    TRAIN_ASSERT(train_num);
+    ctxt->pickup[train_num].go_to = true;
+    mc_try_send_train(ctxt, train_num);
+}
+
 static inline void tc_init_context(tc_context* const ctxt) {
     memset(ctxt,           0, sizeof(*ctxt));
     memset(ctxt->drivers, -1, sizeof(ctxt->drivers));
@@ -192,6 +204,10 @@ void train_control() {
         case TC_U_TRAIN_REVERSE:
             mc_reverse_train(&context, req.payload.int_value);
             break;
+        case TC_U_GOTO:
+            mc_goto(&context, req.payload.int_value);
+            break;
+
         case TC_T_TRAIN_LIGHT:
             mc_toggle_light(&context, req.payload.int_value);
             break;
@@ -324,6 +340,22 @@ int train_where_are_you(const int train) {
 
     tc_req req = {
         .type              = TC_Q_TRAIN_WHEREIS,
+        .payload.int_value = train_index
+    };
+
+    return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int train_goto(const int train) {
+    const int train_index = train_to_pos(train);
+
+    if (train_index < 0) {
+        log("Train %d does not exist!", train);
+        return 0;
+    }
+
+    tc_req req = {
+        .type = TC_U_GOTO,
         .payload.int_value = train_index
     };
 

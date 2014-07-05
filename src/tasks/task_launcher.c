@@ -105,6 +105,11 @@ static void action(command cmd, int args[]) {
         break;
     }
 
+    case MOCK: {
+        train_goto(args[0]);
+        break;
+    }
+
     case CALIBRATE: {
         int tid = Create(5, calibrate);
         Send(tid, (char*)args, sizeof(int), NULL, 0);
