@@ -9,6 +9,7 @@
 
 #include <tasks/train_driver.h>
 #include <tasks/mission_control.h>
+#include <tasks/train_console.h>
 
 typedef struct {
     const int driver_tid;
