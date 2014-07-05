@@ -28,7 +28,6 @@ static int mission_control_tid;
 typedef struct {
     sensor_name* sensor_insert;
     sensor_name  recent_sensors[SENSOR_LIST_SIZE];
-
     track_node   track[TRACK_MAX];
 
     int wait_all;
@@ -104,8 +103,8 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     }
 
     FOREVER {
-        Putc(TRAIN, SENSOR_POLL);
         for (int bank = 0; bank < NUM_SENSOR_BANKS; bank++) {
+            Putc(TRAIN, SENSOR_RESET + 1 + bank);
             int c = get_train_bank();
             assert(c >= 0, "sensor_poll got bad return (%d)", c);
 
