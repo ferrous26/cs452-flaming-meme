@@ -19,19 +19,27 @@ struct track_node;
 typedef struct track_node track_node;
 typedef struct track_edge track_edge;
 
+typedef enum {
+    EDGE_STRAIGHT,
+    EDGE_CURVED,
+    EDGE_MOSTLY_CURVED,
+    EDGE_None // LOL
+} edge_type;
+
 struct track_edge {
-  track_edge *reverse;
-  track_node *src, *dest;
-  int dist;             /* in millimetres */
+    track_edge* reverse;
+    track_node* src;
+    track_node* dest;
+    int         dist;     /* in millimetres */
+    edge_type   type;
 };
 
 struct track_node {
-  const char *name;
-  node_type type;
-  int num;              /* sensor or switch number */
-  track_node *reverse;  /* same location, but opposite direction */
-  track_edge edge[2];
+    const char* name;
+    node_type type;
+    int num;              /* sensor or switch number */
+    track_node* reverse;  /* same location, but opposite direction */
+    track_edge  edge[2];
 };
 
 #endif
-

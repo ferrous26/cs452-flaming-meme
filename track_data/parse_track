@@ -249,6 +249,7 @@ class edge:
       self.node2 = line[2]
     # Read the edge properties.
     self.dist = None
+    self.edge_type = None
     state.next_line()
     while state.line() != None and not state.line().endswith(':'):
       line = state.line().split()
@@ -265,6 +266,15 @@ class edge:
           self.dist = int(line[1])
         except (AssertionError, ValueError):
           state.error("expected 'distance <INTEGER> mm'")
+      elif line[0] == 'type':
+        # type <ENUM>
+        if self.edge_type != None:
+          state.error("duplicate 'type'")
+        try:
+          assert len(line) == 2
+          self.edge_type = line[1]
+        except (AssertionError, ValueError):
+          state.error("expected 'type <ENUM>'")
       else:
         # Unknown property.
         state.error("unknown property '%s'" % line[0])
@@ -272,6 +282,8 @@ class edge:
     # Make sure that we have all the required data.
     if self.dist == None:
       state.error("missing property 'distance <INTEGER> mm'")
+#    if self.edge_type == None:
+#      state.error("missing property 'type <ENUM>'")
 
 ########################################################################
 #### Parse each of the input files.
@@ -337,8 +349,9 @@ void %s(track_node* const track) {
       (idx, nd.reverse.index))
     for dir in ['ahead', 'straight', 'curved']:
       if nd.__dict__[dir] != None:
-        idx2 = nd.__dict__[dir].index
-        dist = nd.__dict__[dir+"_edge"].dist
+        idx2      = nd.__dict__[dir].index
+        dist      = nd.__dict__[dir+"_edge"].dist
+        edge_type = nd.__dict__[dir+"_edge"].edge_type
         for dir2 in ['ahead', 'straight', 'curved']:
           if nd.__dict__[dir].reverse.__dict__[dir2] == nd.reverse:
             fh.write(("  track[%d].edge[DIR_%s].reverse =" + \
@@ -351,5 +364,7 @@ void %s(track_node* const track) {
           (idx, dir.upper(), idx2))
         fh.write("  track[%d].edge[DIR_%s].dist = %s000;\n" % \
           (idx, dir.upper(), dist))
+        fh.write("  track[%d].edge[DIR_%s].type = EDGE_%s;\n" % \
+          (idx, dir.upper(), edge_type))
   fh.write("}\n")
 fh.close()
