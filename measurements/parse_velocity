@@ -2,14 +2,35 @@
 
 require 'csv'
 
-data = CSV.open(ARGV.shift).to_a
-
-data.each_with_index do |speeds, train|
-  puts "    /* Velocities for train offset #{train} */"
-  speeds.each_with_index do |speed, index|
-    next if index.zero?
-    puts "    train_data[#{train}].velocity[#{index - 1}] = #{speed};"
+data       = CSV.open(ARGV.shift).to_a
+velocities = Hash.new do |h, k|
+  h[k] = Hash.new do |ih, ik|
+    ih[ik] = []
   end
-  puts "\n"
 end
 
+
+
+data.each do |speeds|
+  num  = speeds[0]
+  type = speeds[1]
+  speeds[2..-1].each_with_index do |speed, index|
+    velocities[num][type][index] = speed
+  end
+end
+
+
+puts "    switch (ctxt->off) {"
+velocities.each_pair do |train, types|
+  puts "    case #{train}:"
+
+  types.each_pair do |type, speeds|
+    speeds.each_with_index do |speed, index|
+      puts "        ctxt->velocity[#{type}][#{index}] = #{speed};"
+    end
+  end
+
+  puts "        break;"
+end
+
+puts "    }\n"

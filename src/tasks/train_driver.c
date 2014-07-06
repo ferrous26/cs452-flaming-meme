@@ -2,7 +2,6 @@
 #include <train.h>
 #include <debug.h>
 #include <ui.h>
-#include <physics.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -62,17 +61,28 @@ typedef struct {
 
 /* End of path finding crap */
 
+#define INITIAL_FEEDBACK_THRESHOLD 50
+
 typedef struct {
     const int num;
     const int off;
 
     char name[8];
+
+    int  velocity[TRACK_TYPE_COUNT][TRAIN_PRACTICAL_SPEEDS];
+    int  stopping_slope;
+    int  stopping_offset;
+    int  feedback_threshold;
+    feedback_level feedback_alpha;
+
     int  speed;
+    int  speed_last;
+
     int  light;
     int  horn;
     int  direction;
 
-    int  accelerating;
+    int  acceleration_last; // last time speed was changed
 
     int  dist_last;
     int  dist_next;
@@ -89,6 +99,64 @@ typedef struct {
     path path;
 } train_context;
 
+/* PHYSICS LAND */
+
+static inline int __attribute__ ((pure))
+velocity_for_speed(const train_context* const ctxt) {
+    if (ctxt->speed == 0) return 0;
+
+    return ctxt->
+        velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED];
+}
+
+static void velocity_feedback(train_context* const ctxt,
+                              const int time,
+                              const int delta) {
+
+    if (delta > ctxt->feedback_threshold) {
+        log("Feedback is off by too much (%d) (%d). I suspect foul play!",
+            delta, ctxt->feedback_threshold);
+        return;
+    }
+
+    const int old_speed = velocity_for_speed(ctxt);
+    if (old_speed == 0) return;
+
+    const int new_speed = ctxt->dist_last / time;
+    if (new_speed == 0) return;
+
+    switch (ctxt->feedback_alpha) {
+    case HALF_AND_HALF:
+        ctxt->velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+            (old_speed + new_speed) >> 1;
+        break;
+    case EIGHTY_TWENTY:
+        ctxt->velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+            ((old_speed << 2) + new_speed) / 5;
+        break;
+    case NINTY_TEN:
+        ctxt->velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+            ((old_speed * 9) + new_speed) / 10;
+        break;
+    }
+}
+
+static inline int __attribute__ ((const))
+stopping_distance(const train_context* const ctxt) {
+    return (ctxt->stopping_slope * ctxt->speed) + ctxt->stopping_offset;
+}
+
+static void td_update_threshold(train_context* const ctxt, int threshold) {
+    ctxt->feedback_threshold = threshold;
+}
+
+static void td_update_alpha(train_context* const ctxt, int alpha) {
+    ctxt->feedback_alpha = (feedback_level)alpha;
+}
+
+/* END OF PHYSICS LAND */
+
+
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
 
 static inline char __attribute__((always_inline))
@@ -103,6 +171,207 @@ sensornum_to_name(const int num) {
         .num  = (num & 15) + 1
     };
     return name;
+}
+
+static inline void tr_setup_physics(train_context* const ctxt) {
+    switch (ctxt->off) {
+    case 0:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 0;
+        ctxt->velocity[TRACK_COMBO][0]    = 0;
+        ctxt->velocity[TRACK_CURVED][0]   = 0;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 0;
+        ctxt->velocity[TRACK_COMBO][1]    = 0;
+        ctxt->velocity[TRACK_CURVED][1]   = 0;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 0;
+        ctxt->velocity[TRACK_COMBO][2]    = 0;
+        ctxt->velocity[TRACK_CURVED][2]   = 0;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 0;
+        ctxt->velocity[TRACK_COMBO][3]    = 0;
+        ctxt->velocity[TRACK_CURVED][3]   = 0;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 0;
+        ctxt->velocity[TRACK_COMBO][4]    = 0;
+        ctxt->velocity[TRACK_CURVED][4]   = 0;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 0;
+        ctxt->velocity[TRACK_COMBO][5]    = 0;
+        ctxt->velocity[TRACK_CURVED][5]   = 0;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 0;
+        ctxt->velocity[TRACK_COMBO][6]    = 0;
+        ctxt->velocity[TRACK_CURVED][6]   = 0;
+        break;
+    case 1:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 2826;
+        ctxt->velocity[TRACK_COMBO][0]    = 2826;
+        ctxt->velocity[TRACK_CURVED][0]   = 2826;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 3441;
+        ctxt->velocity[TRACK_COMBO][1]    = 3441;
+        ctxt->velocity[TRACK_CURVED][1]   = 3441;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 3790;
+        ctxt->velocity[TRACK_COMBO][2]    = 3790;
+        ctxt->velocity[TRACK_CURVED][2]   = 3790;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 4212;
+        ctxt->velocity[TRACK_COMBO][3]    = 4212;
+        ctxt->velocity[TRACK_CURVED][3]   = 4212;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 4570;
+        ctxt->velocity[TRACK_COMBO][4]    = 4570;
+        ctxt->velocity[TRACK_CURVED][4]   = 4570;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 4994;
+        ctxt->velocity[TRACK_COMBO][5]    = 4994;
+        ctxt->velocity[TRACK_CURVED][5]   = 4994;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 4869;
+        ctxt->velocity[TRACK_COMBO][6]    = 4869;
+        ctxt->velocity[TRACK_CURVED][6]   = 4869;
+        break;
+    case 2:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 3488;
+        ctxt->velocity[TRACK_COMBO][0]    = 3488;
+        ctxt->velocity[TRACK_CURVED][0]   = 3488;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 3621;
+        ctxt->velocity[TRACK_COMBO][1]    = 3621;
+        ctxt->velocity[TRACK_CURVED][1]   = 3621;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 4250;
+        ctxt->velocity[TRACK_COMBO][2]    = 4250;
+        ctxt->velocity[TRACK_CURVED][2]   = 4250;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 4661;
+        ctxt->velocity[TRACK_COMBO][3]    = 4661;
+        ctxt->velocity[TRACK_CURVED][3]   = 4661;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 5025;
+        ctxt->velocity[TRACK_COMBO][4]    = 5025;
+        ctxt->velocity[TRACK_CURVED][4]   = 5025;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 5249;
+        ctxt->velocity[TRACK_COMBO][5]    = 5249;
+        ctxt->velocity[TRACK_CURVED][5]   = 5249;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 5276;
+        ctxt->velocity[TRACK_COMBO][6]    = 5276;
+        ctxt->velocity[TRACK_CURVED][6]   = 5276;
+        break;
+    case 3:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 3347;
+        ctxt->velocity[TRACK_COMBO][0]    = 3347;
+        ctxt->velocity[TRACK_CURVED][0]   = 3347;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 3748;
+        ctxt->velocity[TRACK_COMBO][1]    = 3748;
+        ctxt->velocity[TRACK_CURVED][1]   = 3748;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 4116;
+        ctxt->velocity[TRACK_COMBO][2]    = 4116;
+        ctxt->velocity[TRACK_CURVED][2]   = 4116;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 4597;
+        ctxt->velocity[TRACK_COMBO][3]    = 4597;
+        ctxt->velocity[TRACK_CURVED][3]   = 4597;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 5060;
+        ctxt->velocity[TRACK_COMBO][4]    = 5060;
+        ctxt->velocity[TRACK_CURVED][4]   = 5060;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 5161;
+        ctxt->velocity[TRACK_COMBO][5]    = 5161;
+        ctxt->velocity[TRACK_CURVED][5]   = 5161;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 5044;
+        ctxt->velocity[TRACK_COMBO][6]    = 5044;
+        ctxt->velocity[TRACK_CURVED][6]   = 5044;
+        break;
+    case 4:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 3966;
+        ctxt->velocity[TRACK_COMBO][0]    = 3966;
+        ctxt->velocity[TRACK_CURVED][0]   = 3966;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 4512;
+        ctxt->velocity[TRACK_COMBO][1]    = 4512;
+        ctxt->velocity[TRACK_CURVED][1]   = 4512;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 4913;
+        ctxt->velocity[TRACK_COMBO][2]    = 4913;
+        ctxt->velocity[TRACK_CURVED][2]   = 4913;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 5535;
+        ctxt->velocity[TRACK_COMBO][3]    = 5535;
+        ctxt->velocity[TRACK_CURVED][3]   = 5535;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 5718;
+        ctxt->velocity[TRACK_COMBO][4]    = 5718;
+        ctxt->velocity[TRACK_CURVED][4]   = 5718;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 5472;
+        ctxt->velocity[TRACK_COMBO][5]    = 5472;
+        ctxt->velocity[TRACK_CURVED][5]   = 5472;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 5733;
+        ctxt->velocity[TRACK_COMBO][6]    = 5733;
+        ctxt->velocity[TRACK_CURVED][6]   = 5733;
+        break;
+    case 5:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 3262;
+        ctxt->velocity[TRACK_COMBO][0]    = 3262;
+        ctxt->velocity[TRACK_CURVED][0]   = 3262;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 3758;
+        ctxt->velocity[TRACK_COMBO][1]    = 3758;
+        ctxt->velocity[TRACK_CURVED][1]   = 3758;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 4265;
+        ctxt->velocity[TRACK_COMBO][2]    = 4265;
+        ctxt->velocity[TRACK_CURVED][2]   = 4265;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 4762;
+        ctxt->velocity[TRACK_COMBO][3]    = 4762;
+        ctxt->velocity[TRACK_CURVED][3]   = 4762;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 5179;
+        ctxt->velocity[TRACK_COMBO][4]    = 5179;
+        ctxt->velocity[TRACK_CURVED][4]   = 5179;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 5608;
+        ctxt->velocity[TRACK_COMBO][5]    = 5608;
+        ctxt->velocity[TRACK_CURVED][5]   = 5608;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 5231;
+        ctxt->velocity[TRACK_COMBO][6]    = 5231;
+        ctxt->velocity[TRACK_CURVED][6]   = 5231;
+        break;
+    case 6:
+        ctxt->velocity[TRACK_STRAIGHT][0] = 1732;
+        ctxt->velocity[TRACK_COMBO][0]    = 1732;
+        ctxt->velocity[TRACK_CURVED][0]   = 1732;
+        ctxt->velocity[TRACK_STRAIGHT][1] = 2028;
+        ctxt->velocity[TRACK_COMBO][1]    = 2028;
+        ctxt->velocity[TRACK_CURVED][1]   = 2028;
+        ctxt->velocity[TRACK_STRAIGHT][2] = 2429;
+        ctxt->velocity[TRACK_COMBO][2]    = 2429;
+        ctxt->velocity[TRACK_CURVED][2]   = 2429;
+        ctxt->velocity[TRACK_STRAIGHT][3] = 2995;
+        ctxt->velocity[TRACK_COMBO][3]    = 2995;
+        ctxt->velocity[TRACK_CURVED][3]   = 2995;
+        ctxt->velocity[TRACK_STRAIGHT][4] = 3676;
+        ctxt->velocity[TRACK_COMBO][4]    = 3676;
+        ctxt->velocity[TRACK_CURVED][4]   = 3676;
+        ctxt->velocity[TRACK_STRAIGHT][5] = 4584;
+        ctxt->velocity[TRACK_COMBO][5]    = 4584;
+        ctxt->velocity[TRACK_CURVED][5]   = 4584;
+        ctxt->velocity[TRACK_STRAIGHT][6] = 5864;
+        ctxt->velocity[TRACK_COMBO][6]    = 5864;
+        ctxt->velocity[TRACK_CURVED][6]   = 5864;
+        break;
+    }
+
+    switch (ctxt->off) {
+    case 0:
+        ctxt->stopping_slope  = 0;
+        ctxt->stopping_offset = 0;
+        break;
+    case 1:
+        ctxt->stopping_slope  =  63827;
+        ctxt->stopping_offset = -42353;
+        break;
+    case 2:
+        ctxt->stopping_slope  =  67029;
+        ctxt->stopping_offset = -38400;
+        break;
+    case 3:
+        ctxt->stopping_slope  =  73574;
+        ctxt->stopping_offset = -59043;
+        break;
+    case 4:
+        ctxt->stopping_slope  =  63905;
+        ctxt->stopping_offset = -41611;
+        break;
+    case 5:
+        ctxt->stopping_slope  =  63905;
+        ctxt->stopping_offset = -41611;
+        break;
+    case 6:
+        ctxt->stopping_slope  = 0;
+        ctxt->stopping_offset = 0;
+        break;
+    }
+
+    ctxt->feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
+    ctxt->feedback_alpha     = EIGHTY_TWENTY;
+    log("yo %d %d", ctxt->feedback_threshold, ctxt->feedback_alpha);
 }
 
 static void tr_setup(train_context* const ctxt) {
@@ -127,12 +396,14 @@ static void tr_setup(train_context* const ctxt) {
     if (RegisterAs(ctxt->name))
         ABORT("Failed to register train %d", ctxt->num);
 
+    tr_setup_physics(ctxt);
+
     Reply(tid, NULL, 0);
 }
 
 static void td_update_train_direction(train_context* const ctxt, int dir) {
     char  buffer[16];
-    char* ptr      = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL+4);
+    char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SPEED_COL+4);
 
     char               printout = 'F';
     if (dir < 0)       printout = 'B';
