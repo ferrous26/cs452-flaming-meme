@@ -34,6 +34,9 @@ typedef struct {
         int  stop;
         bool where;
         bool go_to;
+        bool dump;
+        int  threshold;
+        int  alpha;
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } tc_context;
@@ -110,6 +113,20 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
         req.type                       = TRAIN_HORN_SOUND;
         ctxt->pickup[train_index].horn = 0;
 
+    } else if (ctxt->pickup[train_index].dump) {
+        req.type                       = TRAIN_DUMP;
+        ctxt->pickup[train_index].dump = false;
+
+    } else if (ctxt->pickup[train_index].threshold >= 0) {
+        req.type                            = TRAIN_THRESHOLD;
+        req.one.int_value = ctxt->pickup[train_index].threshold;
+        ctxt->pickup[train_index].threshold = -1;
+
+    } else if (ctxt->pickup[train_index].alpha >= 0) {
+        req.type                        = TRAIN_ALPHA;
+        req.one.int_value = ctxt->pickup[train_index].alpha;
+        ctxt->pickup[train_index].alpha = -1;
+
     } else { return; }
 
     Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
@@ -170,6 +187,29 @@ static inline void mc_goto(tc_context* const ctxt,
     mc_try_send_train(ctxt, train_num);
 }
 
+static inline void mc_train_dump_velocity(tc_context* const ctxt,
+                                          const int train_num) {
+    TRAIN_ASSERT(train_num);
+    ctxt->pickup[train_num].dump = true;
+    mc_try_send_train(ctxt, train_num);
+}
+
+static inline void mc_threshold(tc_context* const ctxt,
+                                const int train_num,
+                                const int tweak) {
+    TRAIN_ASSERT(train_num);
+    ctxt->pickup[train_num].threshold = tweak;
+    mc_try_send_train(ctxt, train_num);
+}
+
+static inline void mc_alpha(tc_context* const ctxt,
+                            const int train_num,
+                            const int tweak) {
+    TRAIN_ASSERT(train_num);
+    ctxt->pickup[train_num].alpha = tweak;
+    mc_try_send_train(ctxt, train_num);
+}
+
 static inline void tc_init_context(tc_context* const ctxt) {
     memset(ctxt,           0, sizeof(*ctxt));
     memset(ctxt->drivers, -1, sizeof(ctxt->drivers));
@@ -207,6 +247,16 @@ void train_control() {
         case TC_U_GOTO:
             mc_goto(&context, req.payload.int_value);
             break;
+        case TC_U_THRESHOLD:
+            mc_threshold(&context,
+                         req.payload.train_tweak.train,
+                         req.payload.train_tweak.tweak);
+            break;
+        case TC_U_ALPHA:
+            mc_alpha(&context,
+                     req.payload.train_tweak.train,
+                     req.payload.train_tweak.tweak);
+            break;
 
         case TC_T_TRAIN_LIGHT:
             mc_toggle_light(&context, req.payload.int_value);
@@ -222,6 +272,10 @@ void train_control() {
 
         case TC_Q_TRAIN_WHEREIS:
             mc_train_where_are_you(&context, req.payload.int_value);
+            break;
+
+        case TC_Q_DUMP:
+            mc_train_dump_velocity(&context, req.payload.int_value);
             break;
 
         case TC_REQ_WORK:
@@ -241,16 +295,27 @@ void train_control() {
     }
 }
 
-int train_set_speed(const int train, const int speed) {
+int train_set_speed(const int train, int speed) {
     const int train_index = train_to_pos(train);
 
     if (train_index < 0) {
         log("Can't toggle horn of invalid train %d", train);
         return 0;
     }
+
     if (speed < 0 || speed >= TRAIN_REVERSE) {
-        log("can't set train number %d to invalid speed %d", train, speed);
+        log("Can't set train number %d to invalid speed %d", train, speed);
         return 0;
+    }
+
+    if (speed < TRAIN_PRACTICAL_MIN_SPEED && speed != 0) {
+        log("Speed %d is too slow to be be practical", speed);
+        speed = TRAIN_PRACTICAL_MIN_SPEED;
+    }
+
+    if (speed > TRAIN_PRACTICAL_MAX_SPEED) {
+        log("Speed %d is too fast to be reliable", speed);
+        speed = TRAIN_PRACTICAL_MAX_SPEED;
     }
 
     tc_req req = {
@@ -357,6 +422,65 @@ int train_goto(const int train) {
     tc_req req = {
         .type = TC_U_GOTO,
         .payload.int_value = train_index
+    };
+
+    return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int train_dump(const int train) {
+    const int train_index = train_to_pos(train);
+
+    if (train_index < 0) {
+        log("Train %d does not exist!", train);
+        return 0;
+    }
+
+    tc_req req = {
+        .type = TC_Q_DUMP,
+        .payload.int_value = train_index
+    };
+
+    return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int train_update_threshold(const int train, const int threshold) {
+    const int train_index = train_to_pos(train);
+
+    if (train_index < 0) {
+        log("Train %d does not exist!", train);
+        return 0;
+    }
+
+    tc_req req = {
+        .type = TC_U_THRESHOLD,
+        .payload.train_tweak = {
+            .train = (short)train_index,
+            .tweak = (short)threshold
+        }
+    };
+
+    return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int train_update_alpha(const int train, const int alpha) {
+    const int train_index = train_to_pos(train);
+
+    if (train_index < 0) {
+        log("Train %d does not exist!", train);
+        return 0;
+    }
+
+    if (alpha > NINTY_TEN) {
+        log("Invalid alpha value %d", alpha);
+        return 0;
+    }
+
+    tc_req req = {
+        .type = TC_U_ALPHA,
+        .payload.train_tweak = {
+            .train = (short)train_index,
+            .tweak = (short)alpha
+        }
     };
 
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);

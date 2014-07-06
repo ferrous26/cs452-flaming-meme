@@ -3,7 +3,6 @@
 #include <std.h>
 #include <debug.h>
 #include <train.h>
-#include <physics.h>
 #include <syscall.h>
 #include <track_data.h>
 
@@ -42,15 +41,15 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed    Special     Turnouts/Gates/Switches     __Sensor__\n"
-"-----------------------    +-----------------------+    |        | Newest\n"
-" 43                        | 1   | 2   | 3   | 4   |    |        |\n"
-" 45                        | 5   | 6   | 7   | 8   |    |        |\n"
-" 47                        | 9   |10   |11   |12   |    |        |\n"
-" 48                        |13   |14   |15   |16   |    |        |\n"
-" 49                        |17   |18   |-----------|    |        |\n"
-" 50                        |153   154  |155   156  |    |        |\n"
-" 51                        +-----------------------+    |        | Oldest");
+"Train  Speed    Sensors          Turnouts/Gates/Switches     __Sensor__\n"
+"----------------------------    +-----------------------+    |        | Newest\n"
+" 43                             | 1   | 2   | 3   | 4   |    |        |\n"
+" 45                             | 5   | 6   | 7   | 8   |    |        |\n"
+" 47                             | 9   |10   |11   |12   |    |        |\n"
+" 48                             |13   |14   |15   |16   |    |        |\n"
+" 49                             |17   |18   |-----------|    |        |\n"
+" 50                             |153   154  |155   156  |    |        |\n"
+" 51                             +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
 }
 
@@ -109,7 +108,7 @@ static void __attribute__ ((noreturn)) sensor_poll() {
             assert(c >= 0, "sensor_poll got bad return (%d)", c);
 
             for (int mask = 0x8000, i = 0; mask > 0; mask = mask >> 1, i++) {
-                if((c & mask) > (sensor_state[bank] & mask)) {
+                if ((c & mask) > (sensor_state[bank] & mask)) {
                     req.payload.int_value = (bank<<4) + i;
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
@@ -334,8 +333,6 @@ void mission_control() {
 
     int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
-
-    physics_init();
 
     mc_initalize(&context);
     log("[Mission Control] %d - Ready!", Time());

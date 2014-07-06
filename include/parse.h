@@ -22,6 +22,7 @@ typedef enum {
     MOCK,
 
     UPDATE_THRESHOLD,
+    UPDATE_FEEDBACK,
 
     CALIBRATE,
     ACCELERATE,

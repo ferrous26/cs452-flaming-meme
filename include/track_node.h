@@ -19,12 +19,12 @@ struct track_node;
 typedef struct track_node track_node;
 typedef struct track_edge track_edge;
 
-/* typedef enum { */
-/*     EDGE_STRAIGHT, */
-/*     EDGE_CURVED, */
-/*     EDGE_MOSTLY_CURVED, */
-/*     EDGE_None // LOL */
-/* } edge_type; */
+typedef enum {
+    TRACK_STRAIGHT,
+    TRACK_COMBO,
+    TRACK_CURVED,
+    TRACK_TYPE_COUNT
+} track_type;
 
 struct track_edge {
     track_edge* reverse;

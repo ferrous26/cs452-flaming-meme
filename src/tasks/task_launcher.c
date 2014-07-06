@@ -2,7 +2,6 @@
 #include <debug.h>
 #include <train.h>
 #include <parse.h>
-#include <physics.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -66,7 +65,7 @@ static void action(command cmd, int args[]) {
         print_help();
         break;
     case DUMP:
-        physics_dump();
+        train_dump(args[0]);
         break;
 
     case QUIT:
@@ -162,7 +161,10 @@ static void action(command cmd, int args[]) {
         break;
 
     case UPDATE_THRESHOLD:
-        physics_change_feedback_threshold(args[0]);
+        train_update_threshold(args[0], args[1]);
+        break;
+    case UPDATE_FEEDBACK:
+        train_update_alpha(args[0], args[1]);
         break;
 
     case REVERSE_LOOKUP: {

@@ -2,12 +2,17 @@
 #ifndef __TRAIN_H__
 #define __TRAIN_H__
 
+#define TRAIN_MAX_SPEED      14
+#define TRAIN_MIN_SPEED      1
+#define TRAIN_PRACTICAL_MIN_SPEED  6
+#define TRAIN_PRACTICAL_MAX_SPEED  12
+#define TRAIN_PRACTICAL_SPEEDS     7
+#define TRAIN_REVERSE        0xf
+
 #define TRAIN_ALL_START      0x60
 #define TRAIN_ALL_STOP       0x61
 
-#define TRAIN_REVERSE        0x0f
 #define TRAIN_LIGHT          0x10
-
 #define TRAIN_HORN           68
 #define TRAIN_FUNCTION_OFF   64
 

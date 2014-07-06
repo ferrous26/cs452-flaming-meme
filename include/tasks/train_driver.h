@@ -17,12 +17,22 @@ typedef enum {
     TRAIN_STOP,
     TRAIN_WHERE_ARE_YOU,
     TRAIN_GO_TO,
+    TRAIN_DUMP,
+
+    TRAIN_THRESHOLD,
+    TRAIN_ALPHA,
 
     TRAIN_HIT_SENSOR,
     TRAIN_EXPECTED_SENSOR,
 
     TRAIN_REQUEST_COUNT
 } train_req_type;
+
+typedef enum {
+    HALF_AND_HALF,
+    EIGHTY_TWENTY,
+    NINTY_TEN
+} feedback_level;
 
 typedef union {
     sensor_name sensor;

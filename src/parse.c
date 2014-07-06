@@ -85,8 +85,9 @@ static command parse_t(const char* const cmd, int* const buffer) {
         if (!isspace(cmd[index]))                         return ERROR;
         return LOC_SPEED;
     case 'h':
-        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (!isspace(cmd[index]))                     return ERROR;
+        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
         return UPDATE_THRESHOLD;
     default:
         return ERROR;
@@ -173,13 +174,17 @@ static command parse_echo(const char* const cmd) {
     return CMD_ECHO;
 }
 
-static command parse_accelerate(const char* const cmd, int* const buffer) {
+static command parse_a(const char* const cmd, int* const buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
     case 'l':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
 	return ACCELERATE;
+    case 'a':
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        return UPDATE_FEEDBACK;
     }
 
     return ERROR;
@@ -209,6 +214,18 @@ static command parse_mock(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
+static command parse_dump(const char* const cmd, int* const buffer) {
+    int index = 1;
+
+    switch (cmd[index++]) {
+    case 'p':
+	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+	return DUMP;
+    }
+
+    return ERROR;
+}
+
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
@@ -221,8 +238,8 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'l':  return parse_light(cmd, buffer);
     case 'h':  return parse_horn(cmd, buffer);
     case 'c':  return parse_calibrate(cmd, buffer);
-    case 'a':  return parse_accelerate(cmd, buffer);
-    case 'd':  return DUMP;
+    case 'a':  return parse_a(cmd, buffer);
+    case 'd':  return parse_dump(cmd, buffer);
     case 'w':  return parse_where(cmd, buffer);
     case 'm':  return parse_mock(cmd, buffer);
     default:   return ERROR;
