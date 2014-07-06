@@ -215,7 +215,9 @@ static inline void tc_init_context(tc_context* const ctxt) {
     memset(ctxt->drivers, -1, sizeof(ctxt->drivers));
 
     for(int i = 0; i < NUM_TRAINS; i++) {
-        ctxt->pickup[i].stop = -1;
+        ctxt->pickup[i].stop      = -1;
+        ctxt->pickup[i].threshold = -1;
+        ctxt->pickup[i].alpha     = -1;
     }
 }
 
