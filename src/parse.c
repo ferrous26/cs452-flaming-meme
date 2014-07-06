@@ -187,7 +187,7 @@ static command parse_a(const char* const cmd, int* const buffer) {
 	return ACCELERATE;
     case 'a':
         if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
         return UPDATE_FEEDBACK;
     }
 

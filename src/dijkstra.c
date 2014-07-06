@@ -17,14 +17,14 @@ int dijkstra(const track_node* const track,
     struct {
         int dist;
         int dir;
-        const track_node* prev;   
+        const track_node* prev;
     } data[TRACK_MAX];
 
     pq_node        heap[HEAP_SIZE];
-    priority_queue q; 
-    
+    priority_queue q;
+
     pq_init(&q, heap, HEAP_SIZE);
-    
+
     const track_node* ptr = track;
     for (int i = 0; i < TRACK_MAX; i++, ptr++) {
         if (ptr == start || ptr == start->reverse) {
@@ -51,15 +51,15 @@ int dijkstra(const track_node* const track,
             log("NO PATH EXISTS!\n");
             return -1;
         }
-
-        ptr = (track_node*) pq_delete(&q);
         
+        ptr = (track_node*) pq_delete(&q);
         if (end == ptr) break;
+        
         else if (end == ptr->reverse) {
             const int nxt_off = ptr->reverse - track;
             assert(nxt_off > 0 && nxt_off < TRACK_MAX,
                     "track calculation came across invalid node");
-            
+
             data[nxt_off].dist = curr_dist;
             data[nxt_off].prev = ptr;
             direction = 3;
@@ -122,8 +122,8 @@ int dijkstra(const track_node* const track,
 
     int path_size = 0;
     FOREVER {
-        const int offset = ptr - track;
         path_node* const node = &path[path_size];
+        const int offset = ptr - track;
 
         switch(ptr->type) {
         case NODE_NONE:
@@ -145,7 +145,6 @@ int dijkstra(const track_node* const track,
             node->type             = PATH_TURNOUT;
             node->dist             = data[offset].dist;
             node->data.turnout.num = ptr->num;
-
             node->data.turnout.dir = direction ? 'C' : 'S';
             path_size++;
             break;
@@ -158,8 +157,9 @@ int dijkstra(const track_node* const track,
         ptr       = data[offset].prev;
         if (data[ptr-track].prev == ptr) {
             if (ptr != start) {
-                path[path_size].type   = PATH_REVERSE;
-                path[path_size++].dist = data[offset].dist;
+                path[path_size].type = PATH_REVERSE;
+                path[path_size].dist = data[offset].dist;
+                path_size++;
             }
             break;
         }
@@ -167,4 +167,3 @@ int dijkstra(const track_node* const track,
 
     return path_size;
 }
-

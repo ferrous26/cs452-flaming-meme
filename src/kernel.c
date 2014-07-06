@@ -553,7 +553,7 @@ inline static int task_create(const task_pri pri,
     tsk->sp[12]    = EXIT_ADDRESS; // set link register to auto-call Exit()
 
     // set tsk->next
-    scheduler_schedule(tsk);
+    scheduler_reschedule(tsk);
 
     return tsk->tid;
 }

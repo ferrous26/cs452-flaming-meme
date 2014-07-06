@@ -25,9 +25,7 @@ static void create_expected_child(tc_context* const ctxt,
                                   const sensor_name* const sensor) {
     *(int*)&ctxt->expected_tid = Create(4, sensor_notifier);
 
-    log("creating sensor process %d %c %d",
-        ctxt->expected_tid, sensor->bank, sensor->num);
-
+    // TODO: fix types
     Send(ctxt->expected_tid,
          (char*)sensor, sizeof(*sensor),
          NULL, 0);
