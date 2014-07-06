@@ -7,8 +7,6 @@
 typedef struct {
     int requestor;
     int header;
-
-    int train_off; 
     int sensor_to;
     int sensor_from;
 } path_request;
