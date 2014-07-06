@@ -92,7 +92,7 @@ velocity_type(const int sensor) {
     case 69: return TRACK_CURVED;
     case 70: return TRACK_CURVED;
     case 71: return TRACK_STRAIGHT;
-    case 72: return TRACK_CURVED;
+    case 72: return TRACK_STRAIGHT;
     case 73: return TRACK_CURVED;
     case 74: return TRACK_CURVED;
     case 75: return TRACK_CURVED;
