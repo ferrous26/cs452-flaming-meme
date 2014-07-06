@@ -22,6 +22,11 @@
 #define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
 #define SENSOR_LIST_SIZE     9
 
+
+//TODO: remove this when hack is done
+const track_node* train_track;
+
+
 static int mission_control_tid;
 
 typedef struct {
@@ -293,6 +298,8 @@ static void mc_load_track(mc_context* const ctxt, int track_num) {
     }
 
     ctxt->track_loaded = 1;
+    train_track = ctxt->track;
+
     log("loading track %c ...", track_num);
 }
 

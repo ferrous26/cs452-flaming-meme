@@ -9,16 +9,12 @@
 #define RIGHT(i)  (LEFT(i) + 1)
 #define PARENT(i) (i >> 1)
 
-#define CPY_NODE(SRC, DEST) \
-    DEST.key = SRC.key;     \
-    DEST.val = SRC.val
-
 void pq_init(priority_queue* const q, pq_node* const heap, const int size) {
     q->count = 1;
     q->size  = size;
     q->heap  = heap;
 
-    q->heap[0].key = 0;
+    q->heap[0].key = INT_MIN;
     q->heap[0].val = 0;
 
     for (int i = 1; i < size; i++) {
@@ -28,6 +24,8 @@ void pq_init(priority_queue* const q, pq_node* const heap, const int size) {
 }
 
 int pq_delete(priority_queue* const q) {
+    assert(pq_size(q) > 0, "[%d] trying to delete from empty queue", myTid());
+
     int data            = q->heap[1].val;
     int curr            = --q->count;
     pq_node* const node = q->heap;
@@ -71,6 +69,35 @@ void pq_add(priority_queue* const q, const int key, const int value) {
 
     node[curr].key      = key;
     node[curr].val      = value;
+
+    while (node[curr].key < node[parent].key) {
+        pq_node temp = node[curr];
+        node[curr]   = node[parent];
+        node[parent] = temp;
+
+        curr   = parent;
+        parent = PARENT(curr);
+    }
+}
+
+static inline int __attribute__((const))
+find_val(const priority_queue* const q, const int val) {
+    for (int i = 1; i < q->count; i++) {
+        if (q->heap[i].val == val) return i;
+    }
+    return -1;
+}
+
+void pq_raise(priority_queue* const q, const int value, const int new_key) {
+    pq_node* const node = q->heap;
+    int curr            = find_val(q, value);
+
+    assert(curr > 0, "data couldn't be found within the queue");
+    assert(node[curr].key >= new_key,
+           "Prioirity queue can't raise priority low a lower priority");
+
+    int parent     = PARENT(curr);
+    node[curr].key = new_key;
 
     while (node[curr].key < node[parent].key) {
         pq_node temp = node[curr];
