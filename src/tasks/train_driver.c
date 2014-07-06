@@ -2,6 +2,7 @@
 #include <train.h>
 #include <debug.h>
 #include <ui.h>
+#include <track_node.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -371,7 +372,6 @@ static inline void tr_setup_physics(train_context* const ctxt) {
 
     ctxt->feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
     ctxt->feedback_alpha     = EIGHTY_TWENTY;
-    log("yo %d %d", ctxt->feedback_threshold, ctxt->feedback_alpha);
 }
 
 static void tr_setup(train_context* const ctxt) {
