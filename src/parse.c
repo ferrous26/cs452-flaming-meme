@@ -94,7 +94,7 @@ static command parse_t(const char* const cmd, int* const buffer) {
     }
 }
 
-static command parse_where(const char* const cmd, int* const buffer) {
+static command parse_w(const char* const cmd, int* const buffer) {
     int index = 1;
     switch(cmd[index++]) {
     case 'h':
@@ -106,7 +106,9 @@ static command parse_where(const char* const cmd, int* const buffer) {
     }
 }
 
-static command parse_stop(const char* const cmd) {
+static command parse_q(const char* const cmd, int* const buffer) {
+    UNUSED(buffer);
+
     int index = 1;
 
     if (!isspace(cmd[index])) return ERROR;
@@ -132,7 +134,7 @@ static command parse_r(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_light(const char* const cmd, int* const buffer) {
+static command parse_l(const char* const cmd, int* const buffer) {
     int index = 1;
     switch (cmd[index++]) {
     case 't':
@@ -144,16 +146,17 @@ static command parse_light(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_benchmark(const char* const cmd) {
+static command parse_b(const char* const cmd, int* const buffer) {
     int index = 1;
+    UNUSED(buffer);
 
-    if (cmd[index++] != 'm')   return ERROR;
+    if (cmd[index++] != 'm')    return ERROR;
     if (!isspace(cmd[index++])) return ERROR;
 
     return CMD_BENCHMARK;
 }
 
-static command parse_horn(const char* const cmd, int* const buffer) {
+static command parse_h(const char* const cmd, int* const buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
@@ -165,7 +168,8 @@ static command parse_horn(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_echo(const char* const cmd) {
+static command parse_e(const char* const cmd, int* const buffer) {
+    UNUSED(buffer);
     int index = 1;
 
     if (cmd[index++] != 't')   return ERROR;
@@ -190,58 +194,68 @@ static command parse_a(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_calibrate(const char* const cmd, int* const buffer) {
+static command parse_c(const char* const cmd, int* const buffer) {
     int index = 1;
-
     switch (cmd[index++]) {
     case 'l':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
 	return CALIBRATE;
     }
-
     return ERROR;
 }
 
-static command parse_mock(const char* const cmd, int* const buffer) {
+static command parse_m(const char* const cmd, int* const buffer) {
     int index = 1;
-
     switch (cmd[index++]) {
     case 'o':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
 	return MOCK;
     }
-
     return ERROR;
 }
 
-static command parse_dump(const char* const cmd, int* const buffer) {
+static command parse_d(const char* const cmd, int* const buffer) {
     int index = 1;
-
     switch (cmd[index++]) {
     case 'p':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
 	return DUMP;
     }
+    return ERROR;
+}
 
+static command parse_p(const char* const cmd, int* const buffer) {
+    int index = 1;
+
+    switch (cmd[index++]) {
+    case 'f':
+	if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
+	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+	if (parse_argument(cmd, 'c', &index, &buffer[2])) return ERROR;
+	if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
+        if (!isspace(cmd[index++]))                       return ERROR;
+        return PATH_FIND;
+    }
     return ERROR;
 }
 
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
-    case 'e':  return parse_echo(cmd);
-    case 'q':  return parse_stop(cmd);
-    case 'b':  return parse_benchmark(cmd);
-    case 't':  return parse_t(cmd, buffer);
-    case 'r':  return parse_r(cmd, buffer);
-    case 's':  return parse_s(cmd, buffer);
-    case 'l':  return parse_light(cmd, buffer);
-    case 'h':  return parse_horn(cmd, buffer);
-    case 'c':  return parse_calibrate(cmd, buffer);
     case 'a':  return parse_a(cmd, buffer);
-    case 'd':  return parse_dump(cmd, buffer);
-    case 'w':  return parse_where(cmd, buffer);
-    case 'm':  return parse_mock(cmd, buffer);
+    case 'b':  return parse_b(cmd, buffer);
+    case 'c':  return parse_c(cmd, buffer);
+    case 'd':  return parse_d(cmd, buffer);
+    case 'e':  return parse_e(cmd, buffer);
+    case 'h':  return parse_h(cmd, buffer);
+    case 'l':  return parse_l(cmd, buffer);
+    case 'm':  return parse_m(cmd, buffer);
+    case 'p':  return parse_p(cmd, buffer);
+    case 'q':  return parse_q(cmd, buffer);
+    case 's':  return parse_s(cmd, buffer);
+    case 'r':  return parse_r(cmd, buffer);
+    case 't':  return parse_t(cmd, buffer);
+    case 'w':  return parse_w(cmd, buffer);
     default:   return ERROR;
     }
 }

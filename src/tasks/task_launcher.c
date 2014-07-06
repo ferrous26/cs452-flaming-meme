@@ -3,6 +3,8 @@
 #include <train.h>
 #include <parse.h>
 
+#include <track_node.h>
+
 #include <tasks/idle.h>
 #include <tasks/stress.h>
 #include <tasks/bench_msg.h>
@@ -14,6 +16,7 @@
 #include <tasks/train_driver.h>
 #include <tasks/calibrate.h>
 
+#include <tasks/path_worker.h>
 #include <tasks/train_control.h>
 
 #include <tasks/task_launcher.h>
@@ -28,6 +31,8 @@ extern uint* _RODataEnd;
 extern uint* _TextStart;
 extern uint* _TextKernEnd;
 extern uint* _TextEnd;
+
+extern const track_node* const train_track;
 
 #define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
 #define TERM_COL 6
@@ -101,7 +106,7 @@ static void action(command cmd, int args[]) {
         delay_all_sensor();
         time = Time() - time;
         log("time interval took %d", time);
-        break;
+        break;                  
     }
 
     case MOCK: {
@@ -174,6 +179,44 @@ static void action(command cmd, int args[]) {
         } else {
             log("tid %d is %s", args[0], name);
         }
+        break;
+    }
+
+    case PATH_FIND: {
+        int time = Time();
+        int path_findr = Create(4, path_worker);
+        Send(path_findr, (char*)&train_track, sizeof(train_track), NULL, 0);
+
+        path_request req = {
+            .requestor   = myTid(),
+            .header      = 0,
+            .sensor_to   = sensorname_to_num(args[2], args[3]),
+            .sensor_from = sensorname_to_num(args[0], args[1])
+        };
+
+        path_response res;
+
+        Send(path_findr, (char*)&req, sizeof(req), (char*)&res, sizeof(res));
+
+        for (int i = res.size-1, j = 0; i >= 0; i--, j++) {
+            switch(res.path[i].type) {
+            case PATH_SENSOR: {
+                sensor_name print = sensornum_to_name(res.path[i].data.int_value);
+                log("%d\tS\t%c%d\t%d", j, print.bank, print.num, res.path[i].dist);
+                break;
+            }
+            case PATH_TURNOUT:
+                log("%d\tT\t%d %c\t%d",
+                    j, res.path[i].data.turnout.num, res.path[i].data.turnout.dir,
+                    res.path[i].dist);
+                break;
+            case PATH_REVERSE:
+                log("%d\tR\t\t%d", j, res.path[i].dist);
+                break;
+            }
+        }
+        log("delta %d", Time() - time);
+
         break;
     }
     case ERROR:

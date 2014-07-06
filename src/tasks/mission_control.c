@@ -22,10 +22,8 @@
 #define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
 #define SENSOR_LIST_SIZE     9
 
-
 //TODO: remove this when hack is done
 const track_node* train_track;
-
 
 static int mission_control_tid;
 
@@ -73,20 +71,6 @@ pos_to_turnout(const int pos) {
     if (pos < 18) return pos + 1;
     if (pos < 22) return pos + (153-18);
     return -1;
-}
-
-static inline int __attribute__ ((const, always_inline, unused))
-sensorname_to_num(const int bank, const int num) {
-    return ((bank-'A') << 4) + (num-1);
-}
-
-static inline sensor_name __attribute__ ((const, always_inline))
-sensornum_to_name(const int num) {
-    sensor_name name = {
-        .bank = 'A' + (num >>4),
-        .num  = (num & 15) + 1
-    };
-    return name;
 }
 
 static void __attribute__ ((noreturn)) sensor_poll() {

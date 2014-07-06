@@ -30,6 +30,7 @@ typedef enum {
     SEPPUKU,
     DUMP,
     WHEREIS,
+    PATH_FIND,
 
     QUIT,
     ERROR,

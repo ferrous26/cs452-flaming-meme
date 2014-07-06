@@ -30,6 +30,12 @@ int dijkstra(const track_node* const track,
         if (ptr == start || ptr == start->reverse) {
             data[i].prev = start;
             data[i].dist = 0;
+            data[i].dir  = 0;
+            pq_add(&q, 0, (int)ptr);
+        } else if (ptr == start->reverse) {
+            data[i].prev = start->reverse;
+            data[i].dist = 0;
+            data[i].dir  = 0;
             pq_add(&q, 0, (int)ptr);
         } else {
             data[i].prev = NULL;
@@ -38,6 +44,7 @@ int dijkstra(const track_node* const track,
         }
     }
 
+    int direction = 0;
     while (1) {
         const int curr_dist = pq_peek_key(&q);
         if (INT_MAX == curr_dist) {
@@ -45,8 +52,7 @@ int dijkstra(const track_node* const track,
             return -1;
         }
 
-        *(int*)&ptr        = pq_delete(&q);
-        const int cur_off = ptr - track;
+        ptr = (track_node*) pq_delete(&q);
         
         if (end == ptr) break;
         else if (end == ptr->reverse) {
@@ -56,7 +62,7 @@ int dijkstra(const track_node* const track,
             
             data[nxt_off].dist = curr_dist;
             data[nxt_off].prev = ptr;
-            data[cur_off].dir  = 3;
+            direction = 3;
 
             ptr = ptr->reverse;
             break;
@@ -72,7 +78,7 @@ int dijkstra(const track_node* const track,
             if (data[nxt_off].dist > nxt_dist) {
                 data[nxt_off].dist = nxt_dist;
                 data[nxt_off].prev = ptr;
-                data[cur_off].dir  = 0;
+                data[nxt_off].dir  = 0;
 
                 pq_raise(&q, (int)nxt_ptr, nxt_dist);
             }
@@ -86,7 +92,7 @@ int dijkstra(const track_node* const track,
             if (data[nxt_off].dist > nxt_dist) {
                 data[nxt_off].dist = nxt_dist;
                 data[nxt_off].prev = ptr;
-                data[cur_off].dir  = 0;
+                data[nxt_off].dir  = 0;
 
                 pq_raise(&q, (int)nxt_ptr, nxt_dist);
             }
@@ -102,7 +108,7 @@ int dijkstra(const track_node* const track,
                 if (data[nxt_off].dist > nxt_dist) {
                     data[nxt_off].dist = nxt_dist;
                     data[nxt_off].prev = ptr;
-                    data[cur_off].dir  = i;
+                    data[nxt_off].dir  = i;
 
                     pq_raise(&q, (int)nxt_ptr, nxt_dist);
                 }
@@ -117,10 +123,6 @@ int dijkstra(const track_node* const track,
     int path_size = 0;
     FOREVER {
         const int offset = ptr - track;
-        log("%d\t%s\n", path_size, ptr->name);
-        
-        if (data[offset].prev == ptr) break;
-        ptr                   = data[offset].prev;
         path_node* const node = &path[path_size];
 
         switch(ptr->type) {
@@ -129,26 +131,36 @@ int dijkstra(const track_node* const track,
         case NODE_ENTER:
             break;
         case NODE_SENSOR:
-            node->type           = PATH_SENSOR;
-            node->dist           = data[offset].dist;
-            node->data.int_value = ptr->num; 
-            path_size++;
-
-            if (data[offset].dir == 3) {
+            if (direction == 3) {
                 node->type = PATH_REVERSE;
                 node->dist = data[offset].dist;
-                path_size++;
+            } else {
+                node->type           = PATH_SENSOR;
+                node->dist           = data[offset].dist;
+                node->data.int_value = ptr->num; 
             }
+            path_size++;
             break;
         case NODE_BRANCH:
-            node->type             = PATH_SENSOR;
+            node->type             = PATH_TURNOUT;
             node->dist             = data[offset].dist;
-            node->data.turnout.num = ptr->num; 
-            node->data.turnout.dir = data[offset].dir ? 'C' : 'S';
+            node->data.turnout.num = ptr->num;
+
+            node->data.turnout.dir = direction ? 'C' : 'S';
             path_size++;
             break;
         case NODE_MERGE:
             // possibly reverse through
+            break;
+        }
+        
+        direction = data[offset].dir;
+        ptr       = data[offset].prev;
+        if (data[ptr-track].prev == ptr) {
+            if (ptr != start) {
+                path[path_size].type   = PATH_REVERSE;
+                path[path_size++].dist = data[offset].dist;
+            }
             break;
         }
     }

@@ -160,18 +160,9 @@ static void td_update_alpha(train_context* const ctxt, int alpha) {
 
 static void td_reset_train(train_context* const ctxt) __attribute__((unused));
 
-static inline char __attribute__((always_inline))
+static inline char __attribute__((const, always_inline))
 make_speed_cmd(const train_context* const ctxt) {
     return (ctxt->speed & 0xf) | (ctxt->light & 0x10);
-}
-
-static inline sensor_name __attribute__ ((const))
-sensornum_to_name(const int num) {
-    sensor_name name = {
-        .bank = 'A' + (num >>4),
-        .num  = (num & 15) + 1
-    };
-    return name;
 }
 
 static inline void tr_setup_physics(train_context* const ctxt) {
