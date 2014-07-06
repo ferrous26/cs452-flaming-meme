@@ -17,14 +17,14 @@ int dijkstra(const track_node* const track,
     struct {
         int dist;
         int dir;
-        const track_node* prev;   
+        const track_node* prev;
     } data[TRACK_MAX];
 
     pq_node        heap[HEAP_SIZE];
-    priority_queue q; 
-    
+    priority_queue q;
+
     pq_init(&q, heap, HEAP_SIZE);
-    
+
     const track_node* ptr = track;
     for (int i = 0; i < TRACK_MAX; i++, ptr++) {
         if (ptr == start || ptr == start->reverse) {
@@ -45,15 +45,15 @@ int dijkstra(const track_node* const track,
             return -1;
         }
 
-        *(int*)&ptr        = pq_delete(&q);
+        ptr               = (track_node*)pq_delete(&q);
         const int cur_off = ptr - track;
-        
+
         if (end == ptr) break;
         else if (end == ptr->reverse) {
             const int nxt_off = ptr->reverse - track;
             assert(nxt_off > 0 && nxt_off < TRACK_MAX,
                     "track calculation came across invalid node");
-            
+
             data[nxt_off].dist = curr_dist;
             data[nxt_off].prev = ptr;
             data[cur_off].dir  = 3;
@@ -118,7 +118,7 @@ int dijkstra(const track_node* const track,
     FOREVER {
         const int offset = ptr - track;
         log("%d\t%s\n", path_size, ptr->name);
-        
+
         if (data[offset].prev == ptr) break;
         ptr                   = data[offset].prev;
         path_node* const node = &path[path_size];
@@ -131,7 +131,7 @@ int dijkstra(const track_node* const track,
         case NODE_SENSOR:
             node->type           = PATH_SENSOR;
             node->dist           = data[offset].dist;
-            node->data.int_value = ptr->num; 
+            node->data.int_value = ptr->num;
             path_size++;
 
             if (data[offset].dir == 3) {
@@ -143,7 +143,7 @@ int dijkstra(const track_node* const track,
         case NODE_BRANCH:
             node->type             = PATH_SENSOR;
             node->dist             = data[offset].dist;
-            node->data.turnout.num = ptr->num; 
+            node->data.turnout.num = ptr->num;
             node->data.turnout.dir = data[offset].dir ? 'C' : 'S';
             path_size++;
             break;
@@ -155,4 +155,3 @@ int dijkstra(const track_node* const track,
 
     return path_size;
 }
-
