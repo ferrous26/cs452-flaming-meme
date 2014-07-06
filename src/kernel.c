@@ -49,7 +49,7 @@ static struct task_manager {
 } manager DATA_HOT;
 
 CHAR_BUFFER(TASK_MAX)
-static char_buffer free_list   DATA_HOT;
+static char_buffer free_list;
 
 task*  task_active             DATA_HOT;
 task*  int_queue[EVENT_COUNT]  DATA_HOT;
