@@ -27,7 +27,7 @@ int dijkstra(const track_node* const track,
 
     const track_node* ptr = track;
     for (int i = 0; i < TRACK_MAX; i++, ptr++) {
-        if (ptr == start || ptr == start->reverse) {
+        if (ptr == start) {
             data[i].prev = start;
             data[i].dist = 0;
             data[i].dir  = 0;
@@ -124,6 +124,7 @@ int dijkstra(const track_node* const track,
     FOREVER {
         path_node* const node = &path[path_size];
         const int offset = ptr - track;
+        if (data[offset].prev == ptr) break;
 
         switch(ptr->type) {
         case NODE_NONE:
@@ -155,15 +156,13 @@ int dijkstra(const track_node* const track,
 
         direction = data[offset].dir;
         ptr       = data[offset].prev;
-        if (data[ptr - track].prev == ptr) {
-            if (ptr != start) {
-                path[path_size].type = PATH_REVERSE;
-                path[path_size].dist = data[offset].dist;
-                path_size++;
-            }
-            break;
-        }
     }
-
+    
+    if (ptr != start) {
+        path[path_size].type = PATH_REVERSE;
+        // since this is the first command in the path, must be 0
+        path[path_size].dist = 0;
+        path_size++;
+    }
     return path_size;
 }
