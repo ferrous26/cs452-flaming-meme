@@ -5,6 +5,13 @@
 #define TRAIN_CONTROL_NAME "LENIN"
 
 typedef struct {
+    int8 train;
+    int8 bank;
+    int8 num;
+    int8 offset;
+} train_go;
+
+typedef struct {
     short num;
     short speed;
 } train_speed;
@@ -39,6 +46,7 @@ typedef enum {
 } tc_type;
 
 typedef union {
+    train_go        train_go;
     train_tweakable train_tweak;
     train_speed train_speed;
     train_stop  train_stop;
@@ -58,7 +66,7 @@ int train_toggle_light(const int train);
 int train_toggle_horn(const int train);
 int train_stop_at(const int train, const int bank, const int num);
 int train_where_are_you(const int train);
-int train_goto(const int train);
+int train_goto(const int train, const int bank, const int num, const int off);
 int train_dump(const int train);
 int train_update_threshold(const int train, const int threshold);
 int train_update_alpha(const int train, const int alpha);

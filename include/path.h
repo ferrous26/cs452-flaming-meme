@@ -15,6 +15,7 @@ typedef struct {
 
 typedef union {
     path_turn turnout;
+    int       sensor;
     int       int_value;
 } path_data;
 
@@ -25,4 +26,3 @@ typedef struct {
 } path_node;
 
 #endif
-

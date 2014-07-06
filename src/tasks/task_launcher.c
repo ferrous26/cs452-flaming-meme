@@ -32,8 +32,6 @@ extern uint* _TextStart;
 extern uint* _TextKernEnd;
 extern uint* _TextEnd;
 
-extern const track_node* const train_track;
-
 #define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
 #define TERM_COL 6
 
@@ -109,8 +107,8 @@ static void action(command cmd, int args[]) {
         break;                  
     }
 
-    case MOCK: {
-        train_goto(args[0]);
+    case GO: {
+        train_goto(args[0], args[1], args[2], args[3]);
         break;
     }
 

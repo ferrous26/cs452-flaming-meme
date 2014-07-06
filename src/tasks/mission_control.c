@@ -91,8 +91,8 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     }
 
     FOREVER {
+        Putc(TRAIN, SENSOR_POLL);
         for (int bank = 0; bank < NUM_SENSOR_BANKS; bank++) {
-            Putc(TRAIN, SENSOR_RESET + 1 + bank);
             int c = get_train_bank();
             assert(c >= 0, "sensor_poll got bad return (%d)", c);
 
@@ -102,7 +102,6 @@ static void __attribute__ ((noreturn)) sensor_poll() {
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }
-
             sensor_state[bank] = c;
         }
     }

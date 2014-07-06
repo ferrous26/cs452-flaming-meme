@@ -204,12 +204,15 @@ static command parse_c(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_m(const char* const cmd, int* const buffer) {
+static command parse_g(const char* const cmd, int* const buffer) {
     int index = 1;
     switch (cmd[index++]) {
     case 'o':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-	return MOCK;
+        if (parse_argument(cmd, 'c', &index, &buffer[1])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
+	return GO;
     }
     return ERROR;
 }
@@ -247,9 +250,9 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'c':  return parse_c(cmd, buffer);
     case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);
+    case 'g':  return parse_g(cmd, buffer);
     case 'h':  return parse_h(cmd, buffer);
     case 'l':  return parse_l(cmd, buffer);
-    case 'm':  return parse_m(cmd, buffer);
     case 'p':  return parse_p(cmd, buffer);
     case 'q':  return parse_q(cmd, buffer);
     case 's':  return parse_s(cmd, buffer);

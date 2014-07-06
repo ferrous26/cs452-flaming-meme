@@ -4,46 +4,9 @@
 
 #include <std.h>
 #include <train.h>
+#include <path.h>
 
-#define MAX_PATH_COMMANDS 32
-
-typedef enum {
-    SENSOR_COMMAND,
-    REVERSE_COMMAND,
-    TURNOUT_COMMAND
-} command_type;
-
-typedef struct {
-    int sensor;
-    int dist; // distance to next sensor
-} sensor_command;
-
-typedef struct {
-    int distance; // offset from previous location
-    int reserved; // crap space
-} reverse_command;
-
-typedef struct {
-    int number;
-    int direction;
-} turnout_command;
-
-typedef union {
-    sensor_command  sensor;
-    reverse_command reverse;
-    turnout_command turnout;
-} command_body;
-
-typedef struct {
-    command_type type;
-    command_body data;
-} command;
-
-typedef struct {
-    int count;
-    int dist_total;
-    command cmd[MAX_PATH_COMMANDS];
-} path;
+#define PATH_MAX 100
 
 typedef struct {
     const int num;
@@ -77,8 +40,8 @@ typedef struct {
     int  sensor_next_estim;
     int  sensor_stop;       // from an ss command
 
-    bool pathing;
-    path path;
+    int       path;
+    path_node steps[PATH_MAX];
 } train_context;
 
 #endif
