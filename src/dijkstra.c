@@ -51,10 +51,10 @@ int dijkstra(const track_node* const track,
             log("NO PATH EXISTS!\n");
             return -1;
         }
-        
+
         ptr = (track_node*) pq_delete(&q);
         if (end == ptr) break;
-        
+
         else if (end == ptr->reverse) {
             const int nxt_off = ptr->reverse - track;
             assert(nxt_off > 0 && nxt_off < TRACK_MAX,
@@ -137,7 +137,7 @@ int dijkstra(const track_node* const track,
             } else {
                 node->type           = PATH_SENSOR;
                 node->dist           = data[offset].dist;
-                node->data.int_value = ptr->num; 
+                node->data.int_value = ptr->num;
             }
             path_size++;
             break;
@@ -152,10 +152,10 @@ int dijkstra(const track_node* const track,
             // possibly reverse through
             break;
         }
-        
+
         direction = data[offset].dir;
         ptr       = data[offset].prev;
-        if (data[ptr-track].prev == ptr) {
+        if (data[ptr - track].prev == ptr) {
             if (ptr != start) {
                 path[path_size].type = PATH_REVERSE;
                 path[path_size].dist = data[offset].dist;
