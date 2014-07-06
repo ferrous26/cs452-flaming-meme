@@ -2,6 +2,8 @@
 #ifndef __MISSION_CONTROL_H__
 #define __MISSION_CONTROL_H__
 
+#include <track_node.h>
+
 #define MISSION_CONTROL_NAME "BORIS"
 #define SENSOR_POLL_NAME     "SR_POLL"
 #define NUM_TRAINS           7
@@ -10,6 +12,8 @@ typedef struct {
     short bank;
     short num;
 } sensor_name;
+
+extern track_node* train_track;
 
 void mission_control(void) __attribute__((noreturn));
 

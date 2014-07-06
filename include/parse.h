@@ -19,7 +19,7 @@ typedef enum {
     LOC_REVERSE,
     LOC_HORN,
 
-    MOCK,
+    GO,
 
     UPDATE_THRESHOLD,
     UPDATE_FEEDBACK,

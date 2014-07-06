@@ -202,13 +202,16 @@ static command parse_calibrate(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_mock(const char* const cmd, int* const buffer) {
+static command parse_go(const char* const cmd, int* const buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
     case 'o':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-	return MOCK;
+        if (parse_argument(cmd, 'c', &index, &buffer[1])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
+	return GO;
     }
 
     return ERROR;
@@ -241,7 +244,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'a':  return parse_a(cmd, buffer);
     case 'd':  return parse_dump(cmd, buffer);
     case 'w':  return parse_where(cmd, buffer);
-    case 'm':  return parse_mock(cmd, buffer);
+    case 'g':  return parse_go(cmd, buffer);
     default:   return ERROR;
     }
 }

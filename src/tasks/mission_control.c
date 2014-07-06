@@ -24,8 +24,7 @@
 
 
 //TODO: remove this when hack is done
-const track_node* train_track;
-
+track_node* train_track;
 
 static int mission_control_tid;
 

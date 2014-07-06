@@ -32,11 +32,11 @@ typedef struct {
         int  light;
         int  reverse;
         int  stop;
-        bool where;
-        bool go_to;
-        bool dump;
         int  threshold;
         int  alpha;
+        bool where;
+        bool dump;
+        int  go;
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } tc_context;
@@ -101,10 +101,6 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
         req.type                        = TRAIN_WHERE_ARE_YOU;
         ctxt->pickup[train_index].where = false;
 
-    } else if (ctxt->pickup[train_index].go_to) {
-        req.type                        = TRAIN_GO_TO;
-        ctxt->pickup[train_index].go_to = false;
-
     } else if (ctxt->pickup[train_index].light) {
         req.type                        = TRAIN_TOGGLE_LIGHT;
         ctxt->pickup[train_index].light = 0;
@@ -112,6 +108,11 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
     } else if (ctxt->pickup[train_index].horn) {
         req.type                       = TRAIN_HORN_SOUND;
         ctxt->pickup[train_index].horn = 0;
+
+    } else if (ctxt->pickup[train_index].go != -1) {
+        req.type                     = TRAIN_GO_TO;
+        req.one.int_value            = ctxt->pickup[train_index].go;
+        ctxt->pickup[train_index].go = -1;
 
     } else if (ctxt->pickup[train_index].dump) {
         req.type                       = TRAIN_DUMP;
@@ -181,9 +182,10 @@ static inline void mc_train_where_are_you(tc_context* const ctxt,
 }
 
 static inline void mc_goto(tc_context* const ctxt,
-                           const int train_num) {
+                           const int train_num,
+                           const int go) {
     TRAIN_ASSERT(train_num);
-    ctxt->pickup[train_num].go_to = true;
+    ctxt->pickup[train_num].go = go;
     mc_try_send_train(ctxt, train_num);
 }
 
@@ -218,6 +220,7 @@ static inline void tc_init_context(tc_context* const ctxt) {
         ctxt->pickup[i].stop      = -1;
         ctxt->pickup[i].threshold = -1;
         ctxt->pickup[i].alpha     = -1;
+        ctxt->pickup[i].go        = -1;
     }
 }
 
@@ -247,7 +250,9 @@ void train_control() {
             mc_reverse_train(&context, req.payload.int_value);
             break;
         case TC_U_GOTO:
-            mc_goto(&context, req.payload.int_value);
+            mc_goto(&context,
+                    req.payload.train_go.train,
+                    req.payload.int_value);
             break;
         case TC_U_THRESHOLD:
             mc_threshold(&context,
@@ -413,7 +418,11 @@ int train_where_are_you(const int train) {
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int train_goto(const int train) {
+int train_goto(const int train,
+               const int bank,
+               const int num,
+               const int off) {
+
     const int train_index = train_to_pos(train);
 
     if (train_index < 0) {
@@ -423,7 +432,12 @@ int train_goto(const int train) {
 
     tc_req req = {
         .type = TC_U_GOTO,
-        .payload.int_value = train_index
+        .payload.train_go = {
+            .train  = (int8)train_index,
+            .bank   = (int8)bank,
+            .num    = (int8)num,
+            .offset = (int8)off
+        }
     };
 
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);

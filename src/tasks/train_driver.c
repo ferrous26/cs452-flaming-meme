@@ -3,6 +3,8 @@
 #include <debug.h>
 #include <ui.h>
 #include <track_node.h>
+#include <path.h>
+#include <dijkstra.h>
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
@@ -210,32 +212,6 @@ void train_driver() {
     train_req     req;
     train_context context;
 
-    // TEMPORARY
-    path g = {
-        .count      = 4,
-        .dist_total = 1329000
-    };
-
-    g.cmd[4].type                = SENSOR_COMMAND;
-    g.cmd[4].data.sensor.sensor  = 2;
-    g.cmd[4].data.sensor.dist    = 591000;
-
-    g.cmd[3].type                   = TURNOUT_COMMAND;
-    g.cmd[3].data.turnout.number    = 14;
-    g.cmd[3].data.turnout.direction = 'S';
-
-    g.cmd[2].type                   = TURNOUT_COMMAND;
-    g.cmd[2].data.turnout.number    = 11;
-    g.cmd[2].data.turnout.direction = 'S';
-
-    g.cmd[1].type                = SENSOR_COMMAND;
-    g.cmd[1].data.sensor.sensor  = 44;
-    g.cmd[1].data.sensor.dist    = 67000;
-
-    g.cmd[0].type                = SENSOR_COMMAND;
-    g.cmd[0].data.sensor.sensor  = 70;
-    g.cmd[0].data.sensor.dist    = 783000;
-
     tr_setup(&context);
 
     const int train_tid = myParentTid();
@@ -264,6 +240,7 @@ void train_driver() {
 
     int result = Send(command_tid, (char*)&package, sizeof(package), NULL, 0);
     assert(result == 0, "Error sending package to command courier %d", result);
+
 
     FOREVER {
         result = Receive(&tid, (char*)&req, sizeof(req));
@@ -323,8 +300,8 @@ void train_driver() {
             const int velocity = velocity_for_speed(&context);
             context.sensor_next_estim = context.dist_next / velocity;
 
-            if (context.pathing) {
-                context.pathing = false;
+            if (context.path) {
+                context.path = 0;
                 log("Aborted path finding...fix me to re-route");
             }
 
@@ -356,56 +333,56 @@ void train_driver() {
             context.sensor_last  = context.sensor_next;
             const int velocity   = velocity_for_speed(&context);
 
-            // the path info comes into play here
-            command* cmd = &context.path.cmd[context.path.count];
-            if (context.pathing &&
-                cmd->data.sensor.sensor == context.sensor_last) {
+            /* // the path info comes into play here */
+            /* command* cmd = &context.path.cmd[context.path.count]; */
+            /* if (context.pathing && */
+            /*     cmd->data.sensor.sensor == context.sensor_last) { */
 
-                // is this the next sensor in the path?
-                context.path.dist_total -= cmd->data.sensor.dist;
+            /*     // is this the next sensor in the path? */
+            /*     context.path.dist_total -= cmd->data.sensor.dist; */
 
-                const int    stop_dist = stopping_distance(&context);
-                const int dist_to_stop = context.path.dist_total - stop_dist;
+            /*     const int    stop_dist = stopping_distance(&context); */
+            /*     const int dist_to_stop = context.path.dist_total - stop_dist; */
 
-                log ("stop dist is %d, remainig is %d",
-                     stop_dist, context.path.dist_total);
+            /*     log ("stop dist is %d, remainig is %d", */
+            /*          stop_dist, context.path.dist_total); */
 
-                if (dist_to_stop <= 0) {
-                    const int delay_time =
-                        (cmd->data.sensor.dist - dist_to_stop) / velocity;
+            /*     if (dist_to_stop <= 0) { */
+            /*         const int delay_time = */
+            /*             (cmd->data.sensor.dist - dist_to_stop) / velocity; */
 
-                    log("Delaying %d until stop of %d",
-                        delay_time, dist_to_stop);
-                    Delay(delay_time);
-                    td_update_train_speed(&context, 0);
-                }
+            /*         log("Delaying %d until stop of %d", */
+            /*             delay_time, dist_to_stop); */
+            /*         Delay(delay_time); */
+            /*         td_update_train_speed(&context, 0); */
+            /*     } */
 
-                cmd = &context.path.cmd[--context.path.count];
-                while (cmd->type == TURNOUT_COMMAND)
-                    cmd = &context.path.cmd[--context.path.count];
+            /*     cmd = &context.path.cmd[--context.path.count]; */
+            /*     while (cmd->type == TURNOUT_COMMAND) */
+            /*         cmd = &context.path.cmd[--context.path.count]; */
 
-                // if at the final index, then we hit our destination
-                if (context.path.count == 0) {
-                    context.pathing = false;
+            /*     // if at the final index, then we hit our destination */
+            /*     if (context.path.count == 0) { */
+            /*         context.pathing = false; */
 
-                    const sensor_name last =
-                        sensornum_to_name(context.sensor_last);
-                    const int         dist =
-                        velocity * (time - context.time_last);
+            /*         const sensor_name last = */
+            /*             sensornum_to_name(context.sensor_last); */
+            /*         const int         dist = */
+            /*             velocity * (time - context.time_last); */
 
-                    log("[Train%d] Arrived at %c%d + %d mm",
-                        context.num, last.bank, last.num, dist / 1000);
-                }
+            /*         log("[Train%d] Arrived at %c%d + %d mm", */
+            /*             context.num, last.bank, last.num, dist / 1000); */
+            /*     } */
 
-                context.dist_next   = cmd->data.sensor.dist;
-                context.sensor_next = cmd->data.sensor.sensor;
-            }
-            else {
+            /*     context.dist_next   = cmd->data.sensor.dist; */
+            /*     context.sensor_next = cmd->data.sensor.sensor; */
+            /* } */
+            /* else { */
                 // TODO: error checking
                 get_sensor_from(context.sensor_last,
                                 &context.dist_next,
                                 &context.sensor_next);
-            }
+                //}
 
             context.sensor_next_estim = context.dist_next / velocity;
             td_update_train_delta(&context, delta);
@@ -427,16 +404,31 @@ void train_driver() {
         }
 
         case TRAIN_GO_TO: {
-            context.pathing = true;
 
-            // assume that we just got g as the path
-            memcpy(&context.path, &g, sizeof(path));
+            train_go go = *(train_go*)&req.one.int_value;
+            const int node_end = ((go.bank - 'A') * 16) + (go.num - 1);
 
-            for (int i = context.path.count; i; i--) {
-                const command* const c = &context.path.cmd[i];
-                if (c->type == TURNOUT_COMMAND) {
-                    const turnout_command* const t = &c->data.turnout;
-                    update_turnout(t->number, t->direction);
+            log("[Train%d] Going to %c%d + %d cm (%d)",
+                context.num, go.bank, go.num, go.offset, node_end);
+
+            context.path = dijkstra(train_track,
+                                    train_track + context.sensor_next,
+                                    train_track + node_end,
+                                    context.steps);
+            if (context.path < 0) {
+                log("[Train%d] Cannot find a route!", context.num);
+                context.path = 0;
+                break;
+            }
+
+            // TODO: we want to copy this bad boy over
+            // memcpy(&context.path, &g, sizeof(path));
+
+            for (int i = context.path; i; i--) {
+                if (context.steps[i].type == PATH_TURNOUT) {
+                    const path_turn* const turn =
+                        &context.steps[i].data.turnout;
+                    update_turnout(turn->num, turn->dir);
                 }
             }
 
