@@ -443,7 +443,7 @@ void train_driver() {
         assert(req.type < TRAIN_REQUEST_COUNT,
                 "Train %d got bad request %d", context.num, req.type);
 
-        int time = Time();
+        const int time = req.two.int_value;
 
         switch (req.type) {
         case TRAIN_CHANGE_SPEED:
