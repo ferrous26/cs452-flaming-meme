@@ -76,11 +76,21 @@ by entering an empty command.
 \end{center}
 
 \newpage
-\section{FUUUU}
+\section{The Track}
 
-track data. we use what we were given, but with some modifications
+To represent the track we use the data structure and data given on the
+course web site. However, we have modified the data to store track
+distances with extra (artificial) precision in order to avoid rounding
+errors introduced by using integer math operations in calculations.
 
-track b has been remeasured
+In addition, we have also remeasured track B to ensure that the given
+data is accurate. In doing this remeasurement, we changed the fiducial
+point of various track nodes to better categorize track nodes as being
+straight or curved, which is used during calibration.
+
+
+\section{Train Calibration}
+
 
 we use distance measurements for paramaters, because speed and
 consequently time, will vary from train to train, and track piece to
