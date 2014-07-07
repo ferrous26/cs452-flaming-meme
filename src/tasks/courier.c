@@ -37,7 +37,42 @@ void sensor_notifier() {
                       (char*)&time, sizeof(time),
                       (char*)sensor, sizeof(*sensor));
     } while (*sensor != -1);
-    log ("sensor notifier dying now");
+    log ("[SensorNotifier%d] has died...", myTid());
+}
+
+void time_notifier() {
+    int tid;
+
+    struct {
+        tnotify_header head;
+        char           reply[248];
+    } delay_req;
+
+    int result = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
+    
+    Reply(tid, NULL, 0);
+
+    do {
+        assert(result >= (int)sizeof(delay_req.head),
+               "Recived an invalid setup message %d / %d",
+               result, sizeof(delay_req.head));
+
+        switch (delay_req.head.type) { 
+        case DELAY_RELATIVE:
+            Delay(delay_req.head.ticks);
+            break;
+        case DELAY_UNTIL:
+            DelayUntil(delay_req.head.ticks);
+            break;
+        } 
+
+        const int reply_size = result - (int)sizeof(delay_req.head);
+        result = Send(tid,
+                      (char*)&delay_req.reply, reply_size,
+                      (char*)&delay_req, sizeof(delay_req));
+    } while (result != 0);
+
+    log("[TimeNotifier%d] has died...", myTid());
 }
 
 void courier() {
@@ -73,7 +108,7 @@ void courier() {
         assert(result >= 0, "Error sending response to %d", tid);
     } while (result > 0);
 
-    log("[Courier %d] has died...", myTid());
+    log("[Courier%d] has died...", myTid());
 }
 
 

@@ -8,7 +8,19 @@ typedef struct {
     int   size;
 } courier_package;
 
+typedef enum {
+    DELAY_RELATIVE,
+    DELAY_UNTIL,
+} delay_type;
+
+typedef struct {
+    delay_type type;
+    int        ticks;
+} tnotify_header;
+
 void sensor_notifier(void);
+void time_notifier(void);
+
 void courier(void);
 
 #endif

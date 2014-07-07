@@ -79,16 +79,20 @@ static command parse_s(const char* const cmd, int* buffer) {
 static command parse_t(const char* const cmd, int* const buffer) {
     int index = 1;
     switch(cmd[index++]) {
-    case 'r':
-        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return LOC_SPEED;
     case 'h':
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
         if (!isspace(cmd[index]))                         return ERROR;
         return UPDATE_THRESHOLD;
+    case 'r':
+        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return LOC_SPEED;
+    case 't':
+        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return TEST_TIME; 
     default:
         return ERROR;
     }

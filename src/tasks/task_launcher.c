@@ -16,6 +16,8 @@
 #include <tasks/train_driver.h>
 #include <tasks/calibrate.h>
 
+#include <tasks/courier.h>
+
 #include <tasks/path_worker.h>
 #include <tasks/train_control.h>
 
@@ -166,6 +168,7 @@ static void action(command cmd, int args[]) {
     case UPDATE_THRESHOLD:
         train_update_threshold(args[0], args[1]);
         break;
+
     case UPDATE_FEEDBACK:
         train_update_alpha(args[0], args[1]);
         break;
@@ -217,6 +220,33 @@ static void action(command cmd, int args[]) {
 
         break;
     }
+
+    case TEST_TIME: {
+
+        struct {
+            tnotify_header head;
+            int            number;
+        } msg = {
+            .head = {
+                .type  = DELAY_RELATIVE,
+                .ticks = args[0]
+            },
+            .number = 12
+        };
+        log ("%d", sizeof(msg));
+
+        int ret = 4;
+        int tid = Create(4, time_notifier);
+
+        Send(tid, (char*)&msg, sizeof(msg), NULL, 0);
+        Receive(&tid, (char*)&ret, sizeof(ret));
+        
+        log("%d", ret);
+        Reply(tid, NULL, 0);
+
+        break;
+    }
+
     case ERROR:
         log("invalid command");
 	print_help();
