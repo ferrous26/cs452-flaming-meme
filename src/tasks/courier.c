@@ -22,7 +22,7 @@ void sensor_notifier() {
     mc_req sensor_any = {
         .type = MC_D_SENSOR_ANY,
     };
-    
+
     int* const sensor = &sensor_one.payload.int_value;
 
     int result = Receive(&tid, (char*)sensor, sizeof(*sensor));
@@ -70,7 +70,15 @@ void time_notifier() {
                "Recived an invalid setup message %d / %d",
                size, sizeof(delay_req.head));
 
-        
+        switch (delay_req.head.type) {
+        case DELAY_RELATIVE:
+            Delay(delay_req.head.ticks);
+            break;
+        case DELAY_ABSOLUTE:
+            DelayUntil(delay_req.head.ticks);
+            break;
+        }
+
         const int reply_size = size - (int)sizeof(delay_req.head);
         size = Send(tid,
                     (char*)&delay_req.reply, reply_size,
@@ -87,11 +95,11 @@ void delayed_one_way_courier() {
     } delay_req;
 
     int tid;
-    int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));    
+    int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
     assert(size >= (int)sizeof(delay_req.head),
            "Recived an invalid setup message %d / %d",
            size, sizeof(delay_req.head));
-    
+
     int result = Reply(tid, NULL, 0);
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
 
@@ -109,7 +117,7 @@ void delayed_one_way_courier() {
                   delay_req.message, send_size,
                   delay_req.message, sizeof(delay_req.message));
     assert(result >= 0, "failed sending to receiver %d", result);
-    
+
 
     log("[DelayedCourrier%d] has died", myTid());
 }
