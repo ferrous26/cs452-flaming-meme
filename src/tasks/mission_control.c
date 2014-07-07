@@ -160,13 +160,12 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     }
     memset(ctxt->sensor_insert, 0, sizeof(sensor_name));
 
+    const int reply[2] = {Time(), sensor_num};
     if (-1 != waiter) {
-    	const int time                 = Time();
         ctxt->sensor_delay[sensor_num] = -1;
-
-        Reply(waiter, (char*)&time, sizeof(time));
+        Reply(waiter, (char*)&reply, sizeof(reply));
     } else if (-1 != ctxt->wait_all) {
-        Reply(ctxt->wait_all, (char*)&sensor_num, sizeof(sensor_num));
+        Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
         ctxt->wait_all = -1;
     }
 

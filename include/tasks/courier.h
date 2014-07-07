@@ -18,6 +18,12 @@ typedef struct {
     int        ticks;
 } tnotify_header;
 
+typedef struct {
+    int        receiver;
+    delay_type type;
+    int        ticks;
+} tdelay_header;
+
 void sensor_notifier(void);
 void time_notifier(void);
 

@@ -12,29 +12,40 @@
 #include <tasks/courier.h>
 
 void sensor_notifier() {
-    int tid, time;
+    int       tid;
+    int       reply[2];
     const int mc_tid = WhoIs((char*)MISSION_CONTROL_NAME);
 
-    mc_req request = {
+    mc_req sensor_one = {
         .type = MC_D_SENSOR,
     };
-    int* const sensor = &request.payload.int_value;
+    mc_req sensor_any = {
+        .type = MC_D_SENSOR_ANY,
+    };
+    
+    int* const sensor = &sensor_one.payload.int_value;
 
     int result = Receive(&tid, (char*)sensor, sizeof(*sensor));
     assert(result == sizeof(*sensor), "sensor notifier failed %d", result);
     Reply(tid, NULL, 0);
 
     do {
-        assert(*sensor >= 0 && *sensor < 80,
+        assert(*sensor >= 0 && *sensor <= 80,
                "sensor notifier got invalid sensor num from %d (%d)",
                tid, *sensor);
 
-        result = Send(mc_tid,
-                      (char*)&request, sizeof(request),
-                      (char*)&time, sizeof(time));
+        if (*sensor == 80) {
+            result = Send(mc_tid,
+                          (char*)&sensor_any, sizeof(sensor_any),
+                          (char*)&reply, sizeof(reply));
+        } else {
+            result = Send(mc_tid,
+                          (char*)&sensor_one, sizeof(sensor_one),
+                          (char*)&reply, sizeof(reply));
+        }
 
         result = Send(tid,
-                      (char*)&time, sizeof(time),
+                      (char*)&reply, sizeof(reply),
                       (char*)sensor, sizeof(*sensor));
     } while (*sensor != -1);
     log ("[SensorNotifier%d] has died...", myTid());
@@ -50,8 +61,6 @@ void time_notifier() {
 
     int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
 
-    log("delay %d", delay_req.head.ticks);
-
     int result = Reply(tid, NULL, 0);
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
     UNUSED(result);
@@ -61,17 +70,7 @@ void time_notifier() {
                "Recived an invalid setup message %d / %d",
                size, sizeof(delay_req.head));
 
-        switch (delay_req.head.type) {
-        case DELAY_RELATIVE:
-            log("boom");
-            Delay(delay_req.head.ticks);
-            break;
-        case DELAY_ABSOLUTE:
-            DelayUntil(delay_req.head.ticks);
-            break;
-        }
-
-        log("wakey wakey");
+        
         const int reply_size = size - (int)sizeof(delay_req.head);
         size = Send(tid,
                     (char*)&delay_req.reply, reply_size,
@@ -79,6 +78,40 @@ void time_notifier() {
     } while (size != 0);
 
     log("[TimeNotifier%d] has died...", myTid());
+}
+
+void delayed_one_way_courier() {
+    struct {
+        tdelay_header head;
+        char          message [244];
+    } delay_req;
+
+    int tid;
+    int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));    
+    assert(size >= (int)sizeof(delay_req.head),
+           "Recived an invalid setup message %d / %d",
+           size, sizeof(delay_req.head));
+    
+    int result = Reply(tid, NULL, 0);
+    assert(result == 0, "Failed reposnding to setup task (%d)", result);
+
+    switch (delay_req.head.type) {
+    case DELAY_RELATIVE:
+        Delay(delay_req.head.ticks);
+        break;
+    case DELAY_ABSOLUTE:
+        DelayUntil(delay_req.head.ticks);
+        break;
+    }
+
+    const int send_size = size - sizeof(delay_req);
+    result = Send(delay_req.head.receiver,
+                  delay_req.message, send_size,
+                  delay_req.message, sizeof(delay_req.message));
+    assert(result >= 0, "failed sending to receiver %d", result);
+    
+
+    log("[DelayedCourrier%d] has died", myTid());
 }
 
 void courier() {
