@@ -106,7 +106,7 @@ static void action(command cmd, int args[]) {
         delay_all_sensor();
         time = Time() - time;
         log("time interval took %d", time);
-        break;                  
+        break;
     }
 
     case GO: {
@@ -240,7 +240,7 @@ static void action(command cmd, int args[]) {
 
         Send(tid, (char*)&msg, sizeof(msg), NULL, 0);
         Receive(&tid, (char*)&ret, sizeof(ret));
-        
+
         log("%d", ret);
         Reply(tid, NULL, 0);
 
