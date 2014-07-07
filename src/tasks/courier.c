@@ -26,7 +26,7 @@ void sensor_notifier() {
 
     do {
         assert(*sensor >= 0 && *sensor < 80,
-               "sensor notifier got invalid sensor bank from %d (%d)",
+               "sensor notifier got invalid sensor num from %d (%d)",
                tid, *sensor);
 
         result = Send(mc_tid,

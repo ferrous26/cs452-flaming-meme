@@ -21,7 +21,9 @@ typedef          char  int8;
 
 typedef void (*voidf)(void);
 
-int  __attribute__ ((const)) abs(const int val);
+static inline int __attribute__ ((const, always_inline, used))
+abs(const int val) { return val < 0 ? -val : val; }
+
 bool __attribute__ ((const)) isspace(const char c);
 bool __attribute__ ((const)) isdigit(const char c);
 bool __attribute__ ((const)) ishexdigit(const char c);

@@ -117,7 +117,7 @@ static void velocity_feedback(train_context* const ctxt,
                               const int time,
                               const int delta) {
 
-    if (delta > ctxt->feedback_threshold) {
+    if (abs(delta) > ctxt->feedback_threshold) {
         log("Feedback is off by too much (%d) (%d) (%d). I suspect foul play!",
             delta, ctxt->feedback_threshold, ctxt->feedback_alpha);
         return;

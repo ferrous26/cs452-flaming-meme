@@ -1,9 +1,5 @@
 #include <std.h>
 
-int abs(const int val) {
-    return val < 0 ? -val : val;
-}
-
 bool isspace(const char c) {
     switch( c ) {
     case ' ':
@@ -41,3 +37,4 @@ int log10(int c) {
     if (c < 1000000000) return 9;
     return 10;
 }
+

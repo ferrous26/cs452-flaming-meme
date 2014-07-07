@@ -80,7 +80,7 @@ static void td_update_train_delta(train_context* const ctxt, const int delta) {
     const sensor_name next = sensornum_to_name(ctxt->sensor_next);
 
     ptr = sprintf_int(ptr, delta);
-    ptr = ui_pad(ptr, log10(delta), 5);
+    ptr = ui_pad(ptr, log10(abs(delta)) + (delta < 0 ? 1 : 0), 5);
 
     if (last.num < 10)
         ptr = sprintf(ptr, "%c0%d ", last.bank, last.num);
@@ -309,8 +309,7 @@ void train_driver() {
 
             const int expected = context.sensor_next_estim;
             const int actual   = time - context.time_last;
-            const int delta    = actual > expected ?
-                actual - expected : expected - actual;
+            const int delta    = actual - expected;
 
             // TODO: this should be a function of acceleration and not a
             //       constant value
