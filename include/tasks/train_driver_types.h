@@ -23,6 +23,8 @@ typedef struct {
     int  speed;
     int  speed_last;
 
+    int courier;            // courier used for train delays
+
     int  light;
     int  horn;
     int  direction;

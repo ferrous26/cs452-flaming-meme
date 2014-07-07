@@ -131,6 +131,69 @@ static void td_toggle_horn(train_context* const ctxt) {
                   ctxt->horn ? TRAIN_HORN : TRAIN_FUNCTION_OFF);
 }
 
+static void td_reverse_direction(train_context* const ctxt) {
+    td_update_train_speed(ctxt, 0); // STAHP!
+
+    // TODO: do not use magic numbers for priorities
+    ctxt->courier = Create(6, time_notifier);
+    if (ctxt->courier < 0) {
+        log("Failed to create delay courier for reverse (%d)",
+            ctxt->courier);
+        return;
+    }
+
+    struct {
+        tnotify_header head;
+        train_req      req;
+    } msg = {
+        .head = {
+            .type  = DELAY_RELATIVE,
+            // TODO: use acceleration function to determine this
+            .ticks = ctxt->speed_last * 40
+        },
+        .req = {
+            .type = TRAIN_REVERSE_COURIER
+        }
+    };
+
+    int result = Send(ctxt->courier,
+                      (char*)&msg, sizeof(msg),
+                      NULL, 0);
+    if (result < 0)
+        ABORT("Failed to send delay for reverse (%d)", result);
+}
+
+static void td_reverse(train_context* const ctxt) {
+
+    struct {
+        tnotify_header head;
+        train_req      req;
+    } msg = {
+        .head = {
+            .type  = DELAY_RELATIVE,
+            .ticks = 2
+        },
+        .req = {
+            .type = TRAIN_REVERSE_COURIER_FINAL,
+            .one.int_value = ctxt->speed_last
+        }
+    };
+
+    td_update_train_speed(ctxt, TRAIN_REVERSE);
+
+    int result = Reply(ctxt->courier, (char*)&msg, sizeof(msg));
+    if (result < 0) ABORT("Failed to minor delay reverse (%d)", result);
+}
+
+static void td_reverse_final(train_context* const ctxt,
+                             const int speed) {
+
+    td_update_train_direction(ctxt, -ctxt->direction);
+    td_update_train_speed(ctxt, speed);
+    int result = Reply(ctxt->courier, NULL, 0);
+    if (result < 0) log("Failed to kill delay courier (%d)", result);
+}
+
 static void td_train_dump(train_context* const ctxt) {
 
     for (int i = 0; i < TRACK_TYPE_COUNT; i++)
@@ -193,6 +256,8 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_WHERE_ARE_YOU:
         case TRAIN_REQUEST_COUNT:
         case TRAIN_EXPECTED_SENSOR:
+        case TRAIN_REVERSE_COURIER:
+        case TRAIN_REVERSE_COURIER_FINAL:
             ABORT("She's moving when we dont tell her too captain!");
         }
     }
@@ -248,18 +313,17 @@ void train_driver() {
         case TRAIN_CHANGE_SPEED:
             td_update_train_speed(&context, req.one.int_value);
             break;
-        case TRAIN_REVERSE_DIRECTION: {
-            int old_speed = context.speed;
 
-            td_update_train_speed(&context, 0);
-            Delay(old_speed * 40); // TODO: use acceleration function
-            td_update_train_speed(&context, TRAIN_REVERSE);
-            Delay(2);
-            td_update_train_direction(&context, -context.direction);
-            td_update_train_speed(&context, old_speed);
-
+        case TRAIN_REVERSE_DIRECTION:
+            td_reverse_direction(&context);
             break;
-        }
+        case TRAIN_REVERSE_COURIER:
+            td_reverse(&context);
+            continue;
+        case TRAIN_REVERSE_COURIER_FINAL:
+            td_reverse_final(&context, req.one.int_value);
+            continue;
+
         case TRAIN_TOGGLE_LIGHT:
             td_toggle_light(&context);
             break;
