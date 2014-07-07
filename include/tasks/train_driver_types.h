@@ -41,10 +41,10 @@ typedef struct {
 
     int  sensor_last;       // this is a sensor
     int  sensor_next;       // this is a sensor
-    int  sensor_stop;       // from an ss command
+    int  sensor_stop;       // from an ss/go command
     int  sensor_next_estim; // this is a relative time estimate
 
-    train_go  go_cmd;       // last goto command that was sent
+    bool      reversing;
     int       path;
     int       path_dist;
     int       path_past_end;

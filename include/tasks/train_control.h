@@ -5,10 +5,10 @@
 #define TRAIN_CONTROL_NAME "LENIN"
 
 typedef struct {
-    int8 train;
-    int8 bank;
-    int8 num;
-    int8 offset;
+    int8  train;
+    int8  offset;
+    int8  bank;
+    int8  num;
 } train_go;
 
 typedef struct {

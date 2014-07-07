@@ -3,6 +3,7 @@
 #define __TRAIN_STATION_H__
 
 #include <tasks/mission_control.h>
+#include <tasks/train_control.h>
 
 #define TRAIN_STATION_NAME (char*)"TRAINS"
 
@@ -39,6 +40,7 @@ typedef enum {
 } feedback_level;
 
 typedef union {
+    train_go    go;
     sensor_name sensor;
     int         int_value;
 } thing;

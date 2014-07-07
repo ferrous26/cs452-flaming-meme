@@ -41,9 +41,9 @@ static int recalculate_stopping_point(train_context* const ctxt) {
 
     // TODO: fix this
     ctxt->stopping_point = total_dist - stop_dist;
-    if (ctxt->stopping_point < STOPPING_DISTANCE_THRESHOLD) {
-        log("[Train%d] Not enough time to stop. Aborting path!",
-            ctxt->num);
+    if (ctxt->stopping_point <= STOPPING_DISTANCE_THRESHOLD) {
+        log("[Train%d] Not enough time to stop. Aborting path! %d - %d = %d",
+            ctxt->num, total_dist, stop_dist, ctxt->stopping_point);
         ctxt->path = -1;
         return 1;
     }
@@ -137,8 +137,10 @@ static void td_update_train_speed(train_context* const ctxt,
     ctxt->speed        = new_speed & 0xF;
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     ctxt->acceleration_last = Time(); // TEMPORARY
-    if (ctxt->path >= 0)
-        recalculate_stopping_point(ctxt);
+    if (ctxt->path >= 0 && new_speed) {
+        if (recalculate_stopping_point(ctxt))
+            td_update_train_speed(ctxt, 0);
+    }
     td_update_ui_speed(ctxt);
 }
 
@@ -155,6 +157,7 @@ static void td_toggle_horn(train_context* const ctxt) {
 
 static void td_reverse_direction(train_context* const ctxt) {
     td_update_train_speed(ctxt, 0); // STAHP!
+    ctxt->reversing = true;
 
     // TODO: do not use magic numbers for priorities
     ctxt->courier = Create(6, time_notifier);
@@ -214,9 +217,11 @@ static void td_reverse_final(train_context* const ctxt,
     td_update_train_speed(ctxt, speed);
     int result = Reply(ctxt->courier, NULL, 0);
     if (result < 0) log("Failed to kill delay courier (%d)", result);
+    ctxt->reversing = false;
 }
 
-static void debug_path(const train_context* const ctxt) {
+static void __attribute__ ((unused))
+debug_path(const train_context* const ctxt) {
     for (int i = ctxt->path - 1, j = 0; i >= 0; i--, j++) {
         switch(ctxt->steps[i].type) {
         case PATH_SENSOR: {
@@ -246,17 +251,19 @@ static void td_goto_next_step(train_context* const ctxt) {
     const path_node* step = &ctxt->steps[ctxt->path];
     while (ctxt->path >= 0 && step->type != PATH_SENSOR) {
         step = &ctxt->steps[--ctxt->path];
-        log("skipping step %d", ctxt->path);
     }
 }
 
-static void td_goto(train_context* const ctxt, const int arg, const int time) {
+static void td_goto(train_context* const ctxt,
+                    const int sensor,
+                    const int offset,
+                    const int time) {
 
-    const train_go  go = ctxt->go_cmd = *(train_go*)&arg;
-    const int node_end = ((go.bank - 'A') * 16) + (go.num - 1);
+    const int node_end = ctxt->sensor_stop = sensor;
 
+    const sensor_name s = sensornum_to_name(sensor);
     log("[Train%d] Going to %c%d + %d cm (%d)",
-        ctxt->num, go.bank, go.num, go.offset, node_end);
+        ctxt->num, s.bank, s.num, offset, node_end);
 
 
     int sensor_next = ctxt->sensor_next;
@@ -293,8 +300,8 @@ static void td_goto(train_context* const ctxt, const int arg, const int time) {
     // if we start with a reverse, then we can reverse now
     if (ctxt->steps[ctxt->path].type == PATH_REVERSE) {
         td_reverse_direction(ctxt);
-        ctxt->path--;
     }
+    ctxt->path--;
 
     // get these all in order now
     for (int i = ctxt->path; i >= 0; i--) {
@@ -306,7 +313,7 @@ static void td_goto(train_context* const ctxt, const int arg, const int time) {
     }
 
     // figure out how far past the sensor we need to move
-    ctxt->path_past_end = go.offset * 10000; // convert to umeters
+    ctxt->path_past_end = offset * 10000; // convert to umeters
     // if we are reversing at the end, then the offset
     // is actually a negative offset from the new direction
     if (ctxt->steps[1].type == PATH_REVERSE)
@@ -401,6 +408,16 @@ static inline void train_wait_use(train_context* const ctxt,
     }
 }
 
+static int path_fast_forward(train_context* const ctxt,
+                             const int sensor) {
+    for (; ctxt->path >= 0; ctxt->path--) {
+        if (ctxt->steps[ctxt->path].type == PATH_SENSOR &&
+            ctxt->steps[ctxt->path].data.sensor == sensor)
+            return 0;
+    }
+    return 1;
+}
+
 void train_driver() {
     int           tid;
     train_req     req;
@@ -476,30 +493,50 @@ void train_driver() {
             break;
 
         case TRAIN_HIT_SENSOR: {
+            const sensor_name expect = sensornum_to_name(context.sensor_next);
+
             context.dist_last   = context.dist_next;
             context.time_last   = time;
             context.sensor_last = req.one.int_value;
-
-            result = get_sensor_from(req.one.int_value,
-                                     &context.dist_next,
-                                     &context.sensor_next);
-            assert(result >= 0, "failed to get next sensor");
-
             const sensor_name last = sensornum_to_name(context.sensor_last);
+
+
+            if (context.path >= 0 && !context.reversing) {
+                log("Missed sensor...");
+                if (path_fast_forward(&context, req.one.int_value)) {
+                    td_goto_next_step(&context);
+                    context.dist_next   = context.steps[context.path].dist;
+                    context.sensor_next =
+                        context.steps[context.path].data.sensor;
+
+                    const sensor_name next =
+                        sensornum_to_name(context.sensor_next);
+                    log("FAST FORWARD >> %c%d", next.bank, next.num);
+                }
+                else {
+                    log("Rerouting");
+                    td_goto(&context,
+                            context.sensor_stop,
+                            context.path_past_end,
+                            time);
+                }
+            }
+            else {
+                result = get_sensor_from(req.one.int_value,
+                                         &context.dist_next,
+                                         &context.sensor_next);
+                assert(result >= 0, "failed to get next sensor");
+            }
+
             const sensor_name next = sensornum_to_name(context.sensor_next);
-            log("[Train%d] Hit unexpected sensor %c%d, "
-                "next expected sensor is %c%d",
+            log("[Train%d] Expected %c%d, but hit %c%d, next expected %c%d",
                 context.num,
+                expect.bank, expect.num,
                 last.bank, last.num,
                 next.bank, next.num);
 
             const int velocity = velocity_for_speed(&context);
             context.sensor_next_estim = context.dist_next / velocity;
-
-            if (context.path >= 0) {
-                log("Missed sensor...rerouting");
-                td_goto(&context, *(int*)&context.go_cmd, time);
-            }
 
             Reply(tid,
                   (char*)&context.sensor_next,
@@ -507,10 +544,10 @@ void train_driver() {
             continue;
         }
         case TRAIN_EXPECTED_SENSOR: {
-            if (context.sensor_next == context.sensor_stop) {
-                td_update_train_speed(&context, 0);
-                context.sensor_stop = -1;
-            }
+            /* if (context.sensor_next == context.sensor_stop) { */
+            /*     td_update_train_speed(&context, 0); */
+            /*     context.sensor_stop = -1; */
+            /* } */
 
             const int expected = context.sensor_next_estim;
             const int actual   = time - context.time_last;
@@ -533,7 +570,6 @@ void train_driver() {
             // if path finding and expected sensor is next on the path
             if (context.path > 0 &&
                 step->data.sensor == context.sensor_last) {
-                log("Pathing!");
 
                 // there will always be a step 0, so we can do this safely
                 int next_dist = 0;
@@ -543,8 +579,12 @@ void train_driver() {
                         break;
                     }
                 }
-                log("Next sensor is at %d mm. We need to stop at %d mm.",
-                    next_dist / 1000, context.stopping_point / 1000);
+
+                const sensor_name last = sensornum_to_name(context.sensor_last);
+                log("Next sensor %c%d is at %d mm. We need to stop at %d mm.",
+                    last.bank, last.num,
+                    next_dist / 1000,
+                    context.stopping_point / 1000);
 
                 if (next_dist >= context.stopping_point) {
                     const int step_dist = next_dist - step->dist;
@@ -553,40 +593,45 @@ void train_driver() {
                         (step_dist - (next_dist - context.stopping_point)) /
                         velocity;
 
-                    log("Delaying %d until stop of %d",
-                        delay_time, context.stopping_point);
+                    log("Delaying %d ticks until stop at %d",
+                        delay_time, context.stopping_point / 1000);
                     Delay(delay_time);
+
                     td_update_train_speed(&context, 0);
-                }
 
-                FOREVER {
-                    if (context.path == 0) break; // we are on last step
+                    // TODO: fix this dirty hack
+                    if (context.steps[1].type == PATH_REVERSE) {
+                        Delay(40 * context.speed_last);
+                        td_update_train_speed(&context, TRAIN_REVERSE);
+                        Delay(2);
+                        td_update_train_speed(&context, 0);
+                    }
 
-                    step = &context.steps[--context.path];
-                    if (step->type == PATH_SENSOR) break;
-
-                    if (step->type == PATH_REVERSE)
-                        td_reverse_direction(&context);
-                }
-
-                // if at the final index, then we hit our destination
-                if (context.path == 0) {
-                    const sensor_name last =
-                        sensornum_to_name(context.sensor_last);
-                    const int         dist =
-                        velocity * (time - context.time_last);
-
-                    log("[Train%d] Arrived at %c%d + %d mm",
-                        context.num, last.bank, last.num, dist / 1000);
+                    const int dist = velocity * (time - context.time_last);
+                    const sensor_name target =
+                        sensornum_to_name(context.sensor_stop);
+                    log("[Train%d] Arriving at %c%d + %d mm",
+                        context.num, target.bank, target.num, dist / 1000);
 
                     // TODO: error checking
                     get_sensor_from(context.sensor_last,
                                     &context.dist_next,
                                     &context.sensor_next);
+
+                    context.path = -1; // kill pathing
                 }
                 else {
                     context.dist_next   = next_dist;
                     context.sensor_next = step->data.sensor;
+                    sensor_name a = sensornum_to_name(context.sensor_next);
+                    log("Next is %c%d", a.bank, a.num);
+                }
+
+                FOREVER {
+                    if (context.path <= 0) break; // we are on last step
+
+                    step = &context.steps[--context.path];
+                    if (step->type == PATH_SENSOR) break;
                 }
             }
             else {
@@ -610,7 +655,10 @@ void train_driver() {
             break;
 
         case TRAIN_GO_TO:
-            td_goto(&context, req.one.int_value, time);
+            td_goto(&context,
+                    sensorname_to_num(req.one.go.bank, req.one.go.num),
+                    req.one.go.offset,
+                    time);
             break;
 
         case TRAIN_DUMP:
