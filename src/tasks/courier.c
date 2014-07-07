@@ -48,18 +48,22 @@ void time_notifier() {
         char           reply[248];
     } delay_req;
 
-    int result = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
-    
-    tid = Reply(tid, NULL, 0);
-    assert(tid == 0, "Failed reposnding to setup task (%d)", tid);
+    int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
+
+    log("delay %d", delay_req.head.ticks);
+
+    int result = Reply(tid, NULL, 0);
+    assert(result == 0, "Failed reposnding to setup task (%d)", result);
+    UNUSED(result);
 
     do {
-        assert(result >= (int)sizeof(delay_req.head),
+        assert(size >= (int)sizeof(delay_req.head),
                "Recived an invalid setup message %d / %d",
-               result, sizeof(delay_req.head));
+               size, sizeof(delay_req.head));
 
         switch (delay_req.head.type) {
         case DELAY_RELATIVE:
+            log("boom");
             Delay(delay_req.head.ticks);
             break;
         case DELAY_ABSOLUTE:
@@ -67,11 +71,12 @@ void time_notifier() {
             break;
         }
 
-        const int reply_size = result - (int)sizeof(delay_req.head);
-        result = Send(tid,
-                      (char*)&delay_req.reply, reply_size,
-                      (char*)&delay_req, sizeof(delay_req));
-    } while (result != 0);
+        log("wakey wakey");
+        const int reply_size = size - (int)sizeof(delay_req.head);
+        size = Send(tid,
+                    (char*)&delay_req.reply, reply_size,
+                    (char*)&delay_req, sizeof(delay_req));
+    } while (size != 0);
 
     log("[TimeNotifier%d] has died...", myTid());
 }
@@ -79,7 +84,7 @@ void time_notifier() {
 void courier() {
     int tid;
     courier_package package;
-    
+
     char buffer[512];
 
     int result = Receive(&tid, (char*)&package, sizeof(package));
@@ -100,7 +105,7 @@ void courier() {
 
         assert(result > 0,
                "problem with response to %d from receiver %d (%d)",
-               tid, package.receiver, result); 
+               tid, package.receiver, result);
 
         result = Send(tid,
                       buffer, result,
@@ -111,9 +116,3 @@ void courier() {
 
     log("[Courier%d] has died...", myTid());
 }
-
-
-
-
-
-
