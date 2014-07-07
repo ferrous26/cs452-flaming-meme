@@ -7,6 +7,8 @@
 #include <path.h>
 
 #define PATH_MAX 100
+// Minimum distance to react to a stop command
+#define STOPPING_DISTANCE_THRESHOLD 6000 // 6 cm
 
 typedef struct {
     const int num;
@@ -37,14 +39,16 @@ typedef struct {
     int  time_last;         // time last sensor was hit
     int  time_next_estim;   // estimated time to next sensor
 
-    int  sensor_last;
-    int  sensor_next;
-    int  sensor_next_estim;
+    int  sensor_last;       // this is a sensor
+    int  sensor_next;       // this is a sensor
     int  sensor_stop;       // from an ss command
+    int  sensor_next_estim; // this is a relative time estimate
 
+    train_go  go_cmd;       // last goto command that was sent
     int       path;
     int       path_dist;
     int       path_past_end;
+    int       stopping_point;
     path_node steps[PATH_MAX];
 
     int stop_offset;
