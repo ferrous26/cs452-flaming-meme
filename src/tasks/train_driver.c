@@ -39,8 +39,9 @@ static int recalculate_stopping_point(train_context* const ctxt) {
         ctxt->stop_offset;
     const int  stop_dist = stopping_distance(ctxt);
 
+    // TODO: fix this
     ctxt->stopping_point = total_dist - stop_dist;
-    if (ctxt->stopping_point <= STOPPING_DISTANCE_THRESHOLD) {
+    if (ctxt->stopping_point < STOPPING_DISTANCE_THRESHOLD) {
         log("[Train%d] Not enough time to stop. Aborting path!",
             ctxt->num);
         ctxt->path = -1;
@@ -136,7 +137,8 @@ static void td_update_train_speed(train_context* const ctxt,
     ctxt->speed        = new_speed & 0xF;
     put_train_cmd((char)ctxt->num, make_speed_cmd(ctxt));
     ctxt->acceleration_last = Time(); // TEMPORARY
-    recalculate_stopping_point(ctxt);
+    if (ctxt->path >= 0)
+        recalculate_stopping_point(ctxt);
     td_update_ui_speed(ctxt);
 }
 
