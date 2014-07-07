@@ -102,9 +102,9 @@ task(:local) { Rake::Task[:build].invoke('p2sbt') }
 
 namespace :md5 do
   def make_md5_for report
-    files = ['Makefile', 'Rakefile', 'orex.ld'] +
-      FileList['include/**/*.h'] +
-      FileList['src/**/*.c'] +
+    headers = ['Makefile', 'Rakefile', 'orex.ld'] +
+      FileList['include/**/*.h']
+    impls   = FileList['src/**/*.c'] +
       FileList['src/**/*.asm']
 
     require 'digest/md5'
@@ -112,14 +112,22 @@ namespace :md5 do
 
     md5 = Digest::MD5.new
 
-    CSV.open("report/#{report}/md5_info.csv", 'w') do |csv|
+    CSV.open("report/#{report}/md5_info_headers.csv", 'w') do |csv|
       csv << ['file', 'hash']
-      files.sort.each do |file|
+      headers.sort.each do |file|
         csv << [file.gsub(/_/, '\_'), md5.hexdigest(File.read file)]
       end
     end
 
-    puts "md5sum -> report/#{report}/md5_info.csv"
+    CSV.open("report/#{report}/md5_info_impls.csv", 'w') do |csv|
+      csv << ['file', 'hash']
+      impls.sort.each do |file|
+        csv << [file.gsub(/_/, '\_'), md5.hexdigest(File.read file)]
+      end
+    end
+
+    puts "md5sum -> report/#{report}/md5_info_headers.csv"
+    puts "md5sum -> report/#{report}/md5_info_impls.csv"
   end
 
   task(:a0) { make_md5_for 'a0'       }

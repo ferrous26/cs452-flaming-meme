@@ -34,6 +34,9 @@ report/**/*.aux
 report/**/*.log
 report/**/*.out
 report/**/md5_info.csv
+report/**/md5_info_headers.csv
+report/**/md5_info_impls.csv
+
 
 VERSION
 

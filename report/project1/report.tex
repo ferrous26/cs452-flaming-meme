@@ -7,16 +7,99 @@
 
 \section*{Overview}
 
-Herp Derp
+This kernel development milestone adds the final set of kernel
+features required for train control, namely serial I/O for both
+the terminal and train controller. To demonstrate the finished kernel,
+the M{\"a}rklin train set can be controlled by user input
+to a terminal, and train track state is updated live on screen as the
+trains travel around the track.
 
+Commands issued into the terminal can manipulate trains and
+switches, as well as monitor sensors. Trains can start, stop, toggle
+lights and sound effects, and adjust speed. Switches can be toggled or
+explicitly set to the straight or curved state.
+
+The terminal displays information about current state
+of the trains and switches, including a short history of the most
+recent sensor activations. However, sensor activity cannot be
+controlled by the user in any way.
+
+
+\section*{Operation Instructions}
+
+A pre-compiled kernel exists at
+\ttt{/u/cs452/tftp/ARM/marada/k4.elf}, which can be loaded with
+RedBoot using the following command:
+
+\begin{center}
+  \ttt{load -h 10.15.167.4 ARM/marada/k4.elf; go}
+\end{center}
+
+Notice that no offset should be specified for the load instruction.
+
+The source code for the kernel exists in \ttt{/u3/marada/kernel4/},
+and can be compiled with the following command chain:
+
+\begin{center}
+  \ttt{cd /u3/marada/kernel4 \&\& /u/cs444/bin/rake local}
+\end{center}
+
+Which will produce a \ttt{kernel.elf} file in the same directory as
+the makefile, built in release mode with benchmarking enabled.
+
+After Initialization the kernel will print
+``\ttt{Welcome to Task Launcher}'' into the message logging area of
+the screen and a command prompt will appear near the center of the
+screen titled ``TERM> ''. At this point commands can be entered; keys
+pressed should be echoed back at the command prompt in place of the
+white cursor. Pressing the return key will confirm a command and cause
+it to be processed. An online listing of the commands can be printed
+by entering an empty command.
+
+\subsection*{Submitted Files}
 \begin{center}
 \begin{tabular}{l|l}
   \bfseries File & \bfseries MD5 Hash
   \\\hline
-  \csvreader[head to column names]{md5_info.csv}{}%
+  \csvreader[head to column names]{md5_info_headers.csv}{}%
   {\\\file & \ttt{\hash}}%
 \end{tabular}
 \end{center}
+\newpage
+\begin{center}
+\begin{tabular}{l|l}
+  \bfseries File & \bfseries MD5 Hash
+  \\\hline
+  \csvreader[head to column names]{md5_info_impls.csv}{}%
+  {\\\file & \ttt{\hash}}%
+\end{tabular}
+\end{center}
+
+\newpage
+\section{FUUUU}
+
+track data. we use what we were given, but with some modifications
+
+track b has been remeasured
+
+we use distance measurements for paramaters, because speed and
+consequently time, will vary from train to train, and track piece to
+track piece.
+
+write about Putin
+
+tweakables
+
+calibration methods
+
+pathing, including data format
+
+only one train can be active at a time because of how sensors work
+
+event based architecture
+
+couriers, bitch. allow us to send things to other tasks without
+blocking
 
 
 \end{document}
