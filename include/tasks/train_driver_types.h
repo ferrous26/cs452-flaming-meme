@@ -46,6 +46,8 @@ typedef struct {
     int       path_dist;
     int       path_past_end;
     path_node steps[PATH_MAX];
+
+    int stop_offset;
 } train_context;
 
 #endif
