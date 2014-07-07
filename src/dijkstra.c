@@ -32,11 +32,11 @@ int dijkstra(const track_node* const track,
             data[i].dist = 0;
             data[i].dir  = 0;
             pq_add(&q, 0, (int)ptr);
-        } else if (ptr == start->reverse) {
+/*        } else if (ptr == start->reverse) {
             data[i].prev = start->reverse;
             data[i].dist = 0;
             data[i].dir  = 0;
-            pq_add(&q, 0, (int)ptr);
+            pq_add(&q, 0, (int)ptr); */
         } else {
             data[i].prev = NULL;
             data[i].dist = INT_MAX;

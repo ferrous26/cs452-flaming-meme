@@ -78,7 +78,8 @@ void train_console() {
         if (context.driver_tid == tid) {
             const int sensor_num  = 80;
             context.sensor_expect = buffer.driver;
-            Reply(context.sensor_tid, (char*)&sensor_num, sizeof(sensor_num));
+            result = Reply(context.sensor_tid, (char*)&sensor_num, sizeof(sensor_num));
+            assert(result == 0, "FUCK");
 
         } else if (context.sensor_tid == tid) {
             train_req callin = {
@@ -88,7 +89,9 @@ void train_console() {
                 .one.int_value = buffer.sensor[1],
                 .two.int_value = buffer.sensor[0]
             };
-            Reply(context.driver_tid, (char*)&callin, sizeof(callin));
+
+            result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
+            assert(result == 0, "FUCK");
         }
     }
 }

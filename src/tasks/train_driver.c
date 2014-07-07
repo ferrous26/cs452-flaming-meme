@@ -217,7 +217,6 @@ static void td_reverse_final(train_context* const ctxt,
     td_update_train_speed(ctxt, speed);
     int result = Reply(ctxt->courier, NULL, 0);
     if (result < 0) log("Failed to kill delay courier (%d)", result);
-    ctxt->reversing = false;
 }
 
 static void __attribute__ ((unused))
@@ -501,31 +500,36 @@ void train_driver() {
             context.sensor_last = req.one.int_value;
             const sensor_name last = sensornum_to_name(context.sensor_last);
 
-            if (context.path >= 0 && !context.reversing) {
-                log("Missed sensor...");
+            if (!context.reversing) {
+                if (context.path >= 0) {
+                    if (path_fast_forward(&context, req.one.int_value)) {
+                        context.path--;
+                        td_goto_next_step(&context);
+                  
+                        context.dist_next   = context.steps[context.path].dist;
+                        context.sensor_next = context.steps[context.path].data.sensor;
 
-                if (path_fast_forward(&context, req.one.int_value)) {
-                    context.path--;
-                    td_goto_next_step(&context);
-              
-                    context.dist_next   = context.steps[context.path].dist;
-                    context.sensor_next = context.steps[context.path].data.sensor;
-
-                    const sensor_name next =
-                        sensornum_to_name(context.sensor_next);
-                    log("FAST FORWARD(%d) >> %c%d", context.path, next.bank, next.num);
+                        const sensor_name next =
+                            sensornum_to_name(context.sensor_next);
+                        log("FAST FORWARD(%d) %c%d >> %c%d",
+                                context.path, last.bank, last.num, next.bank, next.num);
+                    } else {
+                        context.sensor_next = req.one.int_value;
+                        td_goto(&context,
+                                context.sensor_stop,
+                                context.path_past_end,
+                                time);
+                        
+                        const sensor_name next =
+                            sensornum_to_name(context.sensor_next);
+                        log("Rerouting (%d) >> %c%d", context.path, next.bank, next.num);
+                    }
                 } else {
-                    log("Rerouting");
-                    td_goto(&context,
-                            context.sensor_stop,
-                            context.path_past_end,
-                            time);
+                    result = get_sensor_from(req.one.int_value,
+                                             &context.dist_next,
+                                             &context.sensor_next);
+                    assert(result >= 0, "failed to get next sensor");
                 }
-            } else {
-                result = get_sensor_from(req.one.int_value,
-                                         &context.dist_next,
-                                         &context.sensor_next);
-                assert(result >= 0, "failed to get next sensor");
             }
 
             const sensor_name next = sensornum_to_name(context.sensor_next);
@@ -564,6 +568,7 @@ void train_driver() {
             context.time_last   = time;
             context.sensor_last = context.sensor_next;
             const int velocity  = velocity_for_speed(&context);
+            context.reversing = false;
 
             // the path info comes into play here
             path_node* step = &context.steps[context.path];
