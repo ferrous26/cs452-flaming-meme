@@ -252,6 +252,10 @@ static inline void train_wait_use(train_context* const ctxt,
         case TRAIN_GO_TO:
             // TODO: this should be handled here legitimately
             break;
+        case TRAIN_SET_STOP_OFFSET:
+            ctxt->stop_offset = req.one.int_value * 1000;
+            break;
+
         case TRAIN_HIT_SENSOR:
         case TRAIN_WHERE_ARE_YOU:
         case TRAIN_REQUEST_COUNT:
@@ -332,6 +336,9 @@ void train_driver() {
             break;
         case TRAIN_STOP:
             context.sensor_stop = req.one.int_value;
+            break;
+        case TRAIN_SET_STOP_OFFSET:
+            context.stop_offset = req.one.int_value * 1000;
             break;
 
         case TRAIN_HIT_SENSOR: {

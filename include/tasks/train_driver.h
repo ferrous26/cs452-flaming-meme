@@ -27,6 +27,7 @@ typedef enum {
 
     TRAIN_HIT_SENSOR,
     TRAIN_EXPECTED_SENSOR,
+    TRAIN_SET_STOP_OFFSET,
 
     TRAIN_REQUEST_COUNT
 } train_req_type;

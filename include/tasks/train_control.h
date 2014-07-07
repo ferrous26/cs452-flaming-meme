@@ -32,6 +32,7 @@ typedef enum {
     TC_U_GOTO,
     TC_U_THRESHOLD,
     TC_U_ALPHA,
+    TC_U_STOP_OFFSET,
 
     TC_T_TRAIN_LIGHT,
     TC_T_TRAIN_HORN,
@@ -70,5 +71,6 @@ int train_goto(const int train, const int bank, const int num, const int off);
 int train_dump(const int train);
 int train_update_threshold(const int train, const int threshold);
 int train_update_alpha(const int train, const int alpha);
+int train_set_stop_offset(const int train, const int offset);
 
 #endif

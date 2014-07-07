@@ -6,11 +6,19 @@
 #include <debug.h>
 
 static int consume_integer(const char* const str, int* const index) {
-    int result = 0;
+    int result = 0, neg = 0;
+
+    if (str[*index] == '-') {
+        neg     = 1;
+        *index += 1;
+    } else if (str[*index] == '+') {
+        *index += 1;
+    }
+
     for (; isdigit( str[*index] ); *index += 1) {
         result = (result * 10) + (str[*index] - '0');
     }
-    return result;
+    return neg ? -result : result;
 }
 
 static int consume_whitespace(const char* const str, int* const index) {
@@ -67,6 +75,11 @@ static command parse_s(const char* const cmd, int* buffer) {
     case 'd':
         if (!isspace(cmd[index])) return ERROR;
         return SWITCH_TIME;
+    case 'o':
+        if (parse_argument(cmd, 'i', &index, &buffer[0])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return STOP_OFFSET;
     case 'p':
         return SEPPUKU;
     case 'z':

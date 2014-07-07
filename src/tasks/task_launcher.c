@@ -247,6 +247,10 @@ static void action(command cmd, int args[]) {
         break;
     }
 
+    case STOP_OFFSET:
+        train_set_stop_offset(args[0], args[1]);
+        break;
+
     case ERROR:
         log("invalid command");
 	print_help();
