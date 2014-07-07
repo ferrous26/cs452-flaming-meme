@@ -248,7 +248,7 @@ debug_path(const train_context* const ctxt) {
 static void td_goto_next_step(train_context* const ctxt) {
     // NOTE: since we deal with all the turnouts up front right
     //       now, we will just ignore turnout commands
-    const path_node* step = &ctxt->steps[ctxt->path];
+    const path_node* step = &ctxt->steps[ctxt->path]; 
     while (ctxt->path >= 0 && step->type != PATH_SENSOR) {
         step = &ctxt->steps[--ctxt->path];
     }
@@ -264,7 +264,6 @@ static void td_goto(train_context* const ctxt,
     const sensor_name s = sensornum_to_name(sensor);
     log("[Train%d] Going to %c%d + %d cm (%d)",
         ctxt->num, s.bank, s.num, offset, node_end);
-
 
     int sensor_next = ctxt->sensor_next;
 
@@ -410,12 +409,14 @@ static inline void train_wait_use(train_context* const ctxt,
 
 static int path_fast_forward(train_context* const ctxt,
                              const int sensor) {
+
     for (; ctxt->path >= 0; ctxt->path--) {
         if (ctxt->steps[ctxt->path].type == PATH_SENSOR &&
-            ctxt->steps[ctxt->path].data.sensor == sensor)
-            return 0;
+            ctxt->steps[ctxt->path].data.sensor == sensor) {
+            return 1;
+        }
     }
-    return 1;
+    return 0;
 }
 
 void train_driver() {
@@ -500,28 +501,27 @@ void train_driver() {
             context.sensor_last = req.one.int_value;
             const sensor_name last = sensornum_to_name(context.sensor_last);
 
-
             if (context.path >= 0 && !context.reversing) {
                 log("Missed sensor...");
+
                 if (path_fast_forward(&context, req.one.int_value)) {
+                    context.path--;
                     td_goto_next_step(&context);
+              
                     context.dist_next   = context.steps[context.path].dist;
-                    context.sensor_next =
-                        context.steps[context.path].data.sensor;
+                    context.sensor_next = context.steps[context.path].data.sensor;
 
                     const sensor_name next =
                         sensornum_to_name(context.sensor_next);
-                    log("FAST FORWARD >> %c%d", next.bank, next.num);
-                }
-                else {
+                    log("FAST FORWARD(%d) >> %c%d", context.path, next.bank, next.num);
+                } else {
                     log("Rerouting");
                     td_goto(&context,
                             context.sensor_stop,
                             context.path_past_end,
                             time);
                 }
-            }
-            else {
+            } else {
                 result = get_sensor_from(req.one.int_value,
                                          &context.dist_next,
                                          &context.sensor_next);
