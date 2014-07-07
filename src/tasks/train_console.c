@@ -7,6 +7,8 @@
 #include <tasks/courier.h>
 #include <tasks/name_server.h>
 
+#include <tasks/clock_server.h>
+
 #include <tasks/train_driver.h>
 #include <tasks/mission_control.h>
 #include <tasks/train_console.h>
@@ -21,12 +23,14 @@ typedef struct {
     train_req next_req;
 } tc_context;
 
+#define TC_CHILDERN_PRIORITY 4
+
 static inline void _init_context(tc_context* const ctxt) {
     memset(ctxt, -1, sizeof(*ctxt));
     int scratch = 80;
     int sensor_data[2];
 
-    *(int*)&ctxt->sensor_tid = Create(4, sensor_notifier);
+    *(int*)&ctxt->sensor_tid = Create(TC_CHILDERN_PRIORITY, sensor_notifier);
     assert(ctxt->sensor_tid >= 0, "Error creating Courier to Driver");
     
     int result = Send(ctxt->sensor_tid, (char*)&scratch, sizeof(scratch),
@@ -43,7 +47,7 @@ static inline void _init_context(tc_context* const ctxt) {
         .two.int_value = sensor_data[0]
     };
 
-    *(int*)&ctxt->driver_tid = Create(4, courier);
+    *(int*)&ctxt->driver_tid = Create(TC_CHILDERN_PRIORITY, courier);
     assert(ctxt->driver_tid >= 0, "Error creating Courier to Driver");
 
     assert(callin.one.int_value >= 0 && callin.one.int_value < 80,
@@ -78,8 +82,11 @@ void train_console() {
         if (context.driver_tid == tid) {
             const int sensor_num  = 80;
             context.sensor_expect = buffer.driver;
-            result = Reply(context.sensor_tid, (char*)&sensor_num, sizeof(sensor_num));
-            assert(result == 0, "FUCK");
+
+            result = Reply(context.sensor_tid,
+                           (char*)&sensor_num,
+                           sizeof(sensor_num));
+            assert(result == 0, "Failed reply to sensor waiter (%d)", result);
 
         } else if (context.sensor_tid == tid) {
             train_req callin = {
@@ -89,9 +96,9 @@ void train_console() {
                 .one.int_value = buffer.sensor[1],
                 .two.int_value = buffer.sensor[0]
             };
-
+            
             result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
-            assert(result == 0, "FUCK");
+            assert(result == 0, "Failed reply to driver courier (%d)", result);
         }
     }
 }
