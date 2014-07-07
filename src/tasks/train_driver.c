@@ -561,16 +561,10 @@ void train_driver() {
                     if (context.path == 0) break; // we are on last step
 
                     step = &context.steps[--context.path];
-                    if (step->type == PATH_SENSOR) {
-                        log("Next sensor step is %d", context.path);
-                        break;
-                    }
-                    log("Skipping step %d", context.path);
+                    if (step->type == PATH_SENSOR) break;
 
-                    if (step->type == PATH_REVERSE) {
+                    if (step->type == PATH_REVERSE)
                         td_reverse_direction(&context);
-                        log("OMG FINAL REVERSE %d", context.path);
-                    }
                 }
 
                 // if at the final index, then we hit our destination
@@ -594,7 +588,6 @@ void train_driver() {
                 }
             }
             else {
-                log("Not Pathing! %d", context.path);
                 // TODO: error checking
                 get_sensor_from(context.sensor_last,
                                 &context.dist_next,
