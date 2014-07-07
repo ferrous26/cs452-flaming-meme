@@ -37,6 +37,8 @@ typedef struct {
         bool where;
         bool dump;
         int  go;
+
+
     }   pickup[NUM_TRAINS];
     int drivers[NUM_TRAINS];
 } tc_context;
@@ -148,18 +150,21 @@ static inline void mc_update_train_speed(tc_context* const ctxt,
 
 static inline void mc_toggle_light(tc_context* const ctxt, const int index) {
     TRAIN_ASSERT(index);
+
     ctxt->pickup[index].light ^= 1;
     mc_try_send_train(ctxt, index);
 }
 
 static inline void mc_toggle_horn(tc_context* const ctxt, const int index) {
     TRAIN_ASSERT(index);
+
     ctxt->pickup[index].horn ^= 1;
     mc_try_send_train(ctxt, index);
 }
 
 static inline void mc_reverse_train(tc_context* const ctxt, const int index) {
     TRAIN_ASSERT(index);
+
     ctxt->pickup[index].reverse ^= 1;
     mc_try_send_train(ctxt, index);
 }
@@ -177,6 +182,7 @@ static inline void mc_train_stop(tc_context* const ctxt,
 static inline void mc_train_where_are_you(tc_context* const ctxt,
                                           const int train_num) {
     TRAIN_ASSERT(train_num);
+
     ctxt->pickup[train_num].where = true;
     mc_try_send_train(ctxt, train_num);
 }
@@ -185,6 +191,7 @@ static inline void mc_goto(tc_context* const ctxt,
                            const int train_num,
                            const int go) {
     TRAIN_ASSERT(train_num);
+
     ctxt->pickup[train_num].go = go;
     mc_try_send_train(ctxt, train_num);
 }
@@ -192,6 +199,7 @@ static inline void mc_goto(tc_context* const ctxt,
 static inline void mc_train_dump_velocity(tc_context* const ctxt,
                                           const int train_num) {
     TRAIN_ASSERT(train_num);
+
     ctxt->pickup[train_num].dump = true;
     mc_try_send_train(ctxt, train_num);
 }
@@ -200,6 +208,7 @@ static inline void mc_threshold(tc_context* const ctxt,
                                 const int train_num,
                                 const int tweak) {
     TRAIN_ASSERT(train_num);
+
     ctxt->pickup[train_num].threshold = tweak;
     mc_try_send_train(ctxt, train_num);
 }

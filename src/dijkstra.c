@@ -124,7 +124,6 @@ int dijkstra(const track_node* const track,
     FOREVER {
         path_node* const node = &path[path_size];
         const int offset = ptr - track;
-        if (data[offset].prev == ptr) break;
 
         switch(ptr->type) {
         case NODE_NONE:
@@ -132,15 +131,17 @@ int dijkstra(const track_node* const track,
         case NODE_ENTER:
             break;
         case NODE_SENSOR:
-            if (direction == 3) {
-                node->type = PATH_REVERSE;
-                node->dist = data[offset].dist;
-            } else {
-                node->type           = PATH_SENSOR;
-                node->dist           = data[offset].dist;
-                node->data.int_value = ptr->num;
-            }
+            node->type           = PATH_SENSOR;
+            node->dist           = data[offset].dist;
+            node->data.int_value = ptr->num;
             path_size++;
+            
+            if (direction == 3) {
+                path[path_size].type = PATH_REVERSE;
+                path[path_size].dist = data[offset].dist;
+                path_size++;
+            }
+
             break;
         case NODE_BRANCH:
             node->type             = PATH_TURNOUT;
@@ -154,6 +155,7 @@ int dijkstra(const track_node* const track,
             break;
         }
 
+        if (data[offset].prev == ptr) break;
         direction = data[offset].dir;
         ptr       = data[offset].prev;
     }
