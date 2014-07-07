@@ -76,7 +76,7 @@ by entering an empty command.
 \end{center}
 
 \newpage
-\section{The Track}
+\section*{The Track}
 
 To represent the track we use the data structure and data given on the
 course web site. However, we have modified the data to store track
@@ -89,24 +89,32 @@ point of various track nodes to better categorize track nodes as being
 straight or curved, which is used during calibration.
 
 
-\section{Train Calibration}
+\section*{Train Calibration}
 
+to get inital values we used a camera that could take video at 60fps\ldots
+
+\subsection*{Feedback}
+updating values is pretty cool\ldots
+
+\subsection*{Console Tweeking}
+We allow for some of the navigation proprties of the trains to be modified via
+terminal \ldots
+write about Putin
+
+\section*{Tracking}
+
+Having to only have to track one train allows us to use all of the sensors to
+make sure that it stays on the path.
 
 we use distance measurements for paramaters, because speed and
 consequently time, will vary from train to train, and track piece to
 track piece.
 
-write about Putin
+\section*{Pathing}
 
-tweakables
+dijkstra is a cool dood and jsut want to eat his things
 
-calibration methods
-
-pathing, including data format
-
-only one train can be active at a time because of how sensors work
-
-event based architecture
+\section*{Couriers}
 
 couriers, bitch. allow us to send things to other tasks without
 blocking
