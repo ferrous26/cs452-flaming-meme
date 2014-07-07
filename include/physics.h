@@ -399,8 +399,8 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->stopping_offset = -41611;
         break;
     case 6:
-        ctxt->stopping_slope  = 0;
-        ctxt->stopping_offset = 0;
+        ctxt->stopping_slope  = 63905;
+        ctxt->stopping_offset = -41611;
         break;
     }
 
