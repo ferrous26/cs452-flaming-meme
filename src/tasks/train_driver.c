@@ -217,7 +217,6 @@ static void td_reverse_final(train_context* const ctxt,
     td_update_train_speed(ctxt, speed);
     int result = Reply(ctxt->courier, NULL, 0);
     if (result < 0) log("Failed to kill delay courier (%d)", result);
-    ctxt->reversing = false;
 }
 
 static void __attribute__ ((unused))
@@ -248,7 +247,7 @@ debug_path(const train_context* const ctxt) {
 static void td_goto_next_step(train_context* const ctxt) {
     // NOTE: since we deal with all the turnouts up front right
     //       now, we will just ignore turnout commands
-    const path_node* step = &ctxt->steps[ctxt->path]; 
+    const path_node* step = &ctxt->steps[ctxt->path];
     while (ctxt->path >= 0 && step->type != PATH_SENSOR) {
         step = &ctxt->steps[--ctxt->path];
     }
@@ -507,7 +506,7 @@ void train_driver() {
                 if (path_fast_forward(&context, req.one.int_value)) {
                     context.path--;
                     td_goto_next_step(&context);
-              
+
                     context.dist_next   = context.steps[context.path].dist;
                     context.sensor_next = context.steps[context.path].data.sensor;
 
@@ -570,6 +569,8 @@ void train_driver() {
             // if path finding and expected sensor is next on the path
             if (context.path > 0 &&
                 step->data.sensor == context.sensor_last) {
+
+                context.reversing = false;
 
                 // there will always be a step 0, so we can do this safely
                 int next_dist = 0;
