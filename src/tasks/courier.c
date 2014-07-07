@@ -50,21 +50,22 @@ void time_notifier() {
 
     int result = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
     
-    Reply(tid, NULL, 0);
+    tid = Reply(tid, NULL, 0);
+    assert(tid == 0, "Failed reposnding to setup task (%d)", tid);
 
     do {
         assert(result >= (int)sizeof(delay_req.head),
                "Recived an invalid setup message %d / %d",
                result, sizeof(delay_req.head));
 
-        switch (delay_req.head.type) { 
+        switch (delay_req.head.type) {
         case DELAY_RELATIVE:
             Delay(delay_req.head.ticks);
             break;
-        case DELAY_UNTIL:
+        case DELAY_ABSOLUTE:
             DelayUntil(delay_req.head.ticks);
             break;
-        } 
+        }
 
         const int reply_size = result - (int)sizeof(delay_req.head);
         result = Send(tid,

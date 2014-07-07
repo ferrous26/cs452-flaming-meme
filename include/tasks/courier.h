@@ -10,7 +10,7 @@ typedef struct {
 
 typedef enum {
     DELAY_RELATIVE,
-    DELAY_UNTIL,
+    DELAY_ABSOLUTE,
 } delay_type;
 
 typedef struct {
