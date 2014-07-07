@@ -246,7 +246,7 @@ debug_path(const train_context* const ctxt) {
 static void td_goto_next_step(train_context* const ctxt) {
     // NOTE: since we deal with all the turnouts up front right
     //       now, we will just ignore turnout commands
-    const path_node* step = &ctxt->steps[ctxt->path]; 
+    const path_node* step = &ctxt->steps[ctxt->path];
     while (ctxt->path >= 0 && step->type != PATH_SENSOR) {
         step = &ctxt->steps[--ctxt->path];
     }
@@ -495,7 +495,7 @@ void train_driver() {
             context.sensor_last = req.one.int_value;
             context.time_last   = req.two.int_value;
             context.dist_last   = context.dist_next;
-
+            
             if (!context.reversing) {
                 if (context.path >= 0) {
                     if (path_fast_forward(&context, req.one.int_value)) {
@@ -557,8 +557,8 @@ void train_driver() {
                 } while (step->type != PATH_SENSOR);
                 context.sensor_next = step->data.sensor;
                 context.dist_next   = step->dist;
-
                 const sensor_name next = sensornum_to_name(context.sensor_next);
+                
                 log("Next sensor %c%d is at %d mm. We need to stop at %d mm.",
                     next.bank, next.num,
                     context.dist_next / 1000,
