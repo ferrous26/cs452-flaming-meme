@@ -129,17 +129,19 @@ static void velocity_feedback(train_context* const ctxt,
     const int new_speed = ctxt->dist_last / time;
     if (new_speed == 0) return;
 
+    int class = velocity_type(ctxt->sensor_last);
+    log("class %d %d %d", old_speed, new_speed, class);
     switch (ctxt->feedback_alpha) {
     case HALF_AND_HALF:
-        ctxt->velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+        ctxt->velocity[class][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
             (old_speed + new_speed) >> 1;
         break;
     case EIGHTY_TWENTY:
-        ctxt->velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+        ctxt->velocity[class][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
             ((old_speed << 2) + new_speed) / 5;
         break;
     case NINTY_TEN:
-        ctxt->velocity[TRACK_STRAIGHT][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+        ctxt->velocity[class][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
             ((old_speed * 9) + new_speed) / 10;
         break;
     }

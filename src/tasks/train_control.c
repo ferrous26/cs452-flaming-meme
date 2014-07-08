@@ -345,6 +345,7 @@ int train_set_speed(const int train, int speed) {
         return 0;
     }
 
+    /*
     if (speed < TRAIN_PRACTICAL_MIN_SPEED && speed != 0) {
         log("Speed %d is too slow to be be practical", speed);
         speed = TRAIN_PRACTICAL_MIN_SPEED;
@@ -354,6 +355,7 @@ int train_set_speed(const int train, int speed) {
         log("Speed %d is too fast to be reliable", speed);
         speed = TRAIN_PRACTICAL_MAX_SPEED;
     }
+    */
 
     tc_req req = {
         .type = TC_U_TRAIN_SPEED,
@@ -428,6 +430,16 @@ int train_goto(const int train,
                const int num,
                const int off) {
     NORMALIZE_TRAIN(train_index, train)
+
+    int norm_bank; 
+    if (bank >= 'a' && bank <= 'e') {
+        norm_bank = bank - 32;
+    } else if (bank < 'A' || bank > 'E') {
+        log("can't goto on invalid bank %c", bank);
+        return 0;
+    } else {
+        norm_bank = bank;
+    }
 
     tc_req req = {
         .type = TC_U_GOTO,

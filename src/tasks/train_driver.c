@@ -335,7 +335,7 @@ static void td_where(train_context* const ctxt, const int time) {
 static void td_train_dump(train_context* const ctxt) {
 
     for (int i = 0; i < TRACK_TYPE_COUNT; i++)
-        log("%d,%d,%d,%d,%d,%d,%d,%d,%d",
+        log("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
             ctxt->off,
             i, // track type
             ctxt->velocity[i][0],
@@ -344,7 +344,14 @@ static void td_train_dump(train_context* const ctxt) {
             ctxt->velocity[i][3],
             ctxt->velocity[i][4],
             ctxt->velocity[i][5],
-            ctxt->velocity[i][6]);
+            ctxt->velocity[i][6],
+            ctxt->velocity[i][7],
+            ctxt->velocity[i][8],
+            ctxt->velocity[i][9],
+            ctxt->velocity[i][10],
+            ctxt->velocity[i][11],
+            ctxt->velocity[i][12],
+            ctxt->velocity[i][13]);
 }
 
 static inline void train_wait_use(train_context* const ctxt,
@@ -443,8 +450,6 @@ void train_driver() {
         .size     = sizeof(callin),
     };
 
-    td_update_train_direction(&context, 1);
-
     assert(command_tid >= 0,
            "Error setting up command courier (%d)", command_tid);
 
@@ -492,32 +497,45 @@ void train_driver() {
             break;
 
         case TRAIN_HIT_SENSOR: {
+            if (context.direction == 0) {
+                if ((req.one.int_value >> 4) == 1) {
+                    td_update_train_direction(&context, 1);
+                    td_reverse_direction(&context);
+                    const int none = 80;
+                    Reply(tid, (char*)&none, sizeof(none));
+                    continue;
+                }
+                
+                td_update_train_direction(&context, -1); 
+            }
+            log ("[TRAIN%d] lost position...", context.num);
             context.sensor_last = req.one.int_value;
             context.time_last   = req.two.int_value;
             context.dist_last   = context.dist_next;
-            
-            if (!context.reversing) {
-                if (context.path >= 0) {
-                    if (path_fast_forward(&context, req.one.int_value)) {
-                        
-                        context.path--;
-                        td_goto_next_step(&context);
-                  
-                        context.dist_next   = context.steps[context.path].dist;
-                        context.sensor_next = context.steps[context.path].data.sensor;
-                    } else {
-                        context.sensor_next = req.one.int_value;
-                        td_goto(&context,
-                                context.sensor_stop,
-                                context.path_past_end,
-                                time);
-                    }
+                
+            if (context.path >= 0) {
+                if (path_fast_forward(&context, req.one.int_value)) {
+                    
+                    context.path--;
+                    td_goto_next_step(&context);
+              
+                    context.dist_next   = context.steps[context.path].dist;
+                    context.sensor_next = context.steps[context.path].data.sensor;
                 } else {
-                    result = get_sensor_from(req.one.int_value,
-                                             &context.dist_next,
-                                             &context.sensor_next);
-                    assert(result >= 0, "failed to get next sensor");
+                    context.sensor_next = req.one.int_value;
+                    td_goto(&context,
+                            context.sensor_stop,
+                            context.path_past_end,
+                            time);
                 }
+            } else {
+                result = get_sensor_from(req.one.int_value,
+                                         &context.dist_next,
+                                         &context.sensor_next);
+                if (context.dist_next < 0) {
+                    td_reverse_direction(&context);
+                }
+                assert(result == 0, "failed to get next sensor");
             }
             const int velocity = velocity_for_speed(&context);
             context.sensor_next_estim = context.dist_next / velocity;
@@ -572,9 +590,11 @@ void train_driver() {
                         velocity;
            
                     log("Delaying %d ticks until stop at %d",
-                        delay_time, context.stopping_point / 1000);        
-                    
-                    DelayUntil(delay_time);
+                        delay_time, context.stopping_point / 1000);
+                    if (delay_time > 0) { 
+                        DelayUntil(delay_time);
+                    }
+
                     td_update_train_speed(&context, 0);
 
                     //const int dist = velocity * (time - context.time_last);
