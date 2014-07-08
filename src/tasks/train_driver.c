@@ -583,16 +583,17 @@ void train_driver() {
                     context.stopping_point / 1000);
 
                 if (context.dist_next >= context.stopping_point) {
+                    const int curr_time = Time();
                     const int step_dist = context.dist_next - context.dist_last;
 
-                    const int delay_time = Time() + 
+                    const int delay_time = curr_time + 
                         (step_dist - (context.dist_next - context.stopping_point)) /
                         velocity;
            
-                    log("Delaying %d ticks until stop at %d",
-                        delay_time, context.stopping_point / 1000);
-                    if (delay_time > 0) { 
-                        DelayUntil(delay_time);
+                    if (delay_time > curr_time) { 
+                        log("Delaying %d ticks until stop at %d",
+                            delay_time, context.stopping_point / 1000);
+                            DelayUntil(delay_time);
                     }
 
                     td_update_train_speed(&context, 0);
