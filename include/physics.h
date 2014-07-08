@@ -123,11 +123,10 @@ static void velocity_feedback(train_context* const ctxt,
         return;
     }
 
-    const int old_speed = velocity_for_speed(ctxt);
-    if (old_speed == 0) return;
+    if (ctxt->speed == 0) return;
 
+    const int old_speed = velocity_for_speed(ctxt);
     const int new_speed = ctxt->dist_last / time;
-    if (new_speed == 0) return;
 
     int class = velocity_type(ctxt->sensor_last);
     log("class %d %d %d", old_speed, new_speed, class);
