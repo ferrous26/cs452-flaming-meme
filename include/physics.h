@@ -290,6 +290,13 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[0][4] = 4764;
         ctxt->velocity[0][5] = 6988;
         ctxt->velocity[0][6] = 5408;
+        ctxt->velocity[0][7] = 3083;
+        ctxt->velocity[0][8] = 0;
+        ctxt->velocity[0][9] = 4087;
+        ctxt->velocity[0][10] = 0;
+        ctxt->velocity[0][11] = 5437;
+        ctxt->velocity[0][12] = 0;
+        ctxt->velocity[0][13] = 0;
         ctxt->velocity[1][0] = 3488;
         ctxt->velocity[1][1] = 3621;
         ctxt->velocity[1][2] = 4250;
@@ -297,6 +304,13 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[1][4] = 5025;
         ctxt->velocity[1][5] = 5249;
         ctxt->velocity[1][6] = 5276;
+        ctxt->velocity[1][7] = 3309;
+        ctxt->velocity[1][8] = 0;
+        ctxt->velocity[1][9] = 7372;
+        ctxt->velocity[1][10] = 0;
+        ctxt->velocity[1][11] = 8347;
+        ctxt->velocity[1][12] = 0;
+        ctxt->velocity[1][13] = 0;
         ctxt->velocity[2][0] = 3488;
         ctxt->velocity[2][1] = 3621;
         ctxt->velocity[2][2] = 4250;
@@ -304,6 +318,13 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[2][4] = 5025;
         ctxt->velocity[2][5] = 5249;
         ctxt->velocity[2][6] = 5276;
+        ctxt->velocity[2][7] = 7595;
+        ctxt->velocity[2][8] = 0;
+        ctxt->velocity[2][9] = 16774;
+        ctxt->velocity[2][10] = 0;
+        ctxt->velocity[2][11] = 11083;
+        ctxt->velocity[2][12] = 0;
+        ctxt->velocity[2][13] = 0;
         ctxt->velocity[3][0] = 3488;
         ctxt->velocity[3][1] = 3621;
         ctxt->velocity[3][2] = 4250;
@@ -311,6 +332,13 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[3][4] = 5025;
         ctxt->velocity[3][5] = 5249;
         ctxt->velocity[3][6] = 5276;
+        ctxt->velocity[3][7] = 2956;
+        ctxt->velocity[3][8] = 0;
+        ctxt->velocity[3][9] = 7357;
+        ctxt->velocity[3][10] = 0;
+        ctxt->velocity[3][11] = 5297;
+        ctxt->velocity[3][12] = 0;
+        ctxt->velocity[3][13] = 0;
         break;
     case 5:
         ctxt->velocity[0][0] = 3488;
