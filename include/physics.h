@@ -10,7 +10,7 @@
 #include <tasks/train_driver_types.h>
 
 
-#define INITIAL_FEEDBACK_THRESHOLD 50
+#define INITIAL_FEEDBACK_THRESHOLD 5000
 
 static track_type __attribute__ ((pure))
 velocity_type(const int sensor) {
@@ -113,35 +113,33 @@ velocity_for_speed(const train_context* const ctxt) {
     return ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED];
 }
 
-static void velocity_feedback(train_context* const ctxt,
-                              const int time,
-                              const int delta) {
+static inline void velocity_feedback(train_context* const ctxt,
+                                     const int expected_v,
+                                     const int actual_v,
+                                     const int delta_v) {
 
-    if (abs(delta) > ctxt->feedback_threshold) {
+    if (abs(delta_v) > ctxt->feedback_threshold) {
         log("Feedback is off by too much (%d) (%d) (%d). I suspect foul play!",
-            delta, ctxt->feedback_threshold, ctxt->feedback_alpha);
+            delta_v, ctxt->feedback_threshold, ctxt->feedback_alpha);
         return;
     }
 
     if (ctxt->speed == 0) return;
 
-    const int old_speed = velocity_for_speed(ctxt);
-    const int new_speed = ctxt->dist_last / time;
+    int type = velocity_type(ctxt->sensor_last);
 
-    int class = velocity_type(ctxt->sensor_last);
-    log("class %d %d %d", old_speed, new_speed, class);
     switch (ctxt->feedback_alpha) {
     case HALF_AND_HALF:
-        ctxt->velocity[class][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
-            (old_speed + new_speed) >> 1;
+        ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+            (expected_v + actual_v) >> 1;
         break;
     case EIGHTY_TWENTY:
-        ctxt->velocity[class][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
-            ((old_speed << 2) + new_speed) / 5;
+        ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+            ((expected_v << 2) + actual_v) / 5;
         break;
     case NINTY_TEN:
-        ctxt->velocity[class][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
-            ((old_speed * 9) + new_speed) / 10;
+        ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+            ((expected_v * 9) + actual_v) / 10;
         break;
     }
 }
@@ -159,8 +157,10 @@ static void td_update_alpha(train_context* const ctxt, int alpha) {
     ctxt->feedback_alpha = (feedback_level)alpha;
 }
 
-
 static inline void tr_setup_physics(train_context* const ctxt) {
+
+    memset(ctxt->velocity, 0, sizeof(ctxt->velocity)); // just in case
+
     switch (ctxt->off) {
     case 0:
         ctxt->velocity[0][0] = 3488;
@@ -290,11 +290,11 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[0][4] = 4764;
         ctxt->velocity[0][5] = 6988;
         ctxt->velocity[0][6] = 5408;
-        ctxt->velocity[0][7] = 3083;
+        ctxt->velocity[0][7] = 3987;
         ctxt->velocity[0][8] = 0;
-        ctxt->velocity[0][9] = 4087;
+        ctxt->velocity[0][9] = 5498;
         ctxt->velocity[0][10] = 0;
-        ctxt->velocity[0][11] = 5437;
+        ctxt->velocity[0][11] = 21250;
         ctxt->velocity[0][12] = 0;
         ctxt->velocity[0][13] = 0;
         ctxt->velocity[1][0] = 3488;
@@ -304,11 +304,11 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[1][4] = 5025;
         ctxt->velocity[1][5] = 5249;
         ctxt->velocity[1][6] = 5276;
-        ctxt->velocity[1][7] = 3309;
+        ctxt->velocity[1][7] = 4025;
         ctxt->velocity[1][8] = 0;
-        ctxt->velocity[1][9] = 7372;
+        ctxt->velocity[1][9] = 8445;
         ctxt->velocity[1][10] = 0;
-        ctxt->velocity[1][11] = 8347;
+        ctxt->velocity[1][11] = 21297;
         ctxt->velocity[1][12] = 0;
         ctxt->velocity[1][13] = 0;
         ctxt->velocity[2][0] = 3488;
@@ -318,11 +318,11 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[2][4] = 5025;
         ctxt->velocity[2][5] = 5249;
         ctxt->velocity[2][6] = 5276;
-        ctxt->velocity[2][7] = 7595;
+        ctxt->velocity[2][7] = 3931;
         ctxt->velocity[2][8] = 0;
-        ctxt->velocity[2][9] = 16774;
+        ctxt->velocity[2][9] = 4926;
         ctxt->velocity[2][10] = 0;
-        ctxt->velocity[2][11] = 11083;
+        ctxt->velocity[2][11] = 8157;
         ctxt->velocity[2][12] = 0;
         ctxt->velocity[2][13] = 0;
         ctxt->velocity[3][0] = 3488;
@@ -332,11 +332,11 @@ static inline void tr_setup_physics(train_context* const ctxt) {
         ctxt->velocity[3][4] = 5025;
         ctxt->velocity[3][5] = 5249;
         ctxt->velocity[3][6] = 5276;
-        ctxt->velocity[3][7] = 2956;
+        ctxt->velocity[3][7] = 4019;
         ctxt->velocity[3][8] = 0;
-        ctxt->velocity[3][9] = 7357;
+        ctxt->velocity[3][9] = 5071;
         ctxt->velocity[3][10] = 0;
-        ctxt->velocity[3][11] = 5297;
+        ctxt->velocity[3][11] = 24843;
         ctxt->velocity[3][12] = 0;
         ctxt->velocity[3][13] = 0;
         break;
@@ -434,7 +434,7 @@ static inline void tr_setup_physics(train_context* const ctxt) {
     }
 
     ctxt->feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
-    ctxt->feedback_alpha     = EIGHTY_TWENTY;
+    ctxt->feedback_alpha     = NINTY_TEN;
 }
 
 #endif
