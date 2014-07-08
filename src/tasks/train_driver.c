@@ -92,15 +92,16 @@ static void td_update_train_direction(train_context* const ctxt, int dir) {
     Puts(buffer, ptr-buffer);
 }
 
-static void td_update_train_delta(train_context* const ctxt, const int delta) {
+static void td_update_train_delta(train_context* const ctxt,
+                                  const int delta_v) {
     char  buffer[32];
     char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->off, TRAIN_SENSORS_COL);
 
     const sensor_name last = sensornum_to_name(ctxt->sensor_last);
     const sensor_name next = sensornum_to_name(ctxt->sensor_next);
 
-    ptr = sprintf_int(ptr, delta);
-    ptr = ui_pad(ptr, log10(abs(delta)) + (delta < 0 ? 1 : 0), 5);
+    ptr = sprintf_int(ptr, delta_v);
+    ptr = ui_pad(ptr, log10(abs(delta_v)) + (delta_v < 0 ? 1 : 0), 5);
 
     if (last.num < 10)
         ptr = sprintf(ptr, "%c0%d ", last.bank, last.num);
@@ -549,14 +550,14 @@ void train_driver() {
             assert(req.one.int_value == context.sensor_next,
                    "Bad Expected Sensor %d", req.one.int_value);
 
-            const int expected = context.sensor_next_estim;
-            const int actual   = time - context.time_last;
-            const int delta    = actual - expected;
+            const int expected_v = velocity_for_speed(&context);
+            const int actual_v   = context.dist_next / (time - context.time_last);
+            const int delta_v    = actual_v - expected_v;
 
             // TODO: this should be a function of acceleration and not a
             //       constant value
             if (time - context.acceleration_last > 500) {
-                velocity_feedback(&context, actual, delta);
+                velocity_feedback(&context, expected_v, actual_v, delta_v);
                 td_update_ui_speed(&context);
             }
 
@@ -617,7 +618,7 @@ void train_driver() {
             }
 
             context.sensor_next_estim = context.dist_next / velocity;
-            td_update_train_delta(&context, delta);
+            td_update_train_delta(&context, delta_v / 10);
 
             Reply(tid,
                   (char*)&context.sensor_next,

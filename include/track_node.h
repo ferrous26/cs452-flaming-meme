@@ -21,9 +21,8 @@ typedef struct track_edge track_edge;
 
 typedef enum {
     TRACK_STRAIGHT,
-    TRACK_STRAIGHT_TURNOUT,
+    TRACK_COMBO,
     TRACK_CURVED,
-    TRACK_CURVED_TURNOUT,
     TRACK_TYPE_COUNT
 } track_type;
 
