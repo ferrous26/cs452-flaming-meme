@@ -28,16 +28,16 @@ controlled by the user in any way.
 \section*{Operation Instructions}
 
 A pre-compiled kernel exists at
-\ttt{/u/cs452/tftp/ARM/marada/k4.elf}, which can be loaded with
+\ttt{/u/cs452/tftp/ARM/marada/m1.elf}, which can be loaded with
 RedBoot using the following command:
 
 \begin{center}
-  \ttt{load -h 10.15.167.4 ARM/marada/k4.elf; go}
+  \ttt{load -h 10.15.167.4 ARM/marada/m1.elf; go}
 \end{center}
 
 Notice that no offset should be specified for the load instruction.
 
-The source code for the kernel exists in \ttt{/u3/marada/kernel4/},
+The source code for the kernel exists in \ttt{/u3/marada/control1/},
 and can be compiled with the following command chain:
 
 \begin{center}
@@ -88,15 +88,56 @@ data is accurate. In doing this remeasurement, we changed the fiducial
 point of various track nodes to better categorize track nodes as being
 straight or curved, which is used during calibration.
 
+The remeaurement is used in combination with a classification for each
+track section that is between a pair of sensors. The classification
+allows us to assign different parameters to a train dependent on which
+part of the track the train is currently travelling through. The
+primary use for velocity estimates.
 
 \section*{Train Calibration}
 
-to get inital values we used a camera that could take video at 60fps\ldots
+In order to measure train velocity, we calculated the time delta of
+the train travelling between sensors at a constant speed
+setting. Various sensor pairings were measured multiple times for each
+of the trains.
+
+For the sake of this milestone, we have limited the trains to speeds 6
+through 12. We found that speeds lower than 6 often cause issues on
+the track by getting the train stuck around corners, and speeds
+greater than 12 have inconsistent and unpredictable measurements.
+
+The different sensor pairings allow us to create baseline values for
+each track node classification so that we can estimate a different
+velocity for the train on a straight section of track compared to the
+train trying to navigate around a corner.
+
+We found that four different classifications: \ttt{STRAIGHT},
+\ttt{CURVED}, \ttt{STRAIGHT\_TURNOUT}, \ttt{CURVED\_TURNOUT}.
+
+In order to get acceleration profiles, we filmed one of each type of
+train (except train 51) stopping at a sensor. Next to the track is a
+measuring tape, and by counting frames taken to get to the next
+measuring tape point, we were able to map the distance per time for a
+trains acceleration and deceleration. The video was recorded at 60
+frames per second to accomodate as much precision as possible, but
+because the kernel itself has a clock running at 100 Hz, the velocity
+measurements had a higher precision when measured with the computer.
 
 \subsection*{Feedback}
-updating values is pretty cool\ldots
 
-\subsection*{Console Tweeking}
+Using the baseline values as a starting point, at runtime we are able
+to adjust the velocity estimate of a train using a simple feedback
+mechanism.
+
+We have implemented a \ttt{dp} command to dump the velocity table for
+an arbitrary train. The table is dumped in a CSV format which can
+easily be copy-pasted into a file and later processed with a script to
+generate C code for initializing the table.
+
+Feedback has some safeties. The threshold. The alpha value.
+
+\subsection*{Console Tweaking}
+
 We allow for some of the navigation proprties of the trains to be modified via
 terminal \ldots
 write about Putin
@@ -110,7 +151,7 @@ we use distance measurements for paramaters, because speed and
 consequently time, will vary from train to train, and track piece to
 track piece.
 
-\section*{Pathing}
+\section*{Path Finding}
 
 dijkstra is a cool dood and jsut want to eat his things
 
