@@ -139,7 +139,7 @@ Feedback has some safeties. The threshold. The alpha value.
 
 We allow for some of the navigation properties of the trains to be modified via
 terminal \ldots
-write about Putin
+
 
 \section*{Tracking}
 
@@ -147,11 +147,18 @@ Since we only need to support tracking one train, we poll all of the sensors to
 make sure that the train remain on the path calculated by the go command. the train
 sets its position to be at the last sensor triggered and associates it with the time
 the the sensor was triggered at. when ever the train is woken up it looks at the 
-current time and recalculates its position using its stored velocity
+current time and recalculates its position using its stored velocity and the change
+in time since the last sensor was hit.
 
 we use distance measurements for parameters, because speed and
 consequently time, will vary from train to train, and track piece to
 track piece.
+
+Right now every train will create a task to notify it when a sensor was hit.
+This was done so later when we need to track multiple trains in the system we
+can use more complex logic to decide which sensors the current train has a
+possibility of hitting helping us more carefully choose which sensors to show
+interest in.
 
 \section*{Path Finding}
 
@@ -175,9 +182,6 @@ reach the next node.
 Since reverse path are not currently supported the reverse waypoint is just used
 to notify the driver that it is approaching its destination from the reverse
 direction.
-
-\section*{Couriers}
-
 
 
 \end{document}
