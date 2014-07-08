@@ -505,20 +505,20 @@ void train_driver() {
                     Reply(tid, (char*)&none, sizeof(none));
                     continue;
                 }
-                
-                td_update_train_direction(&context, -1); 
+
+                td_update_train_direction(&context, -1);
             }
             log ("[TRAIN%d] lost position...", context.num);
             context.sensor_last = req.one.int_value;
             context.time_last   = req.two.int_value;
             context.dist_last   = context.dist_next;
-                
+
             if (context.path >= 0) {
                 if (path_fast_forward(&context, req.one.int_value)) {
-                    
+
                     context.path--;
                     td_goto_next_step(&context);
-              
+
                     context.dist_next   = context.steps[context.path].dist;
                     context.sensor_next = context.steps[context.path].data.sensor;
                 } else {
@@ -548,18 +548,19 @@ void train_driver() {
         case TRAIN_EXPECTED_SENSOR: {
             assert(req.one.int_value == context.sensor_next,
                    "Bad Expected Sensor %d", req.one.int_value);
-            
+
             const int expected = context.sensor_next_estim;
             const int actual   = time - context.time_last;
             const int delta    = actual - expected;
 
+            log("%d %d", context.acceleration_last, time);
             // TODO: this should be a function of acceleration and not a
             //       constant value
             if (time - context.acceleration_last > 500) {
                 velocity_feedback(&context, actual, delta);
                 td_update_ui_speed(&context);
             }
-            
+
             context.time_last   = req.two.int_value;
             context.dist_last   = context.dist_next;
             context.sensor_last = context.sensor_next;
@@ -576,7 +577,7 @@ void train_driver() {
                 context.sensor_next = step->data.sensor;
                 context.dist_next   = step->dist;
                 const sensor_name next = sensornum_to_name(context.sensor_next);
-                
+
                 log("Next sensor %c%d is at %d mm. We need to stop at %d mm.",
                     next.bank, next.num,
                     context.dist_next / 1000,
@@ -585,7 +586,6 @@ void train_driver() {
                 if (context.dist_next >= context.stopping_point) {
                     const int curr_time = Time();
                     const int step_dist = context.dist_next - context.dist_last;
-
                     const int delay_time = curr_time + 
                         (step_dist - (context.dist_next - context.stopping_point)) /
                         velocity;
