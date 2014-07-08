@@ -328,31 +328,12 @@ static void td_where(train_context* const ctxt, const int time) {
     // TODO: this will be more complicated when we have acceleration
     const sensor_name last = sensornum_to_name(ctxt->sensor_last);
     const     int velocity = velocity_for_speed(ctxt);
-    const         int dist = velocity * (time - ctxt->time_last);
-    log("[TRAIN%d] %c%d + %d mm",
-        ctxt->num, last.bank, last.num, dist / 1000);
-}
 
-static void td_train_dump(train_context* const ctxt) {
+    int dist = velocity * (time - ctxt->time_last);
+    if (ctxt->speed == 0)
+        dist += ctxt->path_past_end;
 
-    for (int i = 0; i < TRACK_TYPE_COUNT; i++)
-        log("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
-            ctxt->off,
-            i, // track type
-            ctxt->velocity[i][0],
-            ctxt->velocity[i][1],
-            ctxt->velocity[i][2],
-            ctxt->velocity[i][3],
-            ctxt->velocity[i][4],
-            ctxt->velocity[i][5],
-            ctxt->velocity[i][6],
-            ctxt->velocity[i][7],
-            ctxt->velocity[i][8],
-            ctxt->velocity[i][9],
-            ctxt->velocity[i][10],
-            ctxt->velocity[i][11],
-            ctxt->velocity[i][12],
-            ctxt->velocity[i][13]);
+    log("[TRAIN%d] %c%d + %d mm", ctxt->num, last.bank, last.num, dist / 1000);
 }
 
 static inline void train_wait_use(train_context* const ctxt,
@@ -399,7 +380,7 @@ static inline void train_wait_use(train_context* const ctxt,
             // TODO: this should be handled here legitimately
             break;
         case TRAIN_SET_STOP_OFFSET:
-            ctxt->stop_offset = req.one.int_value * 1000;
+            td_update_stop_offset(ctxt, req.one.int_value);
             break;
 
         case TRAIN_HIT_SENSOR:
@@ -494,7 +475,7 @@ void train_driver() {
             context.sensor_stop = req.one.int_value;
             break;
         case TRAIN_SET_STOP_OFFSET:
-            context.stop_offset = req.one.int_value * 1000;
+            td_update_stop_offset(&context, req.one.int_value);
             break;
 
         case TRAIN_HIT_SENSOR: {
@@ -594,6 +575,9 @@ void train_driver() {
                         log("Delaying %d ticks until stop at %d",
                             delay_time, context.stopping_point / 1000);
                             DelayUntil(delay_time);
+                    }
+                    else {
+                        log("Missed delay deadline %d", delay_time);
                     }
 
                     td_update_train_speed(&context, 0);

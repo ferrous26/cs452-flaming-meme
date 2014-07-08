@@ -112,7 +112,7 @@ static void _error(int tid, int code) {
 typedef struct {
     int time;
     priority_queue q;
-    pq_node        pq_heap[TASK_MAX]; 
+    pq_node        pq_heap[TASK_MAX];
 } cs_context;
 
 static void _startup(cs_context* const ctxt) {
@@ -179,7 +179,7 @@ void clock_server() {
         case CLOCK_DELAY_UNTIL:
             // if we missed the deadline, wake task up right away?
             if (req.ticks <= context.time) {
-                ABORT("%d called delay until a past time passed", tid);
+                ABORT("%d called delay until a past time", tid);
 	    } else {
                 pq_add(&context.q, req.ticks, tid);
             }

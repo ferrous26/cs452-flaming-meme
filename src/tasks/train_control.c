@@ -128,8 +128,8 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
         ctxt->pickup[train_index].dump = false;
 
     } else if (ctxt->pickup[train_index].threshold >= 0) {
-        req.type                        = TRAIN_THRESHOLD;
-        req.one.int_value               = ctxt->pickup[train_index].threshold;
+        req.type                      = TRAIN_THRESHOLD;
+        req.one.int_value             = ctxt->pickup[train_index].threshold;
         ctxt->pickup[train_index].threshold = -1;
 
     } else if (ctxt->pickup[train_index].alpha >= 0) {
@@ -141,7 +141,7 @@ static void mc_try_send_train(tc_context* const ctxt, const int train_index) {
         req.type          = TRAIN_SET_STOP_OFFSET;
         req.one.int_value = ctxt->pickup[train_index].stop_offset;
         ctxt->pickup[train_index].stop_offset_valid = 0;
-    
+
     } else { return; }
 
     Reply(ctxt->drivers[train_index], (char*)&req, sizeof(req));
@@ -220,7 +220,6 @@ static inline void mc_threshold(tc_context* const ctxt,
                                 const int train_num,
                                 const int tweak) {
     TRAIN_ASSERT(train_num);
-
     ctxt->pickup[train_num].threshold = tweak;
     mc_try_send_train(ctxt, train_num);
 }
@@ -431,7 +430,7 @@ int train_goto(const int train,
                const int off) {
     NORMALIZE_TRAIN(train_index, train)
 
-    int norm_bank; 
+    int norm_bank;
     if (bank >= 'a' && bank <= 'e') {
         norm_bank = bank - 32;
     } else if (bank < 'A' || bank > 'E') {
@@ -456,7 +455,7 @@ int train_goto(const int train,
 
 int train_dump(const int train) {
     NORMALIZE_TRAIN(train_index, train)
-    
+
     tc_req req = {
         .type = TC_Q_DUMP,
         .payload.int_value = train_index
@@ -509,4 +508,3 @@ int train_set_stop_offset(const int train, const int offset) {
     };
     return Send(train_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-

@@ -12,6 +12,26 @@
 
 #define INITIAL_FEEDBACK_THRESHOLD 5000
 
+static void td_train_dump(train_context* const ctxt) {
+
+    char buffer[1024];
+    char* ptr = log_start(buffer);
+    ptr = sprintf(ptr, "Dump for Train %d\n", ctxt->num);
+
+    for (int i = 0; i < TRACK_TYPE_COUNT; i++) {
+        ptr = sprintf(ptr, "%d,%d,", ctxt->off, i);
+        for (int j = 0; j < TRAIN_PRACTICAL_SPEEDS; j++) {
+            ptr = sprintf_int(ptr, ctxt->velocity[i][j]);
+            if (j != TRAIN_PRACTICAL_SPEEDS - 1)
+                ptr = sprintf_char(ptr, ',');
+        }
+        ptr = sprintf_char(ptr, '\n');
+    }
+
+    ptr = log_end(ptr);
+    Puts(buffer, ptr - buffer);
+}
+
 static track_type __attribute__ ((pure))
 velocity_type(const int sensor) {
     switch (sensor) {
@@ -118,7 +138,7 @@ static inline void velocity_feedback(train_context* const ctxt,
                                      const int actual_v,
                                      const int delta_v) {
 
-    if (abs(delta_v) > ctxt->feedback_threshold) {
+    if (abs(delta_v) > 10000000) { //}ctxt->feedback_threshold) {
         log("Feedback is off by too much (%d) (%d) (%d). I suspect foul play!",
             delta_v, ctxt->feedback_threshold, ctxt->feedback_alpha);
         return;
@@ -149,11 +169,32 @@ stopping_distance(const train_context* const ctxt) {
     return (ctxt->stopping_slope * ctxt->speed) + ctxt->stopping_offset;
 }
 
-static void td_update_threshold(train_context* const ctxt, int threshold) {
+static void td_update_threshold(train_context* const ctxt,
+                                const int threshold) {
+    log("[Train %d] Feedback threshold is now %d", ctxt->num, threshold);
     ctxt->feedback_threshold = threshold;
 }
 
-static void td_update_alpha(train_context* const ctxt, int alpha) {
+static void td_update_stop_offset(train_context* const ctxt, const int offset) {
+    log("[Train%d] Fudging stop offsets by %d mm now", ctxt->num, offset);
+    ctxt->stop_offset = offset * 1000;
+}
+
+static void td_update_alpha(train_context* const ctxt,
+                            const int alpha) {
+    switch (alpha) {
+    case HALF_AND_HALF:
+        log("[Train %d] Feedback ratio is now 50/50", ctxt->num);
+        break;
+    case EIGHTY_TWENTY:
+        log("[Train %d] Feedback ratio is now 80/20", ctxt->num);
+        break;
+    case NINTY_TEN:
+        log("[Train %d] Feedback ratio is now 90/10", ctxt->num);
+        break;
+    default:
+        ABORT("Invalid feedback alpha level %d", alpha);
+    }
     ctxt->feedback_alpha = (feedback_level)alpha;
 }
 
