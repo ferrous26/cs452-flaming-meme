@@ -133,20 +133,20 @@ static void action(command cmd, int args[]) {
             "     Total: %u bytes\n"
             "Text:\n"
             "    Kernel: %u bytes\n"
-            "      Cold: %u bytes\n"
             "      Task: %u bytes\n"
+            "      Cold: %u bytes\n"
             "     Total: %u bytes\n"
             "BSS:        %u bytes\n"
             "ROData:     %u bytes\n",
-            &_DataKernEnd - &_DataStart,
-            &_DataEnd     - &_DataKernEnd,
-            &_DataEnd     - &_DataStart,
-            &_TextKernEnd - &_TextStart,
-            &_TextEnd     - &_TextKernEnd,
-            &_TextEnd     - &_TextColdStart,
-            &_TextEnd     - &_TextStart,
-            &_BssEnd      - &_BssStart,
-            &_RODataEnd   - &_RODataStart);
+            &_DataKernEnd   - &_DataStart,
+            &_DataEnd       - &_DataKernEnd,
+            &_DataEnd       - &_DataStart,
+            &_TextKernEnd   - &_TextStart,
+            &_TextColdStart - &_TextKernEnd,
+            &_TextEnd       - &_TextColdStart,
+            &_TextEnd       - &_TextStart,
+            &_BssEnd        - &_BssStart,
+            &_RODataEnd     - &_RODataStart);
         break;
 
     case UPDATE_THRESHOLD:
