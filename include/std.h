@@ -21,13 +21,13 @@ typedef          char  int8;
 
 typedef void (*voidf)(void);
 
-static inline int __attribute__ ((const, always_inline, used))
+static inline int __attribute__ ((const))
 abs(const int val) { return val < 0 ? -val : val; }
 
 bool __attribute__ ((const)) isspace(const char c);
 bool __attribute__ ((const)) isdigit(const char c);
 bool __attribute__ ((const)) ishexdigit(const char c);
-int  __attribute__ ((const)) log10(int c); // naively calculate log base 10
+int  __attribute__ ((const)) log10(int c);
 
 #include <limits.h>
 #include <memory.h>
@@ -45,5 +45,7 @@ static inline int __attribute__ ((const)) mod2_int(int top, int mod) {
     return (top & (mod - 1));
 }
 
+#define TEXT_COLD __attribute__ ((section (".text.cold")))
+#define DATA_COLD __attribute__ ((section (".data.cold")))
 
 #endif

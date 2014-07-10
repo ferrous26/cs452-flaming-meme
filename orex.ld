@@ -42,6 +42,8 @@ SECTIONS
     *(.text)
     *(.glue_7)		/* Glue sections hold code for thumb interworking */
     *(.glue_7t)
+    _TextColdStart = . ;
+    *(.text.cold)
     _TextEnd = . ;
   } >ram
 }
