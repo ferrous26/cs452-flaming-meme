@@ -109,7 +109,7 @@ static void action(command cmd, int args[]) {
     }
 
     case CMD_BENCHMARK:
-	Create(TASK_PRIORITY_MEDIUM_LOW, bench_msg);
+	Create(TASK_PRIORITY_MEDIUM_HIGH - 1, bench_msg);
         break;
 
     case CMD_STRESS:
