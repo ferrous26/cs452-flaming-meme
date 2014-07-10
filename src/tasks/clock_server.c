@@ -104,11 +104,7 @@ static void __attribute__ ((noreturn)) clock_ui() {
         }
     }
 }
-/*
-static void _error(int tid, int code) {
-    log("Failed to reply to %u (%d)", tid, code);
-}
-*/
+
 typedef struct {
     int time;
     priority_queue q;
