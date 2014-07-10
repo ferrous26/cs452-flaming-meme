@@ -102,7 +102,7 @@ char* vt_scroll_down(char* buffer);
 /**
  * The row where logging ends.
  */
-#define LOG_END  40
+#define LOG_END  99
 
 /**
  * To begin arbitrary logging (table, multiline things, etc.), use
