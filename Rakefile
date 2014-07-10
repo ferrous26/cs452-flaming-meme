@@ -45,6 +45,7 @@ task :build, :params do |_, args|
   env << 'RELEASE=1'     if params.include? '1'
   env << 'RELEASE=2'     if params.include? '2'
   env << 'RELEASE=3'     if params.include? '3'
+  env << 'RELEASE=s'     if params.include? 'x'
 
   cmds = if params.include? 't'
            []
