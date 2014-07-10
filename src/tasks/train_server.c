@@ -130,11 +130,11 @@ static void __attribute__((noreturn)) receive_notifier() {
             assert(req.payload.size < 4,
                    "Train Notifier has overfilled it's buffer",
                    req.payload.size);
-            
+
             result = AwaitEvent(UART1_RECV,
                                 req.payload.data + req.payload.size,
                                 sizeof(req.payload.data));
-            
+
             req.payload.size += result;
             assert(result == 1,
                    "Train Notifier had a bad receive (%d)", result);
@@ -180,7 +180,7 @@ static void ts_deliver_request(ts_context* const ctxt,
                                const int size) {
     assert(size > 0 && size <= 4,
            "trying to deliver invalid size (%d)", size);
-    
+
     char c[4] = {0};
     int index = size-1;
 
@@ -265,7 +265,7 @@ void train_server() {
         case PUT:
             assert(req.payload.size > 0 && req.payload.size <= 4,
                    "Invalid train req size (%d)", req.payload.size);
-            
+
             Reply(tid, NULL, 0);
             for(int i = 0; i < req.payload.size; i++)
                 cbuf_produce(&context.train_out, req.payload.data[i]);
@@ -314,6 +314,10 @@ int put_train_cmd(char vctm, char cmd) {
     };
 
     return Send(train_server_tid, (char*)&req, sizeof(req), NULL, 0);
+}
+
+int put_train_speed(char vctm, char cmd) {
+    return put_train_cmd(vctm, cmd | 0x10);
 }
 
 int put_train_turnout(char turn, char cmd) {
@@ -373,4 +377,3 @@ int get_train(char *buf, int buf_size) {
 
     return Send(train_server_tid, (char*)&req, sizeof(req), buf, buf_size);
 }
-
