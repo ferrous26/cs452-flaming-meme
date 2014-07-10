@@ -138,7 +138,7 @@ static inline void velocity_feedback(train_context* const ctxt,
                                      const int actual_v,
                                      const int delta_v) {
 
-    if (abs(delta_v) > 10000000) { //}ctxt->feedback_threshold) {
+    if (abs(delta_v) > ctxt->feedback_threshold) {
         log("Feedback is off by too much (%d) (%d) (%d). I suspect foul play!",
             delta_v, ctxt->feedback_threshold, ctxt->feedback_alpha);
         return;
@@ -150,15 +150,15 @@ static inline void velocity_feedback(train_context* const ctxt,
 
     switch (ctxt->feedback_alpha) {
     case HALF_AND_HALF:
-        ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+        ctxt->velocity[type][ctxt->speed - TRAIN_MIN_SPEED] =
             (expected_v + actual_v) >> 1;
         break;
     case EIGHTY_TWENTY:
-        ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+        ctxt->velocity[type][ctxt->speed - TRAIN_MIN_SPEED] =
             ((expected_v << 2) + actual_v) / 5;
         break;
     case NINTY_TEN:
-        ctxt->velocity[type][ctxt->speed - TRAIN_PRACTICAL_MIN_SPEED] =
+        ctxt->velocity[type][ctxt->speed - TRAIN_MIN_SPEED] =
             ((expected_v * 9) + actual_v) / 10;
         break;
     }
@@ -477,5 +477,8 @@ static inline void tr_setup_physics(train_context* const ctxt) {
     ctxt->feedback_threshold = INITIAL_FEEDBACK_THRESHOLD;
     ctxt->feedback_alpha     = NINTY_TEN;
 }
+
+
+// TODO: train measurement lookups
 
 #endif

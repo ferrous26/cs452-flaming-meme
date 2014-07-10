@@ -8,19 +8,18 @@
 #include <tasks/name_server.h>
 
 #include <tasks/clock_server.h>
-
-#include <tasks/train_driver.h>
 #include <tasks/mission_control.h>
+#include <tasks/train_master.h>
 #include <tasks/train_console.h>
 
 typedef struct {
-    const int driver_tid;
-    const int sensor_tid;
-    
-    int       train_tid;
-    int       train_docked;
-    int       sensor_expect;
-    train_req next_req;
+    const int  driver_tid;
+    const int  sensor_tid;
+
+    int        train_tid;
+    int        train_docked;
+    int        sensor_expect;
+    master_req next_req;
 } tc_context;
 
 #define TC_CHILDERN_PRIORITY 4
@@ -32,7 +31,7 @@ static inline void _init_context(tc_context* const ctxt) {
 
     *(int*)&ctxt->sensor_tid = Create(TC_CHILDERN_PRIORITY, sensor_notifier);
     assert(ctxt->sensor_tid >= 0, "Error creating Courier to Driver");
-    
+
     int result = Send(ctxt->sensor_tid, (char*)&scratch, sizeof(scratch),
                       NULL, 0);
     assert(result == 0, "Failed to set up first sensor poll %d", result);
@@ -40,18 +39,18 @@ static inline void _init_context(tc_context* const ctxt) {
     result = Receive(&scratch, (char*)&sensor_data, sizeof(sensor_data));
     assert(result == sizeof(sensor_data),
             "Received invalid sensor data %d / %d", result, sizeof(sensor_data));
-    
-    train_req callin = {
-        .type          = TRAIN_HIT_SENSOR,
-        .one.int_value = sensor_data[1],
-        .two.int_value = sensor_data[0]
+
+    master_req callin = {
+        .type = MASTER_SENSOR_FEEDBACK,
+        .arg1 = sensor_data[1],
+        .arg2 = sensor_data[0]
     };
 
     *(int*)&ctxt->driver_tid = Create(TC_CHILDERN_PRIORITY, courier);
-    assert(ctxt->driver_tid >= 0, "Error creating Courier to Driver");
+    assert(ctxt->driver_tid >= 0, "Error creating Courier to Master");
 
-    assert(callin.one.int_value >= 0 && callin.one.int_value < 80,
-           "failed initalizing train %d", callin.one.int_value);
+    assert(callin.arg1 >= 0 && callin.arg1 < 80,
+           "failed initalizing train %d", callin.arg1);
 
     courier_package package = {
         .receiver = myParentTid(),
@@ -60,7 +59,6 @@ static inline void _init_context(tc_context* const ctxt) {
     };
     result = Send(ctxt->driver_tid, (char*)&package, sizeof(package), NULL, 0);
     assert(result == 0, "Failed handing off package to courier");
-
 
     UNUSED(result);
 }
@@ -73,7 +71,7 @@ void train_console() {
 
     union {
         int driver;
-        int sensor[2];
+        int sensor[4];
     } buffer;
 
     FOREVER {
@@ -89,14 +87,14 @@ void train_console() {
             assert(result == 0, "Failed reply to sensor waiter (%d)", result);
 
         } else if (context.sensor_tid == tid) {
-            train_req callin = {
+            master_req callin = {
                 .type          = context.sensor_expect == buffer.sensor[1] ?
-                                    TRAIN_EXPECTED_SENSOR :
-                                    TRAIN_HIT_SENSOR,
-                .one.int_value = buffer.sensor[1],
-                .two.int_value = buffer.sensor[0]
+                                    MASTER_SENSOR_FEEDBACK :
+                                    MASTER_UNEXPECTED_SENSOR_FEEDBACK,
+                .arg1 = buffer.sensor[1],
+                .arg2 = buffer.sensor[0]
             };
-            
+
             result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
             assert(result == 0, "Failed reply to driver courier (%d)", result);
         }

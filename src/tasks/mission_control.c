@@ -8,7 +8,6 @@
 
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
-#include <tasks/train_driver.h>
 
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
@@ -28,8 +27,8 @@ const track_node* train_track;
 static int mission_control_tid;
 
 typedef struct {
-    sensor_name* sensor_insert;
-    sensor_name  recent_sensors[SENSOR_LIST_SIZE];
+    sensor*      sensor_insert;
+    sensor       recent_sensors[SENSOR_LIST_SIZE];
     track_node   track[TRACK_MAX];
 
     int wait_all;
@@ -46,31 +45,14 @@ static void train_ui() {
     ptr = sprintf_string(ptr,
 "Train  Speed    Sensors          Turnouts/Gates/Switches     __Sensor__\n"
 "----------------------------    +-----------------------+    |        | Newest\n"
-" 43                             | 1   | 2   | 3   | 4   |    |        |\n"
-" 45                             | 5   | 6   | 7   | 8   |    |        |\n"
-" 47                             | 9   |10   |11   |12   |    |        |\n"
-" 48                             |13   |14   |15   |16   |    |        |\n"
-" 49                             |17   |18   |-----------|    |        |\n"
-" 50                             |153   154  |155   156  |    |        |\n"
-" 51                             +-----------------------+    |        | Oldest");
+" 45                             | 1   | 2   | 3   | 4   |    |        |\n"
+" 47                             | 5   | 6   | 7   | 8   |    |        |\n"
+" 48                             | 9   |10   |11   |12   |    |        |\n"
+" 49                             |13   |14   |15   |16   |    |        |\n"
+"                                |17   |18   |-----------|    |        |\n"
+"                                |153   154  |155   156  |    |        |\n"
+"                                +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
-}
-
-static inline int __attribute__ ((const))
-turnout_to_pos(const int turnout) {
-    if (turnout <  1)   return -1;
-    if (turnout <= 18)  return turnout - 1;
-    if (turnout <  153) return -1;
-    if (turnout <= 156) return turnout - (153-18);
-    return -1;
-}
-
-static inline int __attribute__ ((const, unused))
-pos_to_turnout(const int pos) {
-    if (pos < 0)  return -1;
-    if (pos < 18) return pos + 1;
-    if (pos < 22) return pos + (153-18);
-    return -1;
 }
 
 static void __attribute__ ((noreturn)) sensor_poll() {
@@ -151,14 +133,14 @@ inline static void mc_update_sensors(mc_context* const ctxt,
     assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
            "Can't update invalid sensor num %d", sensor_num);
 
-    sensor_name* next = ctxt->sensor_insert++;
-    *next             = sensornum_to_name(sensor_num);
+    sensor*      next = ctxt->sensor_insert++;
+    *next             = pos_to_sensor(sensor_num);
     const int waiter  = ctxt->sensor_delay[sensor_num];
 
     if(ctxt->sensor_insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
         ctxt->sensor_insert = ctxt->recent_sensors;
     }
-    memset(ctxt->sensor_insert, 0, sizeof(sensor_name));
+    memset(ctxt->sensor_insert, 0, sizeof(sensor));
 
     const int reply[2] = {Time(), sensor_num};
     if (-1 != waiter) {
@@ -257,9 +239,15 @@ static inline void mc_update_turnout(mc_context* const ctxt,
 }
 
 static void mc_reset_track_state(mc_context* const context) {
-    for (int i = 1; i < 19; i++) {
+    mc_update_turnout(context, 1, 'S');
+    mc_update_turnout(context, 2, 'S');
+    mc_update_turnout(context, 3, 'C');
+    mc_update_turnout(context, 4, 'S');
+
+    for (int i = 5; i < 19; i++) {
         mc_update_turnout(context, i, 'C');
     }
+
     mc_update_turnout(context, 153, 'S');
     mc_update_turnout(context, 154, 'C');
     mc_update_turnout(context, 155, 'S');
@@ -343,8 +331,8 @@ void mission_control() {
 
         case MC_U_TURNOUT:
             mc_update_turnout(&context,
-                              req.payload.turnout.num,
-                              req.payload.turnout.state);
+                              req.payload.turn.num,
+                              req.payload.turn.state);
             break;
 
         case MC_R_TRACK:
@@ -388,7 +376,7 @@ int update_turnout(int num, int state) {
 
     mc_req req = {
         .type = MC_U_TURNOUT,
-        .payload.turnout = {
+        .payload.turn = {
             .num   = (short)num,
             .state = (short)state
         }
@@ -450,13 +438,13 @@ int delay_all_sensor() {
         .type           = MC_D_SENSOR_ANY,
     };
 
-    int sensor;
+    int sensor_idx;
     int result = Send(mission_control_tid,
                       (char*)&req, sizeof(req),
-                      (char*)&sensor, sizeof(sensor));
+                      (char*)&sensor_idx, sizeof(sensor_idx));
 
     if (result < 0) return result;
-    return sensor;
+    return sensor_idx;
 }
 
 int load_track(int track_value) {

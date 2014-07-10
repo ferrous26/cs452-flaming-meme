@@ -2,10 +2,7 @@
 #ifndef __MISSION_CONTROL_TYPES_H__
 #define __MISSION_CONTROL_TYPES_H__
 
-typedef struct {
-    short num;
-    short state;
-} turnout_state;
+#include <normalize.h>
 
 typedef enum {
     // load
@@ -18,15 +15,15 @@ typedef enum {
     // delay
     MC_D_SENSOR,
     MC_D_SENSOR_ANY,
-    MC_TD_GET_NEXT_SENSOR,    
+    MC_TD_GET_NEXT_SENSOR,
     // misc
     MC_TYPE_COUNT
 } mc_type;
 
 typedef union {
-    sensor_name   sensor;
-    turnout_state turnout;
-    int           int_value;
+    sensor  sensor;
+    turnout turn;
+    int     int_value;
 } mc_payload;
 
 typedef struct {

@@ -19,22 +19,23 @@ void sensor_notifier() {
     mc_req sensor_one = {
         .type = MC_D_SENSOR,
     };
+
     mc_req sensor_any = {
         .type = MC_D_SENSOR_ANY,
     };
 
-    int* const sensor = &sensor_one.payload.int_value;
+    int* const sensor_idx = &sensor_one.payload.int_value;
 
-    int result = Receive(&tid, (char*)sensor, sizeof(*sensor));
-    assert(result == sizeof(*sensor), "sensor notifier failed %d", result);
+    int result = Receive(&tid, (char*)sensor_idx, sizeof(*sensor_idx));
+    assert(result == sizeof(*sensor_idx), "sensor notifier failed %d", result);
     Reply(tid, NULL, 0);
 
     do {
-        assert(*sensor >= 0 && *sensor <= 80,
+        assert(*sensor_idx >= 0 && *sensor_idx <= 80,
                "sensor notifier got invalid sensor num from %d (%d)",
-               tid, *sensor);
+               tid, *sensor_idx);
 
-        if (*sensor == 80) {
+        if (*sensor_idx == 80) {
             result = Send(mc_tid,
                           (char*)&sensor_any, sizeof(sensor_any),
                           (char*)&reply, sizeof(reply));
@@ -46,8 +47,8 @@ void sensor_notifier() {
 
         result = Send(tid,
                       (char*)&reply, sizeof(reply),
-                      (char*)sensor, sizeof(*sensor));
-    } while (*sensor != -1);
+                      (char*)sensor_idx, sizeof(*sensor_idx));
+    } while (*sensor_idx != -1);
     log ("[SensorNotifier%d] has died...", myTid());
 }
 
@@ -151,8 +152,8 @@ void courier() {
         result = Send(tid,
                       buffer, result,
                       buffer, sizeof(buffer));
-
-        assert(result >= 0, "Error sending response to %d", tid);
+        assert(result >= 0, "Error sending response to %d (%d)",
+               tid, result);
     } while (result > 0);
 
     log("[Courier%d] has died...", myTid());

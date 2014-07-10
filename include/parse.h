@@ -15,7 +15,6 @@ typedef enum {
     SWITCH_TIME,
     STOP_OFFSET,
 
-    LOC_LIGHT,
     LOC_SPEED,
     LOC_REVERSE,
     LOC_HORN,
@@ -25,8 +24,6 @@ typedef enum {
     UPDATE_THRESHOLD,
     UPDATE_FEEDBACK,
 
-    CALIBRATE,
-    ACCELERATE,
     SIZES,
     SEPPUKU,
     DUMP,

@@ -2,11 +2,11 @@
 #ifndef __TRAIN_H__
 #define __TRAIN_H__
 
+#define NUM_TRAINS           4
+
+#define TRAIN_SPEEDS         14
 #define TRAIN_MAX_SPEED      14
 #define TRAIN_MIN_SPEED      1
-#define TRAIN_PRACTICAL_MIN_SPEED  1
-#define TRAIN_PRACTICAL_MAX_SPEED  14
-#define TRAIN_PRACTICAL_SPEEDS     14
 #define TRAIN_REVERSE        0xf
 
 #define TRAIN_ALL_START      0x60

@@ -13,13 +13,11 @@
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
 #include <tasks/mission_control.h>
-#include <tasks/train_driver.h>
-#include <tasks/calibrate.h>
 
 #include <tasks/courier.h>
 
 #include <tasks/path_worker.h>
-#include <tasks/train_control.h>
+#include <tasks/train_blaster.h>
 
 #include <tasks/task_launcher.h>
 
@@ -32,6 +30,7 @@ extern uint* _RODataStart;
 extern uint* _RODataEnd;
 extern uint* _TextStart;
 extern uint* _TextKernEnd;
+extern uint* _TextColdStart;
 extern uint* _TextEnd;
 
 #define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
@@ -70,12 +69,10 @@ static void action(command cmd, int args[]) {
         print_help();
         break;
     case DUMP:
-        train_dump(args[0]);
+        train_dump_velocity_table(args[0]);
         break;
-
     case QUIT:
         Shutdown();
-
     case WHEREIS:
         train_where_are_you(args[0]);
         break;
@@ -84,9 +81,6 @@ static void action(command cmd, int args[]) {
         break;
     case LOC_REVERSE:
         train_reverse(args[0]);
-        break;
-    case LOC_LIGHT:
-        train_toggle_light(args[0]);
         break;
     case LOC_HORN:
 	train_toggle_horn(args[0]);
@@ -98,7 +92,7 @@ static void action(command cmd, int args[]) {
         update_turnout(args[0], args[1]);
         break;
     case SWITCH_STOP:
-        train_stop_at(args[2], args[0], args[1]);
+        train_stop_at_sensor(args[2], args[0], args[1]);
         break;
     case SWITCH_TIME: {
         delay_all_sensor();
@@ -110,19 +104,7 @@ static void action(command cmd, int args[]) {
     }
 
     case GO: {
-        train_goto(args[0], args[1], args[2], args[3]);
-        break;
-    }
-
-    case CALIBRATE: {
-        int tid = Create(5, calibrate);
-        Send(tid, (char*)args, sizeof(int), NULL, 0);
-        break;
-    }
-
-    case ACCELERATE: {
-        int tid = Create(5, velocitate);
-        Send(tid, (char*)args, sizeof(int), NULL, 0);
+        train_goto_location(args[0], args[1], args[2], args[3]);
         break;
     }
 
@@ -151,6 +133,7 @@ static void action(command cmd, int args[]) {
             "     Total: %u bytes\n"
             "Text:\n"
             "    Kernel: %u bytes\n"
+            "      Cold: %u bytes\n"
             "      Task: %u bytes\n"
             "     Total: %u bytes\n"
             "BSS:        %u bytes\n"
@@ -160,17 +143,18 @@ static void action(command cmd, int args[]) {
             &_DataEnd     - &_DataStart,
             &_TextKernEnd - &_TextStart,
             &_TextEnd     - &_TextKernEnd,
+            &_TextEnd     - &_TextColdStart,
             &_TextEnd     - &_TextStart,
             &_BssEnd      - &_BssStart,
             &_RODataEnd   - &_RODataStart);
         break;
 
     case UPDATE_THRESHOLD:
-        train_update_threshold(args[0], args[1]);
+        train_update_feedback_threshold(args[0], args[1]);
         break;
 
     case UPDATE_FEEDBACK:
-        train_update_alpha(args[0], args[1]);
+        train_update_feedback_alpha(args[0], args[1]);
         break;
 
     case REVERSE_LOOKUP: {
@@ -191,8 +175,8 @@ static void action(command cmd, int args[]) {
         path_request req = {
             .requestor   = myTid(),
             .header      = 0,
-            .sensor_to   = sensorname_to_num(args[2], args[3]),
-            .sensor_from = sensorname_to_num(args[0], args[1])
+            .sensor_to   = sensor_to_pos(args[2], args[3]),
+            .sensor_from = sensor_to_pos(args[0], args[1])
         };
 
         path_response res;
@@ -202,7 +186,7 @@ static void action(command cmd, int args[]) {
         for (int i = res.size-1, j = 0; i >= 0; i--, j++) {
             switch(res.path[i].type) {
             case PATH_SENSOR: {
-                sensor_name print = sensornum_to_name(res.path[i].data.int_value);
+                sensor print = pos_to_sensor(res.path[i].data.int_value);
                 log("%d\tS\t%c%d\t%d", j, print.bank, print.num, res.path[i].dist);
                 break;
             }
@@ -248,7 +232,7 @@ static void action(command cmd, int args[]) {
     }
 
     case STOP_OFFSET:
-        train_set_stop_offset(args[0], args[1]);
+        train_update_stop_offset(args[0], args[1]);
         break;
 
     case ERROR:
@@ -275,6 +259,10 @@ void task_launcher() {
     do {
         // quick hack to force track loading
         buffer[0] = (char)Getc(TERMINAL);
+        if (buffer[0] == 'q') {
+            log("Aborting track load...be careful!");
+            break;
+        }
     } while (load_track(buffer[0]));
     ptr = buffer;
 

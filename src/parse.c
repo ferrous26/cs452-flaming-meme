@@ -105,7 +105,7 @@ static command parse_t(const char* const cmd, int* const buffer) {
     case 't':
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (!isspace(cmd[index]))                         return ERROR;
-        return TEST_TIME; 
+        return TEST_TIME;
     default:
         return ERROR;
     }
@@ -151,18 +151,6 @@ static command parse_r(const char* const cmd, int* const buffer) {
     return ERROR;
 }
 
-static command parse_l(const char* const cmd, int* const buffer) {
-    int index = 1;
-    switch (cmd[index++]) {
-    case 't':
-        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (!isspace(cmd[index]))                     return ERROR;
-        return LOC_LIGHT;
-    }
-
-    return ERROR;
-}
-
 static command parse_b(const char* const cmd, int* const buffer) {
     int index = 1;
     UNUSED(buffer);
@@ -199,25 +187,12 @@ static command parse_a(const char* const cmd, int* const buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
-    case 'l':
-	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-	return ACCELERATE;
     case 'a':
         if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
         return UPDATE_FEEDBACK;
     }
 
-    return ERROR;
-}
-
-static command parse_c(const char* const cmd, int* const buffer) {
-    int index = 1;
-    switch (cmd[index++]) {
-    case 'l':
-	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-	return CALIBRATE;
-    }
     return ERROR;
 }
 
@@ -264,12 +239,10 @@ command parse_command(const char* const cmd, int* const buffer) {
     case '\r': return NONE;
     case 'a':  return parse_a(cmd, buffer);
     case 'b':  return parse_b(cmd, buffer);
-    case 'c':  return parse_c(cmd, buffer);
     case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);
     case 'g':  return parse_g(cmd, buffer);
     case 'h':  return parse_h(cmd, buffer);
-    case 'l':  return parse_l(cmd, buffer);
     case 'p':  return parse_p(cmd, buffer);
     case 'q':  return parse_q(cmd, buffer);
     case 's':  return parse_s(cmd, buffer);
