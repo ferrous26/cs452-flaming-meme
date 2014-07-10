@@ -138,7 +138,7 @@ void irq_uart2_recv() {
 
         char c = *data;
         if (c == '`') magic_sysreq();
-	req->event[0] = c;
+            req->event[0] = c;
 
         int i;
         for (i = 1; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
@@ -146,7 +146,7 @@ void irq_uart2_recv() {
         }
 
         t->sp[0] = i;
-	*ctlr &= ~RTIS_MASK;
+        *ctlr &= ~RTIS_MASK;
         scheduler_reschedule(t);
 
         return;
@@ -186,7 +186,7 @@ void irq_uart2_send() {
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);
     *ctlr &= ~TIEN_MASK;
 
-    scheduler_reschedule(t);
+    scheduler_schedule(t);
 }
 
 void irq_uart2() {

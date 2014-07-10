@@ -65,7 +65,7 @@ CFLAGS += -Werror
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99 -fomit-frame-pointer
-CFLAGS += -c -I. -Iinclude -mcpu=arm920t
+CFLAGS += -c -Isrc -I. -Iinclude -mcpu=arm920t
 
 LDFLAGS = -init main -Map kernel.map -N -T orex.ld --warn-unresolved-symbols
 
@@ -128,4 +128,4 @@ track:
 clean:
 	-rm -f kernel.elf kernel.map
 	-rm -f src/*.s src/tasks/*.s
-	-rm -f src/*.o src/tasks/*.o
+	-rm -f src/*.o src/tasks/*.o src/kernel/*.o

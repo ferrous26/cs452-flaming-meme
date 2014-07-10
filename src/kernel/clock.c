@@ -34,14 +34,14 @@ void irq_clock() {
     const uint clear_addr = TIMER3_BASE | CLR_OFFSET;
     *(uint*)clear_addr = clear_addr;
 
-    task* t = int_queue[CLOCK_TICK];
+    task* const t = int_queue[CLOCK_TICK];
     int_queue[CLOCK_TICK] = NULL;
 
     if (t) {
-	t->sp[0] = 0;
-	scheduler_reschedule(t);
-	return;
+        t->sp[0] = 0;
+        scheduler_schedule(t);
+        return;
     }
 
-    assert(t, "Missed a clock tick");
+    //    assert(t, "Missed a clock tick");
 }
