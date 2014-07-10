@@ -74,8 +74,11 @@ static inline void blaster_spawn_masters() {
         assert(tid > 0, "[Blaster] Failed to create train master (%d)", tid);
 
         const int result = Send(tid, (char*)&i, sizeof(i), NULL, 0);
+
         assert(result == 0, "[Blaster] Failed to send to master %d (%d)",
                train_num, result);
+        UNUSED(result);
+        UNUSED(train_num);
     }
 }
 

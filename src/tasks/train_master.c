@@ -122,6 +122,7 @@ static void master_init_courier(master* const ctxt,
     // Now we can get down to bidness
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
     assert(tid >= 0, "[Master] Failed creating the train console (%d)", tid);
+    UNUSED(tid);
 
     ctxt->courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(ctxt->courier >= 0,
@@ -132,6 +133,7 @@ static void master_init_courier(master* const ctxt,
                       NULL, 0);
     assert(result == 0,
            "[Master] Error sending package to command courier %d", result);
+    UNUSED(result);
 }
 
 void train_master() {
