@@ -111,7 +111,9 @@ char* vt_scroll_down(char* buffer);
  * logging as it is a wrapper around vt_log_start() and vt_log_end().
  */
 char* log_start(char* buffer);
+char* klog_start(char* buffer);
 char* log_end(char* buffer);
+#define klog_end log_end
 void  log(const char* fmt, ...);
 void  klog(const char* fmt, ...);
 

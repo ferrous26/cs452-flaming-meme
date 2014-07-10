@@ -3,6 +3,7 @@
 #include <io.h>
 #include <debug.h>
 #include <tasks/term_server.h>
+#include <tasks/clock_server.h>
 
 
 static uint log_count = 0;
@@ -287,8 +288,13 @@ char* vt_restore_cursor(char* buffer) {
 
 char* log_start(char* buffer) {
     buffer = vt_restore_cursor(buffer);
-    buffer = sprintf_uint(buffer, ++log_count);
+    buffer = sprintf_uint(buffer, Time());
     return sprintf_string(buffer, ": ");
+}
+
+char* klog_start(char* buffer) {
+    buffer = vt_restore_cursor(buffer);
+    return sprintf(buffer, "kernel %u: ", ++log_count);
 }
 
 char* log_end(char* buffer) {
@@ -318,7 +324,7 @@ void klog(const char* fmt, ...) {
     char buffer[256];
     char* ptr = buffer;
 
-    ptr = log_start(ptr);
+    ptr = klog_start(ptr);
     ptr = sprintf_va(ptr, fmt, args);
     ptr = log_end(ptr);
 
