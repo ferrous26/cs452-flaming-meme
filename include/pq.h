@@ -14,13 +14,13 @@ typedef struct {
 } priority_queue;
 
 static inline int __attribute__((always_inline, const, used))
-pq_peek_key(const priority_queue* const q) { return q->heap[1].key; }
+pq_peek_key(const priority_queue* const q) { return q->heap[0].key; }
 
 static inline int __attribute__((always_inline, const, used))
-pq_peek_val(const priority_queue* const q) { return q->heap[1].val; }
+pq_peek_val(const priority_queue* const q) { return q->heap[0].val; }
 
 static inline int __attribute__((always_inline, const, used))
-pq_size(const priority_queue* const q) { return q->count - 1; }
+pq_size(const priority_queue* const q) { return q->count; }
 
 void pq_init(priority_queue* const q, pq_node* const heap, const int size);
 void pq_add(priority_queue* const q, const int key, const int value);
