@@ -61,9 +61,10 @@ void time_notifier() {
     } delay_req;
 
     int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
+    assert(size > 0, "Failed receiving setup info (%d)", size);
 
     int result = Reply(tid, NULL, 0);
-    assert(result == 0, "Failed reposnding to setup task (%d)", result);
+    assert(result == 0, "Failed responding to setup task (%d)", result);
     UNUSED(result);
 
     do {
