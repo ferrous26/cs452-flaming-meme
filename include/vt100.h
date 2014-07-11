@@ -56,7 +56,11 @@ char* sprintf_uint(char* buffer, const uint32 num);
 char* sprintf_hex(char* buffer, const uint32 num);
 char* sprintf_ptr(char* buffer, const void* const ptr);
 
-char* sprintf_char(char* buffer, const char c);
+static inline char* sprintf_char(char* buffer, const char c) {
+    *(buffer++) = c;
+    return buffer;
+}
+
 char* sprintf_string(char* buffer, const char* str);
 
 char* vt_clear_screen(char* buffer);

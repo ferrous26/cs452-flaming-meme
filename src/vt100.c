@@ -206,11 +206,6 @@ char* sprintf_string(char* buffer, const char* str) {
     return buffer;
 }
 
-char* sprintf_char(char* buffer, const char c) {
-    *(buffer++) = c;
-    return buffer;
-}
-
 char* vt_clear_screen(char* buffer) {
     return sprintf_string(buffer, ESC_CODE "2J");
 }
