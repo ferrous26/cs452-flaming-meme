@@ -140,8 +140,10 @@ blaster_try_send_master(blaster_context* const ctxt, const int index) {
     } else { return; }
 
 
-    const int result =
-        Reply(ctxt->master[index].courier, (char*)&req, sizeof(req));
+    log("Sending arg 1 as %d to %d", req.arg1, ctxt->master[index].courier);
+    const int result = Reply(ctxt->master[index].courier,
+                             (char*)&req,
+                             sizeof(req));
     if (result) ABORT("Failed to send to train %d (%d)", index, result);
     ctxt->master[index].courier = -1;
 }
@@ -251,7 +253,7 @@ int train_set_speed(const int train, const int speed) {
     blaster_req req = {
         .type = BLASTER_SET_SPEED,
         .arg1 = train_index,
-        .arg2 = speed
+        .arg2 = speed * 10
     };
 
     return Send(train_blaster_tid,

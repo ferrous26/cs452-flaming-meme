@@ -15,6 +15,25 @@
 #include <tasks/train_master/physics.c>
 
 
+static inline void
+master_update_velocity_ui(const master* const ctxt) {
+    // NOTE: we currently display in units of (integer) rounded off mm/s
+    char  buffer[16];
+    char* ptr      = vt_goto(buffer,
+                             TRAIN_ROW + ctxt->train_id,
+                             TRAIN_SPEED_COL);
+
+    const char* const format =
+        ctxt->current_speed && ctxt->current_speed < 150 ? "%d " : "-    ";
+
+    const int type = velocity_type(ctxt->current_sensor);
+    const int    v = physics_velocity(&ctxt->vmap[type],
+                                      ctxt->current_speed);
+    ptr = sprintf(ptr, format, v);
+
+    Puts(buffer, ptr - buffer);
+}
+
 static void master_set_speed(master* const ctxt,
                              const int speed,
                              const int time) {
@@ -22,15 +41,17 @@ static void master_set_speed(master* const ctxt,
     ctxt->current_speed = speed;
 
     ctxt->last_time     = time; // time stamp the change in speed
-    put_train_speed(ctxt->train_gid, speed);
+    put_train_speed(ctxt->train_gid, speed / 10);
 
     // this causes an acceleration event, so we need to wake up
     // when we finish accelerating
     // also need to update estimates
+
+    master_update_velocity_ui(ctxt);
 }
 
 static inline void master_wait(master* const ctxt,
-                                   const blaster_req* const callin) {
+                               const blaster_req* const callin) {
 
     master_req req;
     const int blaster = myParentTid();
@@ -154,6 +175,11 @@ static void master_init_courier(master* const ctxt,
     assert(result >= 0,
            "[%s] Failed to setup time notifier (%d)",
            ctxt->name, result);
+
+    result = Receive(&tid, NULL, 0);
+    assert(tid == ctxt->acceleration_courier,
+           "[%s] Got response from incorrect task (%d != %d)",
+           ctxt->name, tid, ctxt->acceleration_courier);
 }
 
 void train_master() {
