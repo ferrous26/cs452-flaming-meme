@@ -41,7 +41,7 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed    Sensors          Turnouts/Gates/Switches     __Sensor__\n"
+"Train  Speed    Sensors              Turnouts/Gates/Switches     __Sensor__\n"
 "--------------------------------    +-----------------------+    |        | Newest\n"
 "                                    | 1   | 2   | 3   | 4   |    |        |\n"
 "                                    | 5   | 6   | 7   | 8   |    |        |\n"
@@ -283,7 +283,7 @@ static inline void mc_init_context(mc_context* const ctxt) {
 static inline void mc_stall_for_track_load(mc_context* const ctxt) {
     int    tid, result;
     mc_req req;
-    
+
     for(int track_loaded = 0; !track_loaded; ) {
         result = Receive(&tid, (char*)&req, sizeof(req));
 
@@ -295,13 +295,13 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
                 "until a track has been loaded", req.type);
         }
 
-        result = Reply(tid, NULL, 0); 
+        result = Reply(tid, NULL, 0);
     }
 }
 
 static inline void mc_initalize(mc_context* const ctxt) {
     int result, tid, pa_tid;
-    
+
     log("[MISSION CONTROL] Initalizing");
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -353,7 +353,7 @@ void mission_control() {
         case MC_D_SENSOR_ANY:
             mc_sensor_delay_any(&context, tid);
             continue;
-        
+
         case MC_U_TURNOUT:
             mc_update_turnout(&context,
                               req.payload.turn.num,

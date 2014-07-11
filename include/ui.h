@@ -12,7 +12,7 @@
 #define TRAIN_ROW           6
 #define TRAIN_COL           1
 #define TRAIN_NUMBER_COL    (TRAIN_COL + 1)
-#define TRAIN_SPEED_COL     (TRAIN_NUMBER_COL + 8)
+#define TRAIN_SPEED_COL     (TRAIN_NUMBER_COL + 6)
 #define TRAIN_SENSORS_COL   (TRAIN_SPEED_COL + 8)
 
 #define TURNOUT_ROW TRAIN_ROW
