@@ -12,6 +12,8 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 
+#include <tasks/path_admin.h>
+
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
 
@@ -21,9 +23,6 @@
 #define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
 #define SENSOR_LIST_SIZE     9
 
-//TODO: remove this when hack is done
-const track_node* train_track;
-
 static int mission_control_tid;
 
 typedef struct {
@@ -32,7 +31,6 @@ typedef struct {
     track_node   track[TRACK_MAX];
 
     int wait_all;
-    int track_loaded;
     int sensor_delay[NUM_SENSORS];
     int turnouts[NUM_TURNOUTS];
 } mc_context;
@@ -263,13 +261,9 @@ static void mc_load_track(mc_context* const ctxt, int track_num) {
         init_trackb(ctxt->track);
         break;
     default:
-        log("Invalid track name `%c'", track_num);
+        ABORT("Invalid track name `%c'", track_num);
         return;
     }
-
-    ctxt->track_loaded = 1;
-    train_track = ctxt->track;
-
     log("loading track %c ...", track_num);
 }
 
@@ -286,33 +280,64 @@ static inline void mc_init_context(mc_context* const ctxt) {
     ctxt->sensor_insert = ctxt->recent_sensors;
 }
 
-static inline void mc_initalize(mc_context* const ctxt) {
-    mc_init_context(ctxt);
-    train_ui();
+static inline void mc_stall_for_track_load(mc_context* const ctxt) {
+    int    tid, result;
+    mc_req req;
+    
+    for(int track_loaded = 0; !track_loaded; ) {
+        result = Receive(&tid, (char*)&req, sizeof(req));
 
-    mc_reset_track_state(ctxt);
-    mc_flush_sensors();
+        if (req.type ==  MC_L_TRACK) {
+            mc_load_track(ctxt, req.payload.int_value);
+            track_loaded = 1;
+        } else {
+            log("[Mission Control] can not perfrom request %d "
+                "until a track has been loaded", req.type);
+        }
 
-    int tid = Create(15, sensor_poll);
-    if (tid < 0)
-        ABORT("Mission Control failed creating sensor poll (%d)", tid);
+        result = Reply(tid, NULL, 0); 
+    }
 }
 
-void mission_control() {
-    mc_req     req;
-    mc_context context;
-    mission_control_tid = myTid();
-
-    log("[MISSION CONTROL] %d - Initalizing", Time());
+static inline void mc_initalize(mc_context* const ctxt) {
+    int result, tid, pa_tid;
+    
+    log("[MISSION CONTROL] Initalizing");
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_START);
 
-    int tid = RegisterAs((char*)MISSION_CONTROL_NAME);
+    tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
+    mc_init_context(ctxt);
+    train_ui();
+
+    pa_tid = Create(15, path_admin);
+    if (tid < 0)
+        ABORT("[Mission Control] path admin failed creation (%d)", pa_tid);
+
+    mc_reset_track_state(ctxt);
+    mc_flush_sensors();
+
+    tid = Create(15, sensor_poll);
+    if (tid < 0)
+        ABORT("[Mission Control] sensor poll creation failed (%d)", tid);
+    log("[Mission Control] Ready!");
+
+    mc_stall_for_track_load(ctxt);
+
+    const track_node* const track = ctxt->track;
+    result = Send(pa_tid, (char*)&track, sizeof(track), NULL, 0);
+}
+
+void mission_control() {
+    int        tid;
+    mc_req     req;
+    mc_context context;
+    mission_control_tid = myTid();
+
     mc_initalize(&context);
-    log("[Mission Control] %d - Ready!", Time());
 
     FOREVER {
         int result = Receive(&tid, (char*)&req, sizeof(req));
@@ -328,7 +353,7 @@ void mission_control() {
         case MC_D_SENSOR_ANY:
             mc_sensor_delay_any(&context, tid);
             continue;
-
+        
         case MC_U_TURNOUT:
             mc_update_turnout(&context,
                               req.payload.turn.num,
@@ -338,14 +363,12 @@ void mission_control() {
         case MC_R_TRACK:
             mc_reset_track_state(&context);
             break;
-        case MC_L_TRACK:
-            mc_load_track(&context, req.payload.int_value);
-            break;
 
         case MC_TD_GET_NEXT_SENSOR:
             mc_get_next_sensor(&context, req.payload.int_value, tid);
             continue;
 
+        case MC_L_TRACK:
         case MC_TYPE_COUNT:
             break;
         }

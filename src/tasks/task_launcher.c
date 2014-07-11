@@ -16,9 +16,9 @@
 
 #include <tasks/courier.h>
 
-#include <tasks/path_worker.h>
-#include <tasks/train_blaster.h>
+#include <tasks/path_admin.h>
 
+#include <tasks/train_blaster.h>
 #include <tasks/task_launcher.h>
 
 extern uint* _DataStart;
@@ -103,10 +103,9 @@ static void action(command cmd, int args[]) {
         break;
     }
 
-    case GO: {
+    case GO:
         train_goto_location(args[0], args[1], args[2], args[3]);
         break;
-    }
 
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_HIGH - 1, bench_msg);
@@ -169,38 +168,41 @@ static void action(command cmd, int args[]) {
 
     case PATH_FIND: {
         int time = Time();
-        int path_findr = Create(4, path_worker);
-        Send(path_findr, (char*)&train_track, sizeof(train_track), NULL, 0);
-
-        path_request req = {
-            .requestor   = myTid(),
-            .header      = 0,
-            .sensor_to   = sensor_to_pos(args[2], args[3]),
-            .sensor_from = sensor_to_pos(args[0], args[1])
+        pa_request req = {
+            .type = PA_GET_PATH,
+            .req  = {
+                .requestor   = myTid(),
+                .header      = 0,
+                .sensor_to   = sensor_to_pos(args[2], args[3]),
+                .sensor_from = sensor_to_pos(args[0], args[1])
+            }
         };
-
+        
+        int worker_tid;
         path_response res;
-
-        Send(path_findr, (char*)&req, sizeof(req), (char*)&res, sizeof(res));
-
+ 
+        Send(WhoIs((char*)PATH_ADMIN_NAME),
+             (char*)&req, sizeof(req), (char*)&worker_tid, sizeof(worker_tid));
+        Receive(&worker_tid, (char*)&res, sizeof(res));
         for (int i = res.size-1, j = 0; i >= 0; i--, j++) {
             switch(res.path[i].type) {
             case PATH_SENSOR: {
-                sensor print = pos_to_sensor(res.path[i].data.int_value);
-                log("%d\tS\t%c%d\t%d", j, print.bank, print.num, res.path[i].dist);
+                const sensor print = pos_to_sensor(res.path[i].data.int_value);
+                log("%d  \tS\t%c%d\t%d", j, print.bank, print.num, res.path[i].dist);
                 break;
             }
             case PATH_TURNOUT:
-                log("%d\tT\t%d %c\t%d",
+                log("%d  \tT\t%d %c\t%d",
                     j, res.path[i].data.turnout.num, res.path[i].data.turnout.dir,
                     res.path[i].dist);
                 break;
             case PATH_REVERSE:
-                log("%d\tR\t\t%d", j, res.path[i].dist);
+                log("%d  \tR\t\t%d", j, res.path[i].dist);
                 break;
             }
         }
         log("delta %d", Time() - time);
+        Reply(worker_tid, NULL, 0);
 
         break;
     }
