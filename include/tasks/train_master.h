@@ -6,7 +6,9 @@ void __attribute__ ((noreturn)) train_master();
 
 typedef enum {
     MASTER_CHANGE_SPEED,
-    MASTER_REVERSE,
+    MASTER_REVERSE,  // step 1
+    MASTER_REVERSE2, // step 2 (used by delay courier)
+    MASTER_REVERSE3, // step 3 (used by delay courier)
     MASTER_WHERE_ARE_YOU,
     MASTER_STOP_AT_SENSOR,
     MASTER_GOTO_LOCATION,

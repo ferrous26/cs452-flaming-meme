@@ -27,9 +27,13 @@ master_update_velocity_ui(const master* const ctxt) {
         ctxt->current_speed && ctxt->current_speed < 150 ? "%d " : "-    ";
 
     const int type = velocity_type(ctxt->current_sensor);
+    const velocity* const vmap = &ctxt->vmap[type];
     const int    v = physics_velocity(&ctxt->vmap[type],
                                       ctxt->current_speed);
-    ptr = sprintf(ptr, format, v);
+    ptr = sprintf(ptr, format, v / 1000);
+
+    log("Slope %d, Speed %d, Off %d, Delta %d",
+        vmap->slope, ctxt->current_speed, vmap->offset, vmap->delta);
 
     Puts(buffer, ptr - buffer);
 }
@@ -48,6 +52,69 @@ static void master_set_speed(master* const ctxt,
     // also need to update estimates
 
     master_update_velocity_ui(ctxt);
+}
+
+static void master_reverse_step1(master* const ctxt, const int time) {
+
+    const int stop_dist = physics_stopping_distance(ctxt);
+    const int stop_time = physics_stopping_time(ctxt, stop_dist);
+    master_set_speed(ctxt, 0, time); // STAHP!
+
+    log("[%s] Predict stopping time as %d ticks and %d mm",
+        ctxt->name, stop_time, stop_dist / 1000);
+
+    struct {
+        tnotify_header head;
+        master_req      req;
+    } msg = {
+        .head = {
+            .type  = DELAY_RELATIVE,
+            .ticks = stop_time
+        },
+        .req = {
+            .type = MASTER_REVERSE2
+        }
+    };
+
+    const int result = Reply(ctxt->acceleration_courier,
+                             (char*)&msg, sizeof(msg));
+    if (result < 0)
+        ABORT("[%s] Failed to send delay for reverse (%d)",
+              ctxt->name, result);
+}
+
+static void master_reverse_step2(master* const ctxt, const int time) {
+
+    struct {
+        tnotify_header head;
+        master_req      req;
+    } msg = {
+        .head = {
+            .type  = DELAY_RELATIVE,
+            .ticks = 2 // LOLOLOLOL
+        },
+        .req = {
+            .type = MASTER_REVERSE3,
+            .arg1 = ctxt->last_speed
+        }
+    };
+
+    master_set_speed(ctxt, TRAIN_REVERSE, time);
+
+    int result = Reply(ctxt->acceleration_courier,
+                       (char*)&msg, sizeof(msg));
+    if (result < 0)
+        ABORT("[%s] Failed to minor delay reverse (%d)",
+              ctxt->name, result);
+}
+
+static void master_reverse_step3(master* const ctxt,
+                                 const int speed,
+                                 const int time) {
+
+    // TODO:
+    // td_update_train_direction(ctxt, -ctxt->direction);
+    master_set_speed(ctxt, speed, time);
 }
 
 static inline void master_wait(master* const ctxt,
@@ -70,7 +137,10 @@ static inline void master_wait(master* const ctxt,
             master_set_speed(ctxt, req.arg1, time);
             if (req.arg1 > 0) return;
             break;
+
         case MASTER_REVERSE:
+            master_reverse_step1(ctxt, time);
+            break;
         case MASTER_WHERE_ARE_YOU:
         case MASTER_STOP_AT_SENSOR:
         case MASTER_GOTO_LOCATION:
@@ -96,6 +166,9 @@ static inline void master_wait(master* const ctxt,
 
         case MASTER_SENSOR_FEEDBACK:
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
+
+        case MASTER_REVERSE2:
+        case MASTER_REVERSE3:
             ABORT("She's moving when we dont tell her too captain!");
         }
     }
@@ -214,13 +287,23 @@ void train_master() {
         case MASTER_CHANGE_SPEED:
             master_set_speed(&context, req.arg1, time);
             break;
+
         case MASTER_REVERSE:
+            master_reverse_step1(&context, time);
+            break;
+        case MASTER_REVERSE2:
+            master_reverse_step2(&context, time);
+            continue;
+        case MASTER_REVERSE3:
+            master_reverse_step3(&context, req.arg1, time);
+            continue;
 
         case MASTER_WHERE_ARE_YOU:
 
         case MASTER_STOP_AT_SENSOR:
 
         case MASTER_GOTO_LOCATION:
+            break;
 
         case MASTER_DUMP_VELOCITY_TABLE:
             master_dump_velocity_table(&context);

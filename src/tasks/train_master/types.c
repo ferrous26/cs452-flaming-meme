@@ -41,6 +41,15 @@ typedef struct {
 } train_dim;
 
 typedef struct {
+    int factor;
+    int scale;
+} term;
+
+typedef struct {
+    term terms[4];
+} cubic;
+
+typedef struct {
     int       train_id;      // internal index
     int       train_gid;     // global identifier
     char      name[8];
@@ -54,6 +63,7 @@ typedef struct {
     int       turnout_clearance_offset;
 
     train_dim measurements;
+    cubic     amap;
     velocity  vmap[TRACK_TYPE_COUNT];
     stop      smap;
 
