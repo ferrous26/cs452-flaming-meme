@@ -15,7 +15,6 @@ void path_worker() {
     const int ptid = myParentTid();
 
     path_node path[80];
-    
     pa_request    req = {
         .type = PA_REQ_WORK
     };
@@ -43,6 +42,7 @@ void path_worker() {
                                      &track[req.req.sensor_from],
                                      &track[req.req.sensor_to],
                                      path);
+
         assert(response.size > 0, "No path exists to sensor %d",
                req.req.sensor_to);
 
