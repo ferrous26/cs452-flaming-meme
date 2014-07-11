@@ -113,6 +113,12 @@ static void master_init(master* const ctxt) {
     if (RegisterAs(ctxt->name))
         ABORT("[Master] Failed to register train (%d)", ctxt->train_gid);
 
+    char buffer[16];
+    char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_id, TRAIN_NUMBER_COL);
+
+    ptr = sprintf_int(ptr, ctxt->train_gid);
+    Puts(buffer, ptr - buffer);
+
     // Tell the actual train to stop
     master_set_speed(ctxt, 0, Time());
 }
