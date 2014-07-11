@@ -15,8 +15,9 @@ typedef enum {
 
 typedef enum {
     HALF_AND_HALF,
+    EIGHTY_TWENTY,
     NINTY_TEN
-} feedback_level;
+} ratio;
 
 typedef struct {
     int16 bank;

@@ -1,3 +1,4 @@
+#include <ui.h>
 #include <std.h>
 #include <debug.h>
 #include <tasks/priority.h>
@@ -8,52 +9,29 @@
 #include <tasks/train_console.h>
 #include <tasks/train_server.h>
 #include <tasks/train_blaster.h>
+
 #include <tasks/train_master.h>
+#include <tasks/train_master/types.c>
+#include <tasks/train_master/physics.c>
 
-typedef enum {
-    LM_SENSOR,
-    LM_BRANCH,
-    LM_MERGE,
-    LM_EXIT
-} landmark;
-
-typedef struct {
-    int      train_id;      // internal index
-    int      train_gid;     // global identifier
-    char     name[8];
-
-    int      courier;       // tid of the blaster courier
-
-    int last_speed;
-    int speed;
-
-    // these will usually be based on actual track feedback, unless we have to
-    // go a while without track feedback, in which case this will be estimates
-    landmark last_landmark;
-    int      last_distance; // from last landmark to expected next landmark
-    int      last_time;     // time at which the last landmark was hit
-    int      last_velocity;
-
-    landmark next_landmark; // expected next landmark
-    int      next_distance; // expected distance to next landmark from last_landmark
-    int      next_time;     // estimated time of arrival at next landmark
-    int      next_velocity;
-} master;
 
 static void master_set_speed(master* const ctxt,
                              const int speed,
                              const int time) {
-    ctxt->last_speed = ctxt->speed;
-    ctxt->speed      = speed;
-    ctxt->last_time  = time;
+    ctxt->last_speed    = ctxt->current_speed;
+    ctxt->current_speed = speed;
 
+    ctxt->last_time     = time; // time stamp the change in speed
     put_train_speed(ctxt->train_gid, speed);
 
-    // this causes an acceleration event, so we need to timestamp it
+    // this causes an acceleration event, so we need to wake up
+    // when we finish accelerating
+    // also need to update estimates
 }
 
 static inline void master_wait(master* const ctxt,
-                               const blaster_req* const callin) {
+                                   const blaster_req* const callin) {
+
     master_req req;
     const int blaster = myParentTid();
 
@@ -75,12 +53,22 @@ static inline void master_wait(master* const ctxt,
         case MASTER_WHERE_ARE_YOU:
         case MASTER_STOP_AT_SENSOR:
         case MASTER_GOTO_LOCATION:
-        case MASTER_DUMP_VELOCITY_TABLE:
 
+        case MASTER_DUMP_VELOCITY_TABLE:
+            master_dump_velocity_table(ctxt);
+            break;
         case MASTER_UPDATE_FEEDBACK_THRESHOLD:
+            master_update_feedback_threshold(ctxt, req.arg1);
+            break;
         case MASTER_UPDATE_FEEDBACK_ALPHA:
+            master_update_feedback_ratio(ctxt, (ratio)req.arg1);
+            break;
         case MASTER_UPDATE_STOP_OFFSET:
+            master_update_stopping_distance_offset(ctxt, req.arg1);
+            break;
         case MASTER_UPDATE_CLEARANCE_OFFSET:
+            master_update_turnout_clearance_offset(ctxt, req.arg1);
+            break;
 
         case MASTER_ACCELERATION_COMPLETE:
         case MASTER_NEXT_NODE_ESTIMATE:
@@ -127,24 +115,51 @@ static void master_init_courier(master* const ctxt,
                                 const courier_package* const package) {
     // Now we can get down to bidness
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
-    assert(tid >= 0, "[Master] Failed creating the train console (%d)", tid);
+    assert(tid >= 0,
+           "[%s] Failed creating the train console (%d)",
+           ctxt->name, tid);
     UNUSED(tid);
 
-    ctxt->courier = Create(TRAIN_COURIER_PRIORITY, courier);
-    assert(ctxt->courier >= 0,
-           "[Master] Error setting up command courier (%d)", ctxt->courier);
 
-    int result = Send(ctxt->courier,
+    // Setup the sensor courier
+
+    ctxt->sensor_courier = Create(TRAIN_COURIER_PRIORITY, courier);
+    assert(ctxt->sensor_courier >= 0,
+           "[%s] Error setting up command courier (%d)",
+           ctxt->name, ctxt->sensor_courier);
+
+    int result = Send(ctxt->sensor_courier,
                       (char*)package, sizeof(courier_package),
                       NULL, 0);
     assert(result == 0,
-           "[Master] Error sending package to command courier %d", result);
+           "[%s] Error sending package to command courier %d",
+           ctxt->name, result);
     UNUSED(result);
+
+
+    // Setup the acceleration timer
+
+    ctxt->acceleration_courier = Create(TIME_COURIER_PRIORITY, time_notifier);
+    assert(ctxt->acceleration_courier >= 0,
+           "[%s] Error setting up the time notifier (%d)",
+           ctxt->name, ctxt->acceleration_courier);
+
+    tnotify_header head = {
+        .type  = DELAY_RELATIVE,
+        .ticks = 0
+    };
+    result = Send(ctxt->acceleration_courier,
+                  (char*)&head, sizeof(head),
+                  NULL, 0);
+    assert(result >= 0,
+           "[%s] Failed to setup time notifier (%d)",
+           ctxt->name, result);
 }
 
 void train_master() {
     master context;
     master_init(&context);
+    master_init_physics(&context);
 
     const blaster_req callin = {
         .type = MASTER_BLASTER_REQUEST_COMMAND,
@@ -161,27 +176,41 @@ void train_master() {
 
     master_init_courier(&context, &package);
 
+
     int tid = 0;
     master_req req;
 
     FOREVER {
         int result = Receive(&tid, (char*)&req, sizeof(req));
-        int time   = Time();
+        int time   = Time(); // timestamp for request servicing
 
         switch (req.type) {
         case MASTER_CHANGE_SPEED:
             master_set_speed(&context, req.arg1, time);
             break;
         case MASTER_REVERSE:
-        case MASTER_WHERE_ARE_YOU:
-        case MASTER_STOP_AT_SENSOR:
-        case MASTER_GOTO_LOCATION:
-        case MASTER_DUMP_VELOCITY_TABLE:
 
+        case MASTER_WHERE_ARE_YOU:
+
+        case MASTER_STOP_AT_SENSOR:
+
+        case MASTER_GOTO_LOCATION:
+
+        case MASTER_DUMP_VELOCITY_TABLE:
+            master_dump_velocity_table(&context);
+            break;
         case MASTER_UPDATE_FEEDBACK_THRESHOLD:
+            master_update_feedback_threshold(&context, req.arg1);
+            break;
         case MASTER_UPDATE_FEEDBACK_ALPHA:
+            master_update_feedback_ratio(&context, (ratio)req.arg1);
+            break;
         case MASTER_UPDATE_STOP_OFFSET:
+            master_update_stopping_distance_offset(&context, req.arg1);
+            break;
         case MASTER_UPDATE_CLEARANCE_OFFSET:
+            master_update_turnout_clearance_offset(&context, req.arg1);
+            break;
 
         case MASTER_ACCELERATION_COMPLETE:
         case MASTER_NEXT_NODE_ESTIMATE:
@@ -190,12 +219,13 @@ void train_master() {
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
             break;
         default:
-            ABORT("She's moving when we dont tell her too captain!");
+            ABORT("[%s] Illegal type for a train master %d from %d",
+                      context.name, req.type, tid);
         }
 
         result = Reply(tid, (char*)&callin, sizeof(callin));
         if (result)
-            ABORT("[Master] Failed responding to command courier (%d)",
-                  result);
+            ABORT("[%s] Failed responding to command courier (%d)",
+                  context.name, result);
     }
 }

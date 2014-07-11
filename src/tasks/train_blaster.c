@@ -369,7 +369,7 @@ int train_update_stop_offset(const int train, const int offset) {
     blaster_req req = {
         .type = BLASTER_UPDATE_STOP_OFFSET,
         .arg1 = train_index,
-        .arg2 = offset
+        .arg2 = offset * 1000
     };
 
     return Send(train_blaster_tid,
@@ -383,7 +383,7 @@ int train_update_clearance_offset(const int train, const int offset) {
     blaster_req req = {
         .type = BLASTER_UPDATE_CLEARANCE_OFFSET,
         .arg1 = train_index,
-        .arg2 = offset
+        .arg2 = offset * 1000
     };
 
     return Send(train_blaster_tid,

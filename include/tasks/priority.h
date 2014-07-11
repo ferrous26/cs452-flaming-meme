@@ -4,6 +4,8 @@
 
 #include <syscall.h>
 
+/* A list of all static task priorities */
+
 #define TASK_LAUNCHER_PRIORITY      (TASK_PRIORITY_IDLE + 1)
 
 #define CLOCK_SERVER_PRIORITY        TASK_PRIORITY_MEDIUM_HIGH
@@ -17,5 +19,7 @@
 #define TRAIN_TRACK_ADMIN_PRIORITY  (TASK_PRIORITY_MEDIUM - 4)
 #define TRAIN_CONSOLE_PRIORITY       4 // WTF
 #define TRAIN_COURIER_PRIORITY       4 // WTF
+
+#define TIME_COURIER_PRIORITY        TASK_PRIORITY_HIGH
 
 #endif
