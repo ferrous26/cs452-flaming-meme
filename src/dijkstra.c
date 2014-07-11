@@ -32,11 +32,11 @@ int dijkstra(const track_node* const track,
             data[i].dist = 0;
             data[i].dir  = 0;
             pq_add(&q, 0, (int)ptr);
-//        } else if (ptr == start->reverse) {
-//            data[i].prev = start->reverse;
-//            data[i].dist = 0;
-//            data[i].dir  = 0;
-//            pq_add(&q, 0, (int)ptr);
+        } else if (ptr == start->reverse) {
+            data[i].prev = start->reverse;
+            data[i].dist = 0;
+            data[i].dir  = 0;
+            pq_add(&q, 0, (int)ptr);
         } else {
             data[i].prev = NULL;
             data[i].dist = INT_MAX;
@@ -85,9 +85,9 @@ int dijkstra(const track_node* const track,
             break;
         }
         case NODE_MERGE: {
-            track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
-            const int nxt_dist        = curr_dist + ptr->edge[DIR_AHEAD].dist;
-            const int nxt_off         = nxt_ptr - track;
+            const track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
+            const int nxt_dist              = curr_dist + ptr->edge[DIR_AHEAD].dist;
+            const int nxt_off               = nxt_ptr - track;
 
             if (data[nxt_off].dist > nxt_dist) {
                 data[nxt_off].dist = nxt_dist;
@@ -96,7 +96,18 @@ int dijkstra(const track_node* const track,
 
                 pq_raise(&q, (int)nxt_ptr, nxt_dist);
             }
-            // TODO: add the reverse direction node
+            
+            const track_node* const rev_ptr = ptr->reverse;
+            const int rev_off               = rev_ptr - track;
+            
+            if (data[rev_off].dist > curr_dist) {
+                data[rev_off].dist = curr_dist;
+                data[rev_off].prev = ptr;
+                data[rev_off].dir  = 3;
+
+                pq_raise(&q, (int)rev_ptr, curr_dist);
+            } 
+
             break;
         }
         case NODE_BRANCH:
@@ -151,7 +162,11 @@ int dijkstra(const track_node* const track,
             path_size++;
             break;
         case NODE_MERGE:
-            // possibly reverse through
+            if (direction == 3) {
+                path[path_size].type = PATH_REVERSE;
+                path[path_size].dist = data[offset].dist;
+                path_size++;
+            }
             break;
         }
 

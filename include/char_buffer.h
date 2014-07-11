@@ -73,21 +73,57 @@ static inline char cbuf_consume(char_buffer* const cb) {		\
 static inline void cbuf_bulk_produce(char_buffer* const cb,		\
 				     const char* const c,		\
 				     const uint length) {		\
-    if ((cb->head + length) > cb->end) {				\
-	uint chunk1 = (uint)(cb->end - cb->head);			\
-	uint chunk2 = length         - chunk1;				\
-	memcpy(cb->head,   c,          chunk1);				\
-	memcpy(cb->buffer, c + chunk1, chunk2);				\
-	cb->head = cb->buffer + chunk2;					\
-    }									\
-    else {								\
-	memcpy(cb->head, c, length);					\
-	cb->head += length;						\
-    }									\
-									\
-    cb->count = mod2(cb->count + length, n);				\
-}									\
-									\
+    if ((cb->head + length) > cb->end) {				    \
+	uint chunk1 = (uint)(cb->end - cb->head);			    \
+	uint chunk2 = length         - chunk1;				    \
+	memcpy(cb->head,   c,          chunk1);				    \
+	memcpy(cb->buffer, c + chunk1, chunk2);				    \
+	cb->head = cb->buffer + chunk2;					    \
+    }									    \
+    else {								    \
+	memcpy(cb->head, c, length);					    \
+	cb->head += length;						    \
+    }									    \
+									    \
+    cb->count = mod2(cb->count + length, n);				    \
+}									    \
+									    \
 
+
+#define TYPE_BUFFER(TYPE, n)	        				        \
+typedef struct {							        \
+    TYPE* head;								        \
+    TYPE* tail;								        \
+    TYPE* end;								        \
+    uint  count;							        \
+    TYPE  buffer[n];							        \
+} TYPE##_buffer;							        \
+									        \
+static inline void TYPE##b_init(TYPE##_buffer* const buf) {	                \
+    buf->head  = buf->tail = buf->buffer;				        \
+    buf->end   = buf->buffer + n;					        \
+    memset(buf->buffer, 0, n * sizeof(TYPE));			    	        \
+}									        \
+									        \
+static inline uint TYPE##b_count(const TYPE##_buffer* const buf) {	        \
+    return buf->count;							        \
+}									        \
+									        \
+static inline void TYPE##b_produce(TYPE##_buffer* const buf, const TYPE ele) {  \
+    *buf->head++ = ele;							        \
+									        \
+    if (buf->head == buf->end) buf->head = buf->buffer;			        \
+    buf->count += 1;                     				        \
+}									        \
+									        \
+static inline TYPE TYPE##b_consume(TYPE##_buffer* const buf) {		        \
+    assert(buf->count, "Trying to consume from empty " #TYPE " buffer");	\
+    const TYPE ele = *buf->tail++;					        \
+									        \
+    if (buf->tail == buf->end) buf->tail = buf->buffer;			        \
+    buf->count = buf->count - 1;					        \
+									        \
+    return ele;								        \
+}
 
 #endif

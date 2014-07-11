@@ -81,7 +81,7 @@ void pq_add(priority_queue* const q, const int key, const int value) {
     }
 }
 
-static inline int __attribute__((const))
+static inline int __attribute__((pure))
 find_val(const priority_queue* const q, const int val) {
     for (int i = 0; i < q->count; i++) {
         if (q->heap[i].val == val) return i;
