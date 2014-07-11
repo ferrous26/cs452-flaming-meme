@@ -217,6 +217,7 @@ physics_feedback(master* const ctxt, const int actual_v) {
         break;
     case EIGHTY_TWENTY:
         ctxt->vmap[type].delta = ((ctxt->vmap[type].delta << 2) + delta_v) / 5;
+        break;
     case NINTY_TEN:
         ctxt->vmap[type].delta = ((ctxt->vmap[type].delta * 9) + delta_v) / 10;
         break;
