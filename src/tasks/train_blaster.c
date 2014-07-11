@@ -140,7 +140,6 @@ blaster_try_send_master(blaster_context* const ctxt, const int index) {
     } else { return; }
 
 
-    log("Sending arg 1 as %d to %d", req.arg1, ctxt->master[index].courier);
     const int result = Reply(ctxt->master[index].courier,
                              (char*)&req,
                              sizeof(req));
