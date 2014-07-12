@@ -250,7 +250,7 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
 
     int sum =
         (((ctxt->amap.terms[3].factor * dist * dist) /
-          ctxt->amap.terms[3].scale) * dist) / ctxt->amap.terms.mega_scale;
+          ctxt->amap.terms[3].scale) * dist) / ctxt->amap.mega_scale;
 
     sum += (ctxt->amap.terms[2].factor * dist * dist) /
         ctxt->amap.terms[2].scale;
@@ -309,15 +309,15 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms.mega_scale = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 77;
+        ctxt->amap.terms[3].scale  = 10000;
+        ctxt->amap.terms[2].factor = -15;
+        ctxt->amap.terms[2].scale  = 10000;
+        ctxt->amap.terms[1].factor = 11863;
+        ctxt->amap.terms[1].scale  = 10000;
+        ctxt->amap.terms[0].factor = 34;
+        ctxt->amap.terms[0].scale  = 1;
 
         ctxt->smap.slope  =   6703;
         ctxt->smap.offset = -38400;
