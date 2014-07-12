@@ -64,16 +64,20 @@ static void master_set_speed(master* const ctxt,
 static void master_reverse_step1(master* const ctxt, const int time) {
 
     const int stop_dist = physics_stopping_distance(ctxt);
-    const int stop_time = physics_stopping_time(ctxt, stop_dist);
+    const int stop_time =
+        physics_stopping_time(ctxt, stop_dist) +
+        ctxt->reverse_time_fudge_factor;
+
     master_set_speed(ctxt, 0, time); // STAHP!
+    ctxt->reversing = true;
 
     struct {
         tnotify_header head;
         master_req      req;
     } msg = {
         .head = {
-            .type  = DELAY_RELATIVE,
-            .ticks = stop_time
+            .type  = DELAY_ABSOLUTE,
+            .ticks = time + stop_time
         },
         .req = {
             .type = MASTER_REVERSE2
@@ -118,6 +122,7 @@ static void master_reverse_step3(master* const ctxt,
 
     ctxt->current_direction = -ctxt->current_direction;
     master_set_speed(ctxt, speed, time);
+    ctxt->reversing = false;
 }
 
 static inline void master_detect_train_direction(master* const ctxt,

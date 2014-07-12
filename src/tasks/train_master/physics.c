@@ -231,9 +231,6 @@ physics_feedback(master* const ctxt,
 
 static inline int
 physics_stopping_distance(const master* const ctxt) {
-    log("[%s] Slope %d, Speed %d, Off %d, Off2 %d",
-        ctxt->name, ctxt->smap.slope, ctxt->current_speed,
-        ctxt->smap.offset, ctxt->stopping_distance_offset);
     return
         (ctxt->smap.slope * ctxt->current_speed) +
         ctxt->smap.offset +
@@ -264,8 +261,6 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
     sum += ctxt->amap.terms[0].factor /
         ctxt->amap.terms[0].scale;
 
-    sum += ctxt->stopping_time_fudge_factor;
-
     return sum;
 }
 
@@ -275,7 +270,7 @@ static inline void master_init_physics(master* const ctxt) {
     ctxt->feedback_ratio             = HALF_AND_HALF;
     ctxt->feedback_threshold         = FEEDBACK_THRESHOLD_DEFAULT;
     ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
-    ctxt->stopping_time_fudge_factor = STOPPING_TIME_FUDGE_FACTOR;
+    ctxt->reverse_time_fudge_factor  = STOPPING_TIME_FUDGE_FACTOR;
     ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
 
     switch (ctxt->train_id) {
