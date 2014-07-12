@@ -268,6 +268,13 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
 
 static inline void master_init_physics(master* const ctxt) {
 
+    // Common settings (can be overridden below)
+    ctxt->feedback_ratio             = HALF_AND_HALF;
+    ctxt->feedback_threshold         = FEEDBACK_THRESHOLD_DEFAULT;
+    ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
+    ctxt->stopping_time_fudge_factor = STOPPING_TIME_FUDGE_FACTOR;
+    ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
+
     switch (ctxt->train_id) {
     case 0: // train 45
         ctxt->measurements.front  = 19000;
@@ -411,12 +418,6 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->smap.offset = -41611;
         break;
     }
-
-    ctxt->feedback_ratio             = HALF_AND_HALF;
-    ctxt->feedback_threshold         = FEEDBACK_THRESHOLD_DEFAULT;
-    ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
-    ctxt->stopping_time_fudge_factor = STOPPING_TIME_FUDGE_FACTOR;
-    ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
 }
 
 #endif
