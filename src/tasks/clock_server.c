@@ -139,8 +139,8 @@ void clock_server() {
     _startup(&context);
 
     FOREVER {
-        int tid;
-        int siz = Receive(&tid, (char*)&req, sizeof(req));
+        const int tid;
+        const int siz = Receive(&tid, (char*)&req, sizeof(req));
 
         UNUSED(siz); // TODO: assert siz is minimum size
         assert(req.type >= CLOCK_NOTIFY && req.type <= CLOCK_DELAY_UNTIL,
@@ -173,12 +173,14 @@ void clock_server() {
             break;
 
         case CLOCK_DELAY_UNTIL:
-            // if we missed the deadline, wake task up right away?
-            if (req.ticks <= context.time) {
-                ABORT("%d called delay until a past time", tid);
-	    } else {
-                pq_add(&context.q, req.ticks, tid);
-            }
+            // if we missed the deadline, wake task up right away, but
+            // also log something if in debug mode
+            if (req.ticks <= context.time)
+                clog("[Clock] %d missed deadline with DelayUntil(%d)."
+                     " Actual time is %d.",
+                     tid, req.ticks, context.time);
+
+            pq_add(&context.q, req.ticks, tid);
             break;
 
         }
@@ -210,7 +212,10 @@ int Time() {
 
 int Delay(int ticks) {
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return INVALID_DELAY;
+    if (ticks <= 0) {
+        log("%d missed deadline with Delay(%d).", myTid(), ticks);
+        return Time();
+    }
 
     clock_req req = {
         .type  = CLOCK_DELAY,
@@ -234,7 +239,8 @@ int Delay(int ticks) {
 
 int DelayUntil(int ticks) {
     // handle negative/non-delay cases on the task side
-    if (ticks <= 0) return INVALID_DELAY;
+    if (ticks <= 0)
+        ABORT("%d made nonsensical DelayUntil(%d) call.", myTid(), ticks);
 
     clock_req req = {
         .type = CLOCK_DELAY_UNTIL,
