@@ -139,7 +139,7 @@ void clock_server() {
     _startup(&context);
 
     FOREVER {
-        const int tid;
+        int tid;
         const int siz = Receive(&tid, (char*)&req, sizeof(req));
 
         UNUSED(siz); // TODO: assert siz is minimum size
