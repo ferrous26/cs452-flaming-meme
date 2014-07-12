@@ -287,6 +287,11 @@ char* log_start(char* buffer) {
     return sprintf_string(buffer, ": ");
 }
 
+char* clog_start(char* buffer) {
+    buffer = vt_restore_cursor(buffer);
+    return sprintf(buffer, "%u: ", ++log_count);
+}
+
 char* klog_start(char* buffer) {
     buffer = vt_restore_cursor(buffer);
     return sprintf(buffer, "kernel %u: ", ++log_count);
@@ -305,6 +310,21 @@ void log(const char* fmt, ...) {
     char* ptr = buffer;
 
     ptr = log_start(ptr);
+    ptr = sprintf_va(ptr, fmt, args);
+    ptr = log_end(ptr);
+
+    Puts(buffer, ptr - buffer);
+    va_end(args);
+}
+
+void clog(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    char buffer[256];
+    char* ptr = buffer;
+
+    ptr = clog_start(ptr);
     ptr = sprintf_va(ptr, fmt, args);
     ptr = log_end(ptr);
 
