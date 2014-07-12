@@ -60,6 +60,7 @@ typedef struct master_context {
 
     int       acceleration_courier; // tid of the acceleration delay courier
     int       sensor_courier;       // tid of the blaster courier
+    int       sensor_to_stop_at;    // special case for handling ss command
 
     ratio     feedback_ratio;
     int       feedback_threshold;

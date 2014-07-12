@@ -155,6 +155,15 @@ master_sensor_feedback(master* const ctxt,
                        const int sensor_time,
                        const int service_time) {
 
+    if (ctxt->sensor_to_stop_at == sensor_hit) {
+        master_set_speed(ctxt, 0, service_time);
+
+        ctxt->sensor_to_stop_at = -1;
+        const sensor hit = pos_to_sensor(sensor_hit);
+        log("[%s] Hit sensor %c%d. Stopping!",
+            ctxt->name, hit.bank, hit.num);
+    }
+
     assert(sensor_hit == ctxt->next_sensor,
            "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
 
@@ -167,8 +176,8 @@ master_sensor_feedback(master* const ctxt,
 
     // TODO: this should be a function of acceleration and not a
     //       constant value
-    //    if (service_time - ctxt->current_state_accelerating > 500)
-    physics_feedback(ctxt, actual_v, expected_v);
+    if (service_time - ctxt->current_state_accelerating > 500)
+        physics_feedback(ctxt, actual_v, expected_v);
 
     ctxt->last_time      = ctxt->current_time;
     ctxt->current_time   = sensor_time;
@@ -247,6 +256,13 @@ master_unexpected_sensor_feedback(master* const ctxt,
     UNUSED(result);
 }
 
+static void master_stop_at_sensor(master* const ctxt, const int sensor_idx) {
+    const sensor s = pos_to_sensor(sensor_idx);
+    log("[%s] Gonna hit the brakes when we hit sensor %c%d",
+        ctxt->name, s.bank, s.num);
+    ctxt->sensor_to_stop_at = sensor_idx;
+}
+
 static inline void master_wait(master* const ctxt,
                                const blaster_req* const callin) {
 
@@ -267,14 +283,14 @@ static inline void master_wait(master* const ctxt,
             master_set_speed(ctxt, req.arg1, time);
             if (req.arg1 > 0) return;
             break;
-
         case MASTER_REVERSE:
             master_reverse_step1(ctxt, time);
             break;
-        case MASTER_WHERE_ARE_YOU:
         case MASTER_STOP_AT_SENSOR:
+            master_stop_at_sensor(ctxt, req.arg1);
+            break;
         case MASTER_GOTO_LOCATION:
-
+            break;
         case MASTER_DUMP_VELOCITY_TABLE:
             master_dump_velocity_table(ctxt);
             break;
@@ -341,6 +357,8 @@ static void master_init(master* const ctxt) {
 
     // Tell the actual train to stop
     master_set_speed(ctxt, 0, Time());
+
+    ctxt->sensor_to_stop_at = -1;
 }
 
 static void master_init_courier(master* const ctxt,
@@ -437,9 +455,10 @@ void train_master() {
             continue;
 
         case MASTER_WHERE_ARE_YOU:
-
+            break;
         case MASTER_STOP_AT_SENSOR:
-
+            master_stop_at_sensor(&context, req.arg1);
+            break;
         case MASTER_GOTO_LOCATION:
             break;
 
