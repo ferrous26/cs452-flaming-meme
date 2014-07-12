@@ -151,7 +151,6 @@ void kernel_init() {
     task_create(TERM_SERVER_PRIORITY,     term_server);
     task_create(TRAIN_SERVER_PRIORITY,    train_server);
     task_create(MISSION_CONTROL_PRIORITY, mission_control);
-    task_create(TRAIN_BLASTER_PRIORITY,   train_blaster);
 
     for (; i < TASK_MAX; i++) {
         tasks[i].tid   = i;

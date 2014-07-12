@@ -51,6 +51,8 @@ typedef struct {
 
         int  horn;               // horn state
     } master[NUM_TRAINS];
+
+    const track_node* const track;
 } blaster_context;
 
 static inline void blaster_init_context(blaster_context* const ctxt) {
@@ -65,15 +67,30 @@ static inline void blaster_init_context(blaster_context* const ctxt) {
         ctxt->master[i].stop_offset        = INT_MAX;
         ctxt->master[i].clearance_offset   = INT_MAX;
     }
+
+    int tid;
+    int result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
+    assert(myParentTid() == tid,
+           "BLASTER received init message from invalid process(%d)", tid);
+    assert(sizeof(ctxt->track) == result,
+           "BLASTER received invalid message (%d)", result);
+    
+    result = Reply(tid, NULL, 0);
+    assert(0 == result, "Failed releasing parent (%d)", result);
 }
 
-static inline void blaster_spawn_masters() {
+static inline void blaster_spawn_masters(const track_node* const track) {
+    int init_data[2] = { (int)track };
+
     for (int i = 0; i < NUM_TRAINS; i++) {
+        init_data[0]        = i;
         const int train_num = pos_to_train(i);
         const int       tid = Create(TRAIN_MASTER_PRIORITY, train_master);
         assert(tid > 0, "[Blaster] Failed to create train master (%d)", tid);
 
-        const int result = Send(tid, (char*)&i, sizeof(i), NULL, 0);
+        const int result = Send(tid,
+                                (char*)init_data, sizeof(init_data),
+                                NULL, 0);
 
         assert(result == 0, "[Blaster] Failed to send to master %d (%d)",
                train_num, result);
@@ -174,7 +191,7 @@ void train_blaster() {
     blaster_context context;
 
     blaster_init_context(&context);
-    blaster_spawn_masters();
+    blaster_spawn_masters(context.track);
 
     FOREVER {
         result = Receive(&tid, (char*)&req, sizeof(req));

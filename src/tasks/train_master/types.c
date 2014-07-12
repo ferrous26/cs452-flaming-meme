@@ -3,6 +3,7 @@
 #define __MASTER_T__
 
 #include <std.h>
+#include <track_node.h>
 
 #define FEEDBACK_THRESHOLD_DEFAULT        10000 // um/s
 #define STOPPING_DISTANCE_OFFSET_DEFAULT  0     // um
@@ -91,6 +92,8 @@ typedef struct {
     int       next_distance; // expected dist. to next landmark from last
     int       next_time;     // estimated time of arrival at next landmark
     int       next_velocity;
+
+    const track_node* const track;
 } master;
 
 #endif

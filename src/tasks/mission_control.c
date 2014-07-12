@@ -6,6 +6,10 @@
 #include <syscall.h>
 #include <track_data.h>
 
+#include <tasks/priority.h>
+
+#include <tasks/train_blaster.h>
+
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
 
@@ -300,7 +304,7 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
 }
 
 static inline void mc_initalize(mc_context* const ctxt) {
-    int result, tid, pa_tid;
+    int result, tid, pa_tid, tb_tid;
 
     log("[MISSION CONTROL] Initalizing");
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -317,6 +321,8 @@ static inline void mc_initalize(mc_context* const ctxt) {
     if (tid < 0)
         ABORT("[Mission Control] path admin failed creation (%d)", pa_tid);
 
+    tb_tid = Create(TRAIN_BLASTER_PRIORITY, train_blaster);
+
     mc_reset_track_state(ctxt);
     mc_flush_sensors();
 
@@ -329,6 +335,12 @@ static inline void mc_initalize(mc_context* const ctxt) {
 
     const track_node* const track = ctxt->track;
     result = Send(pa_tid, (char*)&track, sizeof(track), NULL, 0);
+    if (result != 0) ABORT("Failed setting up PATH ADMIN %d", result);
+
+    result = Send(tb_tid, (char*)&track, sizeof(track), NULL, 0);
+    if (result != 0) ABORT("Failed setting up TRAIN BLASTER %d", result);
+
+    log("[Mission Control] Children Initalized!");
 }
 
 void mission_control() {

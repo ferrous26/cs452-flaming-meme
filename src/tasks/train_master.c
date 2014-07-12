@@ -176,13 +176,17 @@ static inline void master_wait(master* const ctxt,
 
 static void master_init(master* const ctxt) {
     memset(ctxt, 0, sizeof(master));
-
-    int    tid = 0;
-    int result = Receive(&tid, (char*)&ctxt->train_id, sizeof(int));
-    if (result < 0)
+    int tid, init[2];
+    int result = Receive(&tid, (char*)init, sizeof(init));
+ 
+    if (result != sizeof(init))
         ABORT("[Master] Failed to initialize (%d)", result);
 
+    ctxt->train_id = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
+
+    //I Want this to explicity never be changeable from here
+    *(track_node**)&ctxt->track = (track_node*)init[1];
 
     result = Reply(tid, NULL, 0);
     if (result < 0)
