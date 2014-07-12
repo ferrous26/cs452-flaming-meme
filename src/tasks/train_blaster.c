@@ -74,7 +74,7 @@ static inline void blaster_init_context(blaster_context* const ctxt) {
            "BLASTER received init message from invalid process(%d)", tid);
     assert(sizeof(ctxt->track) == result,
            "BLASTER received invalid message (%d)", result);
-    
+
     result = Reply(tid, NULL, 0);
     assert(0 == result, "Failed releasing parent (%d)", result);
 }
@@ -222,7 +222,7 @@ void train_blaster() {
             context.master[index].location.offset = req.arg3;
             break;
         case BLASTER_DUMP_VELOCITY_TABLE:
-            context.master[index].dump_velocity = req.arg2;
+            context.master[index].dump_velocity = true;
             break;
         case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
             context.master[index].feedback_threshold = req.arg2;
@@ -354,7 +354,7 @@ int train_update_feedback_threshold(const int train, const int threshold) {
     blaster_req req = {
         .type = BLASTER_UPDATE_FEEDBACK_THRESHOLD,
         .arg1 = train_index,
-        .arg2 = threshold * 1000 // convert to micrometers
+        .arg2 = threshold // convert to micrometers
     };
 
     return Send(train_blaster_tid,

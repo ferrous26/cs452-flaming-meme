@@ -12,13 +12,13 @@ static void master_dump_velocity_table(master* const ctxt) {
     char buffer[1024];
     char* ptr = log_start(buffer);
     ptr = sprintf(ptr,
-                  "[%s] Velocity Table Dump\n%d",
-                  ctxt->name, ctxt->train_id);
+                  "[%s] Velocity Table Dump\n%d,",
+                  ctxt->name, ctxt->train_gid);
 
     for (int i = 0; i < TRACK_TYPE_COUNT; i++) {
         ptr = sprintf_int(ptr, ctxt->vmap[i].delta);
 
-        if (i != TRAIN_SPEEDS - 1)
+        if (i != TRACK_TYPE_COUNT - 1)
             ptr = sprintf_char(ptr, ',');
     }
 
@@ -29,8 +29,8 @@ static void master_dump_velocity_table(master* const ctxt) {
 
 static void master_update_feedback_threshold(master* const ctxt,
                                              const int threshold) {
-    log("[%s] Updating feedback threshold to %d mm/s (was %d mm/s)",
-        ctxt->name, threshold / 1000, ctxt->feedback_threshold / 1000);
+    log("[%s] Updating feedback threshold to %d um/s (was %d um/s)",
+        ctxt->name, threshold, ctxt->feedback_threshold);
     ctxt->feedback_threshold = threshold;
 }
 
@@ -71,7 +71,7 @@ velocity_type(const int sensor_idx) {
     case 0: return TRACK_STRAIGHT_TURNOUT;
     case 1: return TRACK_STRAIGHT;
     case 2: return TRACK_CURVED_TURNOUT;
-    case 3: return TRACK_STRAIGHT;
+    case 3: return TRACK_LONG_CURVED;
     case 4: return TRACK_STRAIGHT_TURNOUT;
     case 5: return TRACK_STRAIGHT;
     case 6: return TRACK_STRAIGHT;
@@ -99,7 +99,7 @@ velocity_type(const int sensor_idx) {
     case 27: return TRACK_STRAIGHT;
     case 28: return TRACK_CURVED_TURNOUT;
     case 29: return TRACK_CURVED;
-    case 30: return TRACK_STRAIGHT;
+    case 30: return TRACK_LONG_CURVED;
     case 31: return TRACK_CURVED_TURNOUT;
         // Bank C
     case 32: return TRACK_CURVED;
