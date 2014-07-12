@@ -36,8 +36,7 @@ master_update_velocity_ui(const master* const ctxt) {
         "-    " COLOUR_RESET;
 
     const int type = velocity_type(ctxt->current_sensor);
-    const velocity* const vmap = &ctxt->vmap[type];
-    const int    v = physics_velocity(vmap, ctxt->current_speed);
+    const int    v = physics_velocity(ctxt, ctxt->current_speed, type);
     ptr = sprintf(ptr, format, v / 10);
 
     Puts(buffer, ptr - buffer);
@@ -156,9 +155,9 @@ master_sensor_feedback(master* const ctxt,
                        const int service_time) {
 
     if (ctxt->sensor_to_stop_at == sensor_hit) {
-        master_set_speed(ctxt, 0, service_time);
+        master_set_speed(ctxt, 40, service_time);
 
-        ctxt->sensor_to_stop_at = -1;
+        ctxt->sensor_to_stop_at = 70;
         const sensor hit = pos_to_sensor(sensor_hit);
         log("[%s] Hit sensor %c%d. Stopping!",
             ctxt->name, hit.bank, hit.num);
@@ -168,8 +167,9 @@ master_sensor_feedback(master* const ctxt,
            "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
 
     const track_type type = velocity_type(ctxt->current_sensor);
-    const int expected_v  = physics_velocity(&ctxt->vmap[type],
-                                             ctxt->current_speed);
+    const int expected_v  = physics_velocity(ctxt,
+                                             ctxt->current_speed,
+                                             type);
     const int actual_v    = ctxt->current_distance /
         (sensor_time - ctxt->current_time);
     const int delta_v     = actual_v - expected_v;
@@ -197,8 +197,9 @@ master_sensor_feedback(master* const ctxt,
         master_reverse_step1(ctxt, service_time);
 
     const track_type next_type = velocity_type(ctxt->current_sensor);
-    ctxt->current_velocity     = physics_velocity(&ctxt->vmap[next_type],
-                                                  ctxt->current_speed);
+    ctxt->current_velocity     = physics_velocity(ctxt,
+                                                  ctxt->current_speed,
+                                                  next_type);
     ctxt->next_time = ctxt->current_distance / ctxt->current_velocity;
 
     master_update_velocity_ui(ctxt);
@@ -242,8 +243,9 @@ master_unexpected_sensor_feedback(master* const ctxt,
         master_reverse_step1(ctxt, service_time);
 
     const track_type    type = velocity_type(ctxt->current_sensor);
-    ctxt->current_velocity   = physics_velocity(&ctxt->vmap[type],
-                                                ctxt->current_speed);
+    ctxt->current_velocity   = physics_velocity(ctxt,
+                                                ctxt->current_speed,
+                                                type);
     ctxt->next_time          = ctxt->current_distance / ctxt->current_velocity;
 
     master_update_velocity_ui(ctxt);

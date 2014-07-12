@@ -11,11 +11,15 @@
 #define REVERSE_TIME_FUDGE_FACTOR         10    // cs
 
 typedef enum {
+    TRACK_THREE_WAY,
+    TRACK_INNER_CURVE,
+    TRACK_INNER_STRAIGHT,
+    TRACK_OUTER_CURVE1,
+    TRACK_OUTER_CURVE2,
     TRACK_STRAIGHT,
-    TRACK_STRAIGHT_TURNOUT,
-    TRACK_CURVED,
-    TRACK_CURVED_TURNOUT,
-    TRACK_LONG_CURVED,
+    TRACK_LONG_STRAIGHT,
+    TRACK_BACK_CONNECT,
+    TRACK_OUTER_STRAIGHT,
     TRACK_TYPE_COUNT
 } track_type;
 
@@ -25,12 +29,6 @@ typedef enum {
     LM_MERGE,
     LM_EXIT
 } landmark;
-
-typedef struct {
-    int slope;
-    int offset;
-    int delta;
-} velocity;
 
 typedef struct {
     int slope;
@@ -70,7 +68,7 @@ typedef struct master_context {
 
     train_dim measurements;
     cubic     amap;
-    velocity  vmap[TRACK_TYPE_COUNT];
+    int       vmap[TRAIN_SPEEDS][TRACK_TYPE_COUNT];
     stop      smap;
 
     // these will usually be based on actual track feedback, unless we have to
