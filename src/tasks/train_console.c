@@ -41,7 +41,7 @@ static inline void _init_context(tc_context* const ctxt) {
             "Received invalid sensor data %d / %d", result, sizeof(sensor_data));
 
     master_req callin = {
-        .type = MASTER_SENSOR_FEEDBACK,
+        .type = MASTER_UNEXPECTED_SENSOR_FEEDBACK,
         .arg1 = sensor_data[1],
         .arg2 = sensor_data[0]
     };

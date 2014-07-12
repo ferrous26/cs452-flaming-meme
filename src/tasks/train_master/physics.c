@@ -181,7 +181,7 @@ physics_update_tracking_ui(master* const ctxt, const int delta_v) {
     const sensor curr = pos_to_sensor(ctxt->current_sensor);
     const sensor next = pos_to_sensor(ctxt->next_sensor);
 
-    ptr = sprintf_int(ptr, delta_v);
+    ptr = sprintf_int(ptr, delta_v / 10);
     ptr = ui_pad(ptr, log10(abs(delta_v)) + (delta_v < 0 ? 1 : 0), 5);
 
     ptr = sprintf_sensor(ptr, &last);
@@ -195,17 +195,22 @@ physics_update_tracking_ui(master* const ctxt, const int delta_v) {
 }
 
 static inline void
-physics_feedback(master* const ctxt, const int actual_v) {
+physics_feedback(master* const ctxt,
+                 const int actual_v,
+                 const int expected_v) {
 
     // do not feedback while accelerating
-    if (ctxt->current_state_accelerating ||
-        ctxt->current_speed == 0) return;
+    if (ctxt->current_speed == 0) return;
 
-    const int delta_v = actual_v - ctxt->next_velocity;
+    const int delta_v = actual_v - expected_v;
 
     if (abs(delta_v) > ctxt->feedback_threshold) {
-        log("[%s] Feedback is off by too much %d / %d. I suspect foul play!",
-            ctxt->name, delta_v, ctxt->feedback_threshold);
+        const sensor s = pos_to_sensor(ctxt->current_sensor);
+        log("[%s] Feedback is off by too much %d / %d (%c%d)."
+            " I suspect foul play!",
+            ctxt->name,
+            delta_v, ctxt->feedback_threshold,
+            s.bank, s.num);
         return;
     }
 
@@ -222,8 +227,6 @@ physics_feedback(master* const ctxt, const int actual_v) {
         ctxt->vmap[type].delta = ((ctxt->vmap[type].delta * 9) + delta_v) / 10;
         break;
     }
-
-    physics_update_tracking_ui(ctxt, delta_v);
 }
 
 static inline int
@@ -281,17 +284,17 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->vmap[0].slope   =  50620;
-        ctxt->vmap[0].offset  = -197200;
+        ctxt->vmap[0].slope   =  50;
+        ctxt->vmap[0].offset  = -197;
         ctxt->vmap[0].delta   =  0;
-        ctxt->vmap[1].slope   =  48140;
-        ctxt->vmap[1].offset  = -61400;
+        ctxt->vmap[1].slope   =  48;
+        ctxt->vmap[1].offset  = -61;
         ctxt->vmap[1].delta   =  0;
-        ctxt->vmap[2].slope   =  47139;
-        ctxt->vmap[2].offset  = -70029;
+        ctxt->vmap[2].slope   =  47;
+        ctxt->vmap[2].offset  = -70;
         ctxt->vmap[2].delta   =  0;
-        ctxt->vmap[3].slope   =  49334;
-        ctxt->vmap[3].offset  = -124910;
+        ctxt->vmap[3].slope   =  49;
+        ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
         ctxt->smap.slope  =   6383;
@@ -303,28 +306,31 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->vmap[0].slope   =  50620;
-        ctxt->vmap[0].offset  = -197200;
-        ctxt->vmap[0].delta   =  0;
-        ctxt->vmap[1].slope   =  48140;
-        ctxt->vmap[1].offset  = -61400;
-        ctxt->vmap[1].delta   =  0;
-        ctxt->vmap[2].slope   =  47139;
-        ctxt->vmap[2].offset  = -70029;
-        ctxt->vmap[2].delta   =  0;
-        ctxt->vmap[3].slope   =  49334;
-        ctxt->vmap[3].offset  = -124910;
-        ctxt->vmap[3].delta   =  0;
+        ctxt->vmap[0].slope   =  50;
+        ctxt->vmap[0].offset  = -197;
+        ctxt->vmap[0].delta   =  58;
+        ctxt->vmap[1].slope   =  48;
+        ctxt->vmap[1].offset  = -61;
+        ctxt->vmap[1].delta   =  -113;
+        ctxt->vmap[2].slope   =  47;
+        ctxt->vmap[2].offset  = -70;
+        ctxt->vmap[2].delta   =  17;
+        ctxt->vmap[3].slope   =  49;
+        ctxt->vmap[3].offset  = -125;
+        ctxt->vmap[3].delta   =  3;
+        ctxt->vmap[4].slope   =  49;
+        ctxt->vmap[4].offset  = -125;
+        ctxt->vmap[4].delta   =  -324;
 
-        ctxt->amap.mega_scale      = 10000;
-        ctxt->amap.terms[3].factor = 77;
-        ctxt->amap.terms[3].scale  = 10000;
-        ctxt->amap.terms[2].factor = -15;
-        ctxt->amap.terms[2].scale  = 10000;
-        ctxt->amap.terms[1].factor = 11863;
-        ctxt->amap.terms[1].scale  = 10000;
-        ctxt->amap.terms[0].factor = 34;
-        ctxt->amap.terms[0].scale  = 1;
+        ctxt->amap.mega_scale       = 10000;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
 
         ctxt->smap.slope  =   6703;
         ctxt->smap.offset = -38400;
@@ -335,17 +341,17 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->vmap[0].slope   =  50620;
-        ctxt->vmap[0].offset  = -197200;
+        ctxt->vmap[0].slope   =  50;
+        ctxt->vmap[0].offset  = -197;
         ctxt->vmap[0].delta   =  0;
-        ctxt->vmap[1].slope   =  48140;
-        ctxt->vmap[1].offset  = -61400;
+        ctxt->vmap[1].slope   =  48;
+        ctxt->vmap[1].offset  = -61;
         ctxt->vmap[1].delta   =  0;
-        ctxt->vmap[2].slope   =  47139;
-        ctxt->vmap[2].offset  = -70029;
+        ctxt->vmap[2].slope   =  47;
+        ctxt->vmap[2].offset  = -70;
         ctxt->vmap[2].delta   =  0;
-        ctxt->vmap[3].slope   =  49334;
-        ctxt->vmap[3].offset  = -124910;
+        ctxt->vmap[3].slope   =  49;
+        ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
         ctxt->smap.slope  =   7357;
@@ -357,17 +363,17 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->vmap[0].slope   =  50620;
-        ctxt->vmap[0].offset  = -197200;
+        ctxt->vmap[0].slope   =  50;
+        ctxt->vmap[0].offset  = -197;
         ctxt->vmap[0].delta   =  0;
-        ctxt->vmap[1].slope   =  48140;
-        ctxt->vmap[1].offset  = -61400;
+        ctxt->vmap[1].slope   =  48;
+        ctxt->vmap[1].offset  = -61;
         ctxt->vmap[1].delta   =  0;
-        ctxt->vmap[2].slope   =  47139;
-        ctxt->vmap[2].offset  = -70029;
+        ctxt->vmap[2].slope   =  47;
+        ctxt->vmap[2].offset  = -70;
         ctxt->vmap[2].delta   =  0;
-        ctxt->vmap[3].slope   =  49334;
-        ctxt->vmap[3].offset  = -124910;
+        ctxt->vmap[3].slope   =  49;
+        ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
         ctxt->smap.slope  =   6391;
@@ -379,17 +385,17 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 114000;
 
-        ctxt->vmap[0].slope   =  50620;
-        ctxt->vmap[0].offset  = -197200;
+        ctxt->vmap[0].slope   =  50;
+        ctxt->vmap[0].offset  = -197;
         ctxt->vmap[0].delta   =  0;
-        ctxt->vmap[1].slope   =  48140;
-        ctxt->vmap[1].offset  = -61400;
+        ctxt->vmap[1].slope   =  48;
+        ctxt->vmap[1].offset  = -61;
         ctxt->vmap[1].delta   =  0;
-        ctxt->vmap[2].slope   =  47139;
-        ctxt->vmap[2].offset  = -70029;
+        ctxt->vmap[2].slope   =  47;
+        ctxt->vmap[2].offset  = -70;
         ctxt->vmap[2].delta   =  0;
-        ctxt->vmap[3].slope   =  49334;
-        ctxt->vmap[3].offset  = -124910;
+        ctxt->vmap[3].slope   =  49;
+        ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
         ctxt->smap.slope  =   6391;
@@ -401,17 +407,17 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->vmap[0].slope   =  50620;
-        ctxt->vmap[0].offset  = -197200;
+        ctxt->vmap[0].slope   =  50;
+        ctxt->vmap[0].offset  = -197;
         ctxt->vmap[0].delta   =  0;
-        ctxt->vmap[1].slope   =  48140;
-        ctxt->vmap[1].offset  = -61400;
+        ctxt->vmap[1].slope   =  48;
+        ctxt->vmap[1].offset  = -61;
         ctxt->vmap[1].delta   =  0;
-        ctxt->vmap[2].slope   =  47139;
-        ctxt->vmap[2].offset  = -70029;
+        ctxt->vmap[2].slope   =  47;
+        ctxt->vmap[2].offset  = -70;
         ctxt->vmap[2].delta   =  0;
-        ctxt->vmap[3].slope   =  49334;
-        ctxt->vmap[3].offset  = -124910;
+        ctxt->vmap[3].slope   =  49;
+        ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
         ctxt->smap.slope  =   6391;

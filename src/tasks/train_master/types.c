@@ -15,6 +15,7 @@ typedef enum {
     TRACK_STRAIGHT_TURNOUT,
     TRACK_CURVED,
     TRACK_CURVED_TURNOUT,
+    TRACK_LONG_CURVED,
     TRACK_TYPE_COUNT
 } track_type;
 
@@ -52,7 +53,7 @@ typedef struct {
     int mega_scale;
 } cubic;
 
-typedef struct {
+typedef struct master_context {
     int       train_id;      // internal index
     int       train_gid;     // global identifier
     char      name[8];
@@ -83,11 +84,12 @@ typedef struct {
 
     landmark  current_landmark;
     int       current_sensor;
-    bool      current_state_accelerating;
+    int       current_state_accelerating;
     int       current_distance;
     int       current_time;
     int       current_velocity;
     int       current_speed;
+    int       current_direction;
 
     // these are estimates
     landmark  next_landmark; // expected next landmark

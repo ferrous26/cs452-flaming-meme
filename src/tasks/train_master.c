@@ -10,30 +10,35 @@
 #include <tasks/train_server.h>
 #include <tasks/train_blaster.h>
 
+#include <tasks/mission_control.h>
 #include <tasks/train_master.h>
 #include <tasks/train_master/types.c>
 #include <tasks/train_master/physics.c>
 
 
+
 static inline void
 master_update_velocity_ui(const master* const ctxt) {
     // NOTE: we currently display in units of (integer) rounded off mm/s
-    char  buffer[16];
-    char* ptr      = vt_goto(buffer,
-                             TRAIN_ROW + ctxt->train_id,
-                             TRAIN_SPEED_COL);
+    char  buffer[32];
+    char* ptr = vt_goto(buffer,
+                        TRAIN_ROW + ctxt->train_id,
+                        TRAIN_SPEED_COL);
+
+    if (ctxt->current_direction > 0)
+        ptr = sprintf_string(ptr, COLOUR(CYAN));
+    else
+        ptr = sprintf_string(ptr, COLOUR(MAGENTA));
 
     const char* const format =
-        ctxt->current_speed && ctxt->current_speed < 150 ? "%d " : "-    ";
+        ctxt->current_speed && ctxt->current_speed < 150 ?
+        "%d " COLOUR_RESET:
+        "-    " COLOUR_RESET;
 
     const int type = velocity_type(ctxt->current_sensor);
     const velocity* const vmap = &ctxt->vmap[type];
-    const int    v = physics_velocity(&ctxt->vmap[type],
-                                      ctxt->current_speed);
-    ptr = sprintf(ptr, format, v / 1000);
-
-    log("Slope %d, Speed %d, Off %d, Delta %d",
-        vmap->slope, ctxt->current_speed, vmap->offset, vmap->delta);
+    const int    v = physics_velocity(vmap, ctxt->current_speed);
+    ptr = sprintf(ptr, format, v / 10);
 
     Puts(buffer, ptr - buffer);
 }
@@ -47,6 +52,8 @@ static void master_set_speed(master* const ctxt,
     ctxt->last_time     = time; // time stamp the change in speed
     put_train_speed(ctxt->train_gid, speed / 10);
 
+    ctxt->current_state_accelerating = time;
+
     // this causes an acceleration event, so we need to wake up
     // when we finish accelerating
     // also need to update estimates
@@ -59,9 +66,6 @@ static void master_reverse_step1(master* const ctxt, const int time) {
     const int stop_dist = physics_stopping_distance(ctxt);
     const int stop_time = physics_stopping_time(ctxt, stop_dist);
     master_set_speed(ctxt, 0, time); // STAHP!
-
-    log("[%s] Predict stopping time as %d ticks and %d mm",
-        ctxt->name, stop_time, stop_dist / 1000);
 
     struct {
         tnotify_header head;
@@ -112,9 +116,130 @@ static void master_reverse_step3(master* const ctxt,
                                  const int speed,
                                  const int time) {
 
-    // TODO:
-    // td_update_train_direction(ctxt, -ctxt->direction);
+    ctxt->current_direction = -ctxt->current_direction;
     master_set_speed(ctxt, speed, time);
+}
+
+static inline void master_detect_train_direction(master* const ctxt,
+                                                 const int tid,
+                                                 const int sensor_hit,
+                                                 const int time) {
+
+    if (ctxt->current_direction != 0) return;
+
+    if ((sensor_hit >> 4) == 1) {
+        ctxt->current_direction = 1;
+        master_reverse_step1(ctxt, time);
+
+        const int   none = 80;
+        const int result = Reply(tid, (char*)&none, sizeof(none));
+        assert(result == 0,
+               "[%s] Failed to reply to sensor courier (%d)",
+               ctxt->name, result);
+        UNUSED(result);
+        return;
+    }
+
+    ctxt->current_direction = -1;
+}
+
+static inline void
+master_sensor_feedback(master* const ctxt,
+                       const int tid, // the courier
+                       const int sensor_hit,
+                       const int sensor_time,
+                       const int service_time) {
+
+    assert(sensor_hit == ctxt->next_sensor,
+           "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
+
+    const track_type type = velocity_type(ctxt->current_sensor);
+    const int expected_v  = physics_velocity(&ctxt->vmap[type],
+                                             ctxt->current_speed);
+    const int actual_v    = ctxt->current_distance /
+        (sensor_time - ctxt->current_time);
+    const int delta_v     = actual_v - expected_v;
+
+    // TODO: this should be a function of acceleration and not a
+    //       constant value
+    //    if (service_time - ctxt->current_state_accelerating > 500)
+    physics_feedback(ctxt, actual_v, expected_v);
+
+    ctxt->last_time      = ctxt->current_time;
+    ctxt->current_time   = sensor_time;
+    ctxt->last_distance  = ctxt->current_distance;
+    // current distance updated below
+    ctxt->last_sensor    = ctxt->current_sensor;
+    ctxt->current_sensor = sensor_hit;
+
+    int result = get_sensor_from(sensor_hit,
+                                 &ctxt->current_distance,
+                                 &ctxt->next_sensor);
+    assert(result == 0, "failed to get next sensor");
+    UNUSED(result);
+
+    // ZOMG, we are heading towards an exit!
+    if (ctxt->current_distance < 0)
+        master_reverse_step1(ctxt, service_time);
+
+    const track_type next_type = velocity_type(ctxt->current_sensor);
+    ctxt->current_velocity     = physics_velocity(&ctxt->vmap[next_type],
+                                                  ctxt->current_speed);
+    ctxt->next_time = ctxt->current_distance / ctxt->current_velocity;
+
+    master_update_velocity_ui(ctxt);
+    physics_update_tracking_ui(ctxt, delta_v);
+
+    result = Reply(tid,
+                   (char*)&ctxt->next_sensor,
+                   sizeof(ctxt->next_sensor));
+    assert(result == 0, "failed to get next sensor");
+    UNUSED(result);
+}
+
+static inline void
+master_unexpected_sensor_feedback(master* const ctxt,
+                                  const int tid, // the courier
+                                  const int sensor_hit,
+                                  const int sensor_time,
+                                  const int service_time) {
+
+    master_detect_train_direction(ctxt, tid, sensor_hit, service_time);
+
+    const sensor hit = pos_to_sensor(sensor_hit);
+    log("[%s] Lost position... %c%d", ctxt->name, hit.bank, hit.num);
+
+    ctxt->last_sensor    = ctxt->current_sensor;
+    ctxt->last_distance  = ctxt->current_distance;
+    ctxt->last_time      = ctxt->current_time;
+    ctxt->current_sensor = sensor_hit;
+    ctxt->current_time   = sensor_time;
+    // current_distance set below
+    // TODO: set other values
+
+    int result = get_sensor_from(sensor_hit,
+                                 &ctxt->current_distance,
+                                 &ctxt->next_sensor);
+    assert(result == 0, "failed to get next sensor");
+    UNUSED(result);
+
+    // ZOMG, we are heading towards an exit!
+    if (ctxt->current_distance < 0)
+        master_reverse_step1(ctxt, service_time);
+
+    const track_type    type = velocity_type(ctxt->current_sensor);
+    ctxt->current_velocity   = physics_velocity(&ctxt->vmap[type],
+                                                ctxt->current_speed);
+    ctxt->next_time          = ctxt->current_distance / ctxt->current_velocity;
+
+    master_update_velocity_ui(ctxt);
+    physics_update_tracking_ui(ctxt, 0);
+
+    result = Reply(tid,
+                   (char*)&ctxt->next_sensor,
+                   sizeof(ctxt->next_sensor));
+    assert(result == 0, "failed to get next sensor");
+    UNUSED(result);
 }
 
 static inline void master_wait(master* const ctxt,
@@ -178,7 +303,7 @@ static void master_init(master* const ctxt) {
     memset(ctxt, 0, sizeof(master));
     int tid, init[2];
     int result = Receive(&tid, (char*)init, sizeof(init));
- 
+
     if (result != sizeof(init))
         ABORT("[Master] Failed to initialize (%d)", result);
 
@@ -329,8 +454,19 @@ void train_master() {
         case MASTER_NEXT_NODE_ESTIMATE:
 
         case MASTER_SENSOR_FEEDBACK:
+            master_sensor_feedback(&context,
+                                   tid,
+                                   req.arg1, // sensor
+                                   req.arg2, // time
+                                   time);
+            continue;
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
-            break;
+            master_unexpected_sensor_feedback(&context,
+                                              tid,
+                                              req.arg1, // sensor
+                                              req.arg2, // time
+                                              time);
+            continue;
         default:
             ABORT("[%s] Illegal type for a train master %d from %d",
                       context.name, req.type, tid);
