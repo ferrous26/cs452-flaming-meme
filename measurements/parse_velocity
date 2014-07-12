@@ -12,25 +12,20 @@ end
 
 
 data.each do |speeds|
-  num  = speeds[0]
-  type = speeds[1]
-  speeds[2..-1].each_with_index do |speed, index|
-    velocities[num][type][index] = speed
+  num   = speeds[0]
+  speed = speeds[1]
+  speeds[2..-1].each_with_index do |type, index|
+    velocities[num][speed][index] = type
   end
 end
 
 
-puts "    switch (ctxt->off) {"
-velocities.each_pair do |train, types|
-  puts "    case #{train}:"
+velocities.each_pair do |train, speeds|
+  puts "    // Velocity mapping for #{train}"
 
-  types.each_pair do |type, speeds|
-    speeds.each_with_index do |speed, index|
-      puts "        ctxt->velocity[#{type}][#{index}] = #{speed};"
+  speeds.each_pair do |speed, types|
+    types.each_with_index do |type, index|
+      puts "        ctxt->velocity[#{speed}][#{index}] = #{type};"
     end
   end
-
-  puts "        break;"
 end
-
-puts "    }\n"

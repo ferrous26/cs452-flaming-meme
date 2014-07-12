@@ -16,7 +16,7 @@ static void master_dump_velocity_table(master* const ctxt) {
     for (int speed = 0; speed < TRAIN_SPEEDS; speed++) {
         ptr = sprintf(ptr, "%d,%d,", ctxt->train_id, speed);
 
-        for (int type = TRACK_THREE_WAY; type < TRACK_TYPE_COUNT; type++) {
+        for (int type = 0; type < TRACK_TYPE_COUNT; type++) {
             ptr = sprintf_int(ptr, ctxt->vmap[speed][type]);
 
             if (type != TRACK_TYPE_COUNT - 1)
@@ -230,16 +230,13 @@ physics_feedback(master* const ctxt,
 
     switch (ctxt->feedback_ratio) {
     case HALF_AND_HALF:
-        ctxt->vmap[speed_idx][type] =
-            (ctxt->vmap[speed_idx][type] + delta_v) >> 1;
+        ctxt->vmap[speed_idx][type] = (actual_v + expected_v) >> 1;
         break;
     case EIGHTY_TWENTY:
-        ctxt->vmap[speed_idx][type] =
-            ((ctxt->vmap[speed_idx][type] << 2) + delta_v) / 5;
+        ctxt->vmap[speed_idx][type] = ((expected_v << 2) + actual_v) / 5;
         break;
     case NINTY_TEN:
-        ctxt->vmap[speed_idx][type] =
-            ((ctxt->vmap[speed_idx][type] * 9) + delta_v) / 10;
+        ctxt->vmap[speed_idx][type] = ((expected_v * 9) + actual_v) / 10;
         break;
     }
 }
@@ -325,6 +322,133 @@ static inline void master_init_physics(master* const ctxt) {
 
         ctxt->smap.slope  =   6703;
         ctxt->smap.offset = -38400;
+
+        ctxt->velocity[0][0] = 0;
+        ctxt->velocity[0][1] = 0;
+        ctxt->velocity[0][2] = 0;
+        ctxt->velocity[0][3] = 0;
+        ctxt->velocity[0][4] = 0;
+        ctxt->velocity[0][5] = 0;
+        ctxt->velocity[0][6] = 0;
+        ctxt->velocity[0][7] = 0;
+        ctxt->velocity[0][8] = 0;
+        ctxt->velocity[1][0] = 0;
+        ctxt->velocity[1][1] = 0;
+        ctxt->velocity[1][2] = 0;
+        ctxt->velocity[1][3] = 0;
+        ctxt->velocity[1][4] = 0;
+        ctxt->velocity[1][5] = 0;
+        ctxt->velocity[1][6] = 0;
+        ctxt->velocity[1][7] = 0;
+        ctxt->velocity[1][8] = 0;
+        ctxt->velocity[2][0] = 0;
+        ctxt->velocity[2][1] = 0;
+        ctxt->velocity[2][2] = 0;
+        ctxt->velocity[2][3] = 0;
+        ctxt->velocity[2][4] = 0;
+        ctxt->velocity[2][5] = 0;
+        ctxt->velocity[2][6] = 0;
+        ctxt->velocity[2][7] = 0;
+        ctxt->velocity[2][8] = 0;
+        ctxt->velocity[3][0] = 1679;
+        ctxt->velocity[3][1] = 1558;
+        ctxt->velocity[3][2] = 1454;
+        ctxt->velocity[3][3] = 865;
+        ctxt->velocity[3][4] = 1562;
+        ctxt->velocity[3][5] = 1560;
+        ctxt->velocity[3][6] = 1649;
+        ctxt->velocity[3][7] = 1508;
+        ctxt->velocity[3][8] = 1596;
+        ctxt->velocity[4][0] = 0;
+        ctxt->velocity[4][1] = 0;
+        ctxt->velocity[4][2] = 0;
+        ctxt->velocity[4][3] = 0;
+        ctxt->velocity[4][4] = 0;
+        ctxt->velocity[4][5] = 0;
+        ctxt->velocity[4][6] = 0;
+        ctxt->velocity[4][7] = 0;
+        ctxt->velocity[4][8] = 0;
+        ctxt->velocity[5][0] = 0;
+        ctxt->velocity[5][1] = 0;
+        ctxt->velocity[5][2] = 0;
+        ctxt->velocity[5][3] = 0;
+        ctxt->velocity[5][4] = 0;
+        ctxt->velocity[5][5] = 0;
+        ctxt->velocity[5][6] = 0;
+        ctxt->velocity[5][7] = 0;
+        ctxt->velocity[5][8] = 0;
+        ctxt->velocity[6][0] = 0;
+        ctxt->velocity[6][1] = 0;
+        ctxt->velocity[6][2] = 0;
+        ctxt->velocity[6][3] = 0;
+        ctxt->velocity[6][4] = 0;
+        ctxt->velocity[6][5] = 0;
+        ctxt->velocity[6][6] = 0;
+        ctxt->velocity[6][7] = 0;
+        ctxt->velocity[6][8] = 0;
+        ctxt->velocity[7][0] = 0;
+        ctxt->velocity[7][1] = 0;
+        ctxt->velocity[7][2] = 0;
+        ctxt->velocity[7][3] = 3695;
+        ctxt->velocity[7][4] = 3776;
+        ctxt->velocity[7][5] = 3696;
+        ctxt->velocity[7][6] = 3696;
+        ctxt->velocity[7][7] = 3656;
+        ctxt->velocity[7][8] = 3681;
+        ctxt->velocity[8][0] = 0;
+        ctxt->velocity[8][1] = 0;
+        ctxt->velocity[8][2] = 0;
+        ctxt->velocity[8][3] = 0;
+        ctxt->velocity[8][4] = 0;
+        ctxt->velocity[8][5] = 0;
+        ctxt->velocity[8][6] = 0;
+        ctxt->velocity[8][7] = 0;
+        ctxt->velocity[8][8] = 0;
+        ctxt->velocity[9][0] = 0;
+        ctxt->velocity[9][1] = 0;
+        ctxt->velocity[9][2] = 0;
+        ctxt->velocity[9][3] = 0;
+        ctxt->velocity[9][4] = 0;
+        ctxt->velocity[9][5] = 0;
+        ctxt->velocity[9][6] = 0;
+        ctxt->velocity[9][7] = 0;
+        ctxt->velocity[9][8] = 0;
+        ctxt->velocity[10][0] = 0;
+        ctxt->velocity[10][1] = 0;
+        ctxt->velocity[10][2] = 0;
+        ctxt->velocity[10][3] = 0;
+        ctxt->velocity[10][4] = 0;
+        ctxt->velocity[10][5] = 0;
+        ctxt->velocity[10][6] = 0;
+        ctxt->velocity[10][7] = 0;
+        ctxt->velocity[10][8] = 0;
+        ctxt->velocity[11][0] = 5258;
+        ctxt->velocity[11][1] = 6093;
+        ctxt->velocity[11][2] = 5954;
+        ctxt->velocity[11][3] = 5185;
+        ctxt->velocity[11][4] = 5073;
+        ctxt->velocity[11][5] = 5595;
+        ctxt->velocity[11][6] = 5089;
+        ctxt->velocity[11][7] = 5501;
+        ctxt->velocity[11][8] = 5472;
+        ctxt->velocity[12][0] = 0;
+        ctxt->velocity[12][1] = 0;
+        ctxt->velocity[12][2] = 0;
+        ctxt->velocity[12][3] = 0;
+        ctxt->velocity[12][4] = 0;
+        ctxt->velocity[12][5] = 0;
+        ctxt->velocity[12][6] = 0;
+        ctxt->velocity[12][7] = 0;
+        ctxt->velocity[12][8] = 0;
+        ctxt->velocity[13][0] = 0;
+        ctxt->velocity[13][1] = 0;
+        ctxt->velocity[13][2] = 0;
+        ctxt->velocity[13][3] = 0;
+        ctxt->velocity[13][4] = 0;
+        ctxt->velocity[13][5] = 0;
+        ctxt->velocity[13][6] = 0;
+        ctxt->velocity[13][7] = 0;
+        ctxt->velocity[13][8] = 0;
         break;
 
     case 2: // train 48
