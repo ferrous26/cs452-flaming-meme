@@ -8,6 +8,7 @@
 #define FEEDBACK_THRESHOLD_DEFAULT        10000 // um/s
 #define STOPPING_DISTANCE_OFFSET_DEFAULT  0     // um
 #define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
+#define STOPPING_TIME_FUDGE_FACTOR        10    // cs
 
 typedef enum {
     TRACK_STRAIGHT,
@@ -48,6 +49,7 @@ typedef struct {
 
 typedef struct {
     term terms[4];
+    int mega_scale;
 } cubic;
 
 typedef struct {
@@ -62,6 +64,7 @@ typedef struct {
     int       feedback_threshold;
     int       stopping_distance_offset;
     int       turnout_clearance_offset;
+    int       stopping_time_fudge_factor;
 
     train_dim measurements;
     cubic     amap;

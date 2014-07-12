@@ -99,7 +99,7 @@ static void master_reverse_step2(master* const ctxt, const int time) {
         }
     };
 
-    master_set_speed(ctxt, TRAIN_REVERSE, time);
+    master_set_speed(ctxt, TRAIN_REVERSE * 10, time);
 
     int result = Reply(ctxt->acceleration_courier,
                        (char*)&msg, sizeof(msg));

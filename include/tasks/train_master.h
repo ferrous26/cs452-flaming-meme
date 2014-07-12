@@ -30,7 +30,6 @@ typedef struct {
     master_req_type type;
     int  arg1;
     int  arg2;
-    int  arg3;
 } master_req;
 
 #endif

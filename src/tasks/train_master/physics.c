@@ -228,6 +228,9 @@ physics_feedback(master* const ctxt, const int actual_v) {
 
 static inline int
 physics_stopping_distance(const master* const ctxt) {
+    log("[%s] Slope %d, Speed %d, Off %d, Off2 %d",
+        ctxt->name, ctxt->smap.slope, ctxt->current_speed,
+        ctxt->smap.offset, ctxt->stopping_distance_offset);
     return
         (ctxt->smap.slope * ctxt->current_speed) +
         ctxt->smap.offset +
@@ -246,8 +249,8 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
     const int dist = stop_dist / 1000;
 
     int sum =
-        ((ctxt->amap.terms[3].factor * dist * dist) /
-         ctxt->amap.terms[3].scale) * dist;
+        (((ctxt->amap.terms[3].factor * dist * dist) /
+          ctxt->amap.terms[3].scale) * dist) / ctxt->amap.terms.mega_scale;
 
     sum += (ctxt->amap.terms[2].factor * dist * dist) /
         ctxt->amap.terms[2].scale;
@@ -257,6 +260,8 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
 
     sum += ctxt->amap.terms[0].factor /
         ctxt->amap.terms[0].scale;
+
+    sum += ctxt->stopping_time_fudge_factor;
 
     return sum;
 }
@@ -282,7 +287,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->smap.slope  =    638;
+        ctxt->smap.slope  =   6383;
         ctxt->smap.offset = -42353;
         break;
 
@@ -304,16 +309,17 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->amap.terms[3].factor = 77;
-        ctxt->amap.terms[3].scale  = 100000000;
-        ctxt->amap.terms[2].factor = -15;
-        ctxt->amap.terms[2].scale  = 10000;
-        ctxt->amap.terms[1].factor = 11863;
-        ctxt->amap.terms[1].scale  = 10000;
-        ctxt->amap.terms[0].factor = 34;
-        ctxt->amap.terms[0].scale  = 1;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms.mega_scale = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
 
-        ctxt->smap.slope  =    670;
+        ctxt->smap.slope  =   6703;
         ctxt->smap.offset = -38400;
         break;
 
@@ -335,7 +341,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->smap.slope  =    735;
+        ctxt->smap.slope  =   7357;
         ctxt->smap.offset = -59043;
         break;
 
@@ -357,7 +363,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->smap.slope  =    639;
+        ctxt->smap.slope  =   6391;
         ctxt->smap.offset = -41611;
         break;
 
@@ -379,7 +385,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->smap.slope  =    639;
+        ctxt->smap.slope  =   6391;
         ctxt->smap.offset = -41611;
         break;
 
@@ -401,15 +407,16 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -124910;
         ctxt->vmap[3].delta   =  0;
 
-        ctxt->smap.slope  =    639;
+        ctxt->smap.slope  =   6391;
         ctxt->smap.offset = -41611;
         break;
     }
 
-    ctxt->feedback_ratio           = HALF_AND_HALF;
-    ctxt->feedback_threshold       = FEEDBACK_THRESHOLD_DEFAULT;
-    ctxt->stopping_distance_offset = STOPPING_DISTANCE_OFFSET_DEFAULT;
-    ctxt->turnout_clearance_offset = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
+    ctxt->feedback_ratio             = HALF_AND_HALF;
+    ctxt->feedback_threshold         = FEEDBACK_THRESHOLD_DEFAULT;
+    ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
+    ctxt->stopping_time_fudge_factor = STOPPING_TIME_FUDGE_FACTOR;
+    ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
 }
 
 #endif
