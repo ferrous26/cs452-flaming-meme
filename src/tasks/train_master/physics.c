@@ -292,6 +292,16 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
+        ctxt->amap.mega_scale       = 10000;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
+
         ctxt->smap.slope  =   6383;
         ctxt->smap.offset = -42353;
         break;
@@ -349,6 +359,16 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
+        ctxt->amap.mega_scale       = 10000;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
+
         ctxt->smap.slope  =   7357;
         ctxt->smap.offset = -59043;
         break;
@@ -370,6 +390,16 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].slope   =  49;
         ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
+
+        ctxt->amap.mega_scale       = 10000;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
 
         ctxt->smap.slope  =   6391;
         ctxt->smap.offset = -41611;
@@ -393,6 +423,16 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
+        ctxt->amap.mega_scale       = 10000;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
+
         ctxt->smap.slope  =   6391;
         ctxt->smap.offset = -41611;
         break;
@@ -402,6 +442,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
+        // velocity tables
         ctxt->vmap[0].slope   =  50;
         ctxt->vmap[0].offset  = -197;
         ctxt->vmap[0].delta   =  0;
@@ -415,6 +456,18 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3].offset  = -125;
         ctxt->vmap[3].delta   =  0;
 
+        // stopping distance vs. stopping time
+        ctxt->amap.mega_scale       = 10000;
+        ctxt->amap.terms[3].factor  = 77;
+        ctxt->amap.terms[3].scale   = 10000;
+        ctxt->amap.terms[2].factor  = -15;
+        ctxt->amap.terms[2].scale   = 10000;
+        ctxt->amap.terms[1].factor  = 11863;
+        ctxt->amap.terms[1].scale   = 10000;
+        ctxt->amap.terms[0].factor  = 34;
+        ctxt->amap.terms[0].scale   = 1;
+
+        // stopping distance function
         ctxt->smap.slope  =   6391;
         ctxt->smap.offset = -41611;
         break;
