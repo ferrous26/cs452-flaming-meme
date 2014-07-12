@@ -21,11 +21,9 @@ end
 
 
 velocities.each_pair do |train, speeds|
-  puts "    // Velocity mapping for #{train}"
-
   speeds.each_pair do |speed, types|
     types.each_with_index do |type, index|
-      puts "        ctxt->velocity[#{speed}][#{index}] = #{type};"
+      puts "        ctxt->vmap[#{speed}][#{index}] = #{type};"
     end
   end
 end
