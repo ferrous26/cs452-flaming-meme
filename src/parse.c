@@ -183,6 +183,18 @@ static command parse_e(const char* const cmd, int* const buffer) {
     return CMD_ECHO;
 }
 
+static command parse_f(const char* const cmd, int* const buffer) {
+    UNUSED(buffer);
+    int index = 1;
+
+    if (cmd[index++] != 'f')   return ERROR;
+    if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+    if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+    if (!isspace(cmd[index++])) return ERROR;
+
+    return UPDATE_FUDGE_FACTOR;
+}
+
 static command parse_a(const char* const cmd, int* const buffer) {
     int index = 1;
 
@@ -241,6 +253,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case 'b':  return parse_b(cmd, buffer);
     case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);
+    case 'f':  return parse_f(cmd, buffer);
     case 'g':  return parse_g(cmd, buffer);
     case 'h':  return parse_h(cmd, buffer);
     case 'p':  return parse_p(cmd, buffer);

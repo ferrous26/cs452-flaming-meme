@@ -64,6 +64,13 @@ static void master_update_turnout_clearance_offset(master* const ctxt,
     ctxt->turnout_clearance_offset = offset;
 }
 
+static void master_update_reverse_time_fudge(master* const ctxt,
+                                             const int fudge) {
+    log("[%s] Updating reverse time fudge factor to %d ticks (was %d ticks)",
+        ctxt->name, fudge, ctxt->reverse_time_fudge_factor);
+    ctxt->reverse_time_fudge_factor = fudge;
+}
+
 static track_type __attribute__ ((const))
 velocity_type(const int sensor_idx) {
     switch (sensor_idx) {
@@ -270,7 +277,7 @@ static inline void master_init_physics(master* const ctxt) {
     ctxt->feedback_ratio             = HALF_AND_HALF;
     ctxt->feedback_threshold         = FEEDBACK_THRESHOLD_DEFAULT;
     ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
-    ctxt->reverse_time_fudge_factor  = STOPPING_TIME_FUDGE_FACTOR;
+    ctxt->reverse_time_fudge_factor  = REVERSE_TIME_FUDGE_FACTOR;
     ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
 
     switch (ctxt->train_id) {

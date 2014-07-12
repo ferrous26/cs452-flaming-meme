@@ -13,7 +13,6 @@ typedef enum {
     TRACK_TURNOUT,
     SWITCH_STOP,
     SWITCH_TIME,
-    STOP_OFFSET,
 
     LOC_SPEED,
     LOC_REVERSE,
@@ -21,8 +20,10 @@ typedef enum {
 
     GO,
 
+    STOP_OFFSET, // TODO: change name to match scheme
     UPDATE_THRESHOLD,
     UPDATE_FEEDBACK,
+    UPDATE_FUDGE_FACTOR,
 
     SIZES,
     SEPPUKU,

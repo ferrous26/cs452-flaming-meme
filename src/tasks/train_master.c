@@ -290,13 +290,17 @@ static inline void master_wait(master* const ctxt,
         case MASTER_UPDATE_CLEARANCE_OFFSET:
             master_update_turnout_clearance_offset(ctxt, req.arg1);
             break;
+        case MASTER_UPDATE_FUDGE_FACTOR:
+            master_update_reverse_time_fudge(ctxt, req.arg1);
+            break;
 
+            // We should not get any of these as the first event
+            // so we abort if we get them
         case MASTER_ACCELERATION_COMPLETE:
         case MASTER_NEXT_NODE_ESTIMATE:
-
+        case MASTER_WHERE_ARE_YOU:
         case MASTER_SENSOR_FEEDBACK:
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
-
         case MASTER_REVERSE2:
         case MASTER_REVERSE3:
             ABORT("She's moving when we dont tell her too captain!");
@@ -453,6 +457,9 @@ void train_master() {
             break;
         case MASTER_UPDATE_CLEARANCE_OFFSET:
             master_update_turnout_clearance_offset(&context, req.arg1);
+            break;
+        case MASTER_UPDATE_FUDGE_FACTOR:
+            master_update_reverse_time_fudge(&context, req.arg1);
             break;
 
         case MASTER_ACCELERATION_COMPLETE:

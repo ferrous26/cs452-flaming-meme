@@ -23,6 +23,7 @@ typedef enum {
     BLASTER_UPDATE_FEEDBACK_ALPHA,
     BLASTER_UPDATE_STOP_OFFSET,
     BLASTER_UPDATE_CLEARANCE_OFFSET,
+    BLASTER_UPDATE_FUDGE_FACTOR,
 
     BLASTER_TOGGLE_HORN
 } blaster_req_type;
@@ -52,6 +53,7 @@ int train_update_feedback_threshold(const int train, const int threshold);
 int train_update_feedback_alpha(const int train, const int alpha);
 int train_update_stop_offset(const int train, const int offset);
 int train_update_clearance_offset(const int train, const int offset);
+int train_update_reverse_time_fudge(const int train, const int offset);
 int train_toggle_horn(const int train);
 
 #endif

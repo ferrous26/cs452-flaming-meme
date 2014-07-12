@@ -48,6 +48,7 @@ typedef struct {
         int  feedback_alpha;
         int  stop_offset;
         int  clearance_offset;
+        int  fudge_factor;
 
         int  horn;               // horn state
     } master[NUM_TRAINS];
@@ -66,6 +67,7 @@ static inline void blaster_init_context(blaster_context* const ctxt) {
         ctxt->master[i].feedback_alpha     = -1;
         ctxt->master[i].stop_offset        = INT_MAX;
         ctxt->master[i].clearance_offset   = INT_MAX;
+        ctxt->master[i].fudge_factor       = INT_MAX;
     }
 
     int tid;
@@ -154,6 +156,11 @@ blaster_try_send_master(blaster_context* const ctxt, const int index) {
         req.arg1 = ctxt->master[index].clearance_offset;
         ctxt->master[index].clearance_offset = INT_MAX;
 
+    } else if (ctxt->master[index].fudge_factor != INT_MAX) {
+        req.type = MASTER_UPDATE_FUDGE_FACTOR;
+        req.arg1 = ctxt->master[index].fudge_factor;
+        ctxt->master[index].fudge_factor = INT_MAX;
+
     } else { return; }
 
 
@@ -235,6 +242,9 @@ void train_blaster() {
             break;
         case BLASTER_UPDATE_CLEARANCE_OFFSET:
             context.master[index].clearance_offset = req.arg2;
+            break;
+        case BLASTER_UPDATE_FUDGE_FACTOR:
+            context.master[index].fudge_factor = req.arg2;
             break;
 
         case BLASTER_TOGGLE_HORN:
@@ -402,6 +412,20 @@ int train_update_clearance_offset(const int train, const int offset) {
         .type = BLASTER_UPDATE_CLEARANCE_OFFSET,
         .arg1 = train_index,
         .arg2 = offset * 1000
+    };
+
+    return Send(train_blaster_tid,
+                (char*)&req, sizeof(req) - sizeof(int),
+                NULL, 0);
+}
+
+int train_update_reverse_time_fudge(const int train, const int fudge) {
+    NORMALIZE_TRAIN(train_index, train);
+
+    blaster_req req = {
+        .type = BLASTER_UPDATE_FUDGE_FACTOR,
+        .arg1 = train_index,
+        .arg2 = fudge
     };
 
     return Send(train_blaster_tid,

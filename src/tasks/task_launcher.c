@@ -156,6 +156,10 @@ static void action(command cmd, int args[]) {
         train_update_feedback_alpha(args[0], args[1]);
         break;
 
+    case UPDATE_FUDGE_FACTOR:
+        train_update_reverse_time_fudge(args[0], args[1]);
+        break;
+
     case REVERSE_LOOKUP: {
         char name[8];
         if (WhoTid(args[0], name) < 0) {
@@ -177,10 +181,10 @@ static void action(command cmd, int args[]) {
                 .sensor_from = sensor_to_pos(args[0], args[1])
             }
         };
-        
+
         int worker_tid;
         path_response res;
- 
+
         Send(WhoIs((char*)PATH_ADMIN_NAME),
              (char*)&req, sizeof(req), (char*)&worker_tid, sizeof(worker_tid));
         Receive(&worker_tid, (char*)&res, sizeof(res));
