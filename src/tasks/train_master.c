@@ -16,6 +16,10 @@
 #include <tasks/train_master/physics.c>
 
 
+static inline int __attribute__((const, always_inline))
+master_estimate_timeout(int time_current, int time_next) {
+    return time_current + ((time_next * 5) >> 2);
+}
 
 static inline void
 master_update_velocity_ui(const master* const ctxt) {
@@ -23,7 +27,7 @@ master_update_velocity_ui(const master* const ctxt) {
     char  buffer[32];
     char* ptr = vt_goto(buffer,
                         TRAIN_ROW + ctxt->train_id,
-                        TRAIN_SPEED_COL);
+                        TRAIN_SPEED_COL);;
 
     if (ctxt->current_direction > 0)
         ptr = sprintf_string(ptr, COLOUR(CYAN));
@@ -205,9 +209,12 @@ master_sensor_feedback(master* const ctxt,
     master_update_velocity_ui(ctxt);
     physics_update_tracking_ui(ctxt, delta_v);
 
-    result = Reply(tid,
-                   (char*)&ctxt->next_sensor,
-                   sizeof(ctxt->next_sensor));
+    const int reply[3] = {
+        ctxt->current_sensor,
+        ctxt->next_sensor,
+        master_estimate_timeout(sensor_time, ctxt->next_time)
+    };
+    result = Reply(tid, (char*)&reply, sizeof(reply));
     assert(result == 0, "failed to get next sensor");
     UNUSED(result);
 }
@@ -235,8 +242,7 @@ master_unexpected_sensor_feedback(master* const ctxt,
     int result = get_sensor_from(sensor_hit,
                                  &ctxt->current_distance,
                                  &ctxt->next_sensor);
-    assert(result == 0, "failed to get next sensor");
-    UNUSED(result);
+    assert(result == 0, "failed to get next sensor %d", result);
 
     // ZOMG, we are heading towards an exit!
     if (ctxt->current_distance < 0)
@@ -251,9 +257,12 @@ master_unexpected_sensor_feedback(master* const ctxt,
     master_update_velocity_ui(ctxt);
     physics_update_tracking_ui(ctxt, 0);
 
-    result = Reply(tid,
-                   (char*)&ctxt->next_sensor,
-                   sizeof(ctxt->next_sensor));
+    const int reply[3] = {
+        ctxt->current_sensor,
+        ctxt->next_sensor,
+        master_estimate_timeout(sensor_time, ctxt->next_time)
+    };
+    result = Reply(tid, (char*)&reply, sizeof(reply));
     assert(result == 0, "failed to get next sensor");
     UNUSED(result);
 }
@@ -317,10 +326,11 @@ static inline void master_wait(master* const ctxt,
         case MASTER_ACCELERATION_COMPLETE:
         case MASTER_NEXT_NODE_ESTIMATE:
         case MASTER_WHERE_ARE_YOU:
-        case MASTER_SENSOR_FEEDBACK:
-        case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
         case MASTER_REVERSE2:
         case MASTER_REVERSE3:
+        case MASTER_SENSOR_TIMEOUT:
+        case MASTER_SENSOR_FEEDBACK:
+        case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
             ABORT("She's moving when we dont tell her too captain!");
         }
     }
@@ -394,25 +404,23 @@ static void master_init_courier2(master* const ctxt,
 
     // Now we can get down to bidness
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
-    assert(tid >= 0,
-           "[%s] Failed creating the train console (%d)",
+    assert(tid >= 0, "[%s] Failed creating train console (%d)",
            ctxt->name, tid);
-    UNUSED(tid);
-
+    int result = Send(tid, (char*)&ctxt->track, sizeof(ctxt->track), NULL, 0);
 
     // Setup the sensor courier
-
     ctxt->sensor_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(ctxt->sensor_courier >= 0,
            "[%s] Error setting up command courier (%d)",
            ctxt->name, ctxt->sensor_courier);
 
-    int result = Send(ctxt->sensor_courier,
-                      (char*)package, sizeof(courier_package),
-                      NULL, 0);
+    result = Send(ctxt->sensor_courier,
+                  (char*)package, sizeof(courier_package),
+                  NULL, 0);
     assert(result == 0,
            "[%s] Error sending package to command courier %d",
            ctxt->name, result);
+    
     UNUSED(result);
 }
 
@@ -502,6 +510,14 @@ void train_master() {
                                               req.arg2, // time
                                               time);
             continue;
+        case MASTER_SENSOR_TIMEOUT: {
+            log ("[%s] sensor timeout...", context.name);
+
+            int lost = 80;
+            Reply(tid, (char*)&lost, sizeof(lost));
+            continue;
+        }
+
         default:
             ABORT("[%s] Illegal type for a train master %d from %d",
                       context.name, req.type, tid);

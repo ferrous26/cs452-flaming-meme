@@ -317,7 +317,7 @@ static inline void mc_initalize(mc_context* const ctxt) {
     mc_init_context(ctxt);
     train_ui();
 
-    pa_tid = Create(15, path_admin);
+    pa_tid = Create(PATH_ADMIN_PRIORITY, path_admin);
     if (tid < 0)
         ABORT("[Mission Control] path admin failed creation (%d)", pa_tid);
 
@@ -326,7 +326,7 @@ static inline void mc_initalize(mc_context* const ctxt) {
     mc_reset_track_state(ctxt);
     mc_flush_sensors();
 
-    tid = Create(15, sensor_poll);
+    tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
     if (tid < 0)
         ABORT("[Mission Control] sensor poll creation failed (%d)", tid);
     log("[Mission Control] Ready!");

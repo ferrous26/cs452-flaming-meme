@@ -1,16 +1,16 @@
 
 #include <vt100.h>
 #include <debug.h>
-
 #include <track_node.h>
 #include <char_buffer.h>
+
+#include <tasks/priority.h>
 #include <tasks/path_worker.h>
 #include <tasks/name_server.h>
 
 #include <tasks/path_admin.h>
 
 #define NUM_WORKERS 8
-#define WORKER_PRIORITY 3
 
 TYPE_BUFFER(int, NUM_WORKERS)
 
@@ -34,7 +34,7 @@ void path_admin() {
     assert(result == sizeof(track), "received invalid setup info(%d)", result);
 
     for (int i = 0; i < NUM_WORKERS; i++) {
-        result = Create(WORKER_PRIORITY, path_worker);
+        result = Create(PATH_WORKER_MED_PRIORITY, path_worker);
         assert(result > 0, "path admin failed to create worker %d", result);
         result = Send(result, (char*)&track, sizeof(track), NULL, 0);
     }
