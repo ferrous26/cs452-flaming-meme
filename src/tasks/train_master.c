@@ -423,8 +423,6 @@ void train_master() {
         .arg1 = context.train_id
     };
 
-    master_wait(&context, &callin);
-
     const courier_package package = {
         .receiver = myParentTid(),
         .message  = (char*)&callin,
@@ -432,7 +430,7 @@ void train_master() {
     };
 
     master_init_courier(&context, &package);
-
+    master_wait(&context, &callin);
 
     int tid = 0;
     master_req req;
