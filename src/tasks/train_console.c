@@ -185,7 +185,7 @@ void train_console() {
                        result / sizeof(int));
 
                 log ("get next sensors");
-                _get_next_sensors(context.track[args[1]].edge[DIR_AHEAD].dest,
+                _get_next_sensors(context.track[args[0]].edge[DIR_AHEAD].dest,
                                   &context.next_sensors);
 
                 while (intb_count(&context.next_sensors) > 0) {
@@ -232,7 +232,7 @@ void train_console() {
                 };
                 log("Sending Timeout %d", args[1]);
                 context.sensor_iter++; 
-                Reply(context.sensor_tid, NULL, 0);
+                //Reply(context.sensor_tid, NULL, 0);
                 
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
