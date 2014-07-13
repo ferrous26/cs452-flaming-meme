@@ -363,8 +363,35 @@ static void master_init(master* const ctxt) {
     ctxt->sensor_to_stop_at = -1;
 }
 
-static void master_init_courier(master* const ctxt,
+static void master_init_courier(master* const ctxt) {
+
+    // Setup the acceleration timer
+    ctxt->acceleration_courier = Create(TIME_COURIER_PRIORITY, time_notifier);
+    assert(ctxt->acceleration_courier >= 0,
+           "[%s] Error setting up the time notifier (%d)",
+           ctxt->name, ctxt->acceleration_courier);
+
+    tnotify_header head = {
+        .type  = DELAY_RELATIVE,
+        .ticks = 0
+    };
+    int result = Send(ctxt->acceleration_courier,
+                  (char*)&head, sizeof(head),
+                  NULL, 0);
+    assert(result >= 0,
+           "[%s] Failed to setup time notifier (%d)",
+           ctxt->name, result);
+
+    int tid;
+    result = Receive(&tid, NULL, 0);
+    assert(tid == ctxt->acceleration_courier,
+           "[%s] Got response from incorrect task (%d != %d)",
+           ctxt->name, tid, ctxt->acceleration_courier);
+}
+
+static void master_init_courier2(master* const ctxt,
                                 const courier_package* const package) {
+
     // Now we can get down to bidness
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
     assert(tid >= 0,
@@ -387,30 +414,6 @@ static void master_init_courier(master* const ctxt,
            "[%s] Error sending package to command courier %d",
            ctxt->name, result);
     UNUSED(result);
-
-
-    // Setup the acceleration timer
-
-    ctxt->acceleration_courier = Create(TIME_COURIER_PRIORITY, time_notifier);
-    assert(ctxt->acceleration_courier >= 0,
-           "[%s] Error setting up the time notifier (%d)",
-           ctxt->name, ctxt->acceleration_courier);
-
-    tnotify_header head = {
-        .type  = DELAY_RELATIVE,
-        .ticks = 0
-    };
-    result = Send(ctxt->acceleration_courier,
-                  (char*)&head, sizeof(head),
-                  NULL, 0);
-    assert(result >= 0,
-           "[%s] Failed to setup time notifier (%d)",
-           ctxt->name, result);
-
-    result = Receive(&tid, NULL, 0);
-    assert(tid == ctxt->acceleration_courier,
-           "[%s] Got response from incorrect task (%d != %d)",
-           ctxt->name, tid, ctxt->acceleration_courier);
 }
 
 void train_master() {
@@ -429,8 +432,9 @@ void train_master() {
         .size     = sizeof(callin)
     };
 
-    master_init_courier(&context, &package);
+    master_init_courier(&context);
     master_wait(&context, &callin);
+    master_init_courier2(&context, &package);
 
     int tid = 0;
     master_req req;
