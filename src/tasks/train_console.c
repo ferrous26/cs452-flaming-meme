@@ -5,6 +5,7 @@
 #include <syscall.h>
 #include <normalize.h>
 #include <track_node.h>
+#include <char_buffer.h>
 
 #include <tasks/courier.h>
 #include <tasks/priority.h>
@@ -19,6 +20,8 @@
 #define SENSOR_MASK 0x2
 #define TIMER_MASK  0x4
 
+TYPE_BUFFER(int, 8);
+
 typedef struct {
     int        docked;
     const int  driver_tid;
@@ -28,13 +31,34 @@ typedef struct {
     int        sensor_last;
     int        sensor_expect;
     int        sensor_timeout;
-
     int        sensor_iter;
-    master_req next_req;
 
+    int_buffer next_sensors;
     const track_node* const track;
 } tc_context;
 
+
+static inline void
+_get_next_sensors(const track_node* const track, int_buffer* const list) {
+
+    switch (track->type) {
+    case NODE_SENSOR:
+        intb_produce(list, track->num);
+        break;
+    case NODE_BRANCH:
+        _get_next_sensors(track->edge[DIR_STRAIGHT].dest, list);
+        _get_next_sensors(track->edge[DIR_CURVED].dest,   list);
+        break;
+    case NODE_MERGE:
+        _get_next_sensors(track->edge[DIR_AHEAD].dest, list);
+        break;
+    case NODE_ENTER:
+    case NODE_NONE:
+    case NODE_EXIT:
+        log ("why %d", track->type);
+        break;
+    }
+}
 
 static inline void _init_context(tc_context* const ctxt) {
     int tid, result, sensor_data[2];
@@ -43,6 +67,7 @@ static inline void _init_context(tc_context* const ctxt) {
     ctxt->docked         = SENSOR_MASK;
     ctxt->sensor_expect  = 80;
     ctxt->sensor_timeout = 0;
+    intb_init(&ctxt->next_sensors);
 
     // Get the track data from the train driver for use later 
     result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
@@ -99,17 +124,17 @@ static inline void _init_context(tc_context* const ctxt) {
 
 static void try_send_sensor(tc_context* const ctxt) {
     int result; UNUSED(result);
-
-    if (ctxt->docked & SENSOR_MASK) {
-        int data[2] = {ctxt->sensor_expect, ctxt->sensor_iter};
-        sensor s    = pos_to_sensor(ctxt->sensor_expect); 
-        log ("Waiting for %c%d", s.bank, s.num);
-
-        
-        result = Reply(ctxt->sensor_tid, (char*)&data, sizeof(data));
-        assert(result == 0, "Failed reply to sensor waiter (%d)", result);
-        ctxt->docked &= ~SENSOR_MASK;
+    if (!(ctxt->docked & SENSOR_MASK)) {
+        return;
     }
+
+    int data[2] = {ctxt->sensor_expect, ctxt->sensor_iter};
+    sensor s    = pos_to_sensor(ctxt->sensor_expect); 
+    log ("Waiting for %c%d", s.bank, s.num);
+
+    result = Reply(ctxt->sensor_tid, (char*)&data, sizeof(data));
+    assert(result == 0, "Failed reply to sensor waiter (%d)", result);
+    ctxt->docked &= ~SENSOR_MASK;
 }
 
 static void try_send_timeout(tc_context* const ctxt) {
@@ -148,16 +173,24 @@ void train_console() {
             context.sensor_iter++;
 
             if (80 == args[0]) {
-                log ("TRAIN LOST");
+                log ("TRAIN LOST %x", context.docked);
                 context.sensor_expect  = 80;
                 context.sensor_timeout = 0; 
-                continue;
             } else {
+                assert(args[0] < 80, "bad sensor %d", args[0]);
                 context.sensor_expect  = args[1];
                 context.sensor_timeout = args[2]; 
                 assert(result == 3 * sizeof(int),
                        "bad number of args for driver %d",
                        result / sizeof(int));
+
+                log ("get next sensors");
+                _get_next_sensors(context.track[args[1]].edge[DIR_AHEAD].dest,
+                                  &context.next_sensors);
+
+                while (intb_count(&context.next_sensors) > 0) {
+                    log("NEXT %d", intb_consume(&context.next_sensors));
+                }
             }
 
             try_send_sensor(&context);      
@@ -165,7 +198,7 @@ void train_console() {
 
         } else if (tid == context.sensor_tid) {
             context.docked |= SENSOR_MASK;
-            if (context.sensor_iter > args[0]) {
+            if (context.sensor_iter != args[0]) {
                 try_send_sensor(&context);
                 continue;
             }
@@ -179,7 +212,7 @@ void train_console() {
                     .arg2 = args[1]
                 };
 
-                log("Sending Sensor %d", callin.arg2); 
+                log("Sending Sensor %d", args[1]); 
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;
@@ -188,16 +221,19 @@ void train_console() {
 
         } else if (tid == context.timer_tid) {
             context.docked |= TIMER_MASK;
-            if (context.sensor_iter > args[0]) {
+            if (context.sensor_iter != args[0]) {
                 try_send_timeout(&context);
                 continue;
             }
-            
+
             if (context.docked & DRIVER_MASK)  {
                 master_req callin = {
                     .type = MASTER_SENSOR_TIMEOUT
                 };
                 log("Sending Timeout %d", args[1]);
+                context.sensor_iter++; 
+                Reply(context.sensor_tid, NULL, 0);
+                
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;

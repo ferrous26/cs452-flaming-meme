@@ -82,12 +82,11 @@ static inline void blaster_init_context(blaster_context* const ctxt) {
 }
 
 static inline void blaster_spawn_masters(const track_node* const track) {
-    int init_data[2] = { (int)track };
 
     for (int i = 0; i < NUM_TRAINS; i++) {
-        init_data[0]        = i;
-        const int train_num = pos_to_train(i);
-        const int       tid = Create(TRAIN_MASTER_PRIORITY, train_master);
+        const int init_data[2] = { i, (int)track };
+        const int train_num    = pos_to_train(i);
+        const int       tid    = Create(TRAIN_MASTER_PRIORITY, train_master);
         assert(tid > 0, "[Blaster] Failed to create train master (%d)", tid);
 
         const int result = Send(tid,

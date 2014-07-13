@@ -18,6 +18,7 @@
 
 static inline int __attribute__((const, always_inline))
 master_estimate_timeout(int time_current, int time_next) {
+    if (time_next <= 0) return 0;
     return time_current + ((time_next * 5) >> 2);
 }
 
@@ -349,6 +350,8 @@ static void master_init(master* const ctxt) {
 
     //I Want this to explicity never be changeable from here
     *(track_node**)&ctxt->track = (track_node*)init[1];
+    log ("%d", ctxt->track->num);
+
 
     result = Reply(tid, NULL, 0);
     if (result < 0)

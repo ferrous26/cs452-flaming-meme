@@ -102,6 +102,7 @@ typedef struct {							        \
 static inline void TYPE##b_init(TYPE##_buffer* const buf) {	                \
     buf->head  = buf->tail = buf->buffer;				        \
     buf->end   = buf->buffer + n;					        \
+    buf->count = 0;                                                             \
     memset(buf->buffer, 0, n * sizeof(TYPE));			    	        \
 }									        \
 									        \
@@ -110,18 +111,18 @@ static inline uint TYPE##b_count(const TYPE##_buffer* const buf) {	        \
 }									        \
 									        \
 static inline void TYPE##b_produce(TYPE##_buffer* const buf, const TYPE ele) {  \
+    buf->count++;                            				        \
     *buf->head++ = ele;							        \
 									        \
     if (buf->head == buf->end) buf->head = buf->buffer;			        \
-    buf->count += 1;                     				        \
 }									        \
 									        \
 static inline TYPE TYPE##b_consume(TYPE##_buffer* const buf) {		        \
     assert(buf->count, "Trying to consume from empty " #TYPE " buffer");	\
+    buf->count--;               					        \
     const TYPE ele = *buf->tail++;					        \
 									        \
     if (buf->tail == buf->end) buf->tail = buf->buffer;			        \
-    buf->count = buf->count - 1;					        \
 									        \
     return ele;								        \
 }
