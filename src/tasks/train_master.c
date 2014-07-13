@@ -33,7 +33,7 @@ master_update_velocity_ui(const master* const ctxt) {
     const char* const format =
         ctxt->current_speed && ctxt->current_speed < 150 ?
         "%d " COLOUR_RESET:
-        "-    " COLOUR_RESET;
+        "-      " COLOUR_RESET;
 
     const int type = velocity_type(ctxt->current_sensor);
     const int    v = physics_velocity(ctxt, ctxt->current_speed, type);
@@ -170,9 +170,9 @@ master_sensor_feedback(master* const ctxt,
     const int expected_v  = physics_velocity(ctxt,
                                              ctxt->current_speed,
                                              type);
-    const int actual_v    = ctxt->current_distance /
+    const int actual_v = ctxt->current_distance /
         (sensor_time - ctxt->current_time);
-    const int delta_v     = actual_v - expected_v;
+    const int delta_v  = actual_v - expected_v;
 
     // TODO: this should be a function of acceleration and not a
     //       constant value
