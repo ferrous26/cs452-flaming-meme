@@ -4,10 +4,12 @@
 #include <debug.h>
 #include <syscall.h>
 #include <char_buffer.h>
-#include <tasks/train_server.h>
+
+#include <tasks/priority.h>
 #include <tasks/name_server.h>
 #include <tasks/term_server.h>
 #include <tasks/clock_server.h>
+#include <tasks/train_server.h>
 
 typedef enum {
     CARRIER,
@@ -154,10 +156,10 @@ inline static void _startup() {
     tid = RegisterAs((char*)TRAIN_RECV_NAME);
     assert(tid == 0, "Train Server failed to register receive name (%d)", tid);
 
-    tid = Create(TASK_PRIORITY_HIGH, write_carrier);
+    tid = Create(IO_SEND_CARRIER_PRIORITY, write_carrier);
     assert(tid>0, "Failed to start up train write carrier (%d)", tid);
 
-    tid = Create(TASK_PRIORITY_HIGH, receive_notifier);
+    tid = Create(IO_RECEIVE_NOTE_PRIORITY, receive_notifier);
     assert(tid>0, "Failed to start up train read notifier (%d)", tid);
 
     tid = Create(TASK_PRIORITY_MEDIUM_LOW, train_server_ui);

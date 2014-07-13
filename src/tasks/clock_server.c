@@ -4,9 +4,12 @@
 #include <debug.h>
 #include <syscall.h>
 
-#include <tasks/clock_server.h>
+#include <tasks/priority.h>
+
 #include <tasks/term_server.h>
 #include <tasks/name_server.h>
+#include <tasks/clock_server.h>
+
 int clock_server_tid;
 
 typedef enum {
@@ -115,7 +118,7 @@ static void _startup(cs_context* const ctxt) {
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
 
-    int result = Create(TASK_PRIORITY_HIGH, clock_notifier);
+    int result = Create(CLOCK_NOTE_PRIORITY, clock_notifier);
     if (result < 0)
         ABORT("Failed to create clock_notifier (%d)", result);
 

@@ -12,43 +12,62 @@
 #include <tasks/courier.h>
 
 void sensor_notifier() {
-    int       tid;
-    int       reply[2];
-    const int mc_tid = WhoIs((char*)MISSION_CONTROL_NAME);
+    int       tid, has_header;
+    const int mc_tid  = WhoIs((char*)MISSION_CONTROL_NAME);
 
     mc_req sensor_one = {
         .type = MC_D_SENSOR,
     };
-
     mc_req sensor_any = {
         .type = MC_D_SENSOR_ANY,
     };
+    struct { 
+        int sensor_num;
+        int return_head;
+    } req;
+    struct {
+        int header;
+        int body[2];
+    } reply;
 
     int* const sensor_idx = &sensor_one.payload.int_value;
-
-    int result = Receive(&tid, (char*)sensor_idx, sizeof(*sensor_idx));
-    assert(result == sizeof(*sensor_idx), "sensor notifier failed %d", result);
+    int result = Receive(&tid, (char*)&req, sizeof(req));
     Reply(tid, NULL, 0);
 
     do {
+        assert(result >= (int)sizeof(*sensor_idx),
+               "sensor notifier failed %d", result);
+
+        *sensor_idx = req.sensor_num;
+        has_header  = result > (int)sizeof(*sensor_idx);
+        if(has_header) { reply.header = req.return_head; }
+
         assert(*sensor_idx >= 0 && *sensor_idx <= 80,
                "sensor notifier got invalid sensor num from %d (%d)",
                tid, *sensor_idx);
 
-        if (*sensor_idx == 80) {
+        if (80 == *sensor_idx) {
             result = Send(mc_tid,
                           (char*)&sensor_any, sizeof(sensor_any),
-                          (char*)&reply, sizeof(reply));
+                          (char*)&reply.body,   sizeof(reply.body));
         } else {
             result = Send(mc_tid,
                           (char*)&sensor_one, sizeof(sensor_one),
-                          (char*)&reply, sizeof(reply));
+                          (char*)&reply.body,   sizeof(reply.body));
         }
 
-        result = Send(tid,
-                      (char*)&reply, sizeof(reply),
-                      (char*)sensor_idx, sizeof(*sensor_idx));
-    } while (*sensor_idx != -1);
+
+        if (has_header) {
+            result = Send(tid,
+                          (char*)&reply, sizeof(reply),
+                          (char*)&req,   sizeof(req));
+        } else {
+            result = Send(tid,
+                          (char*)&reply.body, sizeof(reply.body),
+                          (char*)&req,        sizeof(req));
+        }
+        assert(result >= 0, "Failed sending back to creator (%d)", result);
+    } while (result > 0);
     log ("[SensorNotifier%d] has died...", myTid());
 }
 

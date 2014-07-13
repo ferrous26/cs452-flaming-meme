@@ -1,10 +1,12 @@
-#include <tasks/term_server.h>
-#include <tasks/name_server.h>
 #include <std.h>
 #include <debug.h>
 #include <syscall.h>
 #include <char_buffer.h>
 #include <ts7200.h>
+
+#include <tasks/priority.h>
+#include <tasks/name_server.h>
+#include <tasks/term_server.h>
 
 typedef enum {
     GETC     = 1,
@@ -353,10 +355,10 @@ static inline void _startup() {
     tid = RegisterAs((char*)TERM_RECV_NAME);
     assert(tid == 0, "Terminal Failed to register receive name (%d)", tid);
 
-    tid = Create(TASK_PRIORITY_HIGH, recv_notifier);
+    tid = Create(IO_RECEIVE_NOTE_PRIORITY, recv_notifier);
     TERM_ASSERT(tid > 0, tid);
 
-    tid = Create(TASK_PRIORITY_HIGH, send_carrier);
+    tid = Create(IO_SEND_CARRIER_PRIORITY, send_carrier);
     TERM_ASSERT(tid > 0, tid);
 }
 
