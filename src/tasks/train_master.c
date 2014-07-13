@@ -160,7 +160,7 @@ master_sensor_feedback(master* const ctxt,
                        const int service_time) {
 
     if (ctxt->sensor_to_stop_at == sensor_hit) {
-        master_set_speed(ctxt, 40, service_time);
+        master_set_speed(ctxt, 0, service_time);
 
         ctxt->sensor_to_stop_at = 70;
         const sensor hit = pos_to_sensor(sensor_hit);
