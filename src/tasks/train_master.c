@@ -159,8 +159,8 @@ master_sensor_feedback(master* const ctxt,
 
         ctxt->sensor_to_stop_at = 70;
         const sensor hit = pos_to_sensor(sensor_hit);
-        log("[%s] Hit sensor %c%d. Stopping!",
-            ctxt->name, hit.bank, hit.num);
+        log("[%s] Hit sensor %c%d at %d. Stopping!",
+            ctxt->name, hit.bank, hit.num, sensor_time);
     }
 
     assert(sensor_hit == ctxt->next_sensor,
