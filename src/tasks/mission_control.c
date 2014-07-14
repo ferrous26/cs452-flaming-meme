@@ -161,10 +161,8 @@ inline static void mc_update_sensors(mc_context* const ctxt,
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
 
-        if (next == ctxt->recent_sensors) {
+        if (next-- == ctxt->recent_sensors) {
             next = ctxt->recent_sensors + SENSOR_LIST_SIZE-1;
-        } else {
-            next--;
         }
     }
 }
@@ -179,18 +177,22 @@ static inline void mc_sensor_delay(mc_context* const ctxt,
     if (-1 != task_waiter) {
         log("[MISSION CONTROL] %d kicked out task %d from sensor %d",
             task_waiter, tid, sensor_num);
-        Reply(task_waiter, NULL, 0);
+
+        int reply[2] = {REQUEST_REJECTED, sensor_num};
+        Reply(task_waiter, (char*)&reply, sizeof(reply));
     }
     ctxt->sensor_delay[sensor_num] = tid;
 }
 
 static inline void mc_sensor_delay_any(mc_context* const ctxt, const int tid) {
     if (-1 != ctxt->wait_all) {
-        int result = Reply(ctxt->wait_all, NULL, 0);
-        if (!result) {
-            log("task %d kicked out %d from the wait all queue",
-                tid, ctxt->wait_all);
-        }
+        log("[MISSION CONTROL] %d kicked out task %d from all",
+            tid, ctxt->wait_all);
+                
+        int reply[2] = {REQUEST_REJECTED, 80};
+        int result = Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
+        assert(0 == result, "");
+        UNUSED(result);
     }
 
     ctxt->wait_all = tid;

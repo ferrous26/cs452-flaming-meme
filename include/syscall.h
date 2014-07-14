@@ -16,7 +16,8 @@ typedef enum {
     INVALID_RECVER   = -3, // replyee was not in the RPLY_BLOCKED state
     NOT_ENUF_MEMORY  = -4, // receiver/replyee buffer was not big enough
     INVALID_MESSAGE  = -5, // the receiver did not understand the message
-    INVALID_CHANNEL  = -6
+    INVALID_CHANNEL  = -6,
+    REQUEST_REJECTED = -7,
 } err;
 
 #define TASK_MAX 256 // Maximum number of live tasks in the system

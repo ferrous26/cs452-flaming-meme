@@ -65,38 +65,7 @@ static void master_set_speed(master* const ctxt,
     master_update_velocity_ui(ctxt);
 }
 
-static void master_reverse_step1(master* const ctxt, const int time) {
-
-    const int stop_dist = physics_stopping_distance(ctxt);
-    const int stop_time =
-        physics_stopping_time(ctxt, stop_dist) +
-        ctxt->reverse_time_fudge_factor;
-
-    master_set_speed(ctxt, 0, time); // STAHP!
-    ctxt->reversing = true;
-
-    struct {
-        tnotify_header head;
-        master_req      req;
-    } msg = {
-        .head = {
-            .type  = DELAY_ABSOLUTE,
-            .ticks = time + stop_time
-        },
-        .req = {
-            .type = MASTER_REVERSE2
-        }
-    };
-
-    const int result = Reply(ctxt->acceleration_courier,
-                             (char*)&msg, sizeof(msg));
-    if (result < 0)
-        ABORT("[%s] Failed to send delay for reverse (%d)",
-              ctxt->name, result);
-}
-
 static void master_reverse_step2(master* const ctxt, const int time) {
-
     struct {
         tnotify_header head;
         master_req      req;
@@ -120,6 +89,42 @@ static void master_reverse_step2(master* const ctxt, const int time) {
               ctxt->name, result);
 }
 
+static void master_reverse_step1(master* const ctxt, const int time) {
+
+    const int stop_dist = physics_stopping_distance(ctxt);
+    const int stop_time =
+        physics_stopping_time(ctxt, stop_dist) +
+        ctxt->reverse_time_fudge_factor;
+
+    master_set_speed(ctxt, 0, time); // STAHP!
+    ctxt->reversing = true;
+
+    if (stop_time > 0) {
+        struct {
+            tnotify_header head;
+            master_req      req;
+        } msg = {
+            .head = {
+                .type  = DELAY_ABSOLUTE,
+                .ticks = time + stop_time
+            },
+            .req = {
+                .type = MASTER_REVERSE2
+            }
+        };
+
+        log ("stopping at %d", stop_time);
+        const int result = Reply(ctxt->acceleration_courier,
+                                 (char*)&msg, sizeof(msg));
+        if (result < 0)
+            ABORT("[%s] Failed to send delay for reverse (%d)",
+                  ctxt->name, result);
+    } else {
+        log("reverse stright to step 2");
+        master_reverse_step2(ctxt, time);
+    }
+}
+
 static void master_reverse_step3(master* const ctxt,
                                  const int speed,
                                  const int time) {
@@ -130,26 +135,16 @@ static void master_reverse_step3(master* const ctxt,
 }
 
 static inline void master_detect_train_direction(master* const ctxt,
-                                                 const int tid,
                                                  const int sensor_hit,
                                                  const int time) {
-
     if (ctxt->current_direction != 0) return;
 
     if ((sensor_hit >> 4) == 1) {
         ctxt->current_direction = 1;
         master_reverse_step1(ctxt, time);
-
-        const int   none = 80;
-        const int result = Reply(tid, (char*)&none, sizeof(none));
-        assert(result == 0,
-               "[%s] Failed to reply to sensor courier (%d)",
-               ctxt->name, result);
-        UNUSED(result);
-        return;
+    } else {
+        ctxt->current_direction = -1;
     }
-
-    ctxt->current_direction = -1;
 }
 
 static inline void
@@ -227,7 +222,7 @@ master_unexpected_sensor_feedback(master* const ctxt,
                                   const int sensor_time,
                                   const int service_time) {
 
-    master_detect_train_direction(ctxt, tid, sensor_hit, service_time);
+    master_detect_train_direction(ctxt, sensor_hit, service_time);
 
     const sensor hit = pos_to_sensor(sensor_hit);
     log("[%s] Lost position... %c%d", ctxt->name, hit.bank, hit.num);

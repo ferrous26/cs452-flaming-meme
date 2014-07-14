@@ -198,7 +198,7 @@ void train_console() {
 
         } else if (tid == context.sensor_tid) {
             context.docked |= SENSOR_MASK;
-            if (context.sensor_iter != args[0]) {
+            if (context.sensor_iter != args[0] || args[1] == -69) {
                 try_send_sensor(&context);
                 continue;
             }
