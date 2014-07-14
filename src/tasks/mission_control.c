@@ -188,7 +188,7 @@ static inline void mc_sensor_delay_any(mc_context* const ctxt, const int tid) {
     if (-1 != ctxt->wait_all) {
         log("[MISSION CONTROL] %d kicked out task %d from all",
             tid, ctxt->wait_all);
-                
+
         int reply[2] = {REQUEST_REJECTED, 80};
         int result = Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
         assert(0 == result, "");
@@ -247,10 +247,11 @@ static void mc_reset_track_state(mc_context* const context) {
     mc_update_turnout(context, 2, 'S');
     mc_update_turnout(context, 3, 'C');
     mc_update_turnout(context, 4, 'S');
+    mc_update_turnout(context, 5, 'C');
+    mc_update_turnout(context, 6, 'S'); // 6 frequently derails when curved
 
-    for (int i = 5; i < 19; i++) {
+    for (int i = 7; i < 19; i++)
         mc_update_turnout(context, i, 'C');
-    }
 
     mc_update_turnout(context, 153, 'S');
     mc_update_turnout(context, 154, 'C');
