@@ -21,7 +21,7 @@ void sensor_notifier() {
     mc_req sensor_any = {
         .type = MC_D_SENSOR_ANY,
     };
-    struct { 
+    struct {
         int sensor_num;
         int return_head;
     } req;
@@ -88,7 +88,7 @@ void time_notifier() {
 
     do {
         assert(size >= (int)sizeof(delay_req.head),
-               "Recived an invalid setup message %d / %d",
+               "Received an invalid setup message %d / %d",
                size, sizeof(delay_req.head));
 
         switch (delay_req.head.type) {
