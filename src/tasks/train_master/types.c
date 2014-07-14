@@ -9,6 +9,8 @@
 #define STOPPING_DISTANCE_OFFSET_DEFAULT  0     // um
 #define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
 #define REVERSE_TIME_FUDGE_FACTOR         10    // cs
+#define STARTING_DISTANCE_OFFSET_DEFAULT  0     // um
+#define ACCELERATION_TIME_FUDGE_DEFAULT   10    // cs
 
 typedef enum {
     TRACK_THREE_WAY,
@@ -65,6 +67,8 @@ typedef struct master_context {
     int       stopping_distance_offset;
     int       turnout_clearance_offset;
     int       reverse_time_fudge_factor;
+    int       starting_distance_offset;
+    int       acceleration_time_fudge_factor;
 
     train_dim measurements;
     cubic     dmap; // map decceleration time to stopping distance
