@@ -4,6 +4,7 @@
 
 #include <std.h>
 #include <train.h>
+#include <vt100.h>
 
 typedef enum {
     INVALID_TRAIN          = -100,
@@ -44,6 +45,18 @@ pos_to_sensor(const int num) {
     return name;
 }
 
+static inline char* __attribute__ ((const))
+train_to_colour(const int train) {
+    switch (train) {
+    case 45: return MAGENTA;
+    case 47: return LIGHT_BLUE;
+    case 48: return LIGHT_MAGENTA;  // need a better colour?
+    case 49: return GREEN;
+    case 50: return LIGHT_GREEN; // need a separate colour
+    case 51: return RED;
+    default: return WHITE;
+    }
+}
 
 static inline int __attribute__ ((const))
 train_to_pos(const int train) {

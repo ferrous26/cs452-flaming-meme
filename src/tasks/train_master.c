@@ -345,13 +345,11 @@ static void master_init(master* const ctxt) {
 
     //I Want this to explicity never be changeable from here
     *(track_node**)&ctxt->track = (track_node*)init[1];
-    log ("%d", ctxt->track->num);
-
+    log("%d", ctxt->track->num);
 
     result = Reply(tid, NULL, 0);
     if (result < 0)
         ABORT("[Master] Failed to initialize (%d)", result);
-
 
     // Setup the train name
     sprintf(ctxt->name, "TRAIN%d", ctxt->train_gid);
@@ -359,10 +357,15 @@ static void master_init(master* const ctxt) {
     if (RegisterAs(ctxt->name))
         ABORT("[Master] Failed to register train (%d)", ctxt->train_gid);
 
-    char buffer[16];
+    char buffer[32];
     char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_id, TRAIN_NUMBER_COL);
 
-    ptr = sprintf_int(ptr, ctxt->train_gid);
+    ptr = sprintf(ptr, "%s%s%s%d%s",
+                  ESC_CODE,
+                  train_to_colour(ctxt->train_gid),
+                  COLOUR_SUFFIX,
+                  ctxt->train_gid,
+                  COLOUR_RESET);
     Puts(buffer, ptr - buffer);
 
     // Tell the actual train to stop
@@ -418,7 +421,7 @@ static void master_init_courier2(master* const ctxt,
     assert(result == 0,
            "[%s] Error sending package to command courier %d",
            ctxt->name, result);
-    
+
     UNUSED(result);
 }
 
