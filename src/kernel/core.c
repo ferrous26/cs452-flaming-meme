@@ -130,8 +130,8 @@ void kernel_init() {
 
     // get the party started
     task_active = &tasks[0];
-    task_create(TASK_LAUNCHER_PRIORITY + 1, task_launcher);
-    task_create(TASK_PRIORITY_IDLE,         idle);
+    task_create(TASK_LAUNCHER_PRIORITY, task_launcher);
+    task_create(TASK_PRIORITY_IDLE,     idle);
 
     // avoid potential race conditions...
     clock_server_tid =
