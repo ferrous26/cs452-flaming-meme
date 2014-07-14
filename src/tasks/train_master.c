@@ -65,7 +65,8 @@ static void master_set_speed(master* const ctxt,
     master_update_velocity_ui(ctxt);
 }
 
-static void master_reverse_step2(master* const ctxt, const int time) {
+static void master_reverse_step2(master* const ctxt) {
+
     struct {
         tnotify_header head;
         master_req      req;
@@ -75,12 +76,11 @@ static void master_reverse_step2(master* const ctxt, const int time) {
             .ticks = 2 // LOLOLOLOL
         },
         .req = {
-            .type = MASTER_REVERSE3,
-            .arg1 = ctxt->last_speed
+            .type = MASTER_REVERSE3
         }
     };
 
-    master_set_speed(ctxt, TRAIN_REVERSE * 10, time);
+    put_train_speed(ctxt->train_gid, TRAIN_REVERSE);
 
     int result = Reply(ctxt->acceleration_courier,
                        (char*)&msg, sizeof(msg));
@@ -91,6 +91,11 @@ static void master_reverse_step2(master* const ctxt, const int time) {
 
 static void master_reverse_step1(master* const ctxt, const int time) {
 
+    if (ctxt->current_speed == 0) {
+        master_reverse_step2(ctxt);
+        return;
+    }
+
     const int stop_dist = physics_stopping_distance(ctxt);
     const int stop_time =
         physics_stopping_time(ctxt, stop_dist) +
@@ -99,38 +104,30 @@ static void master_reverse_step1(master* const ctxt, const int time) {
     master_set_speed(ctxt, 0, time); // STAHP!
     ctxt->reversing = true;
 
-    if (stop_time > 0) {
-        struct {
-            tnotify_header head;
-            master_req      req;
-        } msg = {
-            .head = {
-                .type  = DELAY_ABSOLUTE,
-                .ticks = time + stop_time
-            },
-            .req = {
-                .type = MASTER_REVERSE2
-            }
-        };
+    struct {
+        tnotify_header head;
+        master_req      req;
+    } msg = {
+        .head = {
+            .type  = DELAY_ABSOLUTE,
+            .ticks = time + stop_time
+        },
+        .req = {
+            .type = MASTER_REVERSE2
+        }
+    };
 
-        log ("stopping at %d", stop_time);
-        const int result = Reply(ctxt->acceleration_courier,
-                                 (char*)&msg, sizeof(msg));
-        if (result < 0)
-            ABORT("[%s] Failed to send delay for reverse (%d)",
-                  ctxt->name, result);
-    } else {
-        log("reverse stright to step 2");
-        master_reverse_step2(ctxt, time);
-    }
+    const int result = Reply(ctxt->acceleration_courier,
+                             (char*)&msg, sizeof(msg));
+    if (result < 0)
+        ABORT("[%s] Failed to send delay for reverse (%d) to %d",
+              ctxt->name, result, ctxt->acceleration_courier);
 }
 
 static void master_reverse_step3(master* const ctxt,
-                                 const int speed,
-                                 const int time) {
-
+                                  const int time) {
     ctxt->current_direction = -ctxt->current_direction;
-    master_set_speed(ctxt, speed, time);
+    master_set_speed(ctxt, ctxt->last_speed, time);
     ctxt->reversing = false;
 }
 
@@ -292,7 +289,7 @@ static inline void master_wait(master* const ctxt,
             break;
         case MASTER_REVERSE:
             master_reverse_step1(ctxt, time);
-            break;
+            return;
         case MASTER_STOP_AT_SENSOR:
             master_stop_at_sensor(ctxt, req.arg1);
             break;
@@ -321,9 +318,9 @@ static inline void master_wait(master* const ctxt,
             // so we abort if we get them
         case MASTER_ACCELERATION_COMPLETE:
         case MASTER_NEXT_NODE_ESTIMATE:
-        case MASTER_WHERE_ARE_YOU:
         case MASTER_REVERSE2:
         case MASTER_REVERSE3:
+        case MASTER_WHERE_ARE_YOU:
         case MASTER_SENSOR_TIMEOUT:
         case MASTER_SENSOR_FEEDBACK:
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
@@ -461,10 +458,10 @@ void train_master() {
             master_reverse_step1(&context, time);
             break;
         case MASTER_REVERSE2:
-            master_reverse_step2(&context, time);
+            master_reverse_step2(&context);
             continue;
         case MASTER_REVERSE3:
-            master_reverse_step3(&context, req.arg1, time);
+            master_reverse_step3(&context, time);
             continue;
 
         case MASTER_WHERE_ARE_YOU:
