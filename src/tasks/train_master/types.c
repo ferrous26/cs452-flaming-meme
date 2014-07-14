@@ -33,7 +33,7 @@ typedef enum {
 typedef struct {
     int slope;
     int offset;
-} stop;
+} line;
 
 typedef struct {
     int front;
@@ -67,9 +67,12 @@ typedef struct master_context {
     int       reverse_time_fudge_factor;
 
     train_dim measurements;
-    cubic     amap;
+    cubic     dmap; // map decceleration time to stopping distance
+    cubic     amap; // map acceleration time to a starting distance
+
     int       vmap[TRAIN_SPEEDS][TRACK_TYPE_COUNT];
-    stop      smap;
+    line      stop_dist_map;
+    cubic     start_dist_map;
 
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates

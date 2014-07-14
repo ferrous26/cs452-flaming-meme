@@ -244,8 +244,8 @@ physics_feedback(master* const ctxt,
 static inline int
 physics_stopping_distance(const master* const ctxt) {
     return
-        (ctxt->smap.slope * ctxt->current_speed) +
-        ctxt->smap.offset +
+        (ctxt->stop_dist_map.slope * ctxt->current_speed) +
+        ctxt->stop_dist_map.offset +
         ctxt->stopping_distance_offset;
 }
 
@@ -261,17 +261,17 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
     const int dist = stop_dist / 1000;
 
     int sum =
-        (((ctxt->amap.terms[3].factor * dist * dist) /
-          ctxt->amap.terms[3].scale) * dist) / ctxt->amap.mega_scale;
+        (((ctxt->dmap.terms[3].factor * dist * dist) /
+          ctxt->dmap.terms[3].scale) * dist) / ctxt->dmap.mega_scale;
 
-    sum += (ctxt->amap.terms[2].factor * dist * dist) /
-        ctxt->amap.terms[2].scale;
+    sum += (ctxt->dmap.terms[2].factor * dist * dist) /
+        ctxt->dmap.terms[2].scale;
 
-    sum += (ctxt->amap.terms[1].factor * dist) /
-        ctxt->amap.terms[1].scale;
+    sum += (ctxt->dmap.terms[1].factor * dist) /
+        ctxt->dmap.terms[1].scale;
 
-    sum += ctxt->amap.terms[0].factor /
-        ctxt->amap.terms[0].scale;
+    sum += ctxt->dmap.terms[0].factor /
+        ctxt->dmap.terms[0].scale;
 
     return sum;
 }
@@ -291,18 +291,38 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->amap.mega_scale       = 10000;
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
+        ctxt->dmap.mega_scale       = 10000;
+        ctxt->dmap.terms[3].factor  = 77;
+        ctxt->dmap.terms[3].scale   = 10000;
+        ctxt->dmap.terms[2].factor  = -15;
+        ctxt->dmap.terms[2].scale   = 10000;
+        ctxt->dmap.terms[1].factor  = 11863;
+        ctxt->dmap.terms[1].scale   = 10000;
+        ctxt->dmap.terms[0].factor  = 34;
+        ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->smap.slope  =   6383;
-        ctxt->smap.offset = -42353;
+        ctxt->stop_dist_map.slope  =   6383;
+        ctxt->stop_dist_map.offset = -42353;
+
+        ctxt->start_dist_map.mega_scale      = 1;
+        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].scale  = 10000;
+        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[1].factor = 15428;
+        ctxt->start_dist_map.terms[1].scale  = 1000;
+        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[0].scale  = 1;
+
+        ctxt->dmap.mega_scale      = 10000;
+        ctxt->dmap.terms[3].factor = 113;
+        ctxt->dmap.terms[3].scale  = 10000;
+        ctxt->dmap.terms[2].factor = 19;
+        ctxt->dmap.terms[2].scale  = 10000;
+        ctxt->dmap.terms[1].factor = 12062;
+        ctxt->dmap.terms[1].scale  = 10000;
+        ctxt->dmap.terms[0].factor = 53;
+        ctxt->dmap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 209;
         ctxt->vmap[0][1] = 209;
@@ -437,18 +457,38 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->amap.mega_scale       = 10000;
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
+        ctxt->dmap.mega_scale       = 10000;
+        ctxt->dmap.terms[3].factor  = 77;
+        ctxt->dmap.terms[3].scale   = 10000;
+        ctxt->dmap.terms[2].factor  = -15;
+        ctxt->dmap.terms[2].scale   = 10000;
+        ctxt->dmap.terms[1].factor  = 11863;
+        ctxt->dmap.terms[1].scale   = 10000;
+        ctxt->dmap.terms[0].factor  = 34;
+        ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->smap.slope  =   6703;
-        ctxt->smap.offset = -38400;
+        ctxt->stop_dist_map.slope  =   6703;
+        ctxt->stop_dist_map.offset = -38400;
+
+        ctxt->start_dist_map.mega_scale      = 1;
+        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].scale  = 10000;
+        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[1].factor = 15428;
+        ctxt->start_dist_map.terms[1].scale  = 1000;
+        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[0].scale  = 1;
+
+        ctxt->dmap.mega_scale      = 10000;
+        ctxt->dmap.terms[3].factor = 113;
+        ctxt->dmap.terms[3].scale  = 10000;
+        ctxt->dmap.terms[2].factor = 19;
+        ctxt->dmap.terms[2].scale  = 10000;
+        ctxt->dmap.terms[1].factor = 12062;
+        ctxt->dmap.terms[1].scale  = 10000;
+        ctxt->dmap.terms[0].factor = 53;
+        ctxt->dmap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 253;
         ctxt->vmap[0][1] = 253;
@@ -583,18 +623,38 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->amap.mega_scale       = 10000;
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
+        ctxt->dmap.mega_scale       = 10000;
+        ctxt->dmap.terms[3].factor  = 77;
+        ctxt->dmap.terms[3].scale   = 10000;
+        ctxt->dmap.terms[2].factor  = -15;
+        ctxt->dmap.terms[2].scale   = 10000;
+        ctxt->dmap.terms[1].factor  = 11863;
+        ctxt->dmap.terms[1].scale   = 10000;
+        ctxt->dmap.terms[0].factor  = 34;
+        ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->smap.slope  =   7357;
-        ctxt->smap.offset = -59043;
+        ctxt->stop_dist_map.slope  =   7357;
+        ctxt->stop_dist_map.offset = -59043;
+
+        ctxt->start_dist_map.mega_scale      = 1;
+        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].scale  = 10000;
+        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[1].factor = 15428;
+        ctxt->start_dist_map.terms[1].scale  = 1000;
+        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[0].scale  = 1;
+
+        ctxt->dmap.mega_scale      = 10000;
+        ctxt->dmap.terms[3].factor = 113;
+        ctxt->dmap.terms[3].scale  = 10000;
+        ctxt->dmap.terms[2].factor = 19;
+        ctxt->dmap.terms[2].scale  = 10000;
+        ctxt->dmap.terms[1].factor = 12062;
+        ctxt->dmap.terms[1].scale  = 10000;
+        ctxt->dmap.terms[0].factor = 53;
+        ctxt->dmap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 244;
         ctxt->vmap[0][1] = 244;
@@ -729,18 +789,38 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
-        ctxt->amap.mega_scale       = 10000;
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
+        ctxt->dmap.mega_scale       = 10000;
+        ctxt->dmap.terms[3].factor  = 77;
+        ctxt->dmap.terms[3].scale   = 10000;
+        ctxt->dmap.terms[2].factor  = -15;
+        ctxt->dmap.terms[2].scale   = 10000;
+        ctxt->dmap.terms[1].factor  = 11863;
+        ctxt->dmap.terms[1].scale   = 10000;
+        ctxt->dmap.terms[0].factor  = 34;
+        ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->smap.slope  =   6391;
-        ctxt->smap.offset = -41611;
+        ctxt->stop_dist_map.slope  =   6391;
+        ctxt->stop_dist_map.offset = -41611;
+
+        ctxt->start_dist_map.mega_scale      = 1;
+        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].scale  = 10000;
+        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[1].factor = 15428;
+        ctxt->start_dist_map.terms[1].scale  = 1000;
+        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[0].scale  = 1;
+
+        ctxt->dmap.mega_scale      = 10000;
+        ctxt->dmap.terms[3].factor = 113;
+        ctxt->dmap.terms[3].scale  = 10000;
+        ctxt->dmap.terms[2].factor = 19;
+        ctxt->dmap.terms[2].scale  = 10000;
+        ctxt->dmap.terms[1].factor = 12062;
+        ctxt->dmap.terms[1].scale  = 10000;
+        ctxt->dmap.terms[0].factor = 53;
+        ctxt->dmap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 250;
         ctxt->vmap[0][1] = 250;
@@ -870,44 +950,45 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[13][8] = 5093;
         break;
 
-    case 4: // Train 51
-        ctxt->measurements.front  = 7000;
-        ctxt->measurements.pickup = 51000;
-        ctxt->measurements.back   = 114000;
-
-        ctxt->amap.mega_scale       = 10000;
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
-
-        ctxt->smap.slope  =   6391;
-        ctxt->smap.offset = -41611;
-        break;
-
     default: // just to get us started on new trains
         ctxt->measurements.front  = 23000;
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
 
         // stopping distance vs. stopping time
-        ctxt->amap.mega_scale       = 10000;
-        ctxt->amap.terms[3].factor  = 77;
-        ctxt->amap.terms[3].scale   = 10000;
-        ctxt->amap.terms[2].factor  = -15;
-        ctxt->amap.terms[2].scale   = 10000;
-        ctxt->amap.terms[1].factor  = 11863;
-        ctxt->amap.terms[1].scale   = 10000;
-        ctxt->amap.terms[0].factor  = 34;
-        ctxt->amap.terms[0].scale   = 1;
+        ctxt->dmap.mega_scale       = 10000;
+        ctxt->dmap.terms[3].factor  = 77;
+        ctxt->dmap.terms[3].scale   = 10000;
+        ctxt->dmap.terms[2].factor  = -15;
+        ctxt->dmap.terms[2].scale   = 10000;
+        ctxt->dmap.terms[1].factor  = 11863;
+        ctxt->dmap.terms[1].scale   = 10000;
+        ctxt->dmap.terms[0].factor  = 34;
+        ctxt->dmap.terms[0].scale   = 1;
 
         // stopping distance function
-        ctxt->smap.slope  =   6391;
-        ctxt->smap.offset = -41611;
+        ctxt->stop_dist_map.slope  =   6391;
+        ctxt->stop_dist_map.offset = -41611;
+
+        ctxt->start_dist_map.mega_scale      = 1;
+        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].scale  = 10000;
+        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[1].factor = 15428;
+        ctxt->start_dist_map.terms[1].scale  = 1000;
+        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[0].scale  = 1;
+
+        ctxt->dmap.mega_scale      = 10000;
+        ctxt->dmap.terms[3].factor = 113;
+        ctxt->dmap.terms[3].scale  = 10000;
+        ctxt->dmap.terms[2].factor = 19;
+        ctxt->dmap.terms[2].scale  = 10000;
+        ctxt->dmap.terms[1].factor = 12062;
+        ctxt->dmap.terms[1].scale  = 10000;
+        ctxt->dmap.terms[0].factor = 53;
+        ctxt->dmap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 250;
         ctxt->vmap[0][1] = 250;
