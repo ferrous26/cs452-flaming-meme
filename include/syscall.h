@@ -18,6 +18,7 @@ typedef enum {
     INVALID_MESSAGE  = -5, // the receiver did not understand the message
     INVALID_CHANNEL  = -6,
     REQUEST_REJECTED = -7,
+    MISSED_DEADLINE  = -8
 } err;
 
 #define TASK_MAX 256 // Maximum number of live tasks in the system

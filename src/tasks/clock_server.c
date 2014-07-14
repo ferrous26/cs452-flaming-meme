@@ -138,6 +138,7 @@ void clock_server() {
     clock_req   req;    // store incoming requests
     int         result; // used by Reply() calls
     cs_context context;
+    const int  missed_deadline = MISSED_DEADLINE;
 
     _startup(&context);
 
@@ -178,12 +179,16 @@ void clock_server() {
         case CLOCK_DELAY_UNTIL:
             // if we missed the deadline, wake task up right away, but
             // also log something if in debug mode
-            if (req.ticks <= context.time)
+            if (req.ticks <= context.time) {
                 clog("[Clock] %d missed deadline with DelayUntil(%d)."
                      " Actual time is %d.",
                      tid, req.ticks, context.time);
-
-            pq_add(&context.q, req.ticks, tid);
+                result = Reply(tid, (char*)&missed_deadline, sizeof(int));
+                assert(result == 0, "MISSED DEADLINE, %d", result);
+            }
+            else {
+                pq_add(&context.q, req.ticks, tid);
+            }
             break;
 
         }
@@ -216,8 +221,9 @@ int Time() {
 int Delay(int ticks) {
     // handle negative/non-delay cases on the task side
     if (ticks <= 0) {
-        log("%d missed deadline with Delay(%d).", myTid(), ticks);
-        return Time();
+        if (ticks < 0) // only when strictly less than 0
+            log("%d missed deadline with Delay(%d).", myTid(), ticks);
+        return MISSED_DEADLINE;
     }
 
     clock_req req = {
