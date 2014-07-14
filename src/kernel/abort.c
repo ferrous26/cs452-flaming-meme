@@ -55,7 +55,7 @@ static char* _abort_sp_butt(char* ptr, task* const t) {
 }
 
 static char* _abort_receiver(char* ptr, task* const t) {
-    task_q* const q = &recv_q[task_index_from_tid(t->tid)];
+    task_q* const q = &t->recv_q;
     return _abort_tid(ptr, q->head);
 }
 

@@ -23,6 +23,7 @@
 
 extern uint* _DataStart;
 extern uint* _DataKernEnd;
+extern uint* _DataKernWarmEnd;
 extern uint* _DataEnd;
 extern uint* _BssStart;
 extern uint* _BssEnd;
@@ -108,7 +109,7 @@ static void action(command cmd, int args[]) {
         break;
 
     case CMD_BENCHMARK:
-	Create(TASK_PRIORITY_MEDIUM_HIGH - 1, bench_msg);
+	Create(TASK_PRIORITY_MEDIUM_LOW - 1, bench_msg);
         break;
 
     case CMD_STRESS:
@@ -124,30 +125,37 @@ static void action(command cmd, int args[]) {
         Create(TASK_PRIORITY_EMERGENCY, seppuku);
         break;
 
-    case SIZES:
-        log("\n"
-            "Data:\n"
-            "    Kernel: %u bytes\n"
-            "      Task: %u bytes\n"
-            "     Total: %u bytes\n"
-            "Text:\n"
-            "    Kernel: %u bytes\n"
-            "      Task: %u bytes\n"
-            "      Cold: %u bytes\n"
-            "     Total: %u bytes\n"
-            "BSS:        %u bytes\n"
-            "ROData:     %u bytes\n",
-            &_DataKernEnd   - &_DataStart,
-            &_DataEnd       - &_DataKernEnd,
-            &_DataEnd       - &_DataStart,
-            &_TextKernEnd   - &_TextStart,
-            &_TextColdStart - &_TextKernEnd,
-            &_TextEnd       - &_TextColdStart,
-            &_TextEnd       - &_TextStart,
-            &_BssEnd        - &_BssStart,
-            &_RODataEnd     - &_RODataStart);
+    case SIZES: {
+        char buffer[512];
+        char* ptr = log_start(buffer);
+        ptr = sprintf(ptr,
+                      "\n"
+                      "Data:\n"
+                      "    Kernel Hot: %u bytes\n"
+                      "   Kernel Warm: %u bytes\n"
+                      "          Task: %u bytes\n"
+                      "         Total: %u bytes\n"
+                      "Text:\n"
+                      "    Kernel Hot: %u bytes\n"
+                      "     Task Reg.: %u bytes\n"
+                      "     Task Cold: %u bytes\n"
+                      "         Total: %u bytes\n"
+                      "BSS:            %u bytes\n"
+                      "ROData:         %u bytes\n",
+                      &_DataKernEnd     - &_DataStart,
+                      &_DataKernWarmEnd - &_DataKernEnd,
+                      &_DataEnd         - &_DataKernWarmEnd,
+                      &_DataEnd         - &_DataStart,
+                      &_TextKernEnd     - &_TextStart,
+                      &_TextColdStart   - &_TextKernEnd,
+                      &_TextEnd         - &_TextColdStart,
+                      &_TextEnd         - &_TextStart,
+                      &_BssEnd          - &_BssStart,
+                      &_RODataEnd       - &_RODataStart);
+        ptr = log_end(ptr);
+        Puts(buffer, ptr - buffer);
         break;
-
+    }
     case UPDATE_THRESHOLD:
         train_update_feedback_threshold(args[0], args[1]);
         break;

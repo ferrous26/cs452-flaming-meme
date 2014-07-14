@@ -12,6 +12,7 @@
 
 extern const void* const _DataStart;
 extern const void* const _DataKernEnd;
+extern const void* const _DataKernWarmEnd;
 extern const void* const _BssEnd;
 
 extern const void* const _TextStart;
@@ -56,8 +57,13 @@ static void _lockdown_icache() {
 }
 
 static void _lockdown_dcache() {
+
+    const int warm_chunk =
+        ((&_DataKernWarmEnd - &_DataKernEnd) / sizeof(task)) *
+        TASKS_TO_LOCKDOWN;
+
     register uint r0 asm ("r0") = (uint)&_DataStart & FILL_SIZE;
-    register uint r1 asm ("r1") = (uint)&_DataKernEnd;
+    register uint r1 asm ("r1") = (uint)&_DataKernEnd + warm_chunk;
 
     // Makes sure we lock up to the lowest point including the end defined here
     asm volatile ("mov      r2, #0                      \n\t"

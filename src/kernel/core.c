@@ -30,18 +30,12 @@
 
 #define TASK_HEAP_TOP 0x1F00000 // 31 MB
 #define TASK_HEAP_BOT 0x0300000 //  3 MB
-#define TASK_HEAP_SIZ 0x4000    // 16 kB == cache size
+#define TASK_HEAP_SIZ 0x8000    // 32 kB == 2 * cache size
 
 #ifdef DEBUG
 extern const int _TextStart;
 extern const int _TextEnd;
 #endif
-
-typedef struct task_q_pointers {
-    task* head;
-    task* tail;
-} task_q;
-
 
 static struct task_manager {
     uint32 state; // bitmap for accelerating queue selection
@@ -51,12 +45,10 @@ static struct task_manager {
 CHAR_BUFFER(TASK_MAX)
 static char_buffer free_list;
 
-task*  task_active             DATA_HOT;
-task*  int_queue[EVENT_COUNT]  DATA_HOT;
-static task   tasks[TASK_MAX]  DATA_HOT;
-static task_q recv_q[TASK_MAX] DATA_HOT;
-static uint8  table[256]       DATA_HOT;
-
+task*  task_active            DATA_HOT;
+task*  int_queue[EVENT_COUNT] DATA_HOT;
+static task  tasks[TASK_MAX]  DATA_WARM;
+static uint8 table[256]       DATA_HOT;
 
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
@@ -125,7 +117,6 @@ void kernel_init() {
     table[0] = 32; // if you want log(0) to return -1, change to -1
 
     memset(&manager,  0, sizeof(manager));
-    memset(&recv_q,   0, sizeof(recv_q));
     memset(&tasks,    0, sizeof(tasks));
     memset(int_queue, 0, sizeof(int_queue));
 
@@ -212,7 +203,7 @@ inline static void ksyscall_recv(task* const receiver) {
     assert(sp < 0x300000 && sp > 0x200000, "Recv: Smashed the stack");
 #endif
 
-    task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
+    task_q* const q = &receiver->recv_q;
 
     // only if we actually have a message to get
     if (q->head) {
@@ -276,7 +267,7 @@ inline static void ksyscall_send(const kreq_send* const req,
      * What we want to do is find the receive q and append to it, as we
      * did in the scheduler.
      */
-    task_q* const q = &recv_q[task_index_from_tid(receiver->tid)];
+    task_q* const q = &receiver->recv_q;
 
     if (!q->head)
         q->head = task_active;
@@ -415,7 +406,7 @@ static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
 void syscall_handle(const uint code, const void* const req, int* const sp) {
 #ifdef DEBUG
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
-	   "Reply: task %d has Invalid heap %p", task_active->tid, sp);
+	   "Reply: task %d has invalid heap %p", task_active->tid, sp);
     assert(!is_valid_pc(sp), "Task %d has invalid return %p for call %d",
            task_active->tid, is_valid_pc(sp), code);
 #endif
@@ -563,7 +554,7 @@ inline static void task_destroy() {
     task_active->sp   = NULL;
 
     // empty the receive buffer
-    task_q* q = &recv_q[task_index_from_tid(task_active->tid)];
+    task_q* q = &task_active->recv_q;
     while (q->head) {
         q->head->sp[0] = INCOMPLETE;
         scheduler_reschedule(q->head);

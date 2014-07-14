@@ -7,8 +7,13 @@
 #include <tasks/name_server_kernel.h>
 #include <tasks/clock_server_kernel.h>
 
-#define TEXT_HOT __attribute__ ((section (".text.kern")))
-#define DATA_HOT __attribute__ ((section (".data.kern")))
+#define TEXT_HOT  __attribute__ ((section (".text.kern")))
+#define DATA_HOT  __attribute__ ((section (".data.kern")))
+#define DATA_WARM __attribute__ ((section (".data.kern.warm")))
+#define DATA_HOT  __attribute__ ((section (".data.kern")))
+
+// we want to lockdown 64 task descriptors into the cache
+#define TASKS_TO_LOCKDOWN 64
 
 // choose small values so they can be instruction immediates
 #define RECV_BLOCKED (task*)0xA
@@ -89,12 +94,18 @@ typedef int32  task_id;
 typedef int32  task_pri;
 typedef uint8  task_idx;
 
+typedef struct task_q_pointers {
+    struct task_descriptor* head;
+    struct task_descriptor* tail;
+} task_q;
+
 typedef struct task_descriptor {
     task_id                 tid;
     task_id                 p_tid;
     task_pri                priority;
     int*                    sp;
     struct task_descriptor* next;
+    struct task_q_pointers  recv_q;
 } task;
 
 extern task* task_active;

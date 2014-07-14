@@ -13,6 +13,8 @@ SECTIONS
     _DataStart = . ;
     *(.data.kern)
     _DataKernEnd = . ;
+    *(.data.kern.warm)
+    _DataKernWarmEnd = . ;
     *(.data)
     *(.data.rel.local)
     _DataEnd = . ;
