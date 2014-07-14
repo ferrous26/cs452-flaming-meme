@@ -276,6 +276,46 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
     return sum;
 }
 
+static inline int
+physics_starting_distance(const master* const ctxt, const int speed) {
+
+    const cubic* const map = &ctxt->start_dist_map;
+
+    int sum =
+        (((map->terms[3].factor * speed * speed) /
+          map->terms[3].scale) * speed) / map->mega_scale;
+
+    sum += (map->terms[2].factor * speed * speed) / map->terms[2].scale;
+
+    sum += (map->terms[1].factor * speed) / map->terms[1].scale;
+
+    sum += map->terms[0].factor / map->terms[0].scale;
+
+    return sum + ctxt->starting_distance_offset;
+}
+
+static inline int
+physics_starting_time(const master* const ctxt, const int start_dist) {
+
+    const int dist = start_dist / 1000;
+    const cubic* const map = &ctxt->amap;
+
+    int sum =
+        (((map->terms[3].factor * dist * dist) /
+          map->terms[3].scale) * dist) / map->mega_scale;
+
+    sum += (map->terms[2].factor * dist * dist) / map->terms[2].scale;
+
+    sum += (map->terms[1].factor * dist) / map->terms[1].scale;
+
+    sum += map->terms[0].factor / map->terms[0].scale;
+
+    return sum + ctxt->acceleration_time_fudge_factor;
+}
+
+
+/* Here be dragons */
+
 static inline void master_init_physics(master* const ctxt) {
 
     // Common settings (can be overridden below)
@@ -284,6 +324,8 @@ static inline void master_init_physics(master* const ctxt) {
     ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
     ctxt->reverse_time_fudge_factor  = REVERSE_TIME_FUDGE_FACTOR;
     ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
+    ctxt->starting_distance_offset   = STARTING_DISTANCE_OFFSET_DEFAULT;
+    ctxt->acceleration_time_fudge_factor = ACCELERATION_TIME_FUDGE_DEFAULT;
 
     switch (ctxt->train_id) {
     case 0: // train 45
@@ -305,24 +347,24 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->stop_dist_map.offset = -42353;
 
         ctxt->start_dist_map.mega_scale      = 1;
-        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
         ctxt->start_dist_map.terms[2].factor = 1281;
-        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
-        ctxt->start_dist_map.terms[1].scale  = 1000;
-        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[1].scale  = 1;
+        ctxt->start_dist_map.terms[0].factor = 241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
-        ctxt->dmap.mega_scale      = 10000;
-        ctxt->dmap.terms[3].factor = 113;
-        ctxt->dmap.terms[3].scale  = 10000;
-        ctxt->dmap.terms[2].factor = 19;
-        ctxt->dmap.terms[2].scale  = 10000;
-        ctxt->dmap.terms[1].factor = 12062;
-        ctxt->dmap.terms[1].scale  = 10000;
-        ctxt->dmap.terms[0].factor = 53;
-        ctxt->dmap.terms[0].scale  = 1;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].scale  = 10000;
+        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].scale  = 10000;
+        ctxt->amap.terms[1].factor = 12062;
+        ctxt->amap.terms[1].scale  = 10000;
+        ctxt->amap.terms[0].factor = 53;
+        ctxt->amap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 209;
         ctxt->vmap[0][1] = 209;
@@ -471,24 +513,24 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->stop_dist_map.offset = -38400;
 
         ctxt->start_dist_map.mega_scale      = 1;
-        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
         ctxt->start_dist_map.terms[2].factor = 1281;
-        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
-        ctxt->start_dist_map.terms[1].scale  = 1000;
-        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[1].scale  = 1;
+        ctxt->start_dist_map.terms[0].factor = 241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
-        ctxt->dmap.mega_scale      = 10000;
-        ctxt->dmap.terms[3].factor = 113;
-        ctxt->dmap.terms[3].scale  = 10000;
-        ctxt->dmap.terms[2].factor = 19;
-        ctxt->dmap.terms[2].scale  = 10000;
-        ctxt->dmap.terms[1].factor = 12062;
-        ctxt->dmap.terms[1].scale  = 10000;
-        ctxt->dmap.terms[0].factor = 53;
-        ctxt->dmap.terms[0].scale  = 1;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].scale  = 10000;
+        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].scale  = 10000;
+        ctxt->amap.terms[1].factor = 12062;
+        ctxt->amap.terms[1].scale  = 10000;
+        ctxt->amap.terms[0].factor = 53;
+        ctxt->amap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 253;
         ctxt->vmap[0][1] = 253;
@@ -637,24 +679,24 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->stop_dist_map.offset = -59043;
 
         ctxt->start_dist_map.mega_scale      = 1;
-        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
         ctxt->start_dist_map.terms[2].factor = 1281;
-        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
-        ctxt->start_dist_map.terms[1].scale  = 1000;
-        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[1].scale  = 1;
+        ctxt->start_dist_map.terms[0].factor = 241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
-        ctxt->dmap.mega_scale      = 10000;
-        ctxt->dmap.terms[3].factor = 113;
-        ctxt->dmap.terms[3].scale  = 10000;
-        ctxt->dmap.terms[2].factor = 19;
-        ctxt->dmap.terms[2].scale  = 10000;
-        ctxt->dmap.terms[1].factor = 12062;
-        ctxt->dmap.terms[1].scale  = 10000;
-        ctxt->dmap.terms[0].factor = 53;
-        ctxt->dmap.terms[0].scale  = 1;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].scale  = 10000;
+        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].scale  = 10000;
+        ctxt->amap.terms[1].factor = 12062;
+        ctxt->amap.terms[1].scale  = 10000;
+        ctxt->amap.terms[0].factor = 53;
+        ctxt->amap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 244;
         ctxt->vmap[0][1] = 244;
@@ -803,24 +845,24 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->stop_dist_map.offset = -41611;
 
         ctxt->start_dist_map.mega_scale      = 1;
-        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
         ctxt->start_dist_map.terms[2].factor = 1281;
-        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
-        ctxt->start_dist_map.terms[1].scale  = 1000;
-        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[1].scale  = 1;
+        ctxt->start_dist_map.terms[0].factor = 241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
-        ctxt->dmap.mega_scale      = 10000;
-        ctxt->dmap.terms[3].factor = 113;
-        ctxt->dmap.terms[3].scale  = 10000;
-        ctxt->dmap.terms[2].factor = 19;
-        ctxt->dmap.terms[2].scale  = 10000;
-        ctxt->dmap.terms[1].factor = 12062;
-        ctxt->dmap.terms[1].scale  = 10000;
-        ctxt->dmap.terms[0].factor = 53;
-        ctxt->dmap.terms[0].scale  = 1;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].scale  = 10000;
+        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].scale  = 10000;
+        ctxt->amap.terms[1].factor = 12062;
+        ctxt->amap.terms[1].scale  = 10000;
+        ctxt->amap.terms[0].factor = 53;
+        ctxt->amap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 250;
         ctxt->vmap[0][1] = 250;
@@ -971,24 +1013,24 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->stop_dist_map.offset = -41611;
 
         ctxt->start_dist_map.mega_scale      = 1;
-        ctxt->start_dist_map.terms[3].factor = 5;
+        ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
         ctxt->start_dist_map.terms[2].factor = 1281;
-        ctxt->start_dist_map.terms[2].scale  = 10000;
+        ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
-        ctxt->start_dist_map.terms[1].scale  = 1000;
-        ctxt->start_dist_map.terms[0].factor = 241;
+        ctxt->start_dist_map.terms[1].scale  = 1;
+        ctxt->start_dist_map.terms[0].factor = 241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
-        ctxt->dmap.mega_scale      = 10000;
-        ctxt->dmap.terms[3].factor = 113;
-        ctxt->dmap.terms[3].scale  = 10000;
-        ctxt->dmap.terms[2].factor = 19;
-        ctxt->dmap.terms[2].scale  = 10000;
-        ctxt->dmap.terms[1].factor = 12062;
-        ctxt->dmap.terms[1].scale  = 10000;
-        ctxt->dmap.terms[0].factor = 53;
-        ctxt->dmap.terms[0].scale  = 1;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].scale  = 10000;
+        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].scale  = 10000;
+        ctxt->amap.terms[1].factor = 12062;
+        ctxt->amap.terms[1].scale  = 10000;
+        ctxt->amap.terms[0].factor = 53;
+        ctxt->amap.terms[0].scale  = 1;
 
         ctxt->vmap[0][0] = 250;
         ctxt->vmap[0][1] = 250;
