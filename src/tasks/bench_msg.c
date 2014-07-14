@@ -30,7 +30,9 @@ static void send_it(int child) {
 
     BENCH_START(bench);
     for (uint i = ITERATIONS; i; i--) {
-	Send(child, (char*)msg, 4, rply, 4);
+	int result = Send(child, (char*)msg, 4, rply, 4);
+        if (result <= 0)
+            ABORT("Message passing failure %d", result);
 	BENCH_LAP(bench)
     }
 
@@ -48,7 +50,9 @@ static void send_it(int child) {
 
     BENCH_START(bench)
     for (uint i = ITERATIONS; i; i--) {
-	Send(child, (char*)big_msg, 64, big_rply, 64);
+	int result = Send(child, (char*)big_msg, 64, big_rply, 64);
+        if (result <= 0)
+            ABORT("Message passing failure %d", result);
 	BENCH_LAP(bench)
     }
 
@@ -93,6 +97,13 @@ void bench_msg() {
 
     for (;;) {
         int siz = Receive(&tid, buffer, 64);
-	Reply(tid, buffer, siz);
+        if (siz > 0) {
+            siz = Reply(tid, buffer, siz);
+            if (siz != 0)
+                ABORT("Message sending failure %d", siz);
+        }
+        else {
+            ABORT("Message sending failure %d", siz);
+        }
     }
 }
