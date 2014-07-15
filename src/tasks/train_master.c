@@ -68,7 +68,7 @@ static void master_start_accelerate(master* const ctxt,
     } msg = {
         .head = {
             .type  = DELAY_ABSOLUTE,
-            .ticks = time + start_time + 50
+            .ticks = time + start_time + ctxt->acceleration_time_fudge_default
         },
         .req = {
             .type = MASTER_ACCELERATION_COMPLETE
