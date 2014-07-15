@@ -8,20 +8,16 @@ typedef enum {
     // load
     MC_L_TRACK,
     // update
-    MC_U_SENSOR,
     MC_U_TURNOUT,
     // reset
     MC_R_TRACK,
     // delay
-    MC_D_SENSOR,
-    MC_D_SENSOR_ANY,
     MC_TD_GET_NEXT_SENSOR,
     // misc
     MC_TYPE_COUNT
 } mc_type;
 
 typedef union {
-    sensor  sensor;
     turnout turn;
     int     int_value;
 } mc_payload;

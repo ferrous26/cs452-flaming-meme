@@ -8,14 +8,16 @@
 #include <tasks/idle.h>
 #include <tasks/stress.h>
 #include <tasks/bench_msg.h>
-#include <tasks/name_server.h>
-#include <tasks/clock_server.h>
+
 #include <tasks/term_server.h>
 #include <tasks/train_server.h>
+#include <tasks/name_server.h>
+#include <tasks/clock_server.h>
+
+#include <tasks/sensor_farm.h>
 #include <tasks/mission_control.h>
 
 #include <tasks/courier.h>
-
 #include <tasks/path_admin.h>
 
 #include <tasks/train_blaster.h>
@@ -96,9 +98,9 @@ static void action(command cmd, int args[]) {
         train_stop_at_sensor(args[2], args[0], args[1]);
         break;
     case SWITCH_TIME: {
-        delay_all_sensor();
+        delay_sensor_any();
         int time = Time();
-        delay_all_sensor();
+        delay_sensor_any();
         time = Time() - time;
         log("time interval took %d", time);
         break;
