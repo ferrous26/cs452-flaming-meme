@@ -354,22 +354,23 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
-        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].factor = -1281;
         ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
         ctxt->start_dist_map.terms[1].scale  = 1;
-        ctxt->start_dist_map.terms[0].factor = 241445;
+        ctxt->start_dist_map.terms[0].factor = -241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
-        ctxt->amap.mega_scale      = 100000;
-        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.mega_scale      = 10000;
+        ctxt->amap.terms[3].factor = 113;
         ctxt->amap.terms[3].scale  = 10000;
         ctxt->amap.terms[2].factor = -19;
         ctxt->amap.terms[2].scale  = 10000;
-        ctxt->amap.terms[1].factor = 12062;
-        ctxt->amap.terms[1].scale  = 10000;
-        ctxt->amap.terms[0].factor = 53162;
-        ctxt->amap.terms[0].scale  = 1000;
+        ctxt->amap.terms[1].factor = 1206;
+        ctxt->amap.terms[1].scale  = 1000;
+        ctxt->amap.terms[0].factor = 5316;
+        ctxt->amap.terms[0].scale  = 100;
+
 
         ctxt->vmap[0][0] = 209;
         ctxt->vmap[0][1] = 209;
@@ -686,22 +687,22 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
-        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].factor = -1281;
         ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
         ctxt->start_dist_map.terms[1].scale  = 1;
-        ctxt->start_dist_map.terms[0].factor = 241445;
+        ctxt->start_dist_map.terms[0].factor = -241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
         ctxt->amap.mega_scale      = 10000;
-        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].factor = 113;
         ctxt->amap.terms[3].scale  = 10000;
-        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].factor = -19;
         ctxt->amap.terms[2].scale  = 10000;
-        ctxt->amap.terms[1].factor = 12062;
-        ctxt->amap.terms[1].scale  = 10000;
-        ctxt->amap.terms[0].factor = 53;
-        ctxt->amap.terms[0].scale  = 1;
+        ctxt->amap.terms[1].factor = 1206;
+        ctxt->amap.terms[1].scale  = 1000;
+        ctxt->amap.terms[0].factor = 5316;
+        ctxt->amap.terms[0].scale  = 100;
 
         ctxt->vmap[0][0] = 244;
         ctxt->vmap[0][1] = 244;
@@ -852,22 +853,22 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
-        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].factor = -1281;
         ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
         ctxt->start_dist_map.terms[1].scale  = 1;
-        ctxt->start_dist_map.terms[0].factor = 241445;
+        ctxt->start_dist_map.terms[0].factor = -241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
         ctxt->amap.mega_scale      = 10000;
-        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].factor = 113;
         ctxt->amap.terms[3].scale  = 10000;
-        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].factor = -19;
         ctxt->amap.terms[2].scale  = 10000;
-        ctxt->amap.terms[1].factor = 12062;
-        ctxt->amap.terms[1].scale  = 10000;
-        ctxt->amap.terms[0].factor = 53;
-        ctxt->amap.terms[0].scale  = 1;
+        ctxt->amap.terms[1].factor = 1206;
+        ctxt->amap.terms[1].scale  = 1000;
+        ctxt->amap.terms[0].factor = 5316;
+        ctxt->amap.terms[0].scale  = 100;
 
         ctxt->vmap[0][0] = 250;
         ctxt->vmap[0][1] = 250;
@@ -1020,22 +1021,22 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
         ctxt->start_dist_map.terms[3].scale  = 10000;
-        ctxt->start_dist_map.terms[2].factor = 1281;
+        ctxt->start_dist_map.terms[2].factor = -1281;
         ctxt->start_dist_map.terms[2].scale  = 10;
         ctxt->start_dist_map.terms[1].factor = 15428;
         ctxt->start_dist_map.terms[1].scale  = 1;
-        ctxt->start_dist_map.terms[0].factor = 241445;
+        ctxt->start_dist_map.terms[0].factor = -241445;
         ctxt->start_dist_map.terms[0].scale  = 1;
 
         ctxt->amap.mega_scale      = 10000;
-        ctxt->amap.terms[3].factor = 1132;
+        ctxt->amap.terms[3].factor = 113;
         ctxt->amap.terms[3].scale  = 10000;
-        ctxt->amap.terms[2].factor = 19;
+        ctxt->amap.terms[2].factor = -19;
         ctxt->amap.terms[2].scale  = 10000;
-        ctxt->amap.terms[1].factor = 12062;
-        ctxt->amap.terms[1].scale  = 10000;
-        ctxt->amap.terms[0].factor = 53;
-        ctxt->amap.terms[0].scale  = 1;
+        ctxt->amap.terms[1].factor = 1206;
+        ctxt->amap.terms[1].scale  = 1000;
+        ctxt->amap.terms[0].factor = 5316;
+        ctxt->amap.terms[0].scale  = 100;
 
         ctxt->vmap[0][0] = 250;
         ctxt->vmap[0][1] = 250;
