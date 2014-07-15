@@ -108,6 +108,10 @@ static void action(command cmd, int args[]) {
         train_goto_location(args[0], args[1], args[2], args[3]);
         break;
 
+    case SHORT_MOVE:
+        train_short_move(args[0], args[1]);
+        break;
+
     case CMD_BENCHMARK:
 	Create(TASK_PRIORITY_MEDIUM_LOW - 1, bench_msg);
         break;

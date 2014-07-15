@@ -19,6 +19,7 @@ typedef enum {
     LOC_HORN,
 
     GO,
+    SHORT_MOVE,
 
     STOP_OFFSET, // TODO: change name to match scheme
     UPDATE_THRESHOLD,

@@ -17,6 +17,7 @@ typedef enum {
     BLASTER_WHERE_ARE_YOU,
     BLASTER_STOP_AT_SENSOR,
     BLASTER_GOTO_LOCATION,
+    BLASTER_SHORT_MOVE,
 
     BLASTER_DUMP_VELOCITY_TABLE,
     BLASTER_UPDATE_FEEDBACK_THRESHOLD,
@@ -47,6 +48,8 @@ int train_goto_location(const int train,
                         const int bank,
                         const int num,
                         const int off);
+
+int train_short_move(const int train, const int off);
 
 int train_dump_velocity_table(const int train);
 int train_update_feedback_threshold(const int train, const int threshold);

@@ -49,6 +49,7 @@ typedef struct {
         int  stop_offset;
         int  clearance_offset;
         int  fudge_factor;
+        int  short_move;
 
         int  horn;               // horn state
     } master[NUM_TRAINS];
@@ -130,6 +131,11 @@ blaster_try_send_master(blaster_context* const ctxt, const int index) {
         req.arg1 = ctxt->master[index].location.index;
         req.arg2 = ctxt->master[index].location.offset;
         ctxt->master[index].location.index = -1;
+
+    } else if (ctxt->master[index].short_move) {
+        req.type = MASTER_SHORT_MOVE;
+        req.arg1 = ctxt->master[index].short_move;
+        ctxt->master[index].short_move = 0;
 
     } else if (ctxt->master[index].dump_velocity) {
         req.type                          = MASTER_DUMP_VELOCITY_TABLE;
@@ -226,6 +232,9 @@ void train_blaster() {
         case BLASTER_GOTO_LOCATION:
             context.master[index].location.index  = req.arg2;
             context.master[index].location.offset = req.arg3;
+            break;
+        case BLASTER_SHORT_MOVE:
+            context.master[index].short_move = req.arg2;
             break;
         case BLASTER_DUMP_VELOCITY_TABLE:
             context.master[index].dump_velocity = true;
@@ -337,6 +346,20 @@ int train_goto_location(const int train,
         .arg1 = train_index,
         .arg2 = sensor_index,
         .arg3 = off
+    };
+
+    return Send(train_blaster_tid,
+                (char*)&req, sizeof(req),
+                NULL, 0);
+}
+
+int train_short_move(const int train, const int off) {
+    NORMALIZE_TRAIN(train_index, train);
+
+    blaster_req req = {
+        .type = BLASTER_SHORT_MOVE,
+        .arg1 = train_index,
+        .arg2 = off
     };
 
     return Send(train_blaster_tid,

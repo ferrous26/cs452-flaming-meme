@@ -58,6 +58,11 @@ static command parse_s(const char* const cmd, int* buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
+    case 'm':
+        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return SHORT_MOVE;
     case 't':
         if (!isspace(cmd[index++])) return ERROR;
         return CMD_STRESS;

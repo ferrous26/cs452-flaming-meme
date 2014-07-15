@@ -78,6 +78,10 @@ typedef struct master_context {
     line      stop_dist_map;
     cubic     start_dist_map;
 
+    bool      simulating;
+    int       path_finding_steps;
+    int       short_moving_distance;
+
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates
     landmark  last_landmark;
@@ -90,13 +94,14 @@ typedef struct master_context {
 
     landmark  current_landmark;
     int       current_sensor;
-    int       current_state_accelerating;
     int       current_distance;
     int       current_time;
     int       current_velocity;
+
     int       current_speed;
     int       current_direction;
-    bool      reversing;     // are we reversing right now?
+    int       reversing;         // reverse step counter
+    int       accelerating;      // accelerating or deccelerating state
 
     // these are estimates
     landmark  next_landmark; // expected next landmark
