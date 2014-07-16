@@ -484,8 +484,9 @@ void syscall_handle(const syscall_num code,
     case SYS_SHUTDOWN:
         shutdown();
     case SYS_ABORT:
-    case SYS_COUNT:
         abort((const kreq_abort* const)req);
+    case SYS_COUNT:
+        ABORT("You done goofed, son.");
     }
 
     scheduler_get_next();
