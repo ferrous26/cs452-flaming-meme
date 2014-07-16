@@ -162,7 +162,7 @@ velocity_type(const int sensor_idx) {
     case 78: return TRACK_INNER_CURVE;
     case 79: return TRACK_INNER_CURVE;
     default:
-        ABORT("No such sensor! (%d)", sensor_idx);
+        return TRACK_STRAIGHT;
     }
 }
 
