@@ -5,6 +5,7 @@
 #include <syscall.h>
 
 #include <tasks/name_server.h>
+#include <tasks/sensor_farm.h>
 #include <tasks/clock_server.h>
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
@@ -13,24 +14,25 @@
 
 void sensor_notifier() {
     int       tid, has_header;
-    const int mc_tid  = WhoIs((char*)MISSION_CONTROL_NAME);
+    const int sf_tid = WhoIs((char*)SENSOR_FARM_NAME);
 
-    mc_req sensor_one = {
-        .type = MC_D_SENSOR,
+    sf_req sensor_one = {
+        .type = SF_D_SENSOR,
     };
-    mc_req sensor_any = {
-        .type = MC_D_SENSOR_ANY,
+    sf_req sensor_any = {
+        .type = SF_D_SENSOR_ANY,
     };
     struct {
         int sensor_num;
         int return_head;
     } req;
+
     struct {
         int header;
         int body[2];
     } reply;
 
-    int* const sensor_idx = &sensor_one.payload.int_value;
+    int* const sensor_idx = &sensor_one.sensor;
     int result = Receive(&tid, (char*)&req, sizeof(req));
     Reply(tid, NULL, 0);
 
@@ -47,15 +49,15 @@ void sensor_notifier() {
                tid, *sensor_idx);
 
         if (80 == *sensor_idx) {
-            result = Send(mc_tid,
+            result = Send(sf_tid,
                           (char*)&sensor_any, sizeof(sensor_any),
                           (char*)&reply.body,   sizeof(reply.body));
         } else {
-            result = Send(mc_tid,
+            result = Send(sf_tid,
                           (char*)&sensor_one, sizeof(sensor_one),
                           (char*)&reply.body,   sizeof(reply.body));
         }
-
+        assert(result > 0, "got back back data (%d)", result);
 
         if (has_header) {
             result = Send(tid,

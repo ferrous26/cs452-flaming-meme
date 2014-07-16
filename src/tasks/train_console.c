@@ -1,18 +1,16 @@
 
 #include <std.h>
-#include <vt100.h>
 #include <debug.h>
 #include <syscall.h>
 #include <normalize.h>
 #include <track_node.h>
 #include <char_buffer.h>
 
-#include <tasks/courier.h>
 #include <tasks/priority.h>
 #include <tasks/name_server.h>
-
 #include <tasks/clock_server.h>
-#include <tasks/mission_control.h>
+
+#include <tasks/courier.h>
 #include <tasks/train_master.h>
 #include <tasks/train_console.h>
 
@@ -120,17 +118,17 @@ static inline void _init_context(tc_context* const ctxt) {
     const int sensor_tid = Create(TC_CHILDREN_PRIORITY, sensor_notifier);
     CHECK_CREATE(tid, "Failed to create first sensor notifier");
 
-    result = Send(sensor_tid,
-                  (char*)&ctxt->sensor_expect, sizeof(ctxt->sensor_expect),
-                  NULL, 0);
-    assert(result == 0, "Failed to set up first sensor poll %d", result);
-
     // set up the courier to send data to the driver 
     *(int*)&ctxt->driver_tid = Create(TC_CHILDREN_PRIORITY, courier);
     CHECK_CREATE(ctxt->driver_tid, "Failed to create driver courier");
 
     *(int*)&ctxt->timer_tid = Create(TC_CHILDREN_PRIORITY, time_notifier);
     CHECK_CREATE(ctxt->timer_tid, "Failed to create timer courier");
+
+    result = Send(sensor_tid,
+                  (char*)&ctxt->sensor_expect, sizeof(ctxt->sensor_expect),
+                  NULL, 0);
+    assert(result == 0, "Failed to set up first sensor poll %d", result);
 
     result = Receive(&tid, (char*)&sensor_data, sizeof(sensor_data));
     assert(tid == sensor_tid, "received sensor from %d", tid);
@@ -281,12 +279,15 @@ void train_console() {
             int index = get_sensor_index(&context, tid);
             assert(index >= 0, "got send from invalid task %d", tid);
             context.sent_waiters[index] = -1;
+            log("KIED %d %d %d", tid, args[1], args[2]);
             
             if (CANCEL_REQUEST != args[1] &&
-                    intb_count(&context.waiters) < BUFFER_SIZE) {
+                intb_count(&context.waiters) < BUFFER_SIZE) {
+                
                 intb_produce(&context.waiters, tid);
             } else {
                 // we forced the task back, too dangerous to keep around
+                log("KILLED %d %d %d", tid, args[1], intb_count(&context.waiters));
                 Reply(tid, NULL, 0);
             }
 

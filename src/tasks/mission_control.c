@@ -7,36 +7,32 @@
 #include <track_data.h>
 
 #include <tasks/priority.h>
-
-#include <tasks/train_blaster.h>
-
 #include <tasks/term_server.h>
-#include <tasks/train_server.h>
-
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
+#include <tasks/train_server.h>
 
 #include <tasks/path_admin.h>
+#include <tasks/sensor_farm.h>
+#include <tasks/train_blaster.h>
 
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
 
-#define NUM_TURNOUTS         22
-#define NUM_SENSOR_BANKS     5
-#define NUM_SENSORS_PER_BANK 16
-#define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
-#define SENSOR_LIST_SIZE     9
+#define NUM_TURNOUTS           22
+#define NUM_SENSOR_BANKS       5
+#define NUM_SENSORS_PER_BANK   16
+#define NUM_SENSORS           (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
+#define SENSOR_LIST_SIZE       9
+
+#define CHECK_CREATE(tid, msg) if (tid < 0) ABORT(msg " (%d)", tid)
+
 
 static int mission_control_tid;
 
 typedef struct {
-    sensor*      sensor_insert;
-    sensor       recent_sensors[SENSOR_LIST_SIZE];
-    track_node   track[TRACK_MAX];
-
-    int wait_all;
-    int sensor_delay[NUM_SENSORS];
-    int turnouts[NUM_TURNOUTS];
+    track_node track[TRACK_MAX];
+    int        turnouts[NUM_TURNOUTS];
 } mc_context;
 
 static void train_ui() {
@@ -55,40 +51,6 @@ static void train_ui() {
 "                                    |153   154  |155   156  |    |        |\n"
 "                                    +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
-}
-
-static void __attribute__ ((noreturn)) sensor_poll() {
-    RegisterAs((char*)SENSOR_POLL_NAME);
-    Putc(TRAIN, SENSOR_RESET);
-
-    int       sensor_state[10];
-    const int ptid = myParentTid();
-
-    mc_req    req = {
-        .type = MC_U_SENSOR
-    };
-
-    Putc(TRAIN, SENSOR_POLL);
-    for (int i = 0; i < NUM_SENSOR_BANKS; i++) {
-        // set up the inital state
-        sensor_state[i] = get_train_bank();
-    }
-
-    FOREVER {
-        Putc(TRAIN, SENSOR_POLL);
-        for (int bank = 0; bank < NUM_SENSOR_BANKS; bank++) {
-            int c = get_train_bank();
-            assert(c >= 0, "sensor_poll got bad return (%d)", c);
-
-            for (int mask = 0x8000, i = 0; mask > 0; mask = mask >> 1, i++) {
-                if ((c & mask) > (sensor_state[bank] & mask)) {
-                    req.payload.int_value = (bank<<4) + i;
-                    Send(ptid, (char*)&req, sizeof(req), NULL, 0);
-                }
-            }
-            sensor_state[bank] = c;
-        }
-    }
 }
 
 static int get_next_sensor(const track_node* node,
@@ -128,74 +90,6 @@ static void mc_get_next_sensor(mc_context* const ctxt,
 
     int result = Reply(tid, (char*)&response, sizeof(response));
     if (result) ABORT("Train driver died! (%d)", result);
-}
-
-inline static void mc_update_sensors(mc_context* const ctxt,
-                                     const int sensor_num) {
-    assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
-           "Can't update invalid sensor num %d", sensor_num);
-
-    sensor*      next = ctxt->sensor_insert++;
-    *next             = pos_to_sensor(sensor_num);
-    const int waiter  = ctxt->sensor_delay[sensor_num];
-
-    if(ctxt->sensor_insert == ctxt->recent_sensors + SENSOR_LIST_SIZE) {
-        ctxt->sensor_insert = ctxt->recent_sensors;
-    }
-    memset(ctxt->sensor_insert, 0, sizeof(sensor));
-
-    const int reply[2] = {Time(), sensor_num};
-    if (-1 != waiter) {
-        ctxt->sensor_delay[sensor_num] = -1;
-        Reply(waiter, (char*)&reply, sizeof(reply));
-    } else if (-1 != ctxt->wait_all) {
-        Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
-        ctxt->wait_all = -1;
-    }
-
-    char buffer[64];
-    for(int i =0; next->bank != 0; i++) {
-        const char* const output = next->num < 10 ? "%c 0%d": "%c %d";
-        char*                pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
-
-        pos = sprintf(pos, output, next->bank, next->num);
-        Puts(buffer, pos-buffer);
-
-        if (next-- == ctxt->recent_sensors) {
-            next = ctxt->recent_sensors + SENSOR_LIST_SIZE-1;
-        }
-    }
-}
-
-static inline void mc_sensor_delay(mc_context* const ctxt,
-                                   const int tid,
-                                   const int sensor_num) {
-    assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
-           "[MISSION CONTROL] can't delay on invalid sensor %d", sensor_num);
-
-    const int task_waiter = ctxt->sensor_delay[sensor_num];
-    if (-1 != task_waiter) {
-        log("[MISSION CONTROL] %d kicked out task %d from sensor %d",
-            task_waiter, tid, sensor_num);
-
-        int reply[2] = {REQUEST_REJECTED, sensor_num};
-        Reply(task_waiter, (char*)&reply, sizeof(reply));
-    }
-    ctxt->sensor_delay[sensor_num] = tid;
-}
-
-static inline void mc_sensor_delay_any(mc_context* const ctxt, const int tid) {
-    if (-1 != ctxt->wait_all) {
-        log("[MISSION CONTROL] %d kicked out task %d from all",
-            tid, ctxt->wait_all);
-
-        int reply[2] = {REQUEST_REJECTED, 80};
-        int result = Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
-        assert(0 == result, "");
-        UNUSED(result);
-    }
-
-    ctxt->wait_all = tid;
 }
 
 static inline void mc_update_turnout(mc_context* const ctxt,
@@ -279,14 +173,6 @@ static inline void __attribute__((always_inline)) mc_flush_sensors() {
     for (int i = 0; i < 10; i++) { Getc(TRAIN); }
 }
 
-static inline void mc_init_context(mc_context* const ctxt) {
-    memset(ctxt,                0, sizeof(*ctxt));
-    memset(ctxt->sensor_delay, -1, sizeof(ctxt->sensor_delay));
-
-    ctxt->wait_all      = -1;
-    ctxt->sensor_insert = ctxt->recent_sensors;
-}
-
 static inline void mc_stall_for_track_load(mc_context* const ctxt) {
     int    tid, result;
     mc_req req;
@@ -307,7 +193,7 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
 }
 
 static inline void mc_initalize(mc_context* const ctxt) {
-    int result, tid, pa_tid, tb_tid;
+    int result, tid, pa_tid, sf_tid, tb_tid;
 
     log("[MISSION CONTROL] Initalizing");
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -317,23 +203,20 @@ static inline void mc_initalize(mc_context* const ctxt) {
     tid = RegisterAs((char*)MISSION_CONTROL_NAME);
     assert(tid == 0, "Mission Control has failed to register (%d)", tid);
 
-    mc_init_context(ctxt);
     train_ui();
+    memset(ctxt, 0, sizeof(*ctxt));
 
     pa_tid = Create(PATH_ADMIN_PRIORITY, path_admin);
-    if (tid < 0)
-        ABORT("[Mission Control] path admin failed creation (%d)", pa_tid);
+    CHECK_CREATE(pa_tid, "[Mission Control] path admin failed creation");
 
     tb_tid = Create(TRAIN_BLASTER_PRIORITY, train_blaster);
+    CHECK_CREATE(tb_tid, "[Mission Control] train blaser failed creation");
+
+    sf_tid = Create(SENSOR_FARM_PRIORITY, sensor_farm); 
+    CHECK_CREATE(sf_tid, "[Mission Control] server farm failed creation"); 
 
     mc_reset_track_state(ctxt);
-    mc_flush_sensors();
-
-    tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
-    if (tid < 0)
-        ABORT("[Mission Control] sensor poll creation failed (%d)", tid);
     log("[Mission Control] Ready!");
-
     mc_stall_for_track_load(ctxt);
 
     const track_node* const track = ctxt->track;
@@ -359,16 +242,6 @@ void mission_control() {
         assert(req.type < MC_TYPE_COUNT, "Invalid MC Request %d", req.type);
 
         switch (req.type) {
-        case MC_U_SENSOR:
-            mc_update_sensors(&context, req.payload.int_value);
-	    break;
-        case MC_D_SENSOR:
-            mc_sensor_delay(&context, tid, req.payload.int_value);
-            continue;
-        case MC_D_SENSOR_ANY:
-            mc_sensor_delay_any(&context, tid);
-            continue;
-
         case MC_U_TURNOUT:
             mc_update_turnout(&context,
                               req.payload.turn.num,
@@ -431,59 +304,7 @@ int reset_train_state() {
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
-int delay_sensor(int sensor_bank, int sensor_num) {
-    switch (sensor_bank) {
-    case 'a': sensor_bank = 'A';
-    case 'A': break;
 
-    case 'b': sensor_bank = 'B';
-    case 'B': break;
-
-    case 'c': sensor_bank = 'C';
-    case 'C': break;
-
-    case 'd': sensor_bank = 'D';
-    case 'D': break;
-
-    case 'e': sensor_bank = 'E';
-    case 'E': break;
-    default:
-        log("Invalid sensor bank %c", sensor_bank);
-        return -1;
-    }
-
-    if( sensor_num < 1 || sensor_num > 16 ) {
-        log("Invalid sensor num %d", sensor_num);
-        return -1;
-    }
-
-    mc_req req = {
-        .type              = MC_D_SENSOR,
-        .payload.int_value = ((sensor_bank-'A') << 4) + (sensor_num - 1)
-    };
-
-    int time;
-    int res = Send(mission_control_tid,
-                   (char*)&req, sizeof(req),
-                   (char*)&time, sizeof(time));
-
-   if (res < 0) return res;
-   return time;
-}
-
-int delay_all_sensor() {
-    mc_req req = {
-        .type           = MC_D_SENSOR_ANY,
-    };
-
-    int sensor_idx;
-    int result = Send(mission_control_tid,
-                      (char*)&req, sizeof(req),
-                      (char*)&sensor_idx, sizeof(sensor_idx));
-
-    if (result < 0) return result;
-    return sensor_idx;
-}
 
 int load_track(int track_value) {
     switch (track_value) {
