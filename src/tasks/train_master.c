@@ -18,7 +18,7 @@
 #include <tasks/train_master/physics.c>
 
 #define TEMPORARY_ACCEL_FUDGE \
-    (ctxt->acceleration_time_fudge_factor - (ctxt->current_speed * 2))
+    (ctxt->acceleration_time_fudge_factor - (ctxt->current_speed / 5))
 
 
 static void master_resume_short_moving(master* const ctxt, const int time);
