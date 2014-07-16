@@ -19,7 +19,7 @@
 #define RECV_BLOCKED (task*)0xA
 #define RPLY_BLOCKED (task*)0xB
 
-enum int_num {
+typedef enum {
     SYS_IRQ,
     SYS_CREATE,
     SYS_TID,
@@ -35,7 +35,7 @@ enum int_num {
     SYS_SHUTDOWN,
     SYS_ABORT,
     SYS_COUNT
-};
+} syscall_num;
 
 typedef struct {
     int  priority;

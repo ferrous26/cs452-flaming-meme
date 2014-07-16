@@ -3,7 +3,7 @@
 #include <io.h>
 #include <debug.h>
 
-inline static int _syscall(volatile int code, volatile void* request) {
+inline static int _syscall(volatile syscall_num code, volatile void* request) {
     register int r0 asm ("r0") = code;
     register volatile void* r1 asm ("r1") = request;
 

@@ -427,7 +427,10 @@ static inline void kernel_exit() {
                   : "r0");
 }
 
-void syscall_handle(const uint code, const void* const req, int* const sp) {
+void syscall_handle(const syscall_num code,
+                    const void* const req,
+                    int* const sp) {
+
 #ifdef DEBUG
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
 	   "Reply: task %d has invalid heap %p", task_active->tid, sp);
