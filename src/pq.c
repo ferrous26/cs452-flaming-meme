@@ -40,7 +40,7 @@ int pq_delete(priority_queue* const q) {
     // bubble down until we can bubble no more
     FOREVER {
         const int left  = LEFT(curr);
-        if (left >= q->size) break;        
+        if (left >= q->size) break;
 
         const int right = RIGHT(curr);
 
@@ -72,7 +72,7 @@ void pq_add(priority_queue* const q, const int key, const int value) {
     node[curr].key      = key;
     node[curr].val      = value;
 
-    while (node[curr].key < node[parent].key && curr > 0) {
+    while (node[curr].key < node[parent].key) {
         pq_node temp = node[curr];
         node[curr]   = node[parent];
         node[parent] = temp;
@@ -109,4 +109,3 @@ void pq_raise(priority_queue* const q, const int value, const int new_key) {
         parent = PARENT(curr);
     }
 }
-
