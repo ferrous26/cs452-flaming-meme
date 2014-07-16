@@ -26,11 +26,10 @@ typedef enum {
 } track_type;
 
 typedef enum {
-    LM_SENSOR,
-    LM_BRANCH,
-    LM_MERGE,
-    LM_EXIT
-} landmark;
+    DIRECTION_BACKWARD = -1,
+    DIRECTION_UNKNOWN  = 0,
+    DIRECTION_FORWARD  = 1,
+} train_dir;
 
 typedef struct {
     int slope;
@@ -85,31 +84,29 @@ typedef struct master_context {
 
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates
-    landmark  last_landmark;
-    int       last_sensor;   // not necessarily the same thing
-    bool      last_state_accelerating;
-    int       last_distance; // from last landmark to expected next landmark
-    int       last_time;     // time at which the last landmark was hit
-    int       last_velocity;
-    int       last_speed;
 
-    landmark  current_landmark;
-    int       current_sensor;
-    int       current_distance;
-    int       current_time;
-    int       current_velocity;
+    int       last_sensor;      // previous-previous sensor hit
+    int       last_distance;    // distance from previous-previous sensor to current_sensor
 
+    int       last_offset;      // offset of last event between last_sensor and current_sensor
+    int       last_time;        // time at last event between
+
+    int       current_sensor;   // sensor we hit last
+    int       current_distance; // distance from current_sensor to next_sensor
+
+    int       current_offset;   // offset from last sensor when last event occurred
+    int       current_time;     // time when event happened (at offset)
+
+    int       last_speed;       // speed of train at last event
     int       current_speed;
-    int       current_direction;
+
+    train_dir direction;
     int       reversing;         // reverse step counter
     int       accelerating;      // accelerating or deccelerating state
 
     // these are estimates
-    landmark  next_landmark; // expected next landmark
-    int       next_sensor;
-    int       next_distance; // expected dist. to next landmark from last
-    int       next_time;     // estimated time of arrival at next landmark
-    int       next_velocity;
+    int       next_sensor;       // expected next sensor
+    int       next_time;         // estimated time of arrival at next landmark
 
     const track_node* const track;
 } master;

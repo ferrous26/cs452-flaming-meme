@@ -239,13 +239,14 @@ static inline void master_reverse_step4(master* const ctxt, const int time) {
 static inline void master_detect_train_direction(master* const ctxt,
                                                  const int sensor_hit,
                                                  const int time) {
-    if (ctxt->current_direction != 0) return;
+    if (ctxt->direction != DIRECTION_UNKNOWNN) return;
 
-    if ((sensor_hit >> 4) == 1) {
-        ctxt->current_direction = 1;
+    const sensor s = pos_to_sensor(sensor_hit);
+    if (s.bank == 'B') {
+        ctxt->direction = DIRECTION_FORWARD;
         master_reverse_step1(ctxt, time);
     } else {
-        ctxt->current_direction = -1;
+        ctxt->direction = DIRECTION_BACKWARD;
     }
 }
 
