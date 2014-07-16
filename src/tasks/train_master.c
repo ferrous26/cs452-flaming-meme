@@ -15,6 +15,9 @@
 #include <tasks/train_master/types.c>
 #include <tasks/train_master/physics.c>
 
+#define TEMPORARY_ACCEL_FUDGE \
+    (ctxt->acceleration_time_fudge_factor - (ctxt->current_speed * 2))
+
 
 static void master_resume_short_moving(master* const ctxt, const int time);
 static void master_reverse_step1(master* const ctxt, const int time);
@@ -68,7 +71,7 @@ static void master_start_accelerate(master* const ctxt,
     } msg = {
         .head = {
             .type  = DELAY_ABSOLUTE,
-            .ticks = time + start_time + ctxt->acceleration_time_fudge_default
+            .ticks = time + start_time + TEMPORARY_ACCEL_FUDGE
         },
         .req = {
             .type = MASTER_ACCELERATION_COMPLETE
