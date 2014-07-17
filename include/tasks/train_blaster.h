@@ -36,12 +36,16 @@ typedef struct {
     int  arg3;
 } blaster_req;
 
+typedef struct {
+    int sensor;
+    int offset;
+} track_location;
 
 // Human API
 int train_set_speed(const int train, const int speed);
 int train_reverse(const int train); // this is effectively a macro command
 
-int train_where_are_you(const int train);
+track_location train_where_are_you(const int train);
 int train_stop_at_sensor(const int train, const int bank, const int num);
 
 int train_goto_location(const int train,

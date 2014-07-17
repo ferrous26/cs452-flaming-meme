@@ -34,7 +34,7 @@ typedef struct {
         int  speed;              // next speed to send to the train
 
         bool reverse;            // should send a reverse command
-        bool whereis;            // should send send whereis command
+        int  whereis;            // should send send whereis command
 
         int  stop_sensor;        // sensor to stop after hitting
 
@@ -117,9 +117,10 @@ blaster_try_send_master(blaster_context* const ctxt, const int index) {
         req.type                    = MASTER_REVERSE;
         ctxt->master[index].reverse = false;
 
-    } else if (ctxt->master[index].whereis) {
+    } else if (ctxt->master[index].whereis != -1) {
         req.type                    = MASTER_WHERE_ARE_YOU;
-        ctxt->master[index].whereis = false;
+        req.arg1                    = ctxt->master[index].whereis;
+        ctxt->master[index].whereis = -1;
 
     } else if (ctxt->master[index].stop_sensor != -1) {
         req.type                        = MASTER_STOP_AT_SENSOR;
@@ -224,8 +225,9 @@ void train_blaster() {
             context.master[index].reverse = true;
             break;
         case BLASTER_WHERE_ARE_YOU:
-            context.master[index].whereis = true;
-            break;
+            context.master[index].whereis = tid;
+            blaster_try_send_master(&context, index);
+            continue;
         case BLASTER_STOP_AT_SENSOR:
             context.master[index].stop_sensor = req.arg2;
             break;
@@ -308,17 +310,31 @@ int train_reverse(const int train) {
                 NULL, 0);
 }
 
-int train_where_are_you(const int train) {
-    NORMALIZE_TRAIN(train_index, train);
+track_location train_where_are_you(const int train) {
+
+    track_location location = {
+        .sensor = INVALID_TRAIN
+    };
+
+    const int train_index = train_to_pos(train);
+    if (train_index == INVALID_TRAIN) {
+        log("[Blaster] Train %d does not exist!", train);
+        return location;
+    }
 
     blaster_req req = {
         .type = BLASTER_WHERE_ARE_YOU,
         .arg1 = train_index
     };
 
-    return Send(train_blaster_tid,
-                (char*)&req, sizeof(req) - (sizeof(int) * 2),
-                NULL, 0);
+    int result = Send(train_blaster_tid,
+                      (char*)&req, sizeof(req) - (sizeof(int) * 2),
+                      (char*)&location, sizeof(location));
+
+    if (result < 0)
+        location.sensor = result;
+
+    return location;
 }
 
 int train_stop_at_sensor(const int train, const int bank, const int num) {

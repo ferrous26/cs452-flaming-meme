@@ -76,9 +76,28 @@ static void action(command cmd, int args[]) {
         break;
     case QUIT:
         Shutdown();
-    case WHEREIS:
-        train_where_are_you(args[0]);
+    case WHEREIS: {
+        const track_location l = train_where_are_you(args[0]);
+
+        if (l.sensor == INVALID_TRAIN) {
+            log("Train %d does not exist", args[0]);
+        }
+        else if (l.sensor < 0) {
+            log("Failed to send message to train %d (%d)",
+                args[0], l.sensor);
+        }
+        else if (l.sensor == 80) {
+            log("Train %d does not know where it is", args[0]);
+        }
+        else {
+            const sensor s = pos_to_sensor(l.sensor);
+            log("Train %d is at %c%d %c %d cm",
+                args[0], s.bank, s.num,
+                l.offset >= 0 ? '+' : '-',
+                abs(l.offset) / 10000);
+        }
         break;
+    }
     case LOC_SPEED:
         train_set_speed(args[0], args[1]);
         break;

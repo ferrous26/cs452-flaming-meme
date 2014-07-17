@@ -558,6 +558,25 @@ static void master_short_move(master* const ctxt, const int offset) {
         ctxt->name, offset);
 }
 
+static inline void master_where_are_you(master* const ctxt,
+                                        const int tid,
+                                        const int time) {
+
+    const int current_offset =
+        physics_current_velocity(ctxt) * (time - ctxt->current_time);
+
+    const track_location l = {
+        .sensor = ctxt->current_sensor,
+        .offset = ctxt->current_offset + current_offset
+    };
+
+    const int result = Reply(tid, (char*)&l, sizeof(l));
+    assert(result == 0,
+           "[%s] Failed to respond to whereis command (%d)",
+           result);
+    UNUSED(result);
+}
+
 static inline void master_wait(master* const ctxt,
                                const blaster_req* const callin) {
 
@@ -781,6 +800,7 @@ void train_master() {
             continue;
 
         case MASTER_WHERE_ARE_YOU:
+            master_where_are_you(&context, req.arg1, time);
             break;
         case MASTER_STOP_AT_SENSOR:
             master_stop_at_sensor(&context, req.arg1);
