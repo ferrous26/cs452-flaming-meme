@@ -3,6 +3,7 @@
 #include <debug.h>
 #include <track_node.h>
 #include <char_buffer.h>
+#include <train.h>
 
 #include <tasks/priority.h>
 #include <tasks/path_worker.h>
@@ -10,7 +11,7 @@
 
 #include <tasks/path_admin.h>
 
-#define NUM_WORKERS 8
+#define NUM_WORKERS (NUM_TRAINS * 2)
 
 TYPE_BUFFER(int, NUM_WORKERS)
 
@@ -22,7 +23,7 @@ void path_admin() {
     int tid, result;
     pa_request req;
     const track_node* const track;
-    
+
     pa_context context;
     intb_init(&context.worker_pool);
 
@@ -47,8 +48,8 @@ void path_admin() {
         switch (req.type) {
         case PA_GET_PATH:
             assert(intb_count(&context.worker_pool) > 0,
-                   "called into admin while no workers are present"); 
-            
+                   "called into admin while no workers are present");
+
             int worker_id = intb_consume(&context.worker_pool);
             result = Reply(worker_id, (char*)&req.req, sizeof(req.req));
             assert(0 == result, "failed passing work to worker %d", worker_id);
@@ -68,4 +69,3 @@ void path_admin() {
         }
     }
 }
-

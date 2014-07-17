@@ -19,4 +19,3 @@ typedef struct {
 void __attribute__((noreturn)) path_admin(void);
 
 #endif
-

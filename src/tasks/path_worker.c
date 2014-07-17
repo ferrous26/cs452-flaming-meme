@@ -39,8 +39,8 @@ void path_worker() {
 
         response.response = req.req.header;
         response.size     = dijkstra(track,
-                                     &track[req.req.sensor_from],
-                                     &track[req.req.sensor_to],
+                                     track + req.req.sensor_from,
+                                     track + req.req.sensor_to,
                                      path);
 
         assert(response.size > 0, "No path exists to sensor %d",
@@ -53,4 +53,3 @@ void path_worker() {
                 req.req.requestor);
     }
 }
-
