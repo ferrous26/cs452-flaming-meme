@@ -17,6 +17,9 @@
 #include <tasks/train_master/types.c>
 #include <tasks/train_master/physics.c>
 
+#define TEMPORARY_ACCEL_FUDGE \
+    (ctxt->acceleration_time_fudge_factor - (ctxt->current_speed / 5))
+
 
 static void master_resume_short_moving(master* const ctxt, const int time);
 static void master_reverse_step1(master* const ctxt, const int time);
@@ -70,7 +73,7 @@ static void master_start_accelerate(master* const ctxt,
     } msg = {
         .head = {
             .type  = DELAY_ABSOLUTE,
-            .ticks = time + start_time + 50
+            .ticks = time + start_time + TEMPORARY_ACCEL_FUDGE
         },
         .req = {
             .type = MASTER_ACCELERATION_COMPLETE
@@ -596,34 +599,39 @@ static void master_init(master* const ctxt) {
     ctxt->path_finding_steps = -1;
 }
 
-static void master_init_courier(master* const ctxt) {
+static void master_init_delay_courier(master* const ctxt, int* c_tid) {
 
-    // Setup the acceleration timer
-    ctxt->acceleration_courier = Create(TIME_COURIER_PRIORITY, time_notifier);
-    assert(ctxt->acceleration_courier >= 0,
-           "[%s] Error setting up the time notifier (%d)",
-           ctxt->name, ctxt->acceleration_courier);
+    const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
+    assert(tid >= 0,
+           "[%s] Error setting up a timer notifier (%d)",
+           ctxt->name, tid);
 
     tnotify_header head = {
         .type  = DELAY_RELATIVE,
         .ticks = 0
     };
-    int result = Send(ctxt->acceleration_courier,
-                  (char*)&head, sizeof(head),
-                  NULL, 0);
+
+    int result = Send(tid, (char*)&head, sizeof(head), NULL, 0);
     assert(result >= 0,
-           "[%s] Failed to setup time notifier (%d)",
+           "[%s] Failed to setup timer notifier (%d)",
            ctxt->name, result);
 
-    int tid;
-    result = Receive(&tid, NULL, 0);
-    assert(tid == ctxt->acceleration_courier,
+    int crap;
+    result = Receive(&crap, NULL, 0);
+    assert(crap == tid,
            "[%s] Got response from incorrect task (%d != %d)",
-           ctxt->name, tid, ctxt->acceleration_courier);
+           ctxt->name, crap, tid);
+
+    *c_tid = tid;
 }
 
-static void master_init_courier2(master* const ctxt,
-                                const courier_package* const package) {
+static void master_init_delay_couriers(master* const ctxt) {
+    master_init_delay_courier(ctxt, &ctxt->acceleration_courier);
+    master_init_delay_courier(ctxt, &ctxt->checkpoint_courier);
+}
+
+static void master_init_sensor_courier(master* const ctxt,
+                                       const courier_package* const package) {
 
     // Now we can get down to bidness
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
@@ -663,9 +671,9 @@ void train_master() {
         .size     = sizeof(callin)
     };
 
-    master_init_courier(&context);
+    master_init_delay_couriers(&context);
     master_wait(&context, &callin);
-    master_init_courier2(&context, &package);
+    master_init_sensor_courier(&context, &package);
 
     int tid = 0;
     master_req req;

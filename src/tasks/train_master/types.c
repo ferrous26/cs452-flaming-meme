@@ -10,7 +10,7 @@
 #define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
 #define REVERSE_TIME_FUDGE_FACTOR         10    // cs
 #define STARTING_DISTANCE_OFFSET_DEFAULT  0     // um
-#define ACCELERATION_TIME_FUDGE_DEFAULT   10    // cs
+#define ACCELERATION_TIME_FUDGE_DEFAULT   20    // cs
 
 typedef enum {
     TRACK_THREE_WAY,
@@ -58,7 +58,8 @@ typedef struct master_context {
     int       train_gid;     // global identifier
     char      name[8];
 
-    int       acceleration_courier; // tid of the acceleration delay courier
+    int       acceleration_courier; // acceleration delay courier
+    int       checkpoint_courier;   // courier used to wake at checkpoints
     int       sensor_courier;       // tid of the blaster courier
     int       sensor_to_stop_at;    // special case for handling ss command
 

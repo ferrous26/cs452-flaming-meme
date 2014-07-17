@@ -162,7 +162,7 @@ velocity_type(const int sensor_idx) {
     case 78: return TRACK_INNER_CURVE;
     case 79: return TRACK_INNER_CURVE;
     default:
-        ABORT("No such sensor! (%d)", sensor_idx);
+        return TRACK_STRAIGHT;
     }
 }
 
@@ -170,7 +170,16 @@ static inline int
 physics_velocity(const master* const ctxt,
                  const int speed,
                  const track_type type) {
+
+    if (speed == 0) return 0;
     return ctxt->vmap[(speed / 10) - 1][type];
+}
+
+static inline int
+physics_current_velocity(const master* const ctxt) {
+    return physics_velocity(ctxt,
+                            ctxt->current_speed,
+                            velocity_type(ctxt->current_sensor));
 }
 
 static char* sprintf_sensor(char* ptr, const sensor* const s) {

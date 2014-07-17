@@ -33,25 +33,3 @@ kernel_enter:
 	b	syscall_handle
 	.size	kernel_enter, .-kernel_enter
 	.size	hwi_enter, .-hwi_enter
-
-	.align	2
-	.global	kernel_exit
-	.type	kernel_exit, %function
-kernel_exit:
-	@ r0 holds address of user stack
-	msr	cpsr, #0xDF		/* System */
-	mov	sp, r0
-	ldmfd	sp!, {r0-r11, lr}
-	msr	cpsr, #0xD3		/* Supervisor */
-
-	msr	spsr, r3
-	cmp	r2, #0
-	movnes	pc, r2
-
-	msr	cpsr, #0xDF		/* System */
-	mov	r0, sp
-	add	sp, sp, #20
-	msr	cpsr, #0xD3		/* Supervisor */
-
-	ldmfd	r0, {r0,r2,r3,r12,pc}^	/* ^ acts like movs when pc is in list */
-	.size	kernel_exit, .-kernel_exit
