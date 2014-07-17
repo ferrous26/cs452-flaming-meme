@@ -9,9 +9,9 @@
 #include <tasks/train_console.h>
 #include <tasks/train_server.h>
 #include <tasks/train_blaster.h>
-
+#include <tasks/path_admin.h>
+#include <tasks/path_worker.h>
 #include <tasks/mission_control.h>
-
 
 #include <tasks/train_master.h>
 #include <tasks/train_master/types.c>
@@ -33,34 +33,23 @@ master_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-static inline void
-master_update_velocity_ui(const master* const ctxt) {
-    // NOTE: we currently display in units of (integer) rounded off mm/s
-    char  buffer[32];
-    char* ptr = vt_goto(buffer,
-                        TRAIN_ROW + ctxt->train_id,
-                        TRAIN_SPEED_COL);;
+static void master_checkpoint(master* const ctxt, const int time) {
 
-    if (ctxt->current_direction > 0)
-        ptr = sprintf_string(ptr, COLOUR(CYAN));
-    else
-        ptr = sprintf_string(ptr, COLOUR(MAGENTA));
-
-    const char* const format =
-        ctxt->current_speed && ctxt->current_speed < 150 ?
-        "%d " COLOUR_RESET:
-        "-      " COLOUR_RESET;
-
-    const int type = velocity_type(ctxt->current_sensor);
-    const int    v = physics_velocity(ctxt, ctxt->current_speed, type);
-    ptr = sprintf(ptr, format, v / 10);
-
-    Puts(buffer, ptr - buffer);
+     // we need to checkpoint where we are right now
+    const track_type type = velocity_type(ctxt->current_sensor);
+    const int    velocity = physics_velocity(ctxt,
+                                             ctxt->last_speed,
+                                             type);
+    ctxt->current_offset += (velocity * (time - ctxt->current_time));
+    ctxt->current_time    = time;
 }
 
 static void master_start_accelerate(master* const ctxt,
                                     const int to_speed,
                                     const int time) {
+    assert(ctxt->accelerating == 0,
+           "[%s] Already accelerating",
+           ctxt->name);
     ctxt->accelerating = 1;
 
     // calculate when to wake up and send off that guy
@@ -76,7 +65,9 @@ static void master_start_accelerate(master* const ctxt,
             .ticks = time + start_time + TEMPORARY_ACCEL_FUDGE
         },
         .req = {
-            .type = MASTER_ACCELERATION_COMPLETE
+            .type = MASTER_ACCELERATION_COMPLETE,
+            .arg1 = start_dist,
+            .arg2 = start_time
         }
     };
 
@@ -86,21 +77,28 @@ static void master_start_accelerate(master* const ctxt,
         ABORT("[%s] Failed to send delay for acceleration (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
 
-
-    log("[%s] Accelerating to %d over %d um in %d ticks",
-        ctxt->name, to_speed, start_dist, start_time);
-
-    // shuffle state around
+    master_checkpoint(ctxt, time);
 }
 
 static void master_start_deccelerate(master* const ctxt,
                                      const int from_speed,
                                      const int time) {
+    assert(ctxt->accelerating == 0,
+           "[%s] Already accelerating",
+           ctxt->name);
     ctxt->accelerating = -1;
 
     // calculate when to wake up and send off that guy
     const int stop_dist = physics_stopping_distance(ctxt, from_speed);
     const int stop_time = physics_stopping_time(ctxt, stop_dist);
+
+    // figure out next event, because that will affect the
+    // stop_dist that we pass to the accel complete handler
+
+    // it will also affect what event we expect next and how
+    // to handle it
+
+    // we should also update our estimates if we can
 
     struct {
         tnotify_header head;
@@ -111,7 +109,9 @@ static void master_start_deccelerate(master* const ctxt,
             .ticks = time + stop_time
         },
         .req = {
-            .type = MASTER_ACCELERATION_COMPLETE
+            .type = MASTER_ACCELERATION_COMPLETE,
+            .arg1 = stop_dist,
+            .arg2 = time + stop_time
         }
     };
 
@@ -121,39 +121,35 @@ static void master_start_deccelerate(master* const ctxt,
         ABORT("[%s] Failed to send delay for decceleration (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
 
-    log("[%s] Deccelerating %d um over %d ticks",
-        ctxt->name, stop_dist, stop_time);
-
-
-    // shuffle state around
+    master_checkpoint(ctxt, time);
 }
 
 static void master_complete_accelerate(master* const ctxt,
-                                       const int time) {
-    ctxt->accelerating = 0;
+                                       const int dist_travelled,
+                                       const int time_taken,
+                                       const int timestamp) {
+    UNUSED(timestamp);
 
-    const track_type type = ctxt->current_sensor == 80 ?
-        TRACK_STRAIGHT : velocity_type(ctxt->current_sensor);
+    ctxt->accelerating    = 0;
+    ctxt->current_time   += time_taken;
+    ctxt->current_offset += dist_travelled;
 
-    ctxt->current_velocity = physics_velocity(ctxt,
-                                              ctxt->current_speed,
-                                              type);
+    ctxt->current_sensor_accelerating = false;
 
     if (ctxt->short_moving_distance)
-        master_resume_short_moving(ctxt, time);
-    else if (ctxt->reversing)
+        master_resume_short_moving(ctxt, time_taken);
+    else if (ctxt->reversing == 1)
         master_reverse_step2(ctxt);
-
-    log("[%s] Done acceleration", ctxt->name);
 }
 
 static void master_set_speed(master* const ctxt,
                              const int speed,
                              const int time) {
-    ctxt->last_speed    = ctxt->current_speed;
-    ctxt->current_speed = speed;
 
-    ctxt->last_time     = time; // time stamp the change in speed
+    ctxt->last_speed                  = ctxt->current_speed;
+    ctxt->current_sensor_accelerating = true;
+    ctxt->current_speed               = speed;
+
     put_train_speed(ctxt->train_gid, speed / 10);
 
     if (ctxt->last_speed == 0)
@@ -162,11 +158,10 @@ static void master_set_speed(master* const ctxt,
         master_start_deccelerate(ctxt, ctxt->last_speed, time);
     else
         log("[%s] Unsupported acceleration %d -> %d",
-            ctxt->name, ctxt->last_speed, ctxt->current_speed);
+            ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
 
-    // also need to update estimates
-
-    master_update_velocity_ui(ctxt);
+    //master_update_estimates(ctxt, time);
+    physics_update_velocity_ui(ctxt);
 }
 
 static void master_reverse_step1(master* const ctxt, const int time) {
@@ -174,7 +169,7 @@ static void master_reverse_step1(master* const ctxt, const int time) {
     if (ctxt->current_speed == 0) {
         // doesn't matter, had sex
         put_train_speed(ctxt->train_gid, TRAIN_REVERSE);
-        ctxt->current_direction = -ctxt->current_direction;
+        ctxt->direction = -ctxt->direction;
         return;
     }
 
@@ -203,13 +198,13 @@ static void master_reverse_step2(master* const ctxt) {
         ABORT("[%s] Failed to fudge delay reverse (%d)",
               ctxt->name, result);
 
-    ctxt->reversing = 0; // all done as far as acceleration logic is concerned
+    ctxt->reversing = 2; // all done as far as acceleration logic is concerned
 }
 
 static void master_reverse_step3(master* const ctxt) {
 
     put_train_speed(ctxt->train_gid, TRAIN_REVERSE);
-    ctxt->current_direction = -ctxt->current_direction;
+    ctxt->direction = -ctxt->direction;
 
     struct {
         tnotify_header head;
@@ -230,18 +225,102 @@ static void master_reverse_step3(master* const ctxt) {
     if (result < 0)
         ABORT("[%s] Failed to minor delay reverse (%d)",
               ctxt->name, result);
+
+    ctxt->reversing = 3;
 }
 
 static inline void master_reverse_step4(master* const ctxt, const int time) {
     master_set_speed(ctxt, ctxt->last_speed, time);
+    ctxt->reversing = 0;
+}
+
+static int master_try_fast_forward_route(master* const ctxt) {
+    log("[%s] Attempting to fast forward route", ctxt->name);
+
+    // TODO: fast forward!
+    return 0;
+}
+
+static void master_find_route_to(master* const ctxt,
+                                 const int destination,
+                                 const int offset) {
+
+    if (ctxt->destination == destination) {
+        if (master_try_fast_forward_route(ctxt))
+            return;
+
+        // TODO: try to rewind?
+
+        // TODO: handle the offset
+    }
+
+    // we may need to release the worker
+    if (ctxt->path_worker >= 0) {
+        const int result = Reply(ctxt->path_worker, NULL, 0);
+
+        UNUSED(result);
+        assert(result == 0,
+               "[%s] Failed to release path worker (%d)",
+               ctxt->name, result);
+
+        ctxt->path_worker = -1;
+    }
+
+    // Looks like we need to get the pather to show us a whole new path
+    // https://www.youtube.com/watch?v=-kl4hJ4j48s
+    ctxt->destination        = destination;
+    ctxt->destination_offset = offset;
+
+    const sensor s = pos_to_sensor(destination);
+    log("[%s] Finding a route to %c%d + %d cm",
+        ctxt->name, s.bank, s.num, offset);
+
+    pa_request request = {
+        .type = PA_GET_PATH,
+        .req  = {
+            .requestor   = ctxt->my_tid,
+            .header      = MASTER_PATH_DATA,
+            .sensor_to   = destination,
+            .sensor_from = ctxt->current_sensor // hmmmm
+        }
+    };
+
+    int   worker_tid;
+    const int result = Send(ctxt->path_admin,
+                            (char*)&request, sizeof(request),
+                            (char*)&worker_tid, sizeof(worker_tid));
+    assert(result <= 0,
+           "[%s] Failed to get path worker (%d)",
+           ctxt->name, result);
+    assert(worker_tid >= 0,
+           "[%s] Invalid path worker tid (%d)",
+           ctxt->name, worker_tid);
+    UNUSED(result);
+}
+
+static void master_path_update(master* const ctxt,
+                               const int tid,
+                               const int size,
+                               const path_node* path) {
+    ctxt->path_worker        = tid;
+    ctxt->path_finding_steps = size;
+    ctxt->path               = path;
+
+    // TODO: start looking through the path to see where we are...
+    //       and what we need to do right now
 }
 
 static inline void master_detect_train_direction(master* const ctxt,
                                                  const int sensor_hit,
                                                  const int time) {
-    if (ctxt->direction != DIRECTION_UNKNOWNN) return;
-
     const sensor s = pos_to_sensor(sensor_hit);
+
+    if (ctxt->direction != DIRECTION_UNKNOWN) {
+        log("[%s] Halp! I'm lost at %c%d", ctxt->name, s.bank, s.num);
+        // TODO: proper lost logic
+        return;
+    }
+
     if (s.bank == 'B') {
         ctxt->direction = DIRECTION_FORWARD;
         master_reverse_step1(ctxt, time);
@@ -250,157 +329,82 @@ static inline void master_detect_train_direction(master* const ctxt,
     }
 }
 
-static inline void __attribute__ ((unused))
-master_sensor_feedback(master* const ctxt,
-                       const int tid, // the courier
-                       const int sensor_hit,
-                       const int sensor_time,
-                       const int service_time) {
-
-    if (ctxt->sensor_to_stop_at == sensor_hit) {
-        master_set_speed(ctxt, 0, service_time);
-
-        ctxt->sensor_to_stop_at = 70;
-        const sensor hit = pos_to_sensor(sensor_hit);
-        log("[%s] Hit sensor %c%d at %d. Stopping!",
-            ctxt->name, hit.bank, hit.num, sensor_time);
-    }
-
-    assert(sensor_hit == ctxt->next_sensor,
-           "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
-
-    const track_type type = velocity_type(ctxt->current_sensor);
-    const int expected_v  = physics_velocity(ctxt,
-                                             ctxt->current_speed,
-                                             type);
-    const int actual_v = ctxt->current_distance /
-        (sensor_time - ctxt->current_time);
-    const int delta_v  = actual_v - expected_v;
-
-    // TODO: this should be a function of acceleration and not a
-    //       constant value
-    if (service_time - ctxt->accelerating > 500)
-        physics_feedback(ctxt, actual_v, expected_v);
-
-    ctxt->last_time      = ctxt->current_time;
-    ctxt->current_time   = sensor_time;
-    ctxt->last_distance  = ctxt->current_distance;
-    // current distance updated below
-    ctxt->last_sensor    = ctxt->current_sensor;
-    ctxt->current_sensor = sensor_hit;
-
-    int result = get_sensor_from(sensor_hit,
-                                 &ctxt->current_distance,
-                                 &ctxt->next_sensor);
-    assert(result == 0, "failed to get next sensor");
-    UNUSED(result);
-
-    // ZOMG, we are heading towards an exit!
-    if (ctxt->current_distance < 0)
-        master_reverse_step1(ctxt, service_time);
-
-    const track_type next_type = velocity_type(ctxt->current_sensor);
-    ctxt->current_velocity     = physics_velocity(ctxt,
-                                                  ctxt->current_speed,
-                                                  next_type);
-    ctxt->next_time = ctxt->current_distance / ctxt->current_velocity;
-
-    master_update_velocity_ui(ctxt);
-    physics_update_tracking_ui(ctxt, delta_v);
-
-    const int reply[3] = {
-        ctxt->current_sensor,
-        ctxt->next_sensor,
-        master_estimate_timeout(sensor_time, ctxt->next_time)
-    };
-    result = Reply(tid, (char*)&reply, sizeof(reply));
-    assert(result == 0, "failed to get next sensor");
-    UNUSED(result);
-}
-
-static inline void __attribute__ ((unused))
-master_unexpected_sensor_feedback(master* const ctxt,
-                                  const int tid, // the courier
-                                  const int sensor_hit,
-                                  const int sensor_time,
-                                  const int service_time) {
-    UNUSED(tid);
-
-    const sensor hit = pos_to_sensor(sensor_hit);
-    log("[%s] Lost position... %c%d", ctxt->name, hit.bank, hit.num);
-
-    ctxt->last_sensor    = ctxt->current_sensor;
-    ctxt->last_distance  = ctxt->current_distance;
-    ctxt->last_time      = ctxt->current_time;
-    ctxt->current_sensor = sensor_hit;
-    ctxt->current_time   = sensor_time;
-    // current_distance set below
-    // TODO: set other values
-
-    int result = get_sensor_from(sensor_hit,
-                                 &ctxt->current_distance,
-                                 &ctxt->next_sensor);
-    assert(result == 0, "failed to get next sensor %d", result);
-
-    // ZOMG, we are heading towards an exit!
-    if (ctxt->current_distance < 0)
-        master_reverse_step1(ctxt, service_time);
-
-    const track_type    type = velocity_type(ctxt->current_sensor);
-    ctxt->current_velocity   = physics_velocity(ctxt,
-                                                ctxt->current_speed,
-                                                type);
-    ctxt->next_time          = ctxt->current_distance / ctxt->current_velocity;
-
-    master_update_velocity_ui(ctxt);
-    physics_update_tracking_ui(ctxt, 0);
-
-    const int reply[3] = {
-        ctxt->current_sensor,
-        ctxt->next_sensor,
-        master_estimate_timeout(sensor_time, ctxt->next_time)
-    };
-
-    result = Reply(tid, (char*)&reply, sizeof(reply));
-    assert(result == 0, "failed to get next sensor");
-    UNUSED(result);
-}
-
 static inline void
 master_reset_simulation(master* const ctxt,
                         const int tid,
                         const master_req* const req,
                         const int service_time) {
 
-    master_unexpected_sensor_feedback(ctxt, tid, req->arg1, req->arg2, service_time);
+    const int      sensor_hit = req->arg1;
+    const int sensor_hit_time = req->arg2;
 
-    /* // use service_time because this might cause reverse and we */
-    /* // want to calculate reverse time from now, now from when the */
-    /* // sensor was hit */
-    /* master_detect_train_direction(ctxt, req->arg1, service_time); */
+    // need to pass the service_time in case we do a reverse
+    master_detect_train_direction(ctxt, sensor_hit, service_time);
 
-    /* // reset tracking state */
-    /* ctxt->simualting       = true; */
-    /* ctxt->current_landmark = LM_SENSOR; */
-    /* ctxt->current_sensor   = req->arg1; */
-    /* ctxt->current_distance = 3; // fill this out below */
-    /* ctxt->current_time     = req->arg2; */
-    /* ctxt->current_velocity = 3; // how do I fill this in */
+    // reset tracking state
+    ctxt->simulating       = false;
+    ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
+    ctxt->current_sensor   = sensor_hit;
+    // ctxt->current_distance = 0; // updated below
+    ctxt->last_offset      = 0;
+    ctxt->current_offset   = 0;
+    ctxt->current_time     = sensor_hit_time;
 
+    log("last is %d, current is %d, next is %d",
+        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
+    int result = get_sensor_from(sensor_hit,
+                                 &ctxt->current_distance,
+                                 &ctxt->next_sensor);
+    log("last is %d, current is %d, next is %d",
+        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
 
-    /* if (ctxt->path_finding_steps >= 0) { */
-    /*     // TODO: find a new path */
-    /* } */
+    assert(result == 0, "failed to get next sensor %d", result);
 
-    /* const int reply[3] = { */
-    /*     ctxt->current_sensor, */
-    /*     ctxt->next_sensor, */
-    /*     master_estimate_timeout(req->arg2, ctxt->next_time) */
-    /* }; */
+    const int velocity = physics_current_velocity(ctxt);
+    ctxt->next_time    = ctxt->current_distance / velocity;
 
-    /* const int result = Reply(tid, (char*)&reply, sizeof(reply)); */
-    /* assert(result == 0, "failed to get next sensor"); */
-    /* UNUSED(result); */
+    // TODO: we should probably hit speed 0, then do a reverse and
+    // plan how to get out of here
+    if (ctxt->current_distance < 0) {
+        master_reverse_step1(ctxt, service_time);
+        log("[%s] ZOMG, heading towards an exit! Reversing!", ctxt->name);
+    }
+
+    // TODO: If we redo the path and it starts with a reverse we may
+    // need to ignore the reverse if we just hit the revese above
+    if (ctxt->path_finding_steps >= 0)
+        master_find_route_to(ctxt,
+                             ctxt->destination,
+                             ctxt->destination_offset);
+
+    physics_update_velocity_ui(ctxt);
+    physics_update_tracking_ui(ctxt, 0);
+
+    const int reply[3] = {
+        ctxt->current_sensor,
+        ctxt->next_sensor,
+        master_estimate_timeout(sensor_hit_time, ctxt->next_time)
+    };
+
+    result = Reply(tid, (char*)&reply, sizeof(reply));
+    assert(result == 0, "failed to wait for next sensor");
+    UNUSED(result);
+}
+
+static inline void
+master_check_sensor_to_stop_at(master* const ctxt,
+                               const int sensor_hit,
+                               const int sensor_time,
+                               const int service_time) {
+
+    if (ctxt->sensor_to_stop_at != sensor_hit) return;
+
+    master_set_speed(ctxt, 0, service_time);
+
+    ctxt->sensor_to_stop_at = 80;
+    const sensor s = pos_to_sensor(sensor_hit);
+    log("[%s] Hit sensor %c%d at %d. Stopping!",
+        ctxt->name, s.bank, s.num, sensor_time);
 }
 
 static inline void
@@ -409,12 +413,74 @@ master_adjust_simulation(master* const ctxt,
                          const master_req* const req,
                          const int service_time) {
 
-    master_sensor_feedback(ctxt, tid, req->arg1, req->arg2, service_time);
+    const int  sensor_hit = req->arg1;
+    const int sensor_time = req->arg2;
 
+    assert(sensor_hit == ctxt->next_sensor,
+           "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
 
-    // only feedback if not accelerating and not just found
+    ctxt->simulating = true; // yay, simulation is in full force
 
-    // update all state
+    master_check_sensor_to_stop_at(ctxt,
+                                   sensor_hit,
+                                   sensor_time,
+                                   service_time);
+
+    const int expected_v = physics_current_velocity(ctxt);
+    const int   actual_v = ctxt->current_distance /
+        (sensor_time - ctxt->current_time);
+    const int    delta_v = actual_v - expected_v;
+
+    // only do feedback if we are in steady state
+    if (!(ctxt->last_sensor_accelerating &&
+          ctxt->current_sensor_accelerating))
+        physics_feedback(ctxt, actual_v, expected_v, delta_v);
+
+    ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
+    ctxt->last_sensor              = ctxt->current_sensor;
+    ctxt->last_distance            = ctxt->current_distance;
+    ctxt->last_offset              = 0;
+    ctxt->last_time                = ctxt->current_time;
+
+    ctxt->current_sensor           = sensor_hit;
+    // ctxt->current_distance         = 0; // this is looked up below
+    ctxt->current_offset           = 0;
+    ctxt->current_time             = sensor_time;
+
+    log("last is %d, current is %d, next is %d",
+        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
+    int result = get_sensor_from(sensor_hit,
+                                 &ctxt->current_distance,
+                                 &ctxt->next_sensor);
+    log("last is %d, current is %d, next is %d",
+        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
+
+    assert(result == 0,
+           "[%s] failed to get next sensor (%d)",
+           ctxt->name, result);
+    UNUSED(result);
+
+    if (ctxt->current_distance < 0) {
+        master_reverse_step1(ctxt, service_time);
+        log("[%s] ZOMG, heading towards an exit! Reversing!", ctxt->name);
+    }
+
+    const int velocity = physics_current_velocity(ctxt);
+    ctxt->next_time    = ctxt->current_distance / velocity;
+
+    physics_update_velocity_ui(ctxt);
+    physics_update_tracking_ui(ctxt, delta_v);
+
+    const int reply[3] = {
+        ctxt->current_sensor,
+        ctxt->next_sensor,
+        master_estimate_timeout(sensor_time, ctxt->next_time)
+    };
+    result = Reply(tid, (char*)&reply, sizeof(reply));
+    assert(result == 0,
+           "[%s] failed to get next sensor (%d)",
+           ctxt->name, result);
+    UNUSED(result);
 }
 
 static void master_stop_at_sensor(master* const ctxt, const int sensor_idx) {
@@ -438,7 +504,7 @@ static void master_resume_short_moving(master* const ctxt,
     // how much further to travel before throwing the stop command
     const int dist_remaining = ctxt->short_moving_distance - stop_dist;
 
-    const int stop_time = dist_remaining / ctxt->current_velocity;
+    const int stop_time = dist_remaining / physics_current_velocity(ctxt);
 
     struct {
         tnotify_header head;
@@ -467,14 +533,17 @@ static void master_short_move(master* const ctxt, const int offset) {
     const int offset_um = offset * 1000;
     const int  max_dist = offset_um;
 
+    // TODO: what we want to do is use sensor feedback to update
+    //       short move feedback
+
     for (int speed = 120; speed > 10; speed -= 10) {
 
         const int  stop_dist = physics_stopping_distance(ctxt, speed);
         const int start_dist = physics_starting_distance(ctxt, speed);
         const int   min_dist = stop_dist + start_dist;
 
-        log("Min dist for %d is %d (%d + %d). Looking for %d",
-            speed, min_dist, stop_dist, start_dist, max_dist);
+        //        log("Min dist for %d is %d (%d + %d). Looking for %d",
+        //            speed, min_dist, stop_dist, start_dist, max_dist);
 
         if (min_dist < max_dist) {
             log("[%s] Short move at speed %d", ctxt->name, speed / 10);
@@ -548,6 +617,7 @@ static inline void master_wait(master* const ctxt,
         case MASTER_REVERSE4:
         case MASTER_FINISH_SHORT_MOVE:
         case MASTER_WHERE_ARE_YOU:
+        case MASTER_PATH_DATA:
         case MASTER_SENSOR_TIMEOUT:
         case MASTER_SENSOR_FEEDBACK:
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
@@ -558,6 +628,9 @@ static inline void master_wait(master* const ctxt,
 
 static void master_init(master* const ctxt) {
     memset(ctxt, 0, sizeof(master));
+
+    ctxt->my_tid = myTid(); // cache it, avoid unneeded syscalls
+
     int tid, init[2];
     int result = Receive(&tid, (char*)init, sizeof(init));
 
@@ -598,6 +671,11 @@ static void master_init(master* const ctxt) {
     ctxt->last_sensor        = 80;
     ctxt->sensor_to_stop_at  = -1;
     ctxt->path_finding_steps = -1;
+
+    ctxt->path_admin         = WhoIs((char*)PATH_ADMIN_NAME);
+    assert(ctxt->path_admin >= 0,
+           "[%s] I started up before the path admin! (%d)",
+           ctxt->name, ctxt->path_admin);
 }
 
 static void master_init_delay_courier(master* const ctxt, int* c_tid) {
@@ -624,6 +702,7 @@ static void master_init_delay_courier(master* const ctxt, int* c_tid) {
            ctxt->name, crap, tid);
 
     *c_tid = tid;
+    UNUSED(ctxt);
 }
 
 static void master_init_delay_couriers(master* const ctxt) {
@@ -708,6 +787,13 @@ void train_master() {
             break;
         case MASTER_GOTO_LOCATION:
             break;
+        case MASTER_PATH_DATA:
+            master_path_update(&context,
+                               tid,
+                               req.arg1,
+                               (const path_node*)req.arg2);
+            continue;
+
         case MASTER_SHORT_MOVE:
             master_short_move(&context, req.arg1);
             break;
@@ -735,7 +821,7 @@ void train_master() {
             break;
 
         case MASTER_ACCELERATION_COMPLETE:
-            master_complete_accelerate(&context, time);
+            master_complete_accelerate(&context, req.arg1, req.arg2, time);
             continue;
 
         case MASTER_NEXT_NODE_ESTIMATE:
@@ -748,7 +834,7 @@ void train_master() {
             master_reset_simulation(&context, tid, &req, time);
             continue;
         case MASTER_SENSOR_TIMEOUT: {
-            log ("[%s] sensor timeout...", context.name);
+            log("[%s] sensor timeout...", context.name);
 
             int lost = 80;
             Reply(tid, (char*)&lost, sizeof(lost));
@@ -760,6 +846,8 @@ void train_master() {
                       context.name, req.type, tid);
         }
 
+        // TODO: does sizeof(callin) do what we want or does it go full
+        //       sized? we might be able to cut the message size in half
         result = Reply(tid, (char*)&callin, sizeof(callin));
         if (result)
             ABORT("[%s] Failed responding to command courier (%d)",

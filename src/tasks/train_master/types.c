@@ -22,6 +22,7 @@ typedef enum {
     TRACK_LONG_STRAIGHT,
     TRACK_BACK_CONNECT,
     TRACK_OUTER_STRAIGHT,
+    TRACK_BUTT,
     TRACK_TYPE_COUNT
 } track_type;
 
@@ -53,6 +54,7 @@ typedef struct {
 } cubic;
 
 typedef struct master_context {
+    int       my_tid;
     int       train_id;      // internal index
     int       train_gid;     // global identifier
     char      name[8];
@@ -79,19 +81,28 @@ typedef struct master_context {
     cubic     start_dist_map;
 
     bool      simulating;
-    int       path_finding_steps;
     int       short_moving_distance;
+
+    int        path_admin;         // tid of the path admin
+    int        path_worker;
+    int        destination;        // destination sensor
+    int        destination_offset; // in centimeters
+
+    int        path_finding_steps;
+    const path_node* path;
 
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates
 
+    bool      last_sensor_accelerating;
     int       last_sensor;      // previous-previous sensor hit
     int       last_distance;    // distance from previous-previous sensor to current_sensor
 
     int       last_offset;      // offset of last event between last_sensor and current_sensor
     int       last_time;        // time at last event between
 
-    int       current_sensor;   // sensor we hit last
+    bool      current_sensor_accelerating;
+    int       current_sensor;   // sensor we are currently travelling through
     int       current_distance; // distance from current_sensor to next_sensor
 
     int       current_offset;   // offset from last sensor when last event occurred
@@ -105,7 +116,7 @@ typedef struct master_context {
     int       accelerating;      // accelerating or deccelerating state
 
     // these are estimates
-    int       next_sensor;       // expected next sensor
+    int       next_sensor;       // expected next sensor hit
     int       next_time;         // estimated time of arrival at next landmark
 
     const track_node* const track;

@@ -182,6 +182,39 @@ physics_current_velocity(const master* const ctxt) {
                             velocity_type(ctxt->current_sensor));
 }
 
+static inline void
+physics_update_velocity_ui(const master* const ctxt) {
+
+    // NOTE: we currently display in units of (integer) rounded off mm/s
+
+    char  buffer[32];
+    char* ptr = vt_goto(buffer,
+                        TRAIN_ROW + ctxt->train_id,
+                        TRAIN_SPEED_COL);;
+
+    switch (ctxt->direction) {
+    case DIRECTION_BACKWARD:
+        ptr = sprintf_string(ptr, COLOUR(MAGENTA));
+        break;
+    case DIRECTION_UNKNOWN:
+        ptr = sprintf_string(ptr, COLOUR(BG_RED) COLOUR(BLACK));
+        break;
+    case DIRECTION_FORWARD:
+        ptr = sprintf_string(ptr, COLOUR(CYAN));
+        break;
+    }
+
+    const char* const format =
+        ctxt->current_speed && ctxt->current_speed < 150 ?
+        "%d "     COLOUR_RESET:
+        "-      " COLOUR_RESET;
+
+    const int v = physics_current_velocity(ctxt);
+    ptr = sprintf(ptr, format, v / 10);
+
+    Puts(buffer, ptr - buffer);
+}
+
 static char* sprintf_sensor(char* ptr, const sensor* const s) {
     if (s->num < 10)
         return sprintf(ptr, "%c0%d ", s->bank, s->num);
@@ -211,18 +244,17 @@ physics_update_tracking_ui(master* const ctxt, const int delta_v) {
     // if previous delta was an order of larger than it should have been
     ptr = sprintf_char(ptr, ' ');
 
-    Puts(buffer, ptr-buffer);
+    Puts(buffer, ptr - buffer);
 }
 
 static inline void
 physics_feedback(master* const ctxt,
                  const int actual_v,
-                 const int expected_v) {
+                 const int expected_v,
+                 const int delta_v) {
 
     // do not feedback while accelerating
     if (ctxt->current_speed == 0) return;
-
-    const int delta_v = actual_v - expected_v;
 
     if (abs(delta_v) > ctxt->feedback_threshold) {
         const sensor s = pos_to_sensor(ctxt->current_sensor);
@@ -234,7 +266,7 @@ physics_feedback(master* const ctxt,
         return;
     }
 
-    const int type = velocity_type(ctxt->last_sensor);
+    const int type = velocity_type(ctxt->current_sensor);
     const int speed_idx = (ctxt->current_speed / 10) - 1;
 
     switch (ctxt->feedback_ratio) {
