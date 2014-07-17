@@ -33,6 +33,18 @@ master_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
+static int master_create_new_delay_courier(master* const ctxt) {
+
+    const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
+
+    assert(tid >= 0,
+           "[%s] Error setting up a timer notifier (%d)",
+           ctxt->name, tid);
+    UNUSED(ctxt);
+
+    return tid;
+}
+
 static void master_checkpoint(master* const ctxt, const int time) {
 
      // we need to checkpoint where we are right now
@@ -47,9 +59,16 @@ static void master_checkpoint(master* const ctxt, const int time) {
 static void master_start_accelerate(master* const ctxt,
                                     const int to_speed,
                                     const int time) {
-    assert(ctxt->accelerating == 0,
-           "[%s] Already accelerating",
-           ctxt->name);
+
+    bool new_courier = false;
+
+    if (ctxt->accelerating != 0) {
+        log("[%s] Cancelling previous accel., estimates will be fucked up",
+            ctxt->name);
+        ctxt->acceleration_courier = master_create_new_delay_courier(ctxt);
+        new_courier = true;
+    }
+
     ctxt->accelerating = 1;
 
     // calculate when to wake up and send off that guy
@@ -71,11 +90,19 @@ static void master_start_accelerate(master* const ctxt,
         }
     };
 
-    const int result = Reply(ctxt->acceleration_courier,
-                             (char*)&msg, sizeof(msg));
+
+    int result;
+
+    if (new_courier)
+        result = Send(ctxt->acceleration_courier,
+                      (char*)&msg, sizeof(msg),
+                      NULL , 0);
+    else
+        result = Reply(ctxt->acceleration_courier, (char*)&msg, sizeof(msg));
+
     if (result < 0)
-        ABORT("[%s] Failed to send delay for acceleration (%d) to %d",
-              ctxt->name, result, ctxt->acceleration_courier);
+        ABORT("[%s] Failed to send delay for acceleration (%d) to %d (%d)",
+              ctxt->name, result, ctxt->acceleration_courier, new_courier);
 
     master_checkpoint(ctxt, time);
 }
@@ -83,9 +110,16 @@ static void master_start_accelerate(master* const ctxt,
 static void master_start_deccelerate(master* const ctxt,
                                      const int from_speed,
                                      const int time) {
-    assert(ctxt->accelerating == 0,
-           "[%s] Already accelerating",
-           ctxt->name);
+
+    bool new_courier = false;
+
+    if (ctxt->accelerating != 0) {
+        log("[%s] Cancelling previous accel., estimates will be fucked up",
+            ctxt->name);
+        ctxt->acceleration_courier = master_create_new_delay_courier(ctxt);
+        new_courier = true;
+    }
+
     ctxt->accelerating = -1;
 
     // calculate when to wake up and send off that guy
@@ -115,8 +149,16 @@ static void master_start_deccelerate(master* const ctxt,
         }
     };
 
-    const int result = Reply(ctxt->acceleration_courier,
-                             (char*)&msg, sizeof(msg));
+
+    int result;
+
+    if (new_courier)
+        result = Send(ctxt->acceleration_courier,
+                      (char*)&msg, sizeof(msg),
+                      NULL, 0);
+    else
+        result = Reply(ctxt->acceleration_courier, (char*)&msg, sizeof(msg));
+
     if (result < 0)
         ABORT("[%s] Failed to send delay for decceleration (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
@@ -125,10 +167,19 @@ static void master_start_deccelerate(master* const ctxt,
 }
 
 static void master_complete_accelerate(master* const ctxt,
+                                       const int tid,
                                        const int dist_travelled,
-                                       const int time_taken,
-                                       const int timestamp) {
-    UNUSED(timestamp);
+                                       const int time_taken) {
+
+    if (tid != ctxt->acceleration_courier) {
+        // message came from cancelled acceleration, so we will ignore
+        // the data and tell the courier to die (politely)
+        const int result = Reply(tid, NULL, 0);
+        UNUSED(result);
+        assert(result == 0,
+               "[%s] Failed to kill old delay courier (%d)",
+               ctxt->name, result);
+    }
 
     ctxt->accelerating    = 0;
     ctxt->current_time   += time_taken;
@@ -145,6 +196,13 @@ static void master_complete_accelerate(master* const ctxt,
 static void master_set_speed(master* const ctxt,
                              const int speed,
                              const int time) {
+
+    // if we are reversing, then store the speed such that the reverse
+    // will choose that speed when it finishes
+    if (ctxt->reversing) {
+        ctxt->last_speed = ctxt->current_speed;
+        return;
+    }
 
     ctxt->last_speed                  = ctxt->current_speed;
     ctxt->current_sensor_accelerating = true;
@@ -216,7 +274,6 @@ static void master_reverse_step3(master* const ctxt) {
         },
         .req = {
             .type = MASTER_REVERSE4,
-            .arg1 = ctxt->last_speed
         }
     };
 
@@ -699,10 +756,7 @@ static void master_init(master* const ctxt) {
 
 static void master_init_delay_courier(master* const ctxt, int* c_tid) {
 
-    const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
-    assert(tid >= 0,
-           "[%s] Error setting up a timer notifier (%d)",
-           ctxt->name, tid);
+    const int tid = master_create_new_delay_courier(ctxt);
 
     tnotify_header head = {
         .type  = DELAY_RELATIVE,
