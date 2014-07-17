@@ -431,6 +431,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[1][6] = 757;
         ctxt->vmap[1][7] = 757;
         ctxt->vmap[1][8] = 757;
+        ctxt->vmap[1][9] = 757;
         ctxt->vmap[2][0] = 1249;
         ctxt->vmap[2][1] = 1249;
         ctxt->vmap[2][2] = 1249;
@@ -440,6 +441,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[2][6] = 1249;
         ctxt->vmap[2][7] = 1249;
         ctxt->vmap[2][8] = 1249;
+        ctxt->vmap[2][9] = 1249;
         ctxt->vmap[3][0] = 1726;
         ctxt->vmap[3][1] = 1726;
         ctxt->vmap[3][2] = 1726;
@@ -449,6 +451,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3][6] = 1726;
         ctxt->vmap[3][7] = 1726;
         ctxt->vmap[3][8] = 1726;
+        ctxt->vmap[3][9] = 1726;
         ctxt->vmap[4][0] = 2283;
         ctxt->vmap[4][1] = 2283;
         ctxt->vmap[4][2] = 2283;
@@ -458,6 +461,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[4][6] = 2283;
         ctxt->vmap[4][7] = 2283;
         ctxt->vmap[4][8] = 2283;
+        ctxt->vmap[4][9] = 2283;
         ctxt->vmap[5][0] = 2826;
         ctxt->vmap[5][1] = 2826;
         ctxt->vmap[5][2] = 2826;
@@ -467,6 +471,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[5][6] = 2826;
         ctxt->vmap[5][7] = 2826;
         ctxt->vmap[5][8] = 2826;
+        ctxt->vmap[5][9] = 2826;
         ctxt->vmap[6][0] = 3441;
         ctxt->vmap[6][1] = 3441;
         ctxt->vmap[6][2] = 3441;
@@ -476,6 +481,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[6][6] = 3441;
         ctxt->vmap[6][7] = 3441;
         ctxt->vmap[6][8] = 3441;
+        ctxt->vmap[6][9] = 3441;
         ctxt->vmap[7][0] = 3790;
         ctxt->vmap[7][1] = 3790;
         ctxt->vmap[7][2] = 3790;
@@ -485,6 +491,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[7][6] = 3790;
         ctxt->vmap[7][7] = 3790;
         ctxt->vmap[7][8] = 3790;
+        ctxt->vmap[7][9] = 3790;
         ctxt->vmap[8][0] = 4212;
         ctxt->vmap[8][1] = 4212;
         ctxt->vmap[8][2] = 4212;
@@ -494,6 +501,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[8][6] = 4212;
         ctxt->vmap[8][7] = 4212;
         ctxt->vmap[8][8] = 4212;
+        ctxt->vmap[8][9] = 4212;
         ctxt->vmap[9][0] = 4570;
         ctxt->vmap[9][1] = 4570;
         ctxt->vmap[9][2] = 4570;
@@ -503,6 +511,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[9][6] = 4570;
         ctxt->vmap[9][7] = 4570;
         ctxt->vmap[9][8] = 4570;
+        ctxt->vmap[9][9] = 4570;
         ctxt->vmap[10][0] = 4994;
         ctxt->vmap[10][1] = 4994;
         ctxt->vmap[10][2] = 4994;
@@ -512,6 +521,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[10][6] = 4994;
         ctxt->vmap[10][7] = 4994;
         ctxt->vmap[10][8] = 4994;
+        ctxt->vmap[10][9] = 4994;
         ctxt->vmap[11][0] = 4869;
         ctxt->vmap[11][1] = 4869;
         ctxt->vmap[11][2] = 4869;
@@ -521,6 +531,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[11][6] = 4869;
         ctxt->vmap[11][7] = 4869;
         ctxt->vmap[11][8] = 4869;
+        ctxt->vmap[11][9] = 4869;
         ctxt->vmap[12][0] = 4747;
         ctxt->vmap[12][1] = 4747;
         ctxt->vmap[12][2] = 4747;
@@ -530,6 +541,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[12][6] = 4747;
         ctxt->vmap[12][7] = 4747;
         ctxt->vmap[12][8] = 4747;
+        ctxt->vmap[12][9] = 4747;
         ctxt->vmap[13][0] = 4440;
         ctxt->vmap[13][1] = 4440;
         ctxt->vmap[13][2] = 4440;
@@ -539,6 +551,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[13][6] = 4440;
         ctxt->vmap[13][7] = 4440;
         ctxt->vmap[13][8] = 4440;
+        ctxt->vmap[13][9] = 4440;
         break;
 
     case 1: // train 47
@@ -597,6 +610,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[1][6] = 757;
         ctxt->vmap[1][7] = 753;
         ctxt->vmap[1][8] = 759;
+        ctxt->vmap[1][9] = 759;
         ctxt->vmap[2][0] = 1284;
         ctxt->vmap[2][1] = 1284;
         ctxt->vmap[2][2] = 1284;
@@ -606,6 +620,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[2][6] = 1284;
         ctxt->vmap[2][7] = 1284;
         ctxt->vmap[2][8] = 1284;
+        ctxt->vmap[2][9] = 1284;
         ctxt->vmap[3][0] = 1690;
         ctxt->vmap[3][1] = 1659;
         ctxt->vmap[3][2] = 1454;
@@ -615,6 +630,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3][6] = 1700;
         ctxt->vmap[3][7] = 1667;
         ctxt->vmap[3][8] = 1729;
+        ctxt->vmap[3][9] = 1729;
         ctxt->vmap[4][0] = 2370;
         ctxt->vmap[4][1] = 2364;
         ctxt->vmap[4][2] = 2364;
@@ -624,6 +640,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[4][6] = 2367;
         ctxt->vmap[4][7] = 2369;
         ctxt->vmap[4][8] = 2373;
+        ctxt->vmap[4][9] = 2373;
         ctxt->vmap[5][0] = 2921;
         ctxt->vmap[5][1] = 2921;
         ctxt->vmap[5][2] = 2921;
@@ -633,6 +650,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[5][6] = 2919;
         ctxt->vmap[5][7] = 2892;
         ctxt->vmap[5][8] = 2907;
+        ctxt->vmap[5][9] = 2907;
         ctxt->vmap[6][0] = 3488;
         ctxt->vmap[6][1] = 3488;
         ctxt->vmap[6][2] = 3488;
@@ -642,6 +660,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[6][6] = 3488;
         ctxt->vmap[6][7] = 3488;
         ctxt->vmap[6][8] = 3488;
+        ctxt->vmap[6][9] = 3488;
         ctxt->vmap[7][0] = 3666;
         ctxt->vmap[7][1] = 3696;
         ctxt->vmap[7][2] = 3697;
@@ -651,6 +670,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[7][6] = 3735;
         ctxt->vmap[7][7] = 3725;
         ctxt->vmap[7][8] = 3765;
+        ctxt->vmap[7][9] = 3765;
         ctxt->vmap[8][0] = 4341;
         ctxt->vmap[8][1] = 4341;
         ctxt->vmap[8][2] = 4341;
@@ -660,6 +680,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[8][6] = 4341;
         ctxt->vmap[8][7] = 4341;
         ctxt->vmap[8][8] = 4341;
+        ctxt->vmap[8][9] = 4341;
         ctxt->vmap[9][0] = 4673;
         ctxt->vmap[9][1] = 4673;
         ctxt->vmap[9][2] = 4673;
@@ -669,6 +690,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[9][6] = 4791;
         ctxt->vmap[9][7] = 4824;
         ctxt->vmap[9][8] = 4732;
+        ctxt->vmap[9][9] = 4732;
         ctxt->vmap[10][0] = 4931;
         ctxt->vmap[10][1] = 4817;
         ctxt->vmap[10][2] = 4787;
@@ -678,6 +700,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[10][6] = 4792;
         ctxt->vmap[10][7] = 4761;
         ctxt->vmap[10][8] = 4931;
+        ctxt->vmap[10][9] = 4931;
         ctxt->vmap[11][0] = 5565;
         ctxt->vmap[11][1] = 5824;
         ctxt->vmap[11][2] = 5574;
@@ -687,6 +710,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[11][6] = 5701;
         ctxt->vmap[11][7] = 5758;
         ctxt->vmap[11][8] = 5615;
+        ctxt->vmap[11][9] = 5615;
         ctxt->vmap[12][0] = 4931;
         ctxt->vmap[12][1] = 4931;
         ctxt->vmap[12][2] = 4931;
@@ -696,6 +720,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[12][6] = 4931;
         ctxt->vmap[12][7] = 4931;
         ctxt->vmap[12][8] = 4931;
+        ctxt->vmap[12][9] = 4931;
         ctxt->vmap[13][0] = 4808;
         ctxt->vmap[13][1] = 4808;
         ctxt->vmap[13][2] = 4808;
@@ -705,6 +730,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[13][6] = 4808;
         ctxt->vmap[13][7] = 4787;
         ctxt->vmap[13][8] = 4808;
+        ctxt->vmap[13][9] = 4808;
         break;
 
     case 2: // train 48
@@ -754,6 +780,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[0][6] = 244;
         ctxt->vmap[0][7] = 244;
         ctxt->vmap[0][8] = 244;
+        ctxt->vmap[0][9] = 244;
         ctxt->vmap[1][0] = 752;
         ctxt->vmap[1][1] = 763;
         ctxt->vmap[1][2] = 772;
@@ -763,6 +790,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[1][6] = 750;
         ctxt->vmap[1][7] = 750;
         ctxt->vmap[1][8] = 750;
+        ctxt->vmap[1][9] = 750;
         ctxt->vmap[2][0] = 1250;
         ctxt->vmap[2][1] = 1250;
         ctxt->vmap[2][2] = 1250;
@@ -772,6 +800,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[2][6] = 1250;
         ctxt->vmap[2][7] = 1250;
         ctxt->vmap[2][8] = 1250;
+        ctxt->vmap[2][9] = 1250;
         ctxt->vmap[3][0] = 1758;
         ctxt->vmap[3][1] = 1756;
         ctxt->vmap[3][2] = 1878;
@@ -781,6 +810,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3][6] = 1749;
         ctxt->vmap[3][7] = 1749;
         ctxt->vmap[3][8] = 1749;
+        ctxt->vmap[3][9] = 1749;
         ctxt->vmap[4][0] = 2319;
         ctxt->vmap[4][1] = 2319;
         ctxt->vmap[4][2] = 2319;
@@ -790,6 +820,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[4][6] = 2319;
         ctxt->vmap[4][7] = 2319;
         ctxt->vmap[4][8] = 2319;
+        ctxt->vmap[4][9] = 2319;
         ctxt->vmap[5][0] = 2824;
         ctxt->vmap[5][1] = 2834;
         ctxt->vmap[5][2] = 2955;
@@ -799,6 +830,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[5][6] = 2846;
         ctxt->vmap[5][7] = 2846;
         ctxt->vmap[5][8] = 2846;
+        ctxt->vmap[5][9] = 2846;
         ctxt->vmap[6][0] = 3347;
         ctxt->vmap[6][1] = 3347;
         ctxt->vmap[6][2] = 3347;
@@ -808,6 +840,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[6][6] = 3347;
         ctxt->vmap[6][7] = 3347;
         ctxt->vmap[6][8] = 3347;
+        ctxt->vmap[6][9] = 3347;
         ctxt->vmap[7][0] = 3761;
         ctxt->vmap[7][1] = 3866;
         ctxt->vmap[7][2] = 3922;
@@ -817,6 +850,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[7][6] = 3748;
         ctxt->vmap[7][7] = 3748;
         ctxt->vmap[7][8] = 3748;
+        ctxt->vmap[7][9] = 3748;
         ctxt->vmap[8][0] = 4116;
         ctxt->vmap[8][1] = 4116;
         ctxt->vmap[8][2] = 4116;
@@ -826,6 +860,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[8][6] = 4116;
         ctxt->vmap[8][7] = 4116;
         ctxt->vmap[8][8] = 4116;
+        ctxt->vmap[8][9] = 4116;
         ctxt->vmap[9][0] = 4579;
         ctxt->vmap[9][1] = 4595;
         ctxt->vmap[9][2] = 4857;
@@ -835,6 +870,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[9][6] = 4597;
         ctxt->vmap[9][7] = 4597;
         ctxt->vmap[9][8] = 4597;
+        ctxt->vmap[9][9] = 4597;
         ctxt->vmap[10][0] = 5060;
         ctxt->vmap[10][1] = 5060;
         ctxt->vmap[10][2] = 5060;
@@ -844,6 +880,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[10][6] = 5060;
         ctxt->vmap[10][7] = 5060;
         ctxt->vmap[10][8] = 5060;
+        ctxt->vmap[10][9] = 5060;
         ctxt->vmap[11][0] = 5193;
         ctxt->vmap[11][1] = 5339;
         ctxt->vmap[11][2] = 5447;
@@ -853,6 +890,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[11][6] = 5161;
         ctxt->vmap[11][7] = 5161;
         ctxt->vmap[11][8] = 5161;
+        ctxt->vmap[11][9] = 5161;
         ctxt->vmap[12][0] = 5044;
         ctxt->vmap[12][1] = 5044;
         ctxt->vmap[12][2] = 5044;
@@ -862,6 +900,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[12][6] = 5044;
         ctxt->vmap[12][7] = 5044;
         ctxt->vmap[12][8] = 5044;
+        ctxt->vmap[12][9] = 5044;
         ctxt->vmap[13][0] = 4793;
         ctxt->vmap[13][1] = 4793;
         ctxt->vmap[13][2] = 4793;
@@ -871,6 +910,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[13][6] = 4793;
         ctxt->vmap[13][7] = 4793;
         ctxt->vmap[13][8] = 4793;
+        ctxt->vmap[13][9] = 4793;
         break;
 
     case 3: // Train 49
@@ -929,6 +969,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[1][6] = 796;
         ctxt->vmap[1][7] = 796;
         ctxt->vmap[1][8] = 796;
+        ctxt->vmap[1][9] = 796;
         ctxt->vmap[2][0] = 1316;
         ctxt->vmap[2][1] = 1316;
         ctxt->vmap[2][2] = 1316;
@@ -938,6 +979,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[2][6] = 1316;
         ctxt->vmap[2][7] = 1316;
         ctxt->vmap[2][8] = 1316;
+        ctxt->vmap[2][9] = 1316;
         ctxt->vmap[3][0] = 1820;
         ctxt->vmap[3][1] = 1820;
         ctxt->vmap[3][2] = 1820;
@@ -947,6 +989,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3][6] = 1820;
         ctxt->vmap[3][7] = 1820;
         ctxt->vmap[3][8] = 1820;
+        ctxt->vmap[3][9] = 1820;
         ctxt->vmap[4][0] = 2330;
         ctxt->vmap[4][1] = 2330;
         ctxt->vmap[4][2] = 2330;
@@ -956,6 +999,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[4][6] = 2330;
         ctxt->vmap[4][7] = 2330;
         ctxt->vmap[4][8] = 2330;
+        ctxt->vmap[4][9] = 2330;
         ctxt->vmap[5][0] = 2861;
         ctxt->vmap[5][1] = 2861;
         ctxt->vmap[5][2] = 2861;
@@ -965,6 +1009,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[5][6] = 2861;
         ctxt->vmap[5][7] = 2861;
         ctxt->vmap[5][8] = 2861;
+        ctxt->vmap[5][9] = 2861;
         ctxt->vmap[6][0] = 3438;
         ctxt->vmap[6][1] = 3438;
         ctxt->vmap[6][2] = 3438;
@@ -974,6 +1019,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[6][6] = 3438;
         ctxt->vmap[6][7] = 3438;
         ctxt->vmap[6][8] = 3438;
+        ctxt->vmap[6][9] = 3438;
         ctxt->vmap[7][0] = 3967;
         ctxt->vmap[7][1] = 3967;
         ctxt->vmap[7][2] = 3967;
@@ -983,6 +1029,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[7][6] = 3967;
         ctxt->vmap[7][7] = 3967;
         ctxt->vmap[7][8] = 3967;
+        ctxt->vmap[7][9] = 3967;
         ctxt->vmap[8][0] = 4482;
         ctxt->vmap[8][1] = 4482;
         ctxt->vmap[8][2] = 4482;
@@ -992,6 +1039,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[8][6] = 4482;
         ctxt->vmap[8][7] = 4482;
         ctxt->vmap[8][8] = 4482;
+        ctxt->vmap[8][9] = 4482;
         ctxt->vmap[9][0] = 5130;
         ctxt->vmap[9][1] = 5130;
         ctxt->vmap[9][2] = 5130;
@@ -1001,6 +1049,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[9][6] = 5130;
         ctxt->vmap[9][7] = 5130;
         ctxt->vmap[9][8] = 5130;
+        ctxt->vmap[9][9] = 5130;
         ctxt->vmap[10][0] = 5556;
         ctxt->vmap[10][1] = 5556;
         ctxt->vmap[10][2] = 5556;
@@ -1010,6 +1059,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[10][6] = 5556;
         ctxt->vmap[10][7] = 5556;
         ctxt->vmap[10][8] = 5556;
+        ctxt->vmap[10][9] = 5556;
         ctxt->vmap[11][0] = 5598;
         ctxt->vmap[11][1] = 5598;
         ctxt->vmap[11][2] = 5598;
@@ -1019,6 +1069,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[11][6] = 5598;
         ctxt->vmap[11][7] = 5598;
         ctxt->vmap[11][8] = 5598;
+        ctxt->vmap[11][9] = 5598;
         ctxt->vmap[12][0] = 5324;
         ctxt->vmap[12][1] = 5324;
         ctxt->vmap[12][2] = 5324;
@@ -1028,6 +1079,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[12][6] = 5324;
         ctxt->vmap[12][7] = 5324;
         ctxt->vmap[12][8] = 5324;
+        ctxt->vmap[12][9] = 5324;
         ctxt->vmap[13][0] = 5093;
         ctxt->vmap[13][1] = 5093;
         ctxt->vmap[13][2] = 5093;
@@ -1037,6 +1089,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[13][6] = 5093;
         ctxt->vmap[13][7] = 5093;
         ctxt->vmap[13][8] = 5093;
+        ctxt->vmap[13][9] = 5093;
         break;
 
     default: // just to get us started on new trains
@@ -1097,6 +1150,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[1][6] = 796;
         ctxt->vmap[1][7] = 796;
         ctxt->vmap[1][8] = 796;
+        ctxt->vmap[1][9] = 796;
         ctxt->vmap[2][0] = 1316;
         ctxt->vmap[2][1] = 1316;
         ctxt->vmap[2][2] = 1316;
@@ -1106,6 +1160,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[2][6] = 1316;
         ctxt->vmap[2][7] = 1316;
         ctxt->vmap[2][8] = 1316;
+        ctxt->vmap[2][9] = 1316;
         ctxt->vmap[3][0] = 1820;
         ctxt->vmap[3][1] = 1820;
         ctxt->vmap[3][2] = 1820;
@@ -1115,6 +1170,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[3][6] = 1820;
         ctxt->vmap[3][7] = 1820;
         ctxt->vmap[3][8] = 1820;
+        ctxt->vmap[3][9] = 1820;
         ctxt->vmap[4][0] = 2330;
         ctxt->vmap[4][1] = 2330;
         ctxt->vmap[4][2] = 2330;
@@ -1124,6 +1180,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[4][6] = 2330;
         ctxt->vmap[4][7] = 2330;
         ctxt->vmap[4][8] = 2330;
+        ctxt->vmap[4][9] = 2330;
         ctxt->vmap[5][0] = 2861;
         ctxt->vmap[5][1] = 2861;
         ctxt->vmap[5][2] = 2861;
@@ -1133,6 +1190,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[5][6] = 2861;
         ctxt->vmap[5][7] = 2861;
         ctxt->vmap[5][8] = 2861;
+        ctxt->vmap[5][9] = 2861;
         ctxt->vmap[6][0] = 3438;
         ctxt->vmap[6][1] = 3438;
         ctxt->vmap[6][2] = 3438;
@@ -1142,6 +1200,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[6][6] = 3438;
         ctxt->vmap[6][7] = 3438;
         ctxt->vmap[6][8] = 3438;
+        ctxt->vmap[6][9] = 3438;
         ctxt->vmap[7][0] = 3967;
         ctxt->vmap[7][1] = 3967;
         ctxt->vmap[7][2] = 3967;
@@ -1151,6 +1210,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[7][6] = 3967;
         ctxt->vmap[7][7] = 3967;
         ctxt->vmap[7][8] = 3967;
+        ctxt->vmap[7][9] = 3967;
         ctxt->vmap[8][0] = 4482;
         ctxt->vmap[8][1] = 4482;
         ctxt->vmap[8][2] = 4482;
@@ -1160,6 +1220,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[8][6] = 4482;
         ctxt->vmap[8][7] = 4482;
         ctxt->vmap[8][8] = 4482;
+        ctxt->vmap[8][9] = 4482;
         ctxt->vmap[9][0] = 5130;
         ctxt->vmap[9][1] = 5130;
         ctxt->vmap[9][2] = 5130;
@@ -1169,6 +1230,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[9][6] = 5130;
         ctxt->vmap[9][7] = 5130;
         ctxt->vmap[9][8] = 5130;
+        ctxt->vmap[9][9] = 5130;
         ctxt->vmap[10][0] = 5556;
         ctxt->vmap[10][1] = 5556;
         ctxt->vmap[10][2] = 5556;
@@ -1178,6 +1240,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[10][6] = 5556;
         ctxt->vmap[10][7] = 5556;
         ctxt->vmap[10][8] = 5556;
+        ctxt->vmap[10][9] = 5556;
         ctxt->vmap[11][0] = 5598;
         ctxt->vmap[11][1] = 5598;
         ctxt->vmap[11][2] = 5598;
@@ -1187,6 +1250,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[11][6] = 5598;
         ctxt->vmap[11][7] = 5598;
         ctxt->vmap[11][8] = 5598;
+        ctxt->vmap[11][9] = 5598;
         ctxt->vmap[12][0] = 5324;
         ctxt->vmap[12][1] = 5324;
         ctxt->vmap[12][2] = 5324;
@@ -1196,6 +1260,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[12][6] = 5324;
         ctxt->vmap[12][7] = 5324;
         ctxt->vmap[12][8] = 5324;
+        ctxt->vmap[12][9] = 5324;
         ctxt->vmap[13][0] = 5093;
         ctxt->vmap[13][1] = 5093;
         ctxt->vmap[13][2] = 5093;
@@ -1205,6 +1270,7 @@ static inline void master_init_physics(master* const ctxt) {
         ctxt->vmap[13][6] = 5093;
         ctxt->vmap[13][7] = 5093;
         ctxt->vmap[13][8] = 5093;
+        ctxt->vmap[13][9] = 5093;
         break;
     }
 }
