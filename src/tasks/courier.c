@@ -158,7 +158,12 @@ void courier() {
     assert(result == sizeof(package),
            "Courier got invalid package from %d %d/%d",
            tid, result, sizeof(package));
-    memcpy(buffer, package.message, package.size);
+
+    if (package.size > 0) {
+        memcpy(buffer, package.message, package.size);
+    } else if (package.size < 0) {
+        ABORT("%d tried to send negitive size message", tid);
+    }
 
     result = Reply(tid, NULL, 0);
     assert(result == 0,
@@ -166,11 +171,13 @@ void courier() {
 
     result = package.size;
     do {
-        result = Send(package.receiver,
-                      buffer, result,
-                      buffer, sizeof(buffer));
+        if (result > 0) {
+            result = Send(package.receiver,
+                          buffer, result,
+                          buffer, sizeof(buffer));
+        }
 
-        assert(result > 0,
+        assert(result >= 0,
                "problem with response to %d from receiver %d (%d)",
                tid, package.receiver, result);
 
@@ -183,3 +190,6 @@ void courier() {
 
     log("[Courier%d] has died...", myTid());
 }
+
+
+

@@ -51,7 +51,7 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
             for (int mask = 0x8000, i = 0; mask > 0; mask = mask >> 1, i++) {
                 if ((c & mask) > (sensor_state[bank] & mask)) {
-                    req.sensor = (bank<<4) + i;
+                    req.body.sensor = (bank<<4) + i;
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }
@@ -117,6 +117,23 @@ static inline void _sensor_delay(sf_context* const ctxt,
     ctxt->sensor_delay[sensor_num] = tid;
 }    
 
+static inline void _sensor_wakeup(sf_context* const ctxt,
+                                  const int check_tid,
+                                  const int sensor_num) {
+
+    const int stored_tid = ctxt->sensor_delay[sensor_num];
+    int reject_msg[2]    = { REQUEST_REJECTED, sensor_num };
+
+    if (stored_tid == check_tid) {
+        int result = Reply(stored_tid, (char*)&reject_msg, sizeof(reject_msg));
+        assert(result == 0, "failed to wakeup task %d", result);
+        ctxt->sensor_delay[sensor_num] = -1;
+    } else {
+        log(LOG_HEAD "sensor %d no longer contains task %d",
+            sensor_num, check_tid);
+    }
+}
+
 static inline void _sensor_delay_any(sf_context* const ctxt, const int tid) { 
     const int reject  = REQUEST_REJECTED;
     const int old_any = ctxt->wait_all;
@@ -172,15 +189,24 @@ void sensor_farm() {
 
         switch(req.type) {
         case SF_U_SENSOR:
-            _update_sensors(&context, req.sensor);
+            _update_sensors(&context, req.body.sensor);
             result = Reply(tid, NULL, 0);
             assert(result == 0, "failed replying to poller %d", result);
             break;
         case SF_D_SENSOR:
-            _sensor_delay(&context, tid, req.sensor);
+            _sensor_delay(&context, tid, req.body.sensor);
             break;
         case SF_D_SENSOR_ANY:
             _sensor_delay_any(&context, tid);
+            break;
+
+        case SF_W_SENSORS:
+            for (int i = 0; i < req.body.rev_list.size; i++) {
+                const int s_tid = req.body.rev_list.ele[i].tid;
+                const int s_num = req.body.rev_list.ele[i].sensor;
+                _sensor_wakeup(&context, s_tid, s_num);
+            }
+            result = Reply(tid, NULL, 0);
             break;
 
         default:
@@ -231,8 +257,8 @@ int delay_sensor(int sensor_bank, int sensor_num) {
                    (char*)&req, sizeof(req),
                    (char*)&time, sizeof(time));
 
-   if (res < 0) return res;
-   return time;
+    if (res < 0) return res;
+    return time;
 }
 
 int delay_sensor_any() {
