@@ -54,7 +54,6 @@ typedef struct {
 } cubic;
 
 typedef struct master_context {
-    int       my_tid;
     int       train_id;      // internal index
     int       train_gid;     // global identifier
     char      name[8];
@@ -82,14 +81,6 @@ typedef struct master_context {
 
     bool      simulating;
     int       short_moving_distance;
-
-    int        path_admin;         // tid of the path admin
-    int        path_worker;
-    int        destination;        // destination sensor
-    int        destination_offset; // in centimeters
-
-    int        path_finding_steps;
-    const path_node* path;
 
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates

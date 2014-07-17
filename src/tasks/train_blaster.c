@@ -129,7 +129,7 @@ blaster_try_send_master(blaster_context* const ctxt, const int index) {
         ctxt->master[index].stop_sensor = -1;
 
     } else if (ctxt->master[index].location.index != -1) {
-        req.type = MASTER_GOTO_LOCATION;
+        //req.type = MASTER_GOTO_LOCATION;
         req.arg1 = ctxt->master[index].location.index;
         req.arg2 = ctxt->master[index].location.offset;
         ctxt->master[index].location.index = -1;

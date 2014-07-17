@@ -60,13 +60,36 @@ static void master_start_accelerate(master* const ctxt,
                                     const int to_speed,
                                     const int time) {
 
-    bool new_courier = false;
-
     if (ctxt->accelerating != 0) {
         log("[%s] Cancelling previous accel., estimates will be fucked up",
             ctxt->name);
         ctxt->acceleration_courier = master_create_new_delay_courier(ctxt);
-        new_courier = true;
+
+        // need to create a message that will restart the acceleration
+        // process when it comes back in...
+        struct {
+            tnotify_header head;
+            master_req      req;
+        } msg = {
+            .head = {
+                .type  = DELAY_RELATIVE,
+                .ticks = 0
+            },
+            .req = {
+                .type = MASTER_RESUME_ACCELERATION,
+                .arg1 = to_speed
+            }
+        };
+
+        const int result = Send(ctxt->acceleration_courier,
+                                (char*)&msg, sizeof(msg),
+                                NULL, 0);
+        if (result < 0)
+            ABORT("[%s] Failed to setup new delay courier (%d) to %d",
+                  ctxt->name, result, ctxt->acceleration_courier);
+
+        ctxt->accelerating = 0;
+        return;
     }
 
     ctxt->accelerating = 1;
@@ -90,19 +113,13 @@ static void master_start_accelerate(master* const ctxt,
         }
     };
 
-
-    int result;
-
-    if (new_courier)
-        result = Send(ctxt->acceleration_courier,
-                      (char*)&msg, sizeof(msg),
-                      NULL , 0);
-    else
-        result = Reply(ctxt->acceleration_courier, (char*)&msg, sizeof(msg));
+    const int result = Reply(ctxt->acceleration_courier,
+                             (char*)&msg,
+                             sizeof(msg));
 
     if (result < 0)
-        ABORT("[%s] Failed to send delay for acceleration (%d) to %d (%d)",
-              ctxt->name, result, ctxt->acceleration_courier, new_courier);
+        ABORT("[%s] Failed to send delay for acceleration (%d) to %d",
+              ctxt->name, result, ctxt->acceleration_courier);
 
     master_checkpoint(ctxt, time);
 }
@@ -111,13 +128,36 @@ static void master_start_deccelerate(master* const ctxt,
                                      const int from_speed,
                                      const int time) {
 
-    bool new_courier = false;
-
     if (ctxt->accelerating != 0) {
         log("[%s] Cancelling previous accel., estimates will be fucked up",
             ctxt->name);
         ctxt->acceleration_courier = master_create_new_delay_courier(ctxt);
-        new_courier = true;
+
+        // need to create a message that will restart the acceleration
+        // process when it comes back in...
+        struct {
+            tnotify_header head;
+            master_req      req;
+        } msg = {
+            .head = {
+                .type  = DELAY_RELATIVE,
+                .ticks = 0
+            },
+            .req = {
+                .type = MASTER_RESUME_DECCELERATION,
+                .arg1 = from_speed
+            }
+        };
+
+        const int result = Send(ctxt->acceleration_courier,
+                                (char*)&msg, sizeof(msg),
+                                NULL, 0);
+        if (result < 0)
+            ABORT("[%s] Failed to setup new delay courier (%d) to %d",
+                  ctxt->name, result, ctxt->acceleration_courier);
+
+        ctxt->accelerating = 0;
+        return;
     }
 
     ctxt->accelerating = -1;
@@ -150,14 +190,9 @@ static void master_start_deccelerate(master* const ctxt,
     };
 
 
-    int result;
-
-    if (new_courier)
-        result = Send(ctxt->acceleration_courier,
-                      (char*)&msg, sizeof(msg),
-                      NULL, 0);
-    else
-        result = Reply(ctxt->acceleration_courier, (char*)&msg, sizeof(msg));
+    const int result = Reply(ctxt->acceleration_courier,
+                             (char*)&msg,
+                             sizeof(msg));
 
     if (result < 0)
         ABORT("[%s] Failed to send delay for decceleration (%d) to %d",
@@ -177,8 +212,8 @@ static void master_complete_accelerate(master* const ctxt,
         const int result = Reply(tid, NULL, 0);
         UNUSED(result);
         assert(result == 0,
-               "[%s] Failed to kill old delay courier (%d)",
-               ctxt->name, result);
+               "[%s] Failed to kill old delay courier %d (%d)",
+               ctxt->name, tid, result);
     }
 
     ctxt->accelerating    = 0;
@@ -291,82 +326,6 @@ static inline void master_reverse_step4(master* const ctxt, const int time) {
     ctxt->reversing = 0;
 }
 
-static int master_try_fast_forward_route(master* const ctxt) {
-    log("[%s] Attempting to fast forward route", ctxt->name);
-
-    // TODO: fast forward!
-    return 0;
-}
-
-static void master_find_route_to(master* const ctxt,
-                                 const int destination,
-                                 const int offset) {
-
-    if (ctxt->destination == destination) {
-        if (master_try_fast_forward_route(ctxt))
-            return;
-
-        // TODO: try to rewind?
-
-        // TODO: handle the offset
-    }
-
-    // we may need to release the worker
-    if (ctxt->path_worker >= 0) {
-        const int result = Reply(ctxt->path_worker, NULL, 0);
-
-        UNUSED(result);
-        assert(result == 0,
-               "[%s] Failed to release path worker (%d)",
-               ctxt->name, result);
-
-        ctxt->path_worker = -1;
-    }
-
-    // Looks like we need to get the pather to show us a whole new path
-    // https://www.youtube.com/watch?v=-kl4hJ4j48s
-    ctxt->destination        = destination;
-    ctxt->destination_offset = offset;
-
-    const sensor s = pos_to_sensor(destination);
-    log("[%s] Finding a route to %c%d + %d cm",
-        ctxt->name, s.bank, s.num, offset);
-
-    pa_request request = {
-        .type = PA_GET_PATH,
-        .req  = {
-            .requestor   = ctxt->my_tid,
-            .header      = MASTER_PATH_DATA,
-            .sensor_to   = destination,
-            .sensor_from = ctxt->current_sensor // hmmmm
-        }
-    };
-
-    int   worker_tid;
-    const int result = Send(ctxt->path_admin,
-                            (char*)&request, sizeof(request),
-                            (char*)&worker_tid, sizeof(worker_tid));
-    assert(result <= 0,
-           "[%s] Failed to get path worker (%d)",
-           ctxt->name, result);
-    assert(worker_tid >= 0,
-           "[%s] Invalid path worker tid (%d)",
-           ctxt->name, worker_tid);
-    UNUSED(result);
-}
-
-static void master_path_update(master* const ctxt,
-                               const int tid,
-                               const int size,
-                               const path_node* path) {
-    ctxt->path_worker        = tid;
-    ctxt->path_finding_steps = size;
-    ctxt->path               = path;
-
-    // TODO: start looking through the path to see where we are...
-    //       and what we need to do right now
-}
-
 static inline void master_detect_train_direction(master* const ctxt,
                                                  const int sensor_hit,
                                                  const int time) {
@@ -426,13 +385,6 @@ master_reset_simulation(master* const ctxt,
         master_reverse_step1(ctxt, service_time);
         log("[%s] ZOMG, heading towards an exit! Reversing!", ctxt->name);
     }
-
-    // TODO: If we redo the path and it starts with a reverse we may
-    // need to ignore the reverse if we just hit the revese above
-    if (ctxt->path_finding_steps >= 0)
-        master_find_route_to(ctxt,
-                             ctxt->destination,
-                             ctxt->destination_offset);
 
     physics_update_velocity_ui(ctxt);
     physics_update_tracking_ui(ctxt, 0);
@@ -660,8 +612,6 @@ static inline void master_wait(master* const ctxt,
         case MASTER_STOP_AT_SENSOR:
             master_stop_at_sensor(ctxt, req.arg1);
             break;
-        case MASTER_GOTO_LOCATION:
-            break;
         case MASTER_SHORT_MOVE:
             master_short_move(ctxt, req.arg1);
             return;
@@ -686,6 +636,8 @@ static inline void master_wait(master* const ctxt,
 
             // We should not get any of these as the first event
             // so we abort if we get them
+        case MASTER_RESUME_ACCELERATION:
+        case MASTER_RESUME_DECCELERATION:
         case MASTER_ACCELERATION_COMPLETE:
         case MASTER_NEXT_NODE_ESTIMATE:
         case MASTER_REVERSE2:
@@ -693,19 +645,17 @@ static inline void master_wait(master* const ctxt,
         case MASTER_REVERSE4:
         case MASTER_FINISH_SHORT_MOVE:
         case MASTER_WHERE_ARE_YOU:
-        case MASTER_PATH_DATA:
         case MASTER_SENSOR_TIMEOUT:
         case MASTER_SENSOR_FEEDBACK:
         case MASTER_UNEXPECTED_SENSOR_FEEDBACK:
-            ABORT("She's moving when we dont tell her too captain!");
+            ABORT("She's moving when we dont tell her too captain! (%d)",
+                  req.type);
         }
     }
 }
 
 static void master_init(master* const ctxt) {
     memset(ctxt, 0, sizeof(master));
-
-    ctxt->my_tid = myTid(); // cache it, avoid unneeded syscalls
 
     int tid, init[2];
     int result = Receive(&tid, (char*)init, sizeof(init));
@@ -715,6 +665,9 @@ static void master_init(master* const ctxt) {
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
+
+    // Tell the actual train to stop
+    put_train_speed(ctxt->train_gid, 0);
 
     //I Want this to explicity never be changeable from here
     *(track_node**)&ctxt->track = (track_node*)init[1];
@@ -732,25 +685,13 @@ static void master_init(master* const ctxt) {
     char buffer[32];
     char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_id, TRAIN_NUMBER_COL);
 
-    ptr = sprintf(ptr, "%s%s%s%d%s",
-                  ESC_CODE,
+    ptr = sprintf(ptr, ESC_CODE "%s" COLOUR_SUFFIX "%d" COLOUR_RESET,
                   train_to_colour(ctxt->train_gid),
-                  COLOUR_SUFFIX,
-                  ctxt->train_gid,
-                  COLOUR_RESET);
+                  ctxt->train_gid);
     Puts(buffer, ptr - buffer);
 
-    // Tell the actual train to stop
-    put_train_speed(ctxt->train_gid, 0);
-
-    ctxt->last_sensor        = 80;
-    ctxt->sensor_to_stop_at  = -1;
-    ctxt->path_finding_steps = -1;
-
-    ctxt->path_admin         = WhoIs((char*)PATH_ADMIN_NAME);
-    assert(ctxt->path_admin >= 0,
-           "[%s] I started up before the path admin! (%d)",
-           ctxt->name, ctxt->path_admin);
+    ctxt->last_sensor       = 80;
+    ctxt->sensor_to_stop_at = -1;
 }
 
 static void master_init_delay_courier(master* const ctxt, int* c_tid) {
@@ -855,17 +796,10 @@ void train_master() {
         case MASTER_WHERE_ARE_YOU:
             master_where_are_you(&context, req.arg1, time);
             break;
+
         case MASTER_STOP_AT_SENSOR:
             master_stop_at_sensor(&context, req.arg1);
             break;
-        case MASTER_GOTO_LOCATION:
-            break;
-        case MASTER_PATH_DATA:
-            master_path_update(&context,
-                               tid,
-                               req.arg1,
-                               (const path_node*)req.arg2);
-            continue;
 
         case MASTER_SHORT_MOVE:
             master_short_move(&context, req.arg1);
@@ -893,8 +827,16 @@ void train_master() {
             master_update_reverse_time_fudge(&context, req.arg1);
             break;
 
+        case MASTER_RESUME_ACCELERATION:
+            master_start_accelerate(&context, req.arg1, time);
+            continue;
+
+        case MASTER_RESUME_DECCELERATION:
+            master_start_deccelerate(&context, req.arg1, time);
+            continue;
+
         case MASTER_ACCELERATION_COMPLETE:
-            master_complete_accelerate(&context, req.arg1, req.arg2, time);
+            master_complete_accelerate(&context, tid, req.arg1, req.arg2);
             continue;
 
         case MASTER_NEXT_NODE_ESTIMATE:
