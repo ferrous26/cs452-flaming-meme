@@ -63,7 +63,7 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
 inline static void _update_sensors(sf_context* const ctxt,
                                    const int sensor_num) {
-    
+
     assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
            "Can't update invalid sensor num %d", sensor_num);
 
@@ -115,7 +115,7 @@ static inline void _sensor_delay(sf_context* const ctxt,
     }
 
     ctxt->sensor_delay[sensor_num] = tid;
-}    
+}
 
 static inline void _sensor_wakeup(sf_context* const ctxt,
                                   const int check_tid,
@@ -127,6 +127,7 @@ static inline void _sensor_wakeup(sf_context* const ctxt,
     if (stored_tid == check_tid) {
         int result = Reply(stored_tid, (char*)&reject_msg, sizeof(reject_msg));
         assert(result == 0, "failed to wakeup task %d", result);
+        UNUSED(result);
         ctxt->sensor_delay[sensor_num] = -1;
     } else {
         log(LOG_HEAD "sensor %d no longer contains task %d",
@@ -134,7 +135,7 @@ static inline void _sensor_wakeup(sf_context* const ctxt,
     }
 }
 
-static inline void _sensor_delay_any(sf_context* const ctxt, const int tid) { 
+static inline void _sensor_delay_any(sf_context* const ctxt, const int tid) {
     const int reject  = REQUEST_REJECTED;
     const int old_any = ctxt->wait_all;
 
@@ -167,12 +168,12 @@ static inline void _init_farm(sf_context* const ctxt) {
 
     int poll_tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
     if (poll_tid < 0)
-        ABORT(LOG_HEAD "sensor poll creation failed (%d)", poll_tid); 
+        ABORT(LOG_HEAD "sensor poll creation failed (%d)", poll_tid);
     result = Reply(tid, NULL, 0);
 
     assert(result == 0, "failed to wake up parent task");
 }
-       
+
 void sensor_farm() {
     int tid,  result;
     sf_context context;
@@ -272,4 +273,3 @@ int delay_sensor_any() {
     if (result < 0) return result;
     return sensor_idx;
 }
-
