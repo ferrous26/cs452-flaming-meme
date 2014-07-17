@@ -66,6 +66,7 @@ static inline void blaster_init_context(blaster_context* const ctxt) {
         ctxt->master[i].stop_sensor        = -1;
         ctxt->master[i].location.index     = -1;
         ctxt->master[i].feedback_alpha     = -1;
+        ctxt->master[i].whereis            = -1;
         ctxt->master[i].stop_offset        = INT_MAX;
         ctxt->master[i].clearance_offset   = INT_MAX;
         ctxt->master[i].fudge_factor       = INT_MAX;
