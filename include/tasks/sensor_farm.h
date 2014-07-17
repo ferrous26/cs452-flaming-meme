@@ -8,12 +8,24 @@
 typedef enum {
     SF_U_SENSOR,
     SF_D_SENSOR,
-    SF_D_SENSOR_ANY
+    SF_D_SENSOR_ANY,
+    SF_W_SENSORS,
+
+    SF_REQ_TYPE_COUNT
 } sf_type;
 
-typedef struct {
+typedef struct sf_req {
     sf_type type;
-    int     sensor;
+    union {
+        int sensor;
+        struct rev_list {
+            int size;
+            struct rev_list_ele {
+                int sensor;
+                int tid;
+            } ele[8];
+        } rev_list;
+    } body;
 } sf_req;
 
 void __attribute__ ((noreturn)) sensor_farm();

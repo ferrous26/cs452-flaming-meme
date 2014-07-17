@@ -11,8 +11,10 @@
 #include <tasks/clock_server.h>
 
 #include <tasks/courier.h>
+#include <tasks/sensor_farm.h>
 #include <tasks/train_master.h>
 #include <tasks/train_console.h>
+
 
 #define DRIVER_MASK     0x1
 #define SENSOR_MASK     0x2
@@ -20,7 +22,6 @@
 
 #define BUFFER_SIZE      8
 #define SENT_WAITER_SIZE 16
-#define CANCEL_REQUEST (-100)
 
 #define CHECK_CREATE(tid, msg) assert(tid >= 0, msg " (%d)", tid)
 
@@ -30,6 +31,7 @@ typedef struct {
     int        docked;
     const int  driver_tid;
     const int  timer_tid;
+    const int  sensor_tid;
 
     int        sensor_last;
     int        sensor_expect;
@@ -38,7 +40,9 @@ typedef struct {
 
     int_buffer waiters;
     int_buffer next_sensors;
+
     int        sent_waiters[SENT_WAITER_SIZE];
+    int        sent_sensors[SENT_WAITER_SIZE];
 
     const track_node* const track;
 } tc_context;
@@ -89,6 +93,7 @@ static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
     for (int i = 0; i < SENT_WAITER_SIZE; i++) {
         if (-1 == ctxt->sent_waiters[i]) {
             ctxt->sent_waiters[i] = tid;
+            ctxt->sent_sensors[i] = sensor_num;
             return;
         }
     }
@@ -125,6 +130,9 @@ static inline void _init_context(tc_context* const ctxt) {
     *(int*)&ctxt->timer_tid = Create(TC_CHILDREN_PRIORITY, time_notifier);
     CHECK_CREATE(ctxt->timer_tid, "Failed to create timer courier");
 
+    *(int*)&ctxt->sensor_tid  = Create(TC_CHILDREN_PRIORITY, courier);
+    CHECK_CREATE(ctxt->sensor_tid, "Failed to create farm courier");
+
     result = Send(sensor_tid,
                   (char*)&ctxt->sensor_expect, sizeof(ctxt->sensor_expect),
                   NULL, 0);
@@ -158,15 +166,21 @@ static inline void _init_context(tc_context* const ctxt) {
         .body = ctxt->sensor_iter - 1
     };
 
+    result = Send(ctxt->driver_tid, (char*)&package, sizeof(package), NULL, 0);
     assert(callin.arg1 >= 0 && callin.arg1 < 80,
           "failed initalizing train %d", callin.arg1);
-    result = Send(ctxt->driver_tid, (char*)&package, sizeof(package), NULL, 0);
     assert(result == 0, "Failed handing off package to courier");
 
     result = Send(ctxt->timer_tid,
                   (char*)&time_return, sizeof(time_return),
                   NULL, 0);
     assert(0 == result, "failed setting up timer %d", result);
+    
+    
+    package.receiver = WhoIs((char*)SENSOR_FARM_NAME);
+    package.size     = 0;
+    result = Send(ctxt->sensor_tid, (char*)&package, sizeof(package), NULL, 0);
+    assert(result == 0, "Failed handing off package to courier");
 }
 
 static int __attribute__((pure))
@@ -201,16 +215,43 @@ static void try_send_timeout(tc_context* const ctxt) {
     ctxt->docked &= ~TIMER_MASK;
 }
 
+static inline int __attribute__ ((const))
+sizeof_cancel_req (const int ele_count) {
+    assert(ele_count > 0 && ele_count <= 8,
+           "bad cancel req size (%d)", ele_count);
+    return sizeof(sf_type) + ((ele_count << 1) + 1) * sizeof(int);
+}
+
 static void reject_remaining_sensors(const tc_context* const ctxt) {
-    const int cancel_req = CANCEL_REQUEST;
+    struct cancel_list {
+        sf_type type;
+        int size;
+        struct {
+            int sensor;
+            int tid;
+        } ele[8];
+    } cancel_req;
+
+    cancel_req.size = 0;
+    cancel_req.type = SF_W_SENSORS;
     
     for (int i = 0; i < SENT_WAITER_SIZE; i++) {
-        int tid = ctxt->sent_waiters[i];
+        const int tid = ctxt->sent_waiters[i];
 
         if (-1 != tid) {
-            Reply(tid, (char*)&cancel_req, sizeof(cancel_req));
-            // not checking this is intentional
+            cancel_req.ele[cancel_req.size].tid    = tid;
+            cancel_req.ele[cancel_req.size].sensor = ctxt->sent_sensors[i];
+            cancel_req.size++;
         }
+    }
+
+    if (cancel_req.size > 0) {
+        int result = Reply(ctxt->sensor_tid,
+                           (char*)&cancel_req,
+                           sizeof_cancel_req(cancel_req.size));
+        
+        assert(result == 0, "can't send sensor return %d", result);
+        UNUSED(result);
     }
 }
 
@@ -220,8 +261,9 @@ void train_console() {
 
     
     _init_context(&context);
-    // log("DRIVER %d", context.driver_tid);
-    // log("TIMER  %d", context.timer_tid);
+    log("DRIVER %d", context.driver_tid);
+    log("TIMER  %d", context.timer_tid);
+    log("SENSOR %d", context.sensor_tid);
 
     FOREVER {
         result = Receive(&tid, (char*)args, sizeof(args));
@@ -275,15 +317,15 @@ void train_console() {
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;
             }
+        } else if (tid == context.sensor_tid) {
+            context.docked |= SENSOR_MASK; 
         } else {
             int index = get_sensor_index(&context, tid);
             assert(index >= 0, "got send from invalid task %d", tid);
             context.sent_waiters[index] = -1;
-            log("KIED %d %d %d", tid, args[1], args[2]);
+            // log("KIED %d %d %d", tid, args[1], args[2]);
             
-            if (CANCEL_REQUEST != args[1] &&
-                intb_count(&context.waiters) < BUFFER_SIZE) {
-                
+            if (intb_count(&context.waiters) < BUFFER_SIZE) { 
                 intb_produce(&context.waiters, tid);
             } else {
                 // we forced the task back, too dangerous to keep around

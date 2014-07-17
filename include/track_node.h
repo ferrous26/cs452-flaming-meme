@@ -24,7 +24,6 @@ struct track_edge {
     track_node* src;
     track_node* dest;
     int         dist;     /* in millimetres */
-    //    edge_type   type;
 };
 
 struct track_node {

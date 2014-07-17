@@ -19,6 +19,7 @@
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
 
+#define LOG_HEAD               "[MISSION CONTROL] "
 #define NUM_TURNOUTS           22
 #define NUM_SENSOR_BANKS       5
 #define NUM_SENSORS_PER_BANK   16
@@ -165,7 +166,7 @@ static void mc_load_track(mc_context* const ctxt, int track_num) {
         ABORT("Invalid track name `%c'", track_num);
         return;
     }
-    log("loading track %c ...", track_num);
+    log(LOG_HEAD "loading track %c ...", track_num);
 }
 
 static inline void __attribute__((always_inline)) mc_flush_sensors() {
@@ -184,7 +185,7 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
             mc_load_track(ctxt, req.payload.int_value);
             track_loaded = 1;
         } else {
-            log("[Mission Control] can not perfrom request %d "
+            log(LOG_HEAD "can not perfrom request %d "
                 "until a track has been loaded", req.type);
         }
 
@@ -195,7 +196,7 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
 static inline void mc_initalize(mc_context* const ctxt) {
     int result, tid, pa_tid, sf_tid, tb_tid;
 
-    log("[MISSION CONTROL] Initalizing");
+    log(LOG_HEAD "Initalizing");
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_STOP);
     Putc(TRAIN, TRAIN_ALL_START);
@@ -216,7 +217,6 @@ static inline void mc_initalize(mc_context* const ctxt) {
     CHECK_CREATE(sf_tid, "[Mission Control] server farm failed creation"); 
 
     mc_reset_track_state(ctxt);
-    log("[Mission Control] Ready!");
     mc_stall_for_track_load(ctxt);
 
     const track_node* const track = ctxt->track;
@@ -226,7 +226,10 @@ static inline void mc_initalize(mc_context* const ctxt) {
     result = Send(tb_tid, (char*)&track, sizeof(track), NULL, 0);
     if (result != 0) ABORT("Failed setting up TRAIN BLASTER %d", result);
 
-    log("[Mission Control] Children Initalized!");
+    result = Send(sf_tid, NULL, 0, NULL, 0);
+    if (result != 0) ABORT("Failed setting up Server Farm %d", result);
+
+    log(LOG_HEAD "Ready!");
 }
 
 void mission_control() {
@@ -263,8 +266,7 @@ void mission_control() {
 
         result = Reply(tid, NULL, 0);
         if (result < 0)
-            ABORT("[Mission Control] failed replying to %d (%d)",
-                  req.type, result);
+            ABORT(LOG_HEAD "failed replying to %d (%d)", req.type, result);
     }
 }
 
