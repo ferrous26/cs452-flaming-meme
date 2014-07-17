@@ -258,8 +258,8 @@ void train_server() {
                 ts_deliver_request(&context, tid, req.payload.size);
             } else {
                 assert(-1 == context.get_tid,
-                       "task %d already waiting for train input",
-                       context.get_tid);
+                       "task %d already waiting for train input, %d can't",
+                       context.get_tid, tid);
                 context.get_tid       = tid;
                 context.get_expecting = req.payload.size;
             }

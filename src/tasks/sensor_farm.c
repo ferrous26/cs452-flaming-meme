@@ -12,7 +12,7 @@
 
 #include <tasks/sensor_farm.h>
 
-#define LOG_HEAD "[Mission Control] "
+#define LOG_HEAD "[SENSOR FARM] "
 #define NUM_SENSOR_BANKS     5
 #define NUM_SENSORS_PER_BANK 16
 #define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
@@ -131,10 +131,12 @@ static inline void _sensor_delay_any(sf_context* const ctxt, const int tid) {
 
 static inline void __attribute__((always_inline)) _flush_sensors() {
     Putc(TRAIN, SENSOR_POLL);
-    for(int i = 0; i < NUM_SENSOR_BANKS; i++) Getc(TRAIN);
+    for(int i = 0; i < NUM_SENSOR_BANKS; i++) get_train_bank();
 }
 
 static inline void _init_farm(sf_context* const ctxt) {
+    int tid, result;
+
     if (RegisterAs((char*)SENSOR_FARM_NAME))
         ABORT("Couldn't register sensor farm");
 
@@ -142,11 +144,16 @@ static inline void _init_farm(sf_context* const ctxt) {
     memset(ctxt->recent_sensors, 0, sizeof(ctxt->recent_sensors));
     ctxt->sensor_insert = ctxt->recent_sensors;
 
+    result = Receive(&tid, NULL, 0);
     _flush_sensors();
+    assert(result == 0, "Failed to get task");
 
-    int tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
-    if (tid < 0)
-        ABORT(LOG_HEAD "sensor poll creation failed (%d)", tid); 
+    int poll_tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
+    if (poll_tid < 0)
+        ABORT(LOG_HEAD "sensor poll creation failed (%d)", poll_tid); 
+    result = Reply(tid, NULL, 0);
+
+    assert(result == 0, "failed to wake up parent task");
 }
        
 void sensor_farm() {
@@ -154,14 +161,14 @@ void sensor_farm() {
     sf_context context;
 
     _init_farm(&context);
-    log("[Server Farm] operational");
-
     sf_req req;
 
     FOREVER {
         result = Receive(&tid, (char*)&req, sizeof(req));
-        assert(result > (int)sizeof(req.type),
+        assert(result >= (int)sizeof(req.type),
                LOG_HEAD "received invalid message %d", result);
+        assert(req.type < SF_REQ_TYPE_COUNT,
+                LOG_HEAD "received invalid type %d from %d", req.type, tid);
 
         switch(req.type) {
         case SF_U_SENSOR:
@@ -174,6 +181,12 @@ void sensor_farm() {
             break;
         case SF_D_SENSOR_ANY:
             _sensor_delay_any(&context, tid);
+            break;
+
+        default:
+        case SF_REQ_TYPE_COUNT:
+            log(LOG_HEAD "got invalid req type %d from %d", req.type, tid);
+            Reply(tid, NULL, 0);
             break;
         }
     }
@@ -205,7 +218,10 @@ int delay_sensor(int sensor_bank, int sensor_num) {
         return -1;
     }
 
-    sf_req req = {
+    struct {
+        sf_type type;
+        int     sensor;
+    } req = {
         .type   = SF_D_SENSOR,
         .sensor = sensor_to_pos(sensor_bank, sensor_num)
     };
@@ -220,9 +236,7 @@ int delay_sensor(int sensor_bank, int sensor_num) {
 }
 
 int delay_sensor_any() {
-    sf_req req = {
-        .type           = SF_D_SENSOR_ANY,
-    };
+    sf_type req = SF_D_SENSOR_ANY;
 
     int sensor_idx;
     int result = Send(sensor_farm_tid,

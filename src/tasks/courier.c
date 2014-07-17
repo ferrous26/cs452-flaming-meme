@@ -16,12 +16,15 @@ void sensor_notifier() {
     int       tid, has_header;
     const int sf_tid = WhoIs((char*)SENSOR_FARM_NAME);
 
-    sf_req sensor_one = {
-        .type = SF_D_SENSOR,
-    };
-    sf_req sensor_any = {
-        .type = SF_D_SENSOR_ANY,
-    };
+
+    sf_type sensor_any = SF_D_SENSOR_ANY;
+    struct {
+        sf_type type;
+        int     sensor;
+    } sensor_one = {
+        .type = SF_D_SENSOR
+    }; 
+    
     struct {
         int sensor_num;
         int return_head;

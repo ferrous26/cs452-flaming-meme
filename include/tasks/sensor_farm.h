@@ -8,7 +8,9 @@
 typedef enum {
     SF_U_SENSOR,
     SF_D_SENSOR,
-    SF_D_SENSOR_ANY
+    SF_D_SENSOR_ANY,
+
+    SF_REQ_TYPE_COUNT
 } sf_type;
 
 typedef struct {
