@@ -718,7 +718,6 @@ static void master_init(master* const ctxt) {
 
     //I Want this to explicity never be changeable from here
     *(track_node**)&ctxt->track = (track_node*)init[1];
-    log("%d", ctxt->track->num);
 
     result = Reply(tid, NULL, 0);
     if (result < 0)
