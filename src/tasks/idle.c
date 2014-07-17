@@ -27,7 +27,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
     if (result != 0) ABORT("Idle UI Has Failed to Load (%d)", result);
 
     ptr = vt_goto(buffer, IDLE_ROW, 1);
-    ptr = sprintf_string(ptr, "IDLE  00");
+    ptr = sprintf_string(ptr, "IDLE  00.00");
     Puts(buffer, ptr - buffer);
 
     int time = 0;
@@ -40,16 +40,20 @@ static void __attribute__ ((noreturn)) idle_ui() {
         // so, 983040 idle ticks = 100 clock ticks = 1 UI update
         // therefore, total number of idle ticks is given by this
 #define T4_TICKS_PER_SECOND 983040
-        uint idle_time = (T4_TICKS_PER_SECOND - non_idle_ticks) * 100;
+        uint idle_time = (T4_TICKS_PER_SECOND - non_idle_ticks) * 1000;
         idle_time /= T4_TICKS_PER_SECOND;
         non_idle_ticks = 0;
 
-        if (idle_time >= 100) idle_time = 99; // handle this edge case
+        if (idle_time >= 1000) idle_time = 999; // handle this edge case
+
+        const int idle_time_fraction = idle_time % 10;
+        idle_time /= 10;
 
         ptr = vt_goto(buffer, IDLE_ROW, IDLE_COL);
-        ptr = sprintf(ptr, "%c%c%c",
+        ptr = sprintf(ptr, "%c%c.%c%c",
 		      '0' + (idle_time / 10),
                       '0' + (idle_time % 10),
+                      '0' + idle_time_fraction,
 		      (twirl = ui_twirler(twirl)));
         Puts(buffer, ptr - buffer);
     }
