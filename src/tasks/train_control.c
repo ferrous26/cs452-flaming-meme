@@ -185,6 +185,7 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
 
     } else { return; }
 
+    if (ctxt->master[index].courier == -1) return; // no way to send work
 
     const int result = Reply(ctxt->blaster[index].courier,
                              (char*)&req,
@@ -206,7 +207,7 @@ control_try_send_master(control_context* const ctxt, const int index) {
     }
     else { return; }
 
-    const int result = Reply(ctxt->blaster[index].courier,
+    const int result = Reply(ctxt->master[index].courier,
                              (char*)&req,
                              sizeof(req));
     if (result) ABORT("Failed to send to train %d (%d)", index, result);
