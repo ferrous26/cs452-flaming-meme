@@ -676,7 +676,7 @@ static void blaster_init(blaster* const ctxt) {
     int result = Receive(&tid, (char*)init, sizeof(init));
 
     if (result != sizeof(init))
-        ABORT("[Blaster] Failed to initialize (%d)", result);
+        ABORT("[Blaster] Failed to initialize (%d from %d)", result, tid);
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
@@ -707,35 +707,7 @@ static void blaster_init(blaster* const ctxt) {
 
     ctxt->last_sensor       = 80;
     ctxt->sensor_to_stop_at = -1;
-}
-
-static void blaster_init_delay_courier(blaster* const ctxt, int* c_tid) {
-
-    const int tid = blaster_create_new_delay_courier(ctxt);
-
-    tnotify_header head = {
-        .type  = DELAY_RELATIVE,
-        .ticks = 0
-    };
-
-    int result = Send(tid, (char*)&head, sizeof(head), NULL, 0);
-    assert(result >= 0,
-           "[%s] Failed to setup timer notifier (%d)",
-           ctxt->name, result);
-
-    int crap;
-    result = Receive(&crap, NULL, 0);
-    assert(crap == tid,
-           "[%s] Got response from incorrect task (%d != %d)",
-           ctxt->name, crap, tid);
-
-    *c_tid = tid;
-    UNUSED(ctxt);
-}
-
-static void blaster_init_delay_couriers(blaster* const ctxt) {
-    blaster_init_delay_courier(ctxt, &ctxt->acceleration_courier);
-    blaster_init_delay_courier(ctxt, &ctxt->checkpoint_courier);
+    ctxt->accelerating      =  1;
 }
 
 static void blaster_init_other_couriers(blaster* const ctxt,
@@ -779,7 +751,6 @@ void train_blaster() {
         .size     = sizeof(callin)
     };
 
-    blaster_init_delay_couriers(&context);
     blaster_wait(&context, &callin);
     blaster_init_other_couriers(&context, &package);
 
