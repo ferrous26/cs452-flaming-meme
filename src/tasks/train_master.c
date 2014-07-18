@@ -58,7 +58,6 @@ master_goto(master* const ctxt,
         // TODO: handle the offset
     }
 
-
     // we may need to release the worker
     if (ctxt->path_worker >= 0) {
         const int result = Reply(ctxt->path_worker, NULL, 0);

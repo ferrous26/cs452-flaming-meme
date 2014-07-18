@@ -594,7 +594,8 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
         .type  = MASTER_BLASTER_LOCATION,
         .arg1  = l.sensor,
         .arg2  = l.offset,
-        .arg3  = time
+        .arg3  = time,
+        .arg4  = physics_current_velocity(ctxt)
     };
 
     const int result = Reply(tid, (char*)&req, sizeof(req));
