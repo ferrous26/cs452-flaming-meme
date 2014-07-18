@@ -363,7 +363,6 @@ blaster_reset_simulation(blaster* const ctxt,
     blaster_detect_train_direction(ctxt, sensor_hit, service_time);
 
     // reset tracking state
-    ctxt->simulating       = false;
     ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
     ctxt->current_sensor   = sensor_hit;
     // ctxt->current_distance = 0; // updated below
@@ -427,8 +426,6 @@ blaster_adjust_simulation(blaster* const ctxt,
 
     assert(sensor_hit == ctxt->next_sensor,
            "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
-
-    ctxt->simulating = true; // yay, simulation is in full force
 
     blaster_check_sensor_to_stop_at(ctxt,
                                    sensor_hit,
@@ -652,7 +649,6 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_UPDATE_FUDGE_FACTOR:
             blaster_update_reverse_time_fudge(ctxt, req.arg1);
             break;
-
             // We should not get any of these as the first event
             // so we abort if we get them
         case BLASTER_REVERSE2:

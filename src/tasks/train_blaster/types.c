@@ -78,7 +78,6 @@ typedef struct blaster_context {
     line      stop_dist_map;
     cubic     start_dist_map;
 
-    bool      simulating;
     int       short_moving_distance;
 
     // these will usually be based on actual track feedback, unless we have to
