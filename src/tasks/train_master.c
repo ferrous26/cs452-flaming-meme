@@ -142,6 +142,9 @@ static void master_init(master* const ctxt) {
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
 
+    result = Reply(tid, NULL, 0);
+    if (result != 0)
+        ABORT("[Aunt] Failed to wake up Lenin (%d)", result);
 
     sprintf(ctxt->name, "AUNT%d", ctxt->train_gid);
     ctxt->name[7] = '\0';
