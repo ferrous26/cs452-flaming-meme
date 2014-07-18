@@ -691,8 +691,10 @@ static void blaster_init_other_couriers(blaster* const ctxt,
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
     assert(tid >= 0, "[%s] Failed creating train console (%d)",
            ctxt->name, tid);
-    int result = Send(tid, (char*)&ctxt->track, sizeof(ctxt->track), NULL, 0);
 
+    int c_init[2] = {ctxt->train_id, (int)ctxt->track};
+    int result    = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
+    assert(result == 0, "Failed to setup train console! (%d)", result);
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,
@@ -705,8 +707,6 @@ static void blaster_init_other_couriers(blaster* const ctxt,
     assert(result == 0,
            "[%s] Error sending package to command courier %d",
            ctxt->name, result);
-
-    UNUSED(result);
 }
 
 void train_blaster() {

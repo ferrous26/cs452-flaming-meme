@@ -15,7 +15,7 @@
 #include <tasks/train_blaster.h>
 #include <tasks/train_console.h>
 
-
+#define LOG_HEAD        "[TRAIN_CONSOLE]"
 #define DRIVER_MASK     0x1
 #define SENSOR_MASK     0x2
 #define TIMER_MASK      0x4
@@ -28,10 +28,12 @@
 TYPE_BUFFER(int, 8);
 
 typedef struct {
-    int        docked;
+    const int  train_pos;
+    
     const int  driver_tid;
     const int  timer_tid;
     const int  sensor_tid;
+    int        docked;
 
     int        sensor_last;
     int        sensor_expect;
@@ -50,7 +52,6 @@ typedef struct {
 
 static inline void
 _get_next_sensors(const track_node* const track, int_buffer* const list) {
-
     switch (track->type) {
     case NODE_SENSOR:
         intb_produce(list, track->num);
@@ -101,7 +102,7 @@ static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
 }
 
 static inline void _init_context(tc_context* const ctxt) {
-    int tid, result, sensor_data[2];
+    int tid, result, init_data[2], sensor_data[2];
     memset(ctxt, -1, sizeof(*ctxt));
 
     ctxt->docked         = 0;
@@ -111,13 +112,16 @@ static inline void _init_context(tc_context* const ctxt) {
     intb_init(&ctxt->waiters);
     intb_init(&ctxt->next_sensors);
 
-    // Get the track data from the train driver for use later
-    result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
+    // Get the track data from the train driver for use later  
+    result = Receive(&tid, (char*)init_data, sizeof(init_data));
     assert(tid == myParentTid(), "sent startup from invalid tid %d", tid);
-    assert(sizeof(ctxt->track) == result, "%d", result);
-
+    assert(sizeof(init_data) == result, "Invalid init data %d", result);
     result = Reply(tid, NULL, 0);
     assert(result == 0, "%d", result);
+
+    *(int*)&ctxt->train_pos     = init_data[0];
+    *(track_node**)&ctxt->track = (track_node*)init_data[1];
+
 
     // Create the first trask required for sensors
     const int sensor_tid = Create(TC_CHILDREN_PRIORITY, sensor_notifier);
@@ -179,7 +183,9 @@ static inline void _init_context(tc_context* const ctxt) {
 
     package.receiver = WhoIs((char*)SENSOR_FARM_NAME);
     package.size     = 0;
-    result = Send(ctxt->sensor_tid, (char*)&package, sizeof(package), NULL, 0);
+    result           = Send(ctxt->sensor_tid,
+                            (char*)&package, sizeof(package),
+                            NULL, 0);
     assert(result == 0, "Failed handing off package to courier");
 }
 
@@ -259,11 +265,10 @@ void train_console() {
     int tid, result, args[4];
     tc_context context;
 
-
     _init_context(&context);
-    log("DRIVER %d", context.driver_tid);
-    log("TIMER  %d", context.timer_tid);
-    log("SENSOR %d", context.sensor_tid);
+    log(LOG_HEAD "%d DRIVER %d", context.train_pos, context.driver_tid);
+    log(LOG_HEAD "%d TIMER  %d", context.train_pos, context.timer_tid);
+    log(LOG_HEAD "%d SENSOR %d", context.train_pos, context.sensor_tid);
 
     FOREVER {
         result = Receive(&tid, (char*)args, sizeof(args));
