@@ -21,9 +21,14 @@ typedef enum {
     RESERVE_WHO
 } tr_req_type;
 
+typedef enum {
+    RESERVE_SUCCESS,
+    RESERVE_FAILURE,
+} tr_reply_type;
+
 typedef struct { 
     const track_node* const track;
-    int train_peices[8];
+    int train_pieces[8];
     int reserve[TRACK_MAX][2];
 } _context;
 
@@ -41,7 +46,6 @@ static inline void _init(_context* const ctxt) {
     result = Reply(tid, NULL, 0);
     assert(result == 0, "failed replying after initalization");
 }
-
 
 void track_reservation() {
     int tid, result;
@@ -61,27 +65,43 @@ void track_reservation() {
                "[Track Reservation] Received invalid message (%d)",
                result);
 
-        int index_for = context.track - req.node;
-        int index_rev = context.track - req.node->reverse;
-        UNUSED(index_rev);
+        const int index_for = context.track - req.node;
+        const int index_rev = context.track - req.node->reverse;
 
         switch (req.type) {
-        case RESERVE_SECTION:
+        case RESERVE_SECTION: {
             log(LOG_HEAD "Reserving Section %d For %d",
                 index_for, req.train_num);
 
-            context.reserve[index_for][req.direction]     = req.train_num;
-            context.reserve[index_rev][req.direction ^ 1] = req.train_num;
-            break;
-        
+            const int old_owner = context.reserve[index_for][req.direction];
+
+            if (old_owner == -1 || old_owner == req.train_num) {
+                const int reply[1] = {RESERVE_SUCCESS};
+                context.reserve[index_for][req.direction]     = req.train_num;
+                context.reserve[index_rev][req.direction ^ 1] = req.train_num;
+                result = Reply(tid, (char*)reply, sizeof(reply));
+            } else {
+                const int reply[2] = {RESERVE_FAILURE, old_owner};
+                result = Reply(tid, (char*)reply, sizeof(reply));
+                log(LOG_HEAD "Rejecting owned section %d->", index_for); 
+            }
+            assert(result == 0, "Failed to repond to track query");
+        }   break;
         case RESERVE_RELEASE:
             log(LOG_HEAD "Releasing Section %d For %d",
                 index_for, req.train_num);
-            
-            context.reserve[index_for][req.direction]     = -1;
-            context.reserve[index_rev][req.direction ^ 1] = -1;
+
+            if (context.reserve[index_for][req.direction] == req.train_num) { 
+                const int reply[1] = {RESERVE_SUCCESS};
+                context.reserve[index_for][req.direction]     = -1;
+                context.reserve[index_rev][req.direction ^ 1] = -1;
+                result = Reply(tid, (char*)reply, sizeof(reply));
+            } else {
+                const int reply[1] = {RESERVE_FAILURE};
+                result = Reply(tid, (char*)reply, sizeof(reply));
+            }
+            assert(result == 0, "Failed to repond to track query");
             break;
-         
         case RESERVE_WHO: {
             const int* const track_point = &context.reserve[index_for][0];
             result = Reply(tid, (char*)&track_point, sizeof(*track_point));
@@ -90,4 +110,15 @@ void track_reservation() {
         }
     }
 }
+
+/*
+int reserve_who_owns(const track_node* const node, int direction) {
+    struct {
+        
+
+    }
+    return 2;
+}
+*/
+
 

@@ -246,15 +246,19 @@ static void blaster_set_speed(blaster* const ctxt,
 
     put_train_speed(ctxt->train_gid, speed / 10);
 
-    if (ctxt->last_speed == 0)
-        blaster_start_accelerate(ctxt, speed, time);
-    else if (ctxt->current_speed == 0)
+    if (ctxt->last_speed > ctxt->current_speed) {
         blaster_start_deccelerate(ctxt, ctxt->last_speed, time);
-    else
-        log("[%s] Unsupported acceleration %d -> %d",
-            ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+        if (ctxt->current_speed != 0)
+            log("[%s] Unsupported decceleration %d -> %d",
+                ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+    }
+    else {
+        blaster_start_accelerate(ctxt, speed, time);
+        if (ctxt->last_speed != 0)
+            log("[%s] Unsupported acceleration %d -> %d",
+                ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+    }
 
-    //blaster_update_estimates(ctxt, time);
     physics_update_velocity_ui(ctxt);
 }
 
@@ -359,7 +363,6 @@ blaster_reset_simulation(blaster* const ctxt,
     blaster_detect_train_direction(ctxt, sensor_hit, service_time);
 
     // reset tracking state
-    ctxt->simulating       = false;
     ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
     ctxt->current_sensor   = sensor_hit;
     // ctxt->current_distance = 0; // updated below
@@ -367,14 +370,9 @@ blaster_reset_simulation(blaster* const ctxt,
     ctxt->current_offset   = 0;
     ctxt->current_time     = sensor_hit_time;
 
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
     int result = get_sensor_from(sensor_hit,
                                  &ctxt->current_distance,
                                  &ctxt->next_sensor);
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
-
     assert(result == 0, "failed to get next sensor %d", result);
 
     const int velocity = physics_current_velocity(ctxt);
@@ -429,8 +427,6 @@ blaster_adjust_simulation(blaster* const ctxt,
     assert(sensor_hit == ctxt->next_sensor,
            "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
 
-    ctxt->simulating = true; // yay, simulation is in full force
-
     blaster_check_sensor_to_stop_at(ctxt,
                                    sensor_hit,
                                    sensor_time,
@@ -442,8 +438,7 @@ blaster_adjust_simulation(blaster* const ctxt,
     const int    delta_v = actual_v - expected_v;
 
     // only do feedback if we are in steady state
-    if (!(ctxt->last_sensor_accelerating &&
-          ctxt->current_sensor_accelerating))
+    if (!(ctxt->last_sensor_accelerating || ctxt->current_sensor_accelerating))
         physics_feedback(ctxt, actual_v, expected_v, delta_v);
 
     ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
@@ -457,13 +452,9 @@ blaster_adjust_simulation(blaster* const ctxt,
     ctxt->current_offset           = 0;
     ctxt->current_time             = sensor_time;
 
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
     int result = get_sensor_from(sensor_hit,
                                  &ctxt->current_distance,
                                  &ctxt->next_sensor);
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
 
     assert(result == 0,
            "[%s] failed to get next sensor (%d)",
@@ -498,11 +489,6 @@ static void blaster_stop_at_sensor(blaster* const ctxt, const int sensor_idx) {
     log("[%s] Gonna hit the brakes when we hit sensor %c%d",
         ctxt->name, s.bank, s.num);
     ctxt->sensor_to_stop_at = sensor_idx;
-}
-
-static void blaster_finish_short_moving(blaster* const ctxt,
-                                       const int time) {
-    blaster_set_speed(ctxt, 0, time);
 }
 
 static void blaster_resume_short_moving(blaster* const ctxt,
@@ -605,7 +591,8 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
         .type  = MASTER_BLASTER_LOCATION,
         .arg1  = l.sensor,
         .arg2  = l.offset,
-        .arg3  = time
+        .arg3  = time,
+        .arg4  = physics_current_velocity(ctxt)
     };
 
     const int result = Reply(tid, (char*)&req, sizeof(req));
@@ -615,6 +602,73 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     UNUSED(result);
 }
 
+static inline void blaster_wait(blaster* const ctxt,
+                                const control_req* const callin) {
+
+    blaster_req req;
+    const int control = myParentTid();
+
+    FOREVER {
+        int result = Send(control,
+                          (char*)callin, sizeof(control_req),
+                          (char*)&req,    sizeof(req));
+        if (result <= 0)
+            ABORT("[%s] Bad train init (%d)", ctxt->name, result);
+
+        int time = Time();
+
+        switch (req.type) {
+        case BLASTER_CHANGE_SPEED:
+            blaster_set_speed(ctxt, req.arg1, time);
+            if (req.arg1 > 0) return;
+            break;
+        case BLASTER_SHORT_MOVE:
+            blaster_short_move(ctxt, req.arg1);
+            return;
+        case BLASTER_REVERSE:
+            blaster_reverse_step1(ctxt, time);
+            return;
+        case BLASTER_WHERE_ARE_YOU:
+            blaster_where_are_you(ctxt, req.arg1, time);
+            break;
+        case BLASTER_STOP_AT_SENSOR:
+            blaster_stop_at_sensor(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
+            blaster_update_feedback_threshold(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_FEEDBACK_ALPHA:
+            blaster_update_feedback_ratio(ctxt, (ratio)req.arg1);
+            break;
+        case BLASTER_UPDATE_STOP_OFFSET:
+            blaster_update_stopping_distance_offset(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_CLEARANCE_OFFSET:
+            blaster_update_turnout_clearance_offset(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_FUDGE_FACTOR:
+            blaster_update_reverse_time_fudge(ctxt, req.arg1);
+            break;
+            // We should not get any of these as the first event
+            // so we abort if we get them
+        case BLASTER_REVERSE2:
+        case BLASTER_REVERSE3:
+        case BLASTER_REVERSE4:
+        case BLASTER_FINISH_SHORT_MOVE:
+        case BLASTER_DUMP_VELOCITY_TABLE:
+        case BLASTER_RESUME_ACCELERATION:
+        case BLASTER_RESUME_DECCELERATION:
+        case BLASTER_ACCELERATION_COMPLETE:
+        case BLASTER_NEXT_NODE_ESTIMATE:
+        case BLASTER_SENSOR_TIMEOUT:
+        case BLASTER_SENSOR_FEEDBACK:
+        case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
+        case MASTER_BLASTER_WHERE_ARE_YOU:
+            ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
+        }
+    }
+}
+
 static void blaster_init(blaster* const ctxt) {
     memset(ctxt, 0, sizeof(blaster));
 
@@ -622,7 +676,7 @@ static void blaster_init(blaster* const ctxt) {
     int result = Receive(&tid, (char*)init, sizeof(init));
 
     if (result != sizeof(init))
-        ABORT("[Blaster] Failed to initialize (%d)", result);
+        ABORT("[Blaster] Failed to initialize (%d from %d)", result, tid);
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
@@ -653,35 +707,7 @@ static void blaster_init(blaster* const ctxt) {
 
     ctxt->last_sensor       = 80;
     ctxt->sensor_to_stop_at = -1;
-}
-
-static void blaster_init_delay_courier(blaster* const ctxt, int* c_tid) {
-
-    const int tid = blaster_create_new_delay_courier(ctxt);
-
-    tnotify_header head = {
-        .type  = DELAY_RELATIVE,
-        .ticks = 0
-    };
-
-    int result = Send(tid, (char*)&head, sizeof(head), NULL, 0);
-    assert(result >= 0,
-           "[%s] Failed to setup timer notifier (%d)",
-           ctxt->name, result);
-
-    int crap;
-    result = Receive(&crap, NULL, 0);
-    assert(crap == tid,
-           "[%s] Got response from incorrect task (%d != %d)",
-           ctxt->name, crap, tid);
-
-    *c_tid = tid;
-    UNUSED(ctxt);
-}
-
-static void blaster_init_delay_couriers(blaster* const ctxt) {
-    blaster_init_delay_courier(ctxt, &ctxt->acceleration_courier);
-    blaster_init_delay_courier(ctxt, &ctxt->checkpoint_courier);
+    ctxt->accelerating      =  1;
 }
 
 static void blaster_init_other_couriers(blaster* const ctxt,
@@ -725,7 +751,7 @@ void train_blaster() {
         .size     = sizeof(callin)
     };
 
-    blaster_init_delay_couriers(&context);
+    blaster_wait(&context, &callin);
     blaster_init_other_couriers(&context, &package);
 
     int tid = 0;
@@ -768,7 +794,7 @@ void train_blaster() {
             blaster_short_move(&context, req.arg1);
             break;
         case BLASTER_FINISH_SHORT_MOVE:
-            blaster_finish_short_moving(&context, time);
+            blaster_set_speed(&context, 0, time);
             continue;
 
         case BLASTER_DUMP_VELOCITY_TABLE:

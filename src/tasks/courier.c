@@ -23,8 +23,8 @@ void sensor_notifier() {
         int     sensor;
     } sensor_one = {
         .type = SF_D_SENSOR
-    }; 
-    
+    };
+
     struct {
         int sensor_num;
         int return_head;
@@ -111,7 +111,7 @@ void time_notifier() {
                     (char*)&delay_req, sizeof(delay_req));
     } while (size != 0);
 
-    log("[TimeNotifier%d] has died...", myTid());
+    log("[TimeNotifier %d] has died...", myTid());
 }
 
 void delayed_one_way_courier() {
@@ -171,15 +171,16 @@ void courier() {
 
     result = package.size;
     do {
+        const int size = result;
         if (result > 0) {
             result = Send(package.receiver,
-                          buffer, result,
+                          buffer, size,
                           buffer, sizeof(buffer));
         }
 
         assert(result >= 0,
-               "problem with response to %d from receiver %d (%d)",
-               tid, package.receiver, result);
+               "problem sending %d bytes to %d from %d (%d)",
+               size, package.receiver, tid, result);
 
         result = Send(tid,
                       buffer, result,
@@ -190,6 +191,3 @@ void courier() {
 
     log("[Courier%d] has died...", myTid());
 }
-
-
-
