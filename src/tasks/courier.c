@@ -23,8 +23,8 @@ void sensor_notifier() {
         int     sensor;
     } sensor_one = {
         .type = SF_D_SENSOR
-    }; 
-    
+    };
+
     struct {
         int sensor_num;
         int return_head;
@@ -111,7 +111,7 @@ void time_notifier() {
                     (char*)&delay_req, sizeof(delay_req));
     } while (size != 0);
 
-    log("[TimeNotifier%d] has died...", myTid());
+    log("[TimeNotifier %d] has died...", myTid());
 }
 
 void delayed_one_way_courier() {
@@ -190,6 +190,3 @@ void courier() {
 
     log("[Courier%d] has died...", myTid());
 }
-
-
-
