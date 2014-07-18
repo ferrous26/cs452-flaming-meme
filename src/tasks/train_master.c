@@ -93,7 +93,7 @@ master_goto(master* const ctxt,
     const int result = Send(ctxt->path_admin,
                             (char*)&request, sizeof(request),
                             (char*)&worker_tid, sizeof(worker_tid));
-    assert(result <= 0,
+    assert(result >= 0,
            "[%s] Failed to get path worker (%d)",
            ctxt->name, result);
     assert(worker_tid >= 0,
