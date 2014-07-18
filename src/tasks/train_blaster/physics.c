@@ -1,13 +1,13 @@
 
-#ifndef __MASTER_P__
-#define __MASTER_P__
+#ifndef __BLASTER_P__
+#define __BLASTER_P__
 
 #include <std.h>
 #include <debug.h>
-#include <tasks/train_master/types.c>
+#include <tasks/train_blaster/types.c>
 
 
-static void master_dump_velocity_table(master* const ctxt) {
+static void blaster_dump_velocity_table(blaster* const ctxt) {
 
     char buffer[1024];
     char* ptr = log_start(buffer);
@@ -29,14 +29,14 @@ static void master_dump_velocity_table(master* const ctxt) {
     Puts(buffer, ptr - buffer);
 }
 
-static void master_update_feedback_threshold(master* const ctxt,
+static void blaster_update_feedback_threshold(blaster* const ctxt,
                                              const int threshold) {
     log("[%s] Updating feedback threshold to %d um/s (was %d um/s)",
         ctxt->name, threshold, ctxt->feedback_threshold);
     ctxt->feedback_threshold = threshold;
 }
 
-static void master_update_feedback_ratio(master* const ctxt,
+static void blaster_update_feedback_ratio(blaster* const ctxt,
                                          const ratio alpha) {
     switch (alpha) {
     case HALF_AND_HALF:
@@ -52,21 +52,21 @@ static void master_update_feedback_ratio(master* const ctxt,
     ctxt->feedback_ratio = alpha;
 }
 
-static void master_update_stopping_distance_offset(master* const ctxt,
+static void blaster_update_stopping_distance_offset(blaster* const ctxt,
                                                    const int offset) {
     log("[%s] Updating stop distance offset to %d mm (was %d mm)",
         ctxt->name, offset / 1000, ctxt->stopping_distance_offset / 1000);
     ctxt->stopping_distance_offset = offset;
 }
 
-static void master_update_turnout_clearance_offset(master* const ctxt,
+static void blaster_update_turnout_clearance_offset(blaster* const ctxt,
                                                    const int offset) {
     log("[%s] Updating turnout clearance offset to %d mm (was %d mm)",
         ctxt->name, offset / 1000, ctxt->turnout_clearance_offset / 1000);
     ctxt->turnout_clearance_offset = offset;
 }
 
-static void master_update_reverse_time_fudge(master* const ctxt,
+static void blaster_update_reverse_time_fudge(blaster* const ctxt,
                                              const int fudge) {
     log("[%s] Updating reverse time fudge factor to %d ticks (was %d ticks)",
         ctxt->name, fudge, ctxt->reverse_time_fudge_factor);
@@ -167,7 +167,7 @@ velocity_type(const int sensor_idx) {
 }
 
 static inline int
-physics_velocity(const master* const ctxt,
+physics_velocity(const blaster* const ctxt,
                  const int speed,
                  const track_type type) {
 
@@ -176,14 +176,14 @@ physics_velocity(const master* const ctxt,
 }
 
 static inline int
-physics_current_velocity(const master* const ctxt) {
+physics_current_velocity(const blaster* const ctxt) {
     return physics_velocity(ctxt,
                             ctxt->current_speed,
                             velocity_type(ctxt->current_sensor));
 }
 
 static inline void
-physics_update_velocity_ui(const master* const ctxt) {
+physics_update_velocity_ui(const blaster* const ctxt) {
 
     // NOTE: we currently display in units of (integer) rounded off mm/s
 
@@ -223,7 +223,7 @@ static char* sprintf_sensor(char* ptr, const sensor* const s) {
 }
 
 static void
-physics_update_tracking_ui(master* const ctxt, const int delta_v) {
+physics_update_tracking_ui(blaster* const ctxt, const int delta_v) {
 
     char  buffer[32];
     char* ptr = vt_goto(buffer,
@@ -248,7 +248,7 @@ physics_update_tracking_ui(master* const ctxt, const int delta_v) {
 }
 
 static inline void
-physics_feedback(master* const ctxt,
+physics_feedback(blaster* const ctxt,
                  const int actual_v,
                  const int expected_v,
                  const int delta_v) {
@@ -283,7 +283,7 @@ physics_feedback(master* const ctxt,
 }
 
 static inline int
-physics_stopping_distance(const master* const ctxt, const int speed) {
+physics_stopping_distance(const blaster* const ctxt, const int speed) {
     return
         (ctxt->stop_dist_map.slope * speed) +
         ctxt->stop_dist_map.offset +
@@ -291,18 +291,18 @@ physics_stopping_distance(const master* const ctxt, const int speed) {
 }
 
 static inline int
-physics_current_stopping_distance(const master* const ctxt) {
+physics_current_stopping_distance(const blaster* const ctxt) {
     return physics_stopping_distance(ctxt, ctxt->current_speed);
 }
 
 static inline int
-physics_turnout_stopping_distance(const master* const ctxt) {
+physics_turnout_stopping_distance(const blaster* const ctxt) {
     return physics_current_stopping_distance(ctxt) +
         ctxt->turnout_clearance_offset;
 }
 
 static int
-physics_stopping_time(const master* const ctxt, const int stop_dist) {
+physics_stopping_time(const blaster* const ctxt, const int stop_dist) {
 
     const int dist = stop_dist / 1000;
 
@@ -323,7 +323,7 @@ physics_stopping_time(const master* const ctxt, const int stop_dist) {
 }
 
 static int
-physics_starting_distance(const master* const ctxt, const int speed) {
+physics_starting_distance(const blaster* const ctxt, const int speed) {
 
     const cubic* const map = &ctxt->start_dist_map;
 
@@ -341,7 +341,7 @@ physics_starting_distance(const master* const ctxt, const int speed) {
 }
 
 static int
-physics_starting_time(const master* const ctxt, const int start_dist) {
+physics_starting_time(const blaster* const ctxt, const int start_dist) {
 
     const int dist = start_dist / 1000;
     const cubic* const map = &ctxt->amap;
@@ -362,7 +362,7 @@ physics_starting_time(const master* const ctxt, const int start_dist) {
 
 /* Here be dragons */
 
-static inline void master_init_physics(master* const ctxt) {
+static inline void blaster_init_physics(blaster* const ctxt) {
 
     // Common settings (can be overridden below)
     ctxt->feedback_ratio             = NINTY_TEN;

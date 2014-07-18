@@ -20,7 +20,7 @@
 #include <tasks/courier.h>
 #include <tasks/path_admin.h>
 
-#include <tasks/train_blaster.h>
+#include <tasks/train_control.h>
 #include <tasks/task_launcher.h>
 
 extern uint* _DataStart;

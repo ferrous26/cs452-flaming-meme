@@ -1,46 +1,21 @@
-
 #ifndef __TRAIN_MASTER_H__
 #define __TRAIN_MASTER_H__
 
-void __attribute__ ((noreturn)) train_master();
+#include <std.h>
 
 typedef enum {
-    MASTER_CHANGE_SPEED,
-
-    MASTER_REVERSE,  // step 1
-    MASTER_REVERSE2, // step 2 (used by delay courier)
-    MASTER_REVERSE3, // step 3 (used by delay courier)
-    MASTER_REVERSE4, // step 4 (used by delay courier)
-
-    MASTER_WHERE_ARE_YOU,
-    MASTER_STOP_AT_SENSOR, // TODO: move this to train_entity
-
-    MASTER_SHORT_MOVE,
-    MASTER_FINISH_SHORT_MOVE,
-
-    MASTER_DUMP_VELOCITY_TABLE,
-
-    MASTER_UPDATE_FEEDBACK_THRESHOLD,
-    MASTER_UPDATE_FEEDBACK_ALPHA,
-    MASTER_UPDATE_STOP_OFFSET,
-    MASTER_UPDATE_CLEARANCE_OFFSET,
-    MASTER_UPDATE_FUDGE_FACTOR,
-
-    MASTER_RESUME_ACCELERATION,
-    MASTER_RESUME_DECCELERATION,
-    MASTER_ACCELERATION_COMPLETE,
-
-    MASTER_NEXT_NODE_ESTIMATE,
-
-    MASTER_SENSOR_TIMEOUT,
-    MASTER_SENSOR_FEEDBACK,
-    MASTER_UNEXPECTED_SENSOR_FEEDBACK
+    MASTER_GOTO_LOCATION,     // new destination from control
+    MASTER_PATH_DATA,         // track route from path worker
+    MASTER_BLASTER_LOCATION   // current location from blaster
 } master_req_type;
 
 typedef struct {
     master_req_type type;
-    int  arg1;
-    int  arg2;
+    int arg1;
+    int arg2;
+    int arg3;
 } master_req;
+
+void __attribute__ ((noreturn)) train_master();
 
 #endif

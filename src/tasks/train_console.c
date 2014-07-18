@@ -12,7 +12,7 @@
 
 #include <tasks/courier.h>
 #include <tasks/sensor_farm.h>
-#include <tasks/train_master.h>
+#include <tasks/train_blaster.h>
 #include <tasks/train_console.h>
 
 
@@ -70,7 +70,7 @@ _get_next_sensors(const track_node* const track, int_buffer* const list) {
     }
 }
 
-static void try_send_sensor(tc_context* const ctxt, int sensor_num) { 
+static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
     int tid, result; UNUSED(result);
     int data[2] = {sensor_num, ctxt->sensor_iter};
 
@@ -103,15 +103,15 @@ static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
 static inline void _init_context(tc_context* const ctxt) {
     int tid, result, sensor_data[2];
     memset(ctxt, -1, sizeof(*ctxt));
-    
+
     ctxt->docked         = 0;
     ctxt->sensor_timeout = 0;
     ctxt->sensor_expect  = 80;
-    
+
     intb_init(&ctxt->waiters);
     intb_init(&ctxt->next_sensors);
 
-    // Get the track data from the train driver for use later 
+    // Get the track data from the train driver for use later
     result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
     assert(tid == myParentTid(), "sent startup from invalid tid %d", tid);
     assert(sizeof(ctxt->track) == result, "%d", result);
@@ -123,7 +123,7 @@ static inline void _init_context(tc_context* const ctxt) {
     const int sensor_tid = Create(TC_CHILDREN_PRIORITY, sensor_notifier);
     CHECK_CREATE(tid, "Failed to create first sensor notifier");
 
-    // set up the courier to send data to the driver 
+    // set up the courier to send data to the driver
     *(int*)&ctxt->driver_tid = Create(TC_CHILDREN_PRIORITY, courier);
     CHECK_CREATE(ctxt->driver_tid, "Failed to create driver courier");
 
@@ -144,8 +144,8 @@ static inline void _init_context(tc_context* const ctxt) {
             "Received invalid sensor data %d/%d", result, sizeof(sensor_data));
     intb_produce(&ctxt->waiters, tid);
 
-    master_req callin = {
-        .type = MASTER_UNEXPECTED_SENSOR_FEEDBACK,
+    blaster_req callin = {
+        .type = BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
         .arg1 = sensor_data[1],
         .arg2 = sensor_data[0]
     };
@@ -175,8 +175,8 @@ static inline void _init_context(tc_context* const ctxt) {
                   (char*)&time_return, sizeof(time_return),
                   NULL, 0);
     assert(0 == result, "failed setting up timer %d", result);
-    
-    
+
+
     package.receiver = WhoIs((char*)SENSOR_FARM_NAME);
     package.size     = 0;
     result = Send(ctxt->sensor_tid, (char*)&package, sizeof(package), NULL, 0);
@@ -211,7 +211,7 @@ static void try_send_timeout(tc_context* const ctxt) {
     // log("Waiting Until %d on %d", ctxt->sensor_timeout, ctxt->timer_tid);
     result = Reply(ctxt->timer_tid, (char*)&delay_req, sizeof(delay_req));
     assert(result == 0, "failed sending for timer (%d)", result);
-    
+
     ctxt->docked &= ~TIMER_MASK;
 }
 
@@ -234,7 +234,7 @@ static void reject_remaining_sensors(const tc_context* const ctxt) {
 
     cancel_req.size = 0;
     cancel_req.type = SF_W_SENSORS;
-    
+
     for (int i = 0; i < SENT_WAITER_SIZE; i++) {
         const int tid = ctxt->sent_waiters[i];
 
@@ -249,7 +249,7 @@ static void reject_remaining_sensors(const tc_context* const ctxt) {
         int result = Reply(ctxt->sensor_tid,
                            (char*)&cancel_req,
                            sizeof_cancel_req(cancel_req.size));
-        
+
         assert(result == 0, "can't send sensor return %d", result);
         UNUSED(result);
     }
@@ -259,7 +259,7 @@ void train_console() {
     int tid, result, args[4];
     tc_context context;
 
-    
+
     _init_context(&context);
     log("DRIVER %d", context.driver_tid);
     log("TIMER  %d", context.timer_tid);
@@ -276,14 +276,14 @@ void train_console() {
             if (80 == args[0]) {
                 log ("TRAIN LOST %x", context.docked);
                 context.sensor_expect  = 80;
-                context.sensor_timeout = 0; 
+                context.sensor_timeout = 0;
 
                 try_send_sensor(&context, 80);
             } else {
                 assert(args[0] < 80, "bad sensor %d", args[0]);
                 context.sensor_expect  = args[1];
-                context.sensor_timeout = args[2]; 
-                
+                context.sensor_timeout = args[2];
+
                 assert(result == 3 * sizeof(int),
                        "bad number of args for driver %d",
                        result / sizeof(int));
@@ -294,7 +294,7 @@ void train_console() {
                 while (intb_count(&context.next_sensors) > 0) {
                     const int sensor_num = intb_consume(&context.next_sensors);
                     assert(sensor_num < 80 && sensor_num >= 0, "Ba");
-                    try_send_sensor(&context, sensor_num); 
+                    try_send_sensor(&context, sensor_num);
                 }
             }
 
@@ -308,8 +308,8 @@ void train_console() {
             }
 
             if (context.docked & DRIVER_MASK)  {
-                master_req callin = {
-                    .type = MASTER_SENSOR_TIMEOUT
+                blaster_req callin = {
+                    .type = BLASTER_SENSOR_TIMEOUT
                 };
 
                 // log("Sending Timeout %d", args[1]);
@@ -318,14 +318,14 @@ void train_console() {
                 context.docked &= ~DRIVER_MASK;
             }
         } else if (tid == context.sensor_tid) {
-            context.docked |= SENSOR_MASK; 
+            context.docked |= SENSOR_MASK;
         } else {
             int index = get_sensor_index(&context, tid);
             assert(index >= 0, "got send from invalid task %d", tid);
             context.sent_waiters[index] = -1;
             // log("KIED %d %d %d", tid, args[1], args[2]);
-            
-            if (intb_count(&context.waiters) < BUFFER_SIZE) { 
+
+            if (intb_count(&context.waiters) < BUFFER_SIZE) {
                 intb_produce(&context.waiters, tid);
             } else {
                 // we forced the task back, too dangerous to keep around
@@ -336,22 +336,22 @@ void train_console() {
 
             if (context.sensor_iter != args[0])   continue;
             else if (REQUEST_REJECTED == args[1]) continue;
-            // TODO: someone stole this sensor, 
-            // need to come up with system - possibly involving the reservations 
+            // TODO: someone stole this sensor,
+            // need to come up with system - possibly involving the reservations
             //
             // dont resend since were on the same iteration, just will cause
             // for trains to fight over the bloody sensor, just give up for now
             else if (context.docked & DRIVER_MASK) {
-                master_req callin = {
+                blaster_req callin = {
                     .type = context.sensor_expect == args[2] ?
-                                        MASTER_SENSOR_FEEDBACK :
-                                        MASTER_UNEXPECTED_SENSOR_FEEDBACK,
+                                        BLASTER_SENSOR_FEEDBACK :
+                                        BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
                     .arg1 = args[2],
                     .arg2 = args[1]
                 };
 
-                // sensor s = pos_to_sensor(args[2]); 
-                // log("Sending Sensor %c%d", s.bank, s.num); 
+                // sensor s = pos_to_sensor(args[2]);
+                // log("Sending Sensor %c%d", s.bank, s.num);
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;

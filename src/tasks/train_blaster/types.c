@@ -1,6 +1,6 @@
 
-#ifndef __MASTER_T__
-#define __MASTER_T__
+#ifndef __BLASTER_T__
+#define __BLASTER_T__
 
 #include <std.h>
 #include <track_node.h>
@@ -53,14 +53,13 @@ typedef struct {
     int mega_scale;
 } cubic;
 
-typedef struct master_context {
+typedef struct blaster_context {
     int       train_id;      // internal index
     int       train_gid;     // global identifier
     char      name[8];
 
     int       acceleration_courier; // acceleration delay courier
     int       checkpoint_courier;   // courier used to wake at checkpoints
-    int       sensor_courier;       // tid of the blaster courier
     int       sensor_to_stop_at;    // special case for handling ss command
 
     ratio     feedback_ratio;
@@ -111,6 +110,6 @@ typedef struct master_context {
     int       next_time;         // estimated time of arrival at next landmark
 
     const track_node* const track;
-} master;
+} blaster;
 
 #endif
