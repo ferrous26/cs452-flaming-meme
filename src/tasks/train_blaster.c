@@ -246,15 +246,19 @@ static void blaster_set_speed(blaster* const ctxt,
 
     put_train_speed(ctxt->train_gid, speed / 10);
 
-    if (ctxt->last_speed == 0)
-        blaster_start_accelerate(ctxt, speed, time);
-    else if (ctxt->current_speed == 0)
+    if (ctxt->last_speed > ctxt->current_speed) {
         blaster_start_deccelerate(ctxt, ctxt->last_speed, time);
-    else
-        log("[%s] Unsupported acceleration %d -> %d",
-            ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+        if (ctxt->current_speed != 0)
+            log("[%s] Unsupported decceleration %d -> %d",
+                ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+    }
+    else {
+        blaster_start_accelerate(ctxt, speed, time);
+        if (ctxt->last_speed != 0)
+            log("[%s] Unsupported acceleration %d -> %d",
+                ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+    }
 
-    //blaster_update_estimates(ctxt, time);
     physics_update_velocity_ui(ctxt);
 }
 
@@ -367,14 +371,9 @@ blaster_reset_simulation(blaster* const ctxt,
     ctxt->current_offset   = 0;
     ctxt->current_time     = sensor_hit_time;
 
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
     int result = get_sensor_from(sensor_hit,
                                  &ctxt->current_distance,
                                  &ctxt->next_sensor);
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
-
     assert(result == 0, "failed to get next sensor %d", result);
 
     const int velocity = physics_current_velocity(ctxt);
@@ -442,8 +441,7 @@ blaster_adjust_simulation(blaster* const ctxt,
     const int    delta_v = actual_v - expected_v;
 
     // only do feedback if we are in steady state
-    if (!(ctxt->last_sensor_accelerating &&
-          ctxt->current_sensor_accelerating))
+    if (!(ctxt->last_sensor_accelerating || ctxt->current_sensor_accelerating))
         physics_feedback(ctxt, actual_v, expected_v, delta_v);
 
     ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
@@ -457,13 +455,9 @@ blaster_adjust_simulation(blaster* const ctxt,
     ctxt->current_offset           = 0;
     ctxt->current_time             = sensor_time;
 
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
     int result = get_sensor_from(sensor_hit,
                                  &ctxt->current_distance,
                                  &ctxt->next_sensor);
-    log("last is %d, current is %d, next is %d",
-        ctxt->last_sensor, ctxt->current_sensor, ctxt->next_sensor);
 
     assert(result == 0,
            "[%s] failed to get next sensor (%d)",
@@ -498,11 +492,6 @@ static void blaster_stop_at_sensor(blaster* const ctxt, const int sensor_idx) {
     log("[%s] Gonna hit the brakes when we hit sensor %c%d",
         ctxt->name, s.bank, s.num);
     ctxt->sensor_to_stop_at = sensor_idx;
-}
-
-static void blaster_finish_short_moving(blaster* const ctxt,
-                                       const int time) {
-    blaster_set_speed(ctxt, 0, time);
 }
 
 static void blaster_resume_short_moving(blaster* const ctxt,
@@ -837,7 +826,7 @@ void train_blaster() {
             blaster_short_move(&context, req.arg1);
             break;
         case BLASTER_FINISH_SHORT_MOVE:
-            blaster_finish_short_moving(&context, time);
+            blaster_set_speed(&context, 0, time);
             continue;
 
         case BLASTER_DUMP_VELOCITY_TABLE:
