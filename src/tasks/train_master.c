@@ -39,18 +39,23 @@ typedef struct {
 
 static inline bool master_try_fast_forward(master* const ctxt) {
 
-    sensor start = { 0, 0 };
+    int start = -1;
     for (int i = ctxt->path_steps; i >= 0; i--) {
         if (ctxt->path[i].type == PATH_SENSOR) {
-            if (start.num == 0)
-                start = pos_to_sensor(ctxt->path[i].data.sensor);
+
+            if (start == -1) start = i;
 
             if (ctxt->path[i].data.sensor == ctxt->checkpoint) {
-                const sensor end =
-                    pos_to_sensor(ctxt->path[i].data.sensor);
 
-                log("[%s] %c%d >> %c%d",
-                    ctxt->name, start.bank, start.num, end.bank, end.num);
+                if (start != i) {
+                    const sensor head =
+                        pos_to_sensor(ctxt->path[start].data.sensor);
+                    const sensor tail =
+                        pos_to_sensor(ctxt->path[i].data.sensor);
+
+                    log("[%s] %c%d >> %c%d",
+                        ctxt->name, head.bank, head.num, tail.bank, tail.num);
+                }
 
                 ctxt->path_steps = i; // successfully fast forwarded
                 return true;
