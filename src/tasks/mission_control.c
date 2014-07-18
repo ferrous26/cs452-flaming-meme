@@ -14,7 +14,7 @@
 
 #include <tasks/path_admin.h>
 #include <tasks/sensor_farm.h>
-#include <tasks/train_blaster.h>
+#include <tasks/train_control.h>
 
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
@@ -194,7 +194,7 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
 }
 
 static inline void mc_initalize(mc_context* const ctxt) {
-    int result, tid, pa_tid, sf_tid, tb_tid;
+    int result, tid, pa_tid, sf_tid, tc_tid;
 
     log(LOG_HEAD "Initalizing");
     Putc(TRAIN, TRAIN_ALL_STOP);
@@ -210,11 +210,11 @@ static inline void mc_initalize(mc_context* const ctxt) {
     pa_tid = Create(PATH_ADMIN_PRIORITY, path_admin);
     CHECK_CREATE(pa_tid, "[Mission Control] path admin failed creation");
 
-    tb_tid = Create(TRAIN_BLASTER_PRIORITY, train_blaster);
-    CHECK_CREATE(tb_tid, "[Mission Control] train blaser failed creation");
+    tc_tid = Create(TRAIN_CONTROL_PRIORITY, train_control);
+    CHECK_CREATE(tc_tid, "[Mission Control] train blaser failed creation");
 
-    sf_tid = Create(SENSOR_FARM_PRIORITY, sensor_farm); 
-    CHECK_CREATE(sf_tid, "[Mission Control] server farm failed creation"); 
+    sf_tid = Create(SENSOR_FARM_PRIORITY, sensor_farm);
+    CHECK_CREATE(sf_tid, "[Mission Control] server farm failed creation");
 
     mc_reset_track_state(ctxt);
     mc_stall_for_track_load(ctxt);
@@ -223,7 +223,7 @@ static inline void mc_initalize(mc_context* const ctxt) {
     result = Send(pa_tid, (char*)&track, sizeof(track), NULL, 0);
     if (result != 0) ABORT("Failed setting up PATH ADMIN %d", result);
 
-    result = Send(tb_tid, (char*)&track, sizeof(track), NULL, 0);
+    result = Send(tc_tid, (char*)&track, sizeof(track), NULL, 0);
     if (result != 0) ABORT("Failed setting up TRAIN BLASTER %d", result);
 
     result = Send(sf_tid, NULL, 0, NULL, 0);

@@ -12,7 +12,7 @@ typedef enum {
     INVALID_SENSOR         = -102,
     INVALID_TURNOUT        = -103,
     INVALID_FEEDBACK_ALPHA = -104,
-} blaster_err;
+} control_err;
 
 typedef enum {
     HALF_AND_HALF,
