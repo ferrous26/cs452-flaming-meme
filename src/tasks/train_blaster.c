@@ -615,6 +615,74 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     UNUSED(result);
 }
 
+static inline void blaster_wait(blaster* const ctxt,
+                                const control_req* const callin) {
+
+    blaster_req req;
+    const int control = myParentTid();
+
+    FOREVER {
+        int result = Send(control,
+                          (char*)callin, sizeof(control_req),
+                          (char*)&req,    sizeof(req));
+        if (result <= 0)
+            ABORT("[%s] Bad train init (%d)", ctxt->name, result);
+
+        int time = Time();
+
+        switch (req.type) {
+        case BLASTER_CHANGE_SPEED:
+            blaster_set_speed(ctxt, req.arg1, time);
+            if (req.arg1 > 0) return;
+            break;
+        case BLASTER_SHORT_MOVE:
+            blaster_short_move(ctxt, req.arg1);
+            return;
+        case BLASTER_REVERSE:
+            blaster_reverse_step1(ctxt, time);
+            return;
+        case BLASTER_WHERE_ARE_YOU:
+            blaster_where_are_you(ctxt, req.arg1, time);
+            break;
+        case BLASTER_STOP_AT_SENSOR:
+            blaster_stop_at_sensor(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
+            blaster_update_feedback_threshold(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_FEEDBACK_ALPHA:
+            blaster_update_feedback_ratio(ctxt, (ratio)req.arg1);
+            break;
+        case BLASTER_UPDATE_STOP_OFFSET:
+            blaster_update_stopping_distance_offset(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_CLEARANCE_OFFSET:
+            blaster_update_turnout_clearance_offset(ctxt, req.arg1);
+            break;
+        case BLASTER_UPDATE_FUDGE_FACTOR:
+            blaster_update_reverse_time_fudge(ctxt, req.arg1);
+            break;
+
+            // We should not get any of these as the first event
+            // so we abort if we get them
+        case BLASTER_REVERSE2:
+        case BLASTER_REVERSE3:
+        case BLASTER_REVERSE4:
+        case BLASTER_FINISH_SHORT_MOVE:
+        case BLASTER_DUMP_VELOCITY_TABLE:
+        case BLASTER_RESUME_ACCELERATION:
+        case BLASTER_RESUME_DECCELERATION:
+        case BLASTER_ACCELERATION_COMPLETE:
+        case BLASTER_NEXT_NODE_ESTIMATE:
+        case BLASTER_SENSOR_TIMEOUT:
+        case BLASTER_SENSOR_FEEDBACK:
+        case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
+        case MASTER_BLASTER_WHERE_ARE_YOU:
+            ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
+        }
+    }
+}
+
 static void blaster_init(blaster* const ctxt) {
     memset(ctxt, 0, sizeof(blaster));
 
@@ -726,6 +794,7 @@ void train_blaster() {
     };
 
     blaster_init_delay_couriers(&context);
+    blaster_wait(&context, &callin);
     blaster_init_other_couriers(&context, &package);
 
     int tid = 0;
