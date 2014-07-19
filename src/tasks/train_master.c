@@ -20,7 +20,6 @@ typedef struct {
     int              blaster;            // tid of control task
     int              control;            // tid of control task
 
-
     int              path_admin;         // tid of the path admin
     int              path_worker;        // tid of the path worker
 
@@ -165,7 +164,7 @@ static inline void master_location_update(master* const ctxt,
                                           const blaster_req* const pkg,
                                           const int tid) {
 
-    log("[%s] Got position update", ctxt->name);
+    // log("[%s] Got position update", ctxt->name);
 
     ctxt->checkpoint        = req->arg1;
     ctxt->checkpoint_offset = req->arg2;
@@ -178,7 +177,7 @@ static inline void master_location_update(master* const ctxt,
            ctxt->name, result);
 }
 
-static void master_init(master* const ctxt) {
+static TEXT_COLD void master_init(master* const ctxt) {
 
     memset(ctxt, 0, sizeof(master));
 
@@ -215,9 +214,9 @@ static void master_init(master* const ctxt) {
     ctxt->path_steps  = -1;
 }
 
-static void master_init_couriers(master* const ctxt,
-                                 const courier_package* const cpkg,
-                                 const courier_package* const bpkg) {
+static TEXT_COLD void master_init_couriers(master* const ctxt,
+                                          const courier_package* const cpkg,
+                                          const courier_package* const bpkg) {
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,

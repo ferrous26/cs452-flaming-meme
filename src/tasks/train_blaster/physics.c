@@ -362,7 +362,7 @@ physics_starting_time(const blaster* const ctxt, const int start_dist) {
 
 /* Here be dragons */
 
-static inline void blaster_init_physics(blaster* const ctxt) {
+static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
 
     // Common settings (can be overridden below)
     ctxt->feedback_ratio             = NINTY_TEN;

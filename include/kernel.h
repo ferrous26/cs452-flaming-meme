@@ -82,7 +82,7 @@ void kernel_deinit(void);
 void hwi_enter(void);                             /* found in context.asm */
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
 
-void syscall_handle(const uint code, const void* const req, int* const sp)
+void syscall_handle(const syscall_num code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 
 void __attribute__ ((noreturn)) shutdown(void);
