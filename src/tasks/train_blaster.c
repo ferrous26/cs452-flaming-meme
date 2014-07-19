@@ -97,7 +97,8 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
         .arg1  = l.sensor,
         .arg2  = l.offset,
         .arg3  = time,
-        .arg4  = physics_current_velocity(ctxt)
+        .arg4  = physics_current_velocity(ctxt),
+        .arg5  = physics_current_stopping_distance(ctxt)
     };
 
     const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));

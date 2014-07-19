@@ -9,6 +9,10 @@
 #include <tasks/priority.h>
 #include <tasks/courier.h>
 #include <tasks/clock_server.h>
+#include <tasks/mission_control.h>
+
+
+#define TURNOUT_DISTANCE 300000
 
 
 typedef struct {
@@ -26,36 +30,55 @@ typedef struct {
     int              checkpoint;         // sensor we last had update at
     int              checkpoint_offset;  // in micrometers
     int              checkpoint_time;
+    int              checkpoint_velocity;
+    int              checkpoint_stopping_distance;
 
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
 
     int              path_steps;
     const path_node* path;
-
+    int              turnout_step;       // next turnout step
+    int              reverse_step;       // next reverse step
 } master;
 
 
+static int master_new_delay_courier(master* const ctxt) {
+
+    const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
+
+    assert(tid >= 0,
+           "[%s] Error setting up a timer notifier (%d)",
+           ctxt->name, tid);
+    UNUSED(ctxt);
+
+    return tid;
+}
+
 static inline bool master_try_fast_forward(master* const ctxt) {
 
+#ifdef DEBUG
     int start = -1;
+#endif
     for (int i = ctxt->path_steps; i >= 0; i--) {
         if (ctxt->path[i].type == PATH_SENSOR) {
 
             if (start == -1) start = i;
 
             if (ctxt->path[i].data.sensor == ctxt->checkpoint) {
-
+#ifdef DEBUG
                 if (start != i) {
                     const sensor head =
                         pos_to_sensor(ctxt->path[start].data.sensor);
                     const sensor tail =
                         pos_to_sensor(ctxt->path[i].data.sensor);
 
+
                     log("[%s] %c%d >> %c%d",
                         ctxt->name, head.bank, head.num, tail.bank, tail.num);
-                }
 
+                }
+#endif
                 ctxt->path_steps = i; // successfully fast forwarded
                 return true;
             }
@@ -133,6 +156,26 @@ master_goto(master* const ctxt,
            "[%s] Did not wake up %d (%d)", ctxt->name, tid, result);
 }
 
+static inline void master_calculate_turnout_point(master* const ctxt) {
+    for (int i = ctxt->turnout_step - 1; i >= 0; i--) {
+        if (ctxt->path[i].type == PATH_TURNOUT) {
+            ctxt->turnout_step = i;
+            return;
+        }
+    }
+    ctxt->turnout_step = 0;
+}
+
+static inline void master_calculate_reverse_point(master* const ctxt) {
+    for (int i = ctxt->reverse_step - 1; i >= 0; i--) {
+        if (ctxt->path[i].type == PATH_TURNOUT) {
+            ctxt->reverse_step = i;
+            return;
+        }
+    }
+    ctxt->reverse_step = 0;
+}
+
 static inline void master_path_update(master* const ctxt,
                                       const int size,
                                       const path_node* path,
@@ -151,12 +194,112 @@ static inline void master_path_update(master* const ctxt,
     log("[%s] Got path %c%d -> %c%d in %d steps",
         ctxt->name, from.bank, from.num, to.bank, to.num, size);
 
-    ctxt->path_worker = tid;
-    ctxt->path_steps  = size - 1;
-    ctxt->path        = path;
+    ctxt->path_worker  = tid;
+    ctxt->path_steps   = size - 1;
+    ctxt->path         = path;
 
     // Get us up to date on where we are
     master_try_fast_forward(ctxt);
+
+    // wait until we know where we are starting from
+    ctxt->turnout_step = ctxt->path_steps;
+    ctxt->reverse_step = ctxt->path_steps;
+
+    master_calculate_turnout_point(ctxt);
+    master_calculate_reverse_point(ctxt);
+}
+
+static void master_delay_flip_turnout(master* const ctxt,
+                                      const int turn,
+                                      const int direction,
+                                      const int delay) {
+    const int c = master_new_delay_courier(ctxt);
+
+    struct {
+        tnotify_header head;
+        master_req     req;
+    } msg = {
+        .head = {
+            .type  = DELAY_RELATIVE,
+            .ticks = delay
+        },
+        .req = {
+            .type = MASTER_FLIP_TURNOUT,
+            .arg1 = turn,
+            .arg2 = direction
+        }
+    };
+
+    const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
+    if (result < 0)
+        ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
+}
+
+static void master_delay_stop(master* const ctxt,
+                              const int delay) {
+    const int c = master_new_delay_courier(ctxt);
+
+    struct {
+        tnotify_header head;
+        master_req     req;
+    } msg = {
+        .head = {
+            .type  = DELAY_ABSOLUTE,
+            .ticks = ctxt->checkpoint_time + delay
+        },
+        .req = {
+            .type = MASTER_STOP_TRAIN
+        }
+    };
+
+    const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
+    if (result < 0)
+        ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
+}
+
+static inline void master_simulate_pathing(master* const ctxt) {
+
+    const path_node* const curr_step =
+        &ctxt->path[ctxt->path_steps];
+    const path_node* const next_step =
+        &ctxt->path[MAX(ctxt->path_steps - 1, 0)];
+    const path_node* const next_next_step =
+        &ctxt->path[MAX(ctxt->path_steps - 2, 0)];
+
+    // it is in the next sensor range, so calculate how long to wait
+    while (next_step->dist > ctxt->path[ctxt->turnout_step].dist ||
+           next_next_step->dist > ctxt->path[ctxt->turnout_step].dist) {
+
+        const path_node* const node = &ctxt->path[ctxt->turnout_step];
+
+        const int danger_zone =
+            (node->dist - TURNOUT_DISTANCE) - curr_step->dist;
+        const int delay = danger_zone / ctxt->checkpoint_velocity;
+
+        master_delay_flip_turnout(ctxt,
+                                  node->data.turnout.num,
+                                  node->data.turnout.dir,
+                                  delay);
+        master_calculate_turnout_point(ctxt);
+    }
+
+    // it is in the next sensor range, so calculate how long to wait
+    if (next_step->dist == ctxt->path[0].dist ||
+           next_next_step->dist == ctxt->path[0].dist) {
+
+
+        log("Gonna stop!");
+
+        const path_node* const node = &ctxt->path[0];
+
+        const int danger_zone =
+            (node->dist - ctxt->checkpoint_stopping_distance) -
+            curr_step->dist;
+        const int delay = danger_zone / ctxt->checkpoint_velocity;
+
+        master_delay_stop(ctxt, delay);
+        ctxt->path_steps = -1;
+    }
 }
 
 static inline void master_location_update(master* const ctxt,
@@ -166,14 +309,52 @@ static inline void master_location_update(master* const ctxt,
 
     // log("[%s] Got position update", ctxt->name);
 
-    ctxt->checkpoint        = req->arg1;
-    ctxt->checkpoint_offset = req->arg2;
-    ctxt->checkpoint_time   = req->arg3;
+    ctxt->checkpoint                   = req->arg1;
+    ctxt->checkpoint_offset            = req->arg2;
+    ctxt->checkpoint_time              = req->arg3;
+    ctxt->checkpoint_velocity          = req->arg4;
+    ctxt->checkpoint_stopping_distance = req->arg5;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     UNUSED(result);
     assert(result == 0,
            "[%s] Failed to send courier back to blaster (%d)",
+           ctxt->name, result);
+
+    if (ctxt->path_steps >= 0) {
+        if (master_try_fast_forward(ctxt)) {
+            master_simulate_pathing(ctxt);
+        }
+        else { // shit, we need a new path...
+            log("[%s] Path is fucked", ctxt->name);
+        }
+    }
+}
+
+static inline void
+master_flip_turnout(master* const ctxt,
+                    const int turn,
+                    const int direction,
+                    const int tid) {
+
+    update_turnout(turn, direction);
+
+    const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
+    assert(result == 0,
+           "[%s] Failed to kill delay notifier (%d)",
+           ctxt->name, result);
+}
+
+static inline void
+master_stop_train(master* const ctxt, const int tid) {
+
+    log("Stopping!");
+    // TODO: courier this directly to the train?
+    train_set_speed(ctxt->train_gid, 0);
+
+    const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
+    assert(result == 0,
+           "[%s] Failed to kill delay notifier (%d)",
            ctxt->name, result);
 }
 
@@ -294,6 +475,14 @@ void train_master() {
             break;
         case MASTER_BLASTER_LOCATION:
             master_location_update(&context, &req, &blaster_callin, tid);
+            break;
+
+        case MASTER_FLIP_TURNOUT:
+            master_flip_turnout(&context, req.arg1, req.arg2, tid);
+            break;
+
+        case MASTER_STOP_TRAIN:
+            master_stop_train(&context, tid);
             break;
         }
     }
