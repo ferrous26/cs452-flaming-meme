@@ -214,7 +214,7 @@ static void try_send_timeout(tc_context* const ctxt) {
     };
     UNUSED(delay_req);
 
-    log("Waiting Until %d on %d", ctxt->sensor_timeout, ctxt->timer_tid);
+    // log("Waiting Until %d on %d", ctxt->sensor_timeout, ctxt->timer_tid);
     result = Reply(ctxt->timer_tid, (char*)&delay_req, sizeof(delay_req));
     assert(result == 0, "failed sending for timer (%d)", result);
 
@@ -318,7 +318,6 @@ void train_console() {
                     assert(sensor_num < 80 && sensor_num >= 0, "Ba");
                     try_send_sensor(&context, sensor_num);
                 }
-                log ("sent %d", context.sensor_timeout);
                 break;
             }
             try_send_timeout(&context);
