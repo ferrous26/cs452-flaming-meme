@@ -138,7 +138,7 @@ void delayed_one_way_courier() {
         break;
     }
 
-    const int send_size = size - sizeof(delay_req);
+    const int send_size = size - (int)sizeof(delay_req);
     result = Send(delay_req.head.receiver,
                   delay_req.message, send_size,
                   delay_req.message, sizeof(delay_req.message));
@@ -160,7 +160,7 @@ void courier() {
            tid, result, sizeof(package));
 
     if (package.size > 0) {
-        memcpy(buffer, package.message, package.size);
+        memcpy(buffer, package.message, (uint)package.size);
     } else if (package.size < 0) {
         ABORT("%d tried to send negitive size message", tid);
     }

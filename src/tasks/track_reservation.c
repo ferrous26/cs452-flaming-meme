@@ -11,8 +11,8 @@
 #include <tasks/track_reservation.h>
 
 #define LOG_HEAD  "[TRACK RESERVATION]"
-#define DIR_FRONT 0
-#define DIR_BACK  1
+// #define DIR_FRONT 0
+// #define DIR_BACK  1
 
 static int track_reservation_tid;
 
@@ -148,12 +148,12 @@ int reserve_section(const track_node* const node,
         .train = train,
     };
 
-    int size, result;
+    int size, result[2];
     size = Send(track_reservation_tid,
                 (char*)&req,   sizeof(req),
                 (char*)&result, sizeof(result));
-    assert(size == sizeof(int), "Bad send to track reservation");
-    return result;
+    assert(size >= (int)sizeof(int), "Bad send to track reservation");
+    return result[0];
 }
 
 

@@ -26,7 +26,7 @@ typedef struct {
 
 void sensor_notifier(void);
 void time_notifier(void);
-
+void delayed_one_way_courier(void);
 void courier(void);
 
 #endif

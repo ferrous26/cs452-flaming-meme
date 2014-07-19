@@ -166,7 +166,6 @@ static void mc_load_track(mc_context* const ctxt, int track_num) {
         break;
     default:
         ABORT("Invalid track name `%c'", track_num);
-        return;
     }
     log(LOG_HEAD "loading track %c ...", track_num);
 }

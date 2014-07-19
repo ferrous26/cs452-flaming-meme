@@ -39,8 +39,8 @@ sensor_to_pos(const int bank, const int num) {
 static inline sensor __attribute__ ((const))
 pos_to_sensor(const int num) {
     sensor name = {
-        .bank = 'A' + (num >> 4),
-        .num  = mod2_int(num, 16) + 1
+        .bank = (short) 'A' + (short) (num >> 4),
+        .num  = (short) mod2_int(num, 16) + 1
     };
     return name;
 }

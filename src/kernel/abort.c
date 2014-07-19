@@ -50,7 +50,7 @@ static char* _abort_sp(char* ptr, task* const t) {
 static char* _abort_sp_butt(char* ptr, task* const t) {
     if (t->sp)
         return sprintf(ptr, "%p  ",
-                       task_stack(task_index_from_tid(t->tid)));
+                       task_stack((char)task_index_from_tid(t->tid)));
     return sprintf_string(ptr, "-           ");
 }
 

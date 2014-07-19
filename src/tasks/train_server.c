@@ -167,9 +167,9 @@ inline static void _startup() {
 }
 
 typedef struct {
-    int  get_tid;
-    int  send_tid;
-    uint get_expecting;
+    int get_tid;
+    int send_tid;
+    int get_expecting;
 
     char_buffer train_in;
     char_buffer train_out;
@@ -239,7 +239,7 @@ void train_server() {
                 cbuf_produce(&context.train_in, req.payload.data[i]);
 
             if (-1 != context.get_tid &&
-                cbuf_count(&context.train_in) >= context.get_expecting) {
+                (int)cbuf_count(&context.train_in) >= context.get_expecting) {
 
                 ts_deliver_request(&context,
                                    context.get_tid,

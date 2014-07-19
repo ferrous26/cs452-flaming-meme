@@ -25,7 +25,7 @@
 
 #define CHECK_CREATE(tid, msg) assert(tid >= 0, msg " (%d)", tid)
 
-TYPE_BUFFER(int, 8);
+TYPE_BUFFER(int, 8)
 
 typedef struct {
     const int  train_pos;
@@ -225,7 +225,7 @@ static inline int __attribute__ ((const))
 sizeof_cancel_req (const int ele_count) {
     assert(ele_count > 0 && ele_count <= 8,
            "bad cancel req size (%d)", ele_count);
-    return sizeof(sf_type) + ((ele_count << 1) + 1) * sizeof(int);
+    return (int)sizeof(sf_type) + ((ele_count << 1) + 1) * (int)sizeof(int);
 }
 
 static void reject_remaining_sensors(const tc_context* const ctxt) {

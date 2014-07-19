@@ -62,10 +62,8 @@ void path_admin() {
             intb_produce(&context.worker_pool, tid);
             break;
 
-        default:
         case PA_REQ_COUNT:
             ABORT("path admin got invalid request %d", req.type);
-            break;
         }
     }
 }

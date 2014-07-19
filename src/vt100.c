@@ -283,7 +283,7 @@ char* vt_restore_cursor(char* buffer) {
 
 char* log_start(char* buffer) {
     buffer = vt_restore_cursor(buffer);
-    buffer = sprintf_uint(buffer, Time());
+    buffer = sprintf_uint(buffer, (uint)Time());
     return sprintf_string(buffer, ": ");
 }
 

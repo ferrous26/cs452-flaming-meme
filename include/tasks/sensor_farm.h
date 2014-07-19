@@ -28,7 +28,7 @@ typedef struct sf_req {
     } body;
 } sf_req;
 
-void __attribute__ ((noreturn)) sensor_farm();
+void __attribute__ ((noreturn)) sensor_farm(void);
 
 int delay_sensor_any(void);
 int delay_sensor(const int sensor_bank, const int sensor_num);

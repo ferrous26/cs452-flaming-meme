@@ -17,7 +17,7 @@ typedef struct {
     path_node* path;
 } path_response;
 
-void path_worker(void);
+void __attribute__((noreturn)) path_worker(void);
 
 #endif
 

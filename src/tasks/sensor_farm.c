@@ -210,7 +210,6 @@ void sensor_farm() {
             result = Reply(tid, NULL, 0);
             break;
 
-        default:
         case SF_REQ_TYPE_COUNT:
             log(LOG_HEAD "got invalid req type %d from %d", req.type, tid);
             Reply(tid, NULL, 0);
