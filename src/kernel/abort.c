@@ -16,7 +16,11 @@ static char* _abort_tid_num(char* ptr, int tid) {
 static char* _abort_tid(char* ptr, task* const t) {
     if (!t)
         return sprintf_string(ptr, "-           ");
-    return _abort_tid_num(ptr, t->tid);
+    if (t->sp)
+        return _abort_tid_num(ptr, t->tid);
+    // Rewind task identifier on dead tasks for the sake
+    // of the table (task_destroy advances it)
+    return _abort_tid_num(ptr, t->tid - TASK_MAX);
 }
 
 static char* _abort_ptid(char* ptr, task* const t) {
@@ -41,17 +45,16 @@ static char* _abort_next(char* ptr, task* const t) {
     return _abort_tid(ptr, t->next);
 }
 
-static char* _abort_sp(char* ptr, task* const t) {
-    if (t->sp)
-        return sprintf(ptr, "%p  ", t->sp);
-    return sprintf_string(ptr, "-           ");
-}
+static char* _abort_stack_size(char* ptr, task* const t) {
+    if (!t->sp)
+        return sprintf_string(ptr, "-           ");
 
-static char* _abort_sp_butt(char* ptr, task* const t) {
-    if (t->sp)
-        return sprintf(ptr, "%p  ",
-                       task_stack((char)task_index_from_tid(t->tid)));
-    return sprintf_string(ptr, "-           ");
+    const int top = (int)task_stack((char)task_index_from_tid(t->tid));
+    const int bot = (int)t->sp;
+    const int siz = top - bot;
+
+    ptr = sprintf_int(ptr, siz);
+    return ui_pad(ptr, log10(siz), COLUMN_WIDTH);
 }
 
 static char* _abort_receiver(char* ptr, task* const t) {
@@ -84,20 +87,30 @@ void abort(const kreq_abort* const req) {
 #define ITID(n) _abort_tid(ptr, int_queue[n])
     ptr = sprintf_string(ptr, "\n\r\n\r       Active Task: ");
     ptr = _abort_tid(ptr, task_active);
-    ptr = sprintf_string(ptr, "\n\r        Clock Task: ");
+    ptr = sprintf_string(ptr,     "\n\r        Clock Task: ");
     ptr = ITID(0);
-    ptr = sprintf_string(ptr, "\n\rUART2    Send Task: ");
+    ptr = sprintf_string(ptr,     "\n\rUART2    Send Task: ");
     ptr = ITID(1);
-    ptr = sprintf_string(ptr,   "UART2 Receive Task: ");
+    ptr = sprintf_string(ptr,         "UART2 Receive Task: ");
     ptr = ITID(2);
-    ptr = sprintf_string(ptr, "\n\rUART1    Send Task: ");
+    ptr = sprintf_string(ptr,     "\n\rUART1    Send Task: ");
     ptr = ITID(3);
-    ptr = sprintf_string(ptr,   "UART1 Receive Task: ");
+    ptr = sprintf_string(ptr,         "UART1 Receive Task: ");
     ptr = ITID(4);
-    ptr = sprintf_string(ptr, "\n\rUART1     CTS Task: ");
+    ptr = sprintf_string(ptr,     "\n\rUART1     CTS Task: ");
     ptr = ITID(5);
-    ptr = sprintf_string(ptr,   "UART1    Down Task: ");
+    ptr = sprintf_string(ptr,         "UART1    Down Task: ");
     ptr = ITID(6);
+    ptr = sprintf(ptr,
+                  "\n\r Stack "
+                  "TOP: %p    "
+                  "BOTTOM: %p    "
+                  "TOTAL: %d    "
+                  "TASK: %d",
+                  TASK_HEAP_TOP,
+                  TASK_HEAP_BOT,
+                  TASK_HEAP_TOP - TASK_HEAP_BOT,
+                  TASK_HEAP_SIZ);
 
     // Table header
     ptr = sprintf_string(ptr,
@@ -106,11 +119,10 @@ void abort(const kreq_abort* const req) {
                          "PTID        "
                          "Priority    "
                          "Next        "
-                         "Stack Head  "
-                         "Stack Butt  "
                          "Receiver    "
-                         "Send      \n\r");
-    for (int i = 0; i < 96; i++)
+                         "Send        "
+                         "Stack Size\n\r");
+    for (int i = 0; i < 84; i++)
         ptr = sprintf_char(ptr, '#');
     ptr = sprintf_string(ptr, "\n\r");
 
@@ -124,10 +136,9 @@ void abort(const kreq_abort* const req) {
         ptr = _abort_ptid(ptr, t);
         ptr = _abort_priority(ptr, t);
         ptr = _abort_next(ptr, t);
-        ptr = _abort_sp(ptr, t);
-        ptr = _abort_sp_butt(ptr, t);
         ptr = _abort_receiver(ptr, t);
         ptr = _abort_send(ptr, t);
+        ptr = _abort_stack_size(ptr, t);
         ptr = sprintf_string(ptr, "\n\r");
     }
 
