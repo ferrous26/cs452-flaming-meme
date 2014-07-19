@@ -332,7 +332,6 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
 }
 
 static void blaster_reverse_step2(blaster* const ctxt) {
-
     struct {
         tnotify_header head;
         blaster_req      req;
@@ -383,8 +382,8 @@ static void blaster_reverse_step3(blaster* const ctxt) {
 }
 
 static inline void blaster_reverse_step4(blaster* const ctxt, const int time) {
-    blaster_set_speed(ctxt, ctxt->last_speed, time);
     ctxt->reversing = 0;
+    blaster_set_speed(ctxt, ctxt->last_speed, time);
 }
 
 static inline void blaster_detect_train_direction(blaster* const ctxt,
@@ -682,7 +681,7 @@ static inline void blaster_wait(blaster* const ctxt,
     }
 }
 
-static void blaster_init(blaster* const ctxt) {
+static TEXT_COLD void blaster_init(blaster* const ctxt) {
     memset(ctxt, 0, sizeof(blaster));
 
     int tid, init[2];
@@ -724,7 +723,7 @@ static void blaster_init(blaster* const ctxt) {
     ctxt->accelerating      =  1;
 }
 
-static void blaster_init_other_couriers(blaster* const ctxt,
+static TEXT_COLD void blaster_init_other_couriers(blaster* const ctxt,
                                         const courier_package* const package) {
 
     // Setup the sensor courier
