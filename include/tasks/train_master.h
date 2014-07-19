@@ -17,6 +17,7 @@ typedef struct {
     int arg4;
 } master_req;
 
-void __attribute__ ((noreturn)) train_master();
+void __attribute__ ((noreturn)) train_master(void);
 
 #endif
+

@@ -300,7 +300,7 @@ static void blaster_set_speed(blaster* const ctxt,
     ctxt->current_sensor_accelerating = true;
     ctxt->current_speed               = speed;
 
-    put_train_speed(ctxt->train_gid, speed / 10);
+    put_train_speed((char)ctxt->train_gid, (char)(speed / 10));
 
     if (ctxt->last_speed > ctxt->current_speed) {
         blaster_start_deccelerate(ctxt, ctxt->last_speed, time);
@@ -322,7 +322,7 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
 
     if (ctxt->current_speed == 0) {
         // doesn't matter, had sex
-        put_train_speed(ctxt->train_gid, TRAIN_REVERSE);
+        put_train_speed((char)ctxt->train_gid, TRAIN_REVERSE);
         ctxt->direction = -ctxt->direction;
         return;
     }
@@ -357,7 +357,7 @@ static void blaster_reverse_step2(blaster* const ctxt) {
 
 static void blaster_reverse_step3(blaster* const ctxt) {
 
-    put_train_speed(ctxt->train_gid, TRAIN_REVERSE);
+    put_train_speed((char)ctxt->train_gid, TRAIN_REVERSE);
     ctxt->direction = -ctxt->direction;
 
     struct {
@@ -676,6 +676,7 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_SENSOR_FEEDBACK:
         case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
         case MASTER_BLASTER_WHERE_ARE_YOU:
+        case BLASTER_REQ_TYPE_COUNT:
             ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
         }
     }
@@ -694,7 +695,7 @@ static void blaster_init(blaster* const ctxt) {
     ctxt->train_gid = pos_to_train(ctxt->train_id);
 
     // Tell the actual train to stop
-    put_train_speed(ctxt->train_gid, 0);
+    put_train_speed((char)ctxt->train_gid, 0);
 
     //I Want this to explicity never be changeable from here
     *(track_node**)&ctxt->track = (track_node*)init[1];
@@ -773,6 +774,10 @@ void train_blaster() {
     FOREVER {
         int result = Receive(&tid, (char*)&req, sizeof(req));
         int time   = Time(); // timestamp for request servicing
+
+        assert(req.type < BLASTER_REQ_TYPE_COUNT,
+               "[%s] got bad request type %d from %d",
+               context.name, req.type, tid);
 
         switch (req.type) {
         case BLASTER_CHANGE_SPEED:
@@ -855,10 +860,9 @@ void train_blaster() {
 
             int lost = 80;
             Reply(tid, (char*)&lost, sizeof(lost));
-            continue;
-        }
+        }   continue;
 
-        default:
+        case BLASTER_REQ_TYPE_COUNT:
             ABORT("[%s] Illegal type for a train blaster %d from %d",
                       context.name, req.type, tid);
         }

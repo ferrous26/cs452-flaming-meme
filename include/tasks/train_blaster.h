@@ -2,7 +2,7 @@
 #ifndef __TRAIN_BLASTER_H__
 #define __TRAIN_BLASTER_H__
 
-void __attribute__ ((noreturn)) train_blaster();
+void __attribute__ ((noreturn)) train_blaster(void);
 
 typedef enum {
     BLASTER_CHANGE_SPEED,
@@ -36,7 +36,9 @@ typedef enum {
 
     BLASTER_SENSOR_TIMEOUT,
     BLASTER_SENSOR_FEEDBACK,
-    BLASTER_UNEXPECTED_SENSOR_FEEDBACK
+    BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
+
+    BLASTER_REQ_TYPE_COUNT
 } blaster_req_type;
 
 typedef struct {
@@ -46,3 +48,4 @@ typedef struct {
 } blaster_req;
 
 #endif
+

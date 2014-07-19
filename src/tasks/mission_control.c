@@ -22,12 +22,6 @@
 #include <tasks/mission_control_types.h>
 
 #define LOG_HEAD               "[MISSION CONTROL] "
-#define NUM_TURNOUTS           22
-#define NUM_SENSOR_BANKS       5
-#define NUM_SENSORS_PER_BANK   16
-#define NUM_SENSORS           (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
-#define SENSOR_LIST_SIZE       9
-
 #define CHECK_CREATE(tid, msg) if (tid < 0) ABORT(msg " (%d)", tid)
 
 
@@ -170,11 +164,6 @@ static void mc_load_track(mc_context* const ctxt, int track_num) {
     log(LOG_HEAD "loading track %c ...", track_num);
 }
 
-static inline void __attribute__((always_inline)) mc_flush_sensors() {
-    Putc(TRAIN, SENSOR_POLL);
-    for (int i = 0; i < 10; i++) { Getc(TRAIN); }
-}
-
 static inline void mc_stall_for_track_load(mc_context* const ctxt) {
     int    tid, result;
     mc_req req;
@@ -194,7 +183,7 @@ static inline void mc_stall_for_track_load(mc_context* const ctxt) {
     }
 }
 
-static inline void mc_initalize(mc_context* const ctxt) {
+static TEXT_COLD void mc_initalize(mc_context* const ctxt) {
     int result, tid, pa_tid, sf_tid, tc_tid, tr_tid;
 
     log(LOG_HEAD "Initalizing");
