@@ -141,7 +141,12 @@ static void mc_reset_track_state(mc_context* const context) {
     mc_update_turnout(context, 5, 'C');
     mc_update_turnout(context, 6, 'S'); // 6 frequently derails when curved
 
-    for (int i = 7; i < 19; i++)
+    for (int i = 7; i < 16; i++)
+        mc_update_turnout(context, i, 'C');
+
+    mc_update_turnout(context,  16, 'S'); // 16 frequently derails when curved
+
+    for (int i = 17; i < 19; i++)
         mc_update_turnout(context, i, 'C');
 
     mc_update_turnout(context, 153, 'S');
@@ -202,7 +207,7 @@ static TEXT_COLD void mc_initalize(mc_context* const ctxt) {
 
     tr_tid = Create(TRACK_RESERVATION_PRIORITY, track_reservation);
     CHECK_CREATE(tr_tid, LOG_HEAD "track reservation failed creation");
-    
+
     tc_tid = Create(TRAIN_CONTROL_PRIORITY, train_control);
     CHECK_CREATE(tc_tid, "[Mission Control] train blaser failed creation");
 
@@ -221,7 +226,7 @@ static TEXT_COLD void mc_initalize(mc_context* const ctxt) {
 
     result = Send(tr_tid, (char*)&track, sizeof(track), NULL, 0);
     if (result != 0) ABORT("Failed setting up TRACK RESERVE %d", result);
-    
+
     result = Send(sf_tid, NULL, 0, NULL, 0);
     if (result != 0) ABORT("Failed setting up Server Farm %d", result);
 
