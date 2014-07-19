@@ -101,14 +101,14 @@ void irq_clear_simulated_interrupt(const uint i) {
 
 char* debug_interrupt_table(char* ptr) {
     return sprintf(ptr,
-"VIC1 Table                              VIC2 Table\n\r"
-"       IRQ Status: %p                          IRQ Status: %p\n\r"
-"       FIQ Status: %p                          FIQ Status: %p\n\r"
-"       Raw Status: %p                          Raw Status: %p\n\r"
-"           Select: %p                              Select: %p\n\r"
-"          Enabled: %p                             Enabled: %p\n\r"
-"     Soft Enabled: %p                        Soft Enabled: %p\n\r"
-"  User Protection: %s                     User Protection: %s\n\r",
+"VIC1 Table                              VIC2 Table\r\n"
+"       IRQ Status: %p                          IRQ Status: %p\r\n"
+"       FIQ Status: %p                          FIQ Status: %p\r\n"
+"       Raw Status: %p                          Raw Status: %p\r\n"
+"           Select: %p                              Select: %p\r\n"
+"          Enabled: %p                             Enabled: %p\r\n"
+"     Soft Enabled: %p                        Soft Enabled: %p\r\n"
+"  User Protection: %s                     User Protection: %s\r\n",
 irq_status(VIC1_BASE),		        irq_status(VIC2_BASE),
 fiq_status(VIC1_BASE),                  fiq_status(VIC2_BASE),
 irq_raw_status(VIC1_BASE),		irq_raw_status(VIC2_BASE),

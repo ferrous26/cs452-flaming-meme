@@ -48,7 +48,7 @@ int dijkstra(const track_node* const track,
     while (1) {
         const int curr_dist = pq_peek_key(&q);
         if (INT_MAX == curr_dist) {
-            log("NO PATH EXISTS!\n\r");
+            log("NO PATH EXISTS!\r\n");
             return -1;
         }
 
@@ -96,17 +96,17 @@ int dijkstra(const track_node* const track,
 
                 pq_raise(&q, (int)nxt_ptr, nxt_dist);
             }
-            
+
             const track_node* const rev_ptr = ptr->reverse;
             const int rev_off               = rev_ptr - track;
-            
+
             if (data[rev_off].dist > curr_dist) {
                 data[rev_off].dist = curr_dist;
                 data[rev_off].prev = ptr;
                 data[rev_off].dir  = 3;
 
                 pq_raise(&q, (int)rev_ptr, curr_dist);
-            } 
+            }
 
             break;
         }
@@ -146,7 +146,7 @@ int dijkstra(const track_node* const track,
             node->dist           = data[offset].dist;
             node->data.int_value = ptr->num;
             path_size++;
-            
+
             if (direction == 3) {
                 path[path_size].type = PATH_REVERSE;
                 path[path_size].dist = data[offset].dist;
@@ -174,7 +174,7 @@ int dijkstra(const track_node* const track,
         direction = data[offset].dir;
         ptr       = data[offset].prev;
     }
-    
+
     if (ptr != start) {
         path[path_size].type = PATH_REVERSE;
         // since this is the first command in the path, must be 0

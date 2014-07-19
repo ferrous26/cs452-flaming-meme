@@ -49,7 +49,7 @@ static char* _abort_stack_size(char* ptr, task* const t) {
     if (!t->sp)
         return sprintf_string(ptr, "-           ");
 
-    const int top = (int)task_stack((char)task_index_from_tid(t->tid));
+    const int top = (int)task_stack(t);
     const int bot = (int)t->sp;
     const int siz = top - bot;
 
@@ -85,28 +85,28 @@ void abort(const kreq_abort* const req) {
     ptr = sprintf_va(ptr, req->msg, *req->args);
 
 #define ITID(n) _abort_tid(ptr, int_queue[n])
-    ptr = sprintf_string(ptr, "\n\r\n\r       Active Task: ");
+    ptr = sprintf_string(ptr, "\r\n\r\n       Active Task: ");
     ptr = _abort_tid(ptr, task_active);
-    ptr = sprintf_string(ptr,     "\n\r        Clock Task: ");
+    ptr = sprintf_string(ptr,     "\r\n        Clock Task: ");
     ptr = ITID(0);
-    ptr = sprintf_string(ptr,     "\n\rUART2    Send Task: ");
+    ptr = sprintf_string(ptr,     "\r\nUART2    Send Task: ");
     ptr = ITID(1);
     ptr = sprintf_string(ptr,         "UART2 Receive Task: ");
     ptr = ITID(2);
-    ptr = sprintf_string(ptr,     "\n\rUART1    Send Task: ");
+    ptr = sprintf_string(ptr,     "\r\nUART1    Send Task: ");
     ptr = ITID(3);
     ptr = sprintf_string(ptr,         "UART1 Receive Task: ");
     ptr = ITID(4);
-    ptr = sprintf_string(ptr,     "\n\rUART1     CTS Task: ");
+    ptr = sprintf_string(ptr,     "\r\nUART1     CTS Task: ");
     ptr = ITID(5);
     ptr = sprintf_string(ptr,         "UART1    Down Task: ");
     ptr = ITID(6);
     ptr = sprintf(ptr,
-                  "\n\r Stack "
+                  "\r\nStack "
                   "TOP: %p    "
                   "BOTTOM: %p    "
-                  "TOTAL: %d    "
-                  "TASK: %d",
+                  "TOTAL: %p    "
+                  "TASK: %p",
                   TASK_HEAP_TOP,
                   TASK_HEAP_BOT,
                   TASK_HEAP_TOP - TASK_HEAP_BOT,
@@ -114,17 +114,17 @@ void abort(const kreq_abort* const req) {
 
     // Table header
     ptr = sprintf_string(ptr,
-                         "\n\r"
+                         "\r\n"
                          "TID         "
                          "PTID        "
                          "Priority    "
                          "Next        "
                          "Receiver    "
                          "Send        "
-                         "Stack Size\n\r");
+                         "Stack Size\r\n");
     for (int i = 0; i < 84; i++)
         ptr = sprintf_char(ptr, '#');
-    ptr = sprintf_string(ptr, "\n\r");
+    ptr = sprintf_string(ptr, "\r\n");
 
     for (int i = 0; i < TASK_MAX; i++) {
         task* t = &tasks[i];
@@ -139,7 +139,7 @@ void abort(const kreq_abort* const req) {
         ptr = _abort_receiver(ptr, t);
         ptr = _abort_send(ptr, t);
         ptr = _abort_stack_size(ptr, t);
-        ptr = sprintf_string(ptr, "\n\r");
+        ptr = sprintf_string(ptr, "\r\n");
     }
 
     uart2_bw_write(buffer, ptr - buffer);

@@ -298,7 +298,7 @@ char* klog_start(char* buffer) {
 }
 
 char* log_end(char* buffer) {
-    buffer = sprintf_string(buffer, "\n\r");
+    buffer = sprintf_string(buffer, "\r\n");
     return vt_save_cursor(buffer);
 }
 

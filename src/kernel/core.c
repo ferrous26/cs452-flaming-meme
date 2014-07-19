@@ -5,7 +5,6 @@
 #include <irq.h>
 #include <io.h>
 #include <debug.h>
-#include <char_buffer.h>
 #include <ui.h>
 
 #include <tasks/idle.h>
@@ -30,7 +29,7 @@
 
 #define TASK_HEAP_TOP 0x1F00000 // 31 MB
 #define TASK_HEAP_BOT 0x0300000 //  3 MB
-#define TASK_HEAP_SIZ 0x8000    // 32 kB == 2 * cache size
+#define TASK_HEAP_SIZ 0x4000    // 16 kB == 2 * cache size
 
 #ifdef DEBUG
 extern const int _TextStart;
@@ -42,14 +41,11 @@ static struct task_manager {
     task_q q[TASK_PRIORITY_LEVELS];
 } manager DATA_HOT;
 
-CHAR_BUFFER(TASK_MAX)
-static char_buffer free_list;
-
-task*  task_active            DATA_HOT;
-task*  int_queue[EVENT_COUNT] DATA_HOT;
-static task  tasks[TASK_MAX]  DATA_WARM;
-static uint8 table[256]       DATA_HOT;
-
+task*  task_active             DATA_HOT;
+task*  int_queue[EVENT_COUNT]  DATA_HOT;
+static task   tasks[TASK_MAX]  DATA_WARM;
+static task_q free_list        DATA_HOT;
+static uint8  table[256]       DATA_HOT;
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);
@@ -70,7 +66,8 @@ static inline uint32 __attribute__ ((pure)) choose_priority(const uint32 v) {
     return result;
 }
 
-static inline int* __attribute__ ((const)) task_stack(const task_idx idx) {
+static inline int* __attribute__ ((const)) task_stack(const task* const t) {
+    const int idx = task_index_from_tid(t->tid);
     return (int*)(TASK_HEAP_TOP - (TASK_HEAP_SIZ * idx));
 }
 
@@ -82,6 +79,7 @@ inline static int  task_create(const task_pri pri,
 inline static void task_destroy(void);
 inline static void scheduler_schedule(task* const t);
 inline static void scheduler_get_next(void);
+inline static void task_free_list_produce(task* const t);
 
 static void _print_train() {
 
@@ -89,19 +87,19 @@ static void _print_train() {
     char buffer[1024];
     char* ptr = klog_start(buffer);
     ptr = sprintf_string(ptr,
-			 "\n\r"
-"               .---._\n\r"
-"           .--(. '  .).--.      . .-.\n\r"
+			 "\r\n"
+"               .---._\r\n"
+"           .--(. '  .).--.      . .-.\r\n"
 "        . ( ' _) .)` (   .)-. ( ) '-'\n\r"
-"       ( ,  ).        `(' . _)\n\r"
-"     (')  _________      '-'\n\r"
-"     ____[_________]                                         ________\n\r"
-"     \\__/ | _ \\  ||    ,;,;,,                               [________]\n\r"
-"     _][__|(\")/__||  ,;;;;;;;;,   __________   __________   _| SHAQ |_\n\r"
-"    /             | |____      | |          | |  ___     | |      ____|\n\r"
-"   (| .--.    .--.| |     ___  | |   |  |   | |      ____| |____      |\n\r"
-"   /|/ .. \\~~/ .. \\_|_.-.__.-._|_|_.-:__:-._|_|_.-.__.-._|_|_.-.__.-._|\n\r"
-"+=/_|\\ '' /~~\\ '' /=+( o )( o )+==( o )( o )=+=( o )( o )+==( o )( o )=+=\n\r"
+"       ( ,  ).        `(' . _)\r\n"
+"     (')  _________      '-'\r\n"
+"     ____[_________]                                         ________\r\n"
+"     \\__/ | _ \\  ||    ,;,;,,                               [________]\r\n"
+"     _][__|(\")/__||  ,;;;;;;;;,   __________   __________   _| SHAQ |_\r\n"
+"    /             | |____      | |          | |  ___     | |      ____|\r\n"
+"   (| .--.    .--.| |     ___  | |   |  |   | |      ____| |____      |\r\n"
+"   /|/ .. \\~~/ .. \\_|_.-.__.-._|_|_.-:__:-._|_|_.-.__.-._|_|_.-.__.-._|\r\n"
+"+=/_|\\ '' /~~\\ '' /=+( o )( o )+==( o )( o )=+=( o )( o )+==( o )( o )=+=\r\n"
 "='=='='--'==+='--'===+'-'=='-'==+=='-'+='-'===+='-'=='-'==+=='-'=+'-'+===");
     ptr = klog_end(ptr);
     uart2_bw_write(buffer, ptr - buffer);
@@ -116,16 +114,16 @@ void kernel_init() {
         table[i] = 1 + table[i >> 1];
     table[0] = 32; // if you want log(0) to return -1, change to -1
 
-    memset(&manager,  0, sizeof(manager));
-    memset(&tasks,    0, sizeof(tasks));
-    memset(int_queue, 0, sizeof(int_queue));
+    memset(&manager,   0, sizeof(manager));
+    memset(&tasks,     0, sizeof(tasks));
+    memset(&free_list, 0, sizeof(free_list));
+    memset(int_queue,  0, sizeof(int_queue));
 
-    cbuf_init(&free_list);
 
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < TASK_MAX; i++) {
         tasks[i].tid   = i;
         tasks[i].p_tid = -1;
-        cbuf_produce(&free_list, (char)i);
+        task_free_list_produce(&tasks[i]);
     }
 
     // get the party started
@@ -142,12 +140,6 @@ void kernel_init() {
     task_create(TERM_SERVER_PRIORITY,     term_server);
     task_create(TRAIN_SERVER_PRIORITY,    train_server);
     task_create(MISSION_CONTROL_PRIORITY, mission_control);
-
-    for (; i < TASK_MAX; i++) {
-        tasks[i].tid   = i;
-        tasks[i].p_tid = -1;
-        cbuf_produce(&free_list, (char)i);
-    }
 
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 
@@ -502,6 +494,37 @@ void scheduler_reschedule(task* const t) {
     scheduler_schedule(t);
 }
 
+inline static void task_free_list_produce(task* const t) {
+
+    assert(t >= tasks && t < &tasks[TASK_MAX],
+           "free list: invalid task descriptor %p (%p-%p)",
+           t, tasks, &tasks[TASK_MAX]);
+
+    // if there was something in the queue, append to it
+    if (free_list.head)
+        free_list.tail->next = t;
+    // else the queue was off, so set the head
+    else
+        free_list.head = t;
+
+    // then we set the tail pointer
+    free_list.tail = t;
+
+    // mark the end of the queue
+    t->next = NULL;
+}
+
+inline static task* task_free_list_consume() {
+
+    assert(free_list.head != NULL,
+           "free_list: trying to consume from empty free list");
+
+    task* const t = free_list.head;
+    free_list.head = t->next;
+
+    return t;
+}
+
 inline static void scheduler_schedule(task* const t) {
 
     task_q* const q = &manager.q[t->priority];
@@ -550,17 +573,14 @@ inline static int task_create(const task_pri pri,
     assert(pri <= TASK_PRIORITY_MAX, "Invalid priority %u", pri);
 
     // make sure we have something to allocate
-    if (!cbuf_count(&free_list)) return NO_DESCRIPTORS;
+    if (free_list.head == NULL) return NO_DESCRIPTORS;
 
-    // actually take the task descriptor and load it up
-    const task_idx task_index = cbuf_consume(&free_list);
-
-    task* tsk      = &tasks[task_index];
+    task* tsk      = task_free_list_consume();
     tsk->p_tid     = task_active->tid; // task_active is _always_ the parent
     tsk->priority  = pri;
 
     // setup the default trap frame for the new task
-    tsk->sp        = task_stack(task_index) - TRAP_FRAME_SIZE;
+    tsk->sp        = task_stack(tsk) - TRAP_FRAME_SIZE;
     tsk->sp[2]     = START_ADDRESS(start);
     tsk->sp[3]     = DEFAULT_SPSR;
     tsk->sp[12]    = EXIT_ADDRESS; // set link register to auto-call Exit()
@@ -585,5 +605,5 @@ inline static void task_destroy() {
     }
 
     // put the task back into the allocation pool
-    cbuf_produce(&free_list, (char)task_index_from_tid(task_active->tid));
+    task_free_list_produce(task_active);
 }
