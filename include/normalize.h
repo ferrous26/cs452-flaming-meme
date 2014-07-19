@@ -49,11 +49,11 @@ static inline const char* __attribute__ ((const))
 train_to_colour(const int train) {
     switch (train) {
     case 45: return MAGENTA;
-    case 47: return LIGHT_BLUE;
     case 48: return LIGHT_MAGENTA;  // need a better colour?
     case 49: return GREEN;
-    case 50: return LIGHT_GREEN; // need a separate colour
-    case 51: return RED;
+    case 53: return LIGHT_GREEN; // need a separate colour
+    case 54: return LIGHT_BLUE;
+    case 56: return RED;
     default: return WHITE;
     }
 }
@@ -62,10 +62,11 @@ static inline int __attribute__ ((const))
 train_to_pos(const int train) {
     switch (train) {
     case 45: return 0;
-    case 47: return 1;
-    case 48: return 2;
-    case 49: return 3;
-    case 51: return 4;
+    case 48: return 1;
+    case 49: return 2;
+    case 53: return 3;
+    case 54: return 4;
+    case 56: return 5;
     default: return INVALID_TRAIN;
     }
 }
@@ -74,10 +75,11 @@ static inline int __attribute__ ((const))
 pos_to_train(const int pos) {
     switch (pos) {
     case 0: return 45;
-    case 1: return 47;
-    case 2: return 48;
-    case 3: return 49;
-    case 4: return 51;
+    case 1: return 48;
+    case 2: return 49;
+    case 3: return 53;
+    case 4: return 54;
+    case 5: return 56;
     default: return INVALID_TRAIN;
     }
 }

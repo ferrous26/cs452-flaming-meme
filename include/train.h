@@ -2,7 +2,7 @@
 #ifndef __TRAIN_H__
 #define __TRAIN_H__
 
-#define NUM_TRAINS           4
+#define NUM_TRAINS           6
 
 #define TRAIN_SPEEDS         14
 #define TRAIN_MAX_SPEED      14
