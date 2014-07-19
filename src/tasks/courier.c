@@ -110,8 +110,6 @@ void time_notifier() {
                     (char*)&delay_req.reply, reply_size,
                     (char*)&delay_req, sizeof(delay_req));
     } while (size != 0);
-
-    log("[TimeNotifier %d] has died...", myTid());
 }
 
 void delayed_one_way_courier() {
