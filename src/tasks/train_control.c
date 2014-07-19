@@ -123,7 +123,7 @@ static inline void control_spawn_thunderdome(const track_node* const track) {
     }
 }
 
-static void
+static inline void
 control_try_send_blaster(control_context* const ctxt, const int index) {
 
     blaster_req req;
@@ -185,6 +185,7 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
 
     } else { return; }
 
+    if (ctxt->master[index].courier == -1) return; // no way to send work
 
     const int result = Reply(ctxt->blaster[index].courier,
                              (char*)&req,
@@ -193,7 +194,7 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
     ctxt->blaster[index].courier = -1;
 }
 
-static void
+static inline void
 control_try_send_master(control_context* const ctxt, const int index) {
 
     master_req req;
@@ -206,7 +207,7 @@ control_try_send_master(control_context* const ctxt, const int index) {
     }
     else { return; }
 
-    const int result = Reply(ctxt->blaster[index].courier,
+    const int result = Reply(ctxt->master[index].courier,
                              (char*)&req,
                              sizeof(req));
     if (result) ABORT("Failed to send to train %d (%d)", index, result);
@@ -288,6 +289,10 @@ void train_control() {
         case CONTROL_UPDATE_FUDGE_FACTOR:
             context.blaster[index].fudge_factor = req.arg2;
             break;
+        case CONTROL_GOTO_LOCATION:
+            context.master[index].location.index  = req.arg2;
+            context.master[index].location.offset = req.arg3;
+            break;
 
         case CONTROL_TOGGLE_HORN:
             control_toggle_horn(&context, tid, index);
@@ -297,11 +302,6 @@ void train_control() {
             control_try_send_blaster(&context, index);
             continue;
 
-        case CONTROL_GOTO_LOCATION:
-            context.master[index].location.index  = req.arg2;
-            context.master[index].location.offset = req.arg3;
-            control_try_send_master(&context, index);
-            continue;
         case MASTER_CONTROL_REQUEST_COMMAND:
             context.master[index].courier = tid;
             control_try_send_master(&context, index);
@@ -312,6 +312,7 @@ void train_control() {
         if (result < 0)
             ABORT("[CONTROL] Failed to reply to %d (%d)", req.type, result);
 
+        control_try_send_master(&context, index);
         control_try_send_blaster(&context, index);
     }
 }

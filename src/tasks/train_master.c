@@ -8,6 +8,7 @@
 #include <tasks/name_server.h>
 #include <tasks/priority.h>
 #include <tasks/courier.h>
+#include <tasks/clock_server.h>
 
 
 typedef struct {
@@ -15,39 +16,64 @@ typedef struct {
     int              train_gid;
     char             name[8];
 
-    int              my_tid;       // tid of self
-    int              blaster;      // tid of control task
-    int              control;      // tid of control task
+    int              my_tid;             // tid of self
+    int              blaster;            // tid of control task
+    int              control;            // tid of control task
 
 
     int              path_admin;         // tid of the path admin
     int              path_worker;        // tid of the path worker
 
-    int              last_checkpoint;        // sensor we last had update at
-    int              last_checkpoint_offset; // in micrometers
-    int              last_checkpoint_time;
+    int              checkpoint;         // sensor we last had update at
+    int              checkpoint_offset;  // in micrometers
+    int              checkpoint_time;
 
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
 
-    int              path_finding_steps;
+    int              path_steps;
     const path_node* path;
 
 } master;
 
 
-static inline int master_try_fast_forward(master* const ctxt) {
-    log("[%s] Attempting to fast forward route", ctxt->name);
+static inline bool master_try_fast_forward(master* const ctxt) {
 
-    // TODO: fast forward!
-    return 0;
+    int start = -1;
+    for (int i = ctxt->path_steps; i >= 0; i--) {
+        if (ctxt->path[i].type == PATH_SENSOR) {
+
+            if (start == -1) start = i;
+
+            if (ctxt->path[i].data.sensor == ctxt->checkpoint) {
+
+                if (start != i) {
+                    const sensor head =
+                        pos_to_sensor(ctxt->path[start].data.sensor);
+                    const sensor tail =
+                        pos_to_sensor(ctxt->path[i].data.sensor);
+
+                    log("[%s] %c%d >> %c%d",
+                        ctxt->name, head.bank, head.num, tail.bank, tail.num);
+                }
+
+                ctxt->path_steps = i; // successfully fast forwarded
+                return true;
+            }
+        }
+    }
+
+    return false; // nope :(
 }
 
 static inline void
 master_goto(master* const ctxt,
-            const int destination,
-            const int offset,
+            const master_req* const req,
+            const control_req* const pkg,
             const int tid) {
+
+    const int destination = req->arg1;
+    const int offset      = req->arg2;
 
     if (ctxt->destination == destination) {
         if (master_try_fast_forward(ctxt))
@@ -85,23 +111,27 @@ master_goto(master* const ctxt,
             .requestor   = ctxt->my_tid,
             .header      = MASTER_PATH_DATA,
             .sensor_to   = destination,
-            .sensor_from = ctxt->last_checkpoint // hmmm
+            .sensor_from = ctxt->checkpoint // hmmm
         }
     };
 
-    int   worker_tid;
-    const int result = Send(ctxt->path_admin,
-                            (char*)&request, sizeof(request),
-                            (char*)&worker_tid, sizeof(worker_tid));
-    assert(result <= 0,
+    // NOTE: we probably should not be sending to the path admin
+    //       because servers should not send, but path admin does
+    //       almost no work, so it shouldn't be an issue
+    int worker_tid;
+    int result = Send(ctxt->path_admin,
+                      (char*)&request, sizeof(request),
+                      (char*)&worker_tid, sizeof(worker_tid));
+    assert(result >= 0,
            "[%s] Failed to get path worker (%d)",
            ctxt->name, result);
     assert(worker_tid >= 0,
            "[%s] Invalid path worker tid (%d)",
            ctxt->name, worker_tid);
-    UNUSED(result);
 
-    UNUSED(tid); // TODO: reply to courier right away!
+    result = Reply(tid, (char*)pkg, sizeof(control_req));
+    assert(result == 0,
+           "[%s] Did not wake up %d (%d)", ctxt->name, tid, result);
 }
 
 static inline void master_path_update(master* const ctxt,
@@ -109,23 +139,43 @@ static inline void master_path_update(master* const ctxt,
                                       const path_node* path,
                                       const int tid) {
 
-    ctxt->path_worker        = tid;
-    ctxt->path_finding_steps = size;
-    ctxt->path               = path;
+    const sensor to = pos_to_sensor(ctxt->destination);
 
-    // TODO: start looking through the path to see where we are...
-    //       and what we need to do right now
+    sensor from;
+    for (int i = size - 1; i >= 0; i--) {
+        if (path[i].type == PATH_SENSOR) {
+            from = pos_to_sensor(path[i].data.sensor);
+            break;
+        }
+    }
+
+    log("[%s] Got path %c%d -> %c%d in %d steps",
+        ctxt->name, from.bank, from.num, to.bank, to.num, size);
+
+    ctxt->path_worker = tid;
+    ctxt->path_steps  = size - 1;
+    ctxt->path        = path;
+
+    // Get us up to date on where we are
+    master_try_fast_forward(ctxt);
 }
 
 static inline void master_location_update(master* const ctxt,
                                           const master_req* const req,
+                                          const blaster_req* const pkg,
                                           const int tid) {
 
-    ctxt->last_checkpoint        = req->arg1;
-    ctxt->last_checkpoint_offset = req->arg2;
-    ctxt->last_checkpoint_time   = req->arg3;
+    log("[%s] Got position update", ctxt->name);
 
-    UNUSED(tid); // TODO: reply to courier...but when?
+    ctxt->checkpoint        = req->arg1;
+    ctxt->checkpoint_offset = req->arg2;
+    ctxt->checkpoint_time   = req->arg3;
+
+    const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
+    UNUSED(result);
+    assert(result == 0,
+           "[%s] Failed to send courier back to blaster (%d)",
+           ctxt->name, result);
 }
 
 static void master_init(master* const ctxt) {
@@ -160,9 +210,9 @@ static void master_init(master* const ctxt) {
            "[%s] I started up before the path admin! (%d)",
            ctxt->name, ctxt->path_admin);
 
-    ctxt->path_worker          = -1;
-    ctxt->destination          = -1;
-    ctxt->path_finding_steps   = -1;
+    ctxt->path_worker = -1;
+    ctxt->destination = -1;
+    ctxt->path_steps  = -1;
 }
 
 static void master_init_couriers(master* const ctxt,
@@ -236,13 +286,13 @@ void train_master() {
 
         switch (req.type) {
         case MASTER_GOTO_LOCATION:
-            master_goto(&context, req.arg1, req.arg2, tid);
+            master_goto(&context, &req, &control_callin, tid);
             break;
         case MASTER_PATH_DATA:
             master_path_update(&context, req.arg1, (path_node*)req.arg2, tid);
             break;
         case MASTER_BLASTER_LOCATION:
-            master_location_update(&context, &req, tid);
+            master_location_update(&context, &req, &blaster_callin, tid);
             break;
         }
     }
