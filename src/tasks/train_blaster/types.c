@@ -58,6 +58,7 @@ typedef struct blaster_context {
     int       train_gid;     // global identifier
     char      name[8];
 
+    int       master_courier;       // courier to the master
     int       acceleration_courier; // acceleration delay courier
     int       checkpoint_courier;   // courier used to wake at checkpoints
     int       sensor_to_stop_at;    // special case for handling ss command
