@@ -10,10 +10,11 @@
 #include <tasks/name_server.h>
 #include <tasks/track_reservation.h>
 
-
 #define LOG_HEAD  "[TRACK RESERVATION]"
 #define DIR_FRONT 0
 #define DIR_BACK  1
+
+static int track_reservation_tid;
 
 typedef enum {
     RESERVE_SECTION,
@@ -49,6 +50,8 @@ static inline void _init(_context* const ctxt) {
 
 void track_reservation() {
     int tid, result;
+    track_reservation_tid = myTid();
+
     _context context;
     _init(&context);
 
@@ -111,14 +114,46 @@ void track_reservation() {
     }
 }
 
-/*
-int reserve_who_owns(const track_node* const node, int direction) {
+int reserve_who_owns(const track_node* const node, const int dir) {
     struct {
-        
+        tr_req_type             type;
+        const track_node* const node;
+        int                     dir;
+    } req = {
+        .type = RESERVE_WHO,
+        .node = node,
+        .dir  = dir > 0 ? 1 : 0
+    };
 
-    }
-    return 2;
+    int result, owner;
+    result = Send(track_reservation_tid,
+                  (char*)&req,   sizeof(req),
+                  (char*)&owner, sizeof(owner));
+    assert(result == sizeof(int), "Bad send to track reservation");
+    return owner;
 }
-*/
+
+int reserve_section(const track_node* const node,
+                    const int dir,
+                    const int train) {
+    struct {
+        tr_req_type             type;
+        const track_node* const node;
+        int                     dir;
+        int                     train;
+    } req = {
+        .type  = RESERVE_WHO,
+        .node  = node,
+        .dir   = dir > 0 ? 1 : 0,
+        .train = train,
+    };
+
+    int size, result;
+    size = Send(track_reservation_tid,
+                (char*)&req,   sizeof(req),
+                (char*)&result, sizeof(result));
+    assert(size == sizeof(int), "Bad send to track reservation");
+    return result;
+}
 
 
