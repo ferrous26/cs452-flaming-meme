@@ -63,7 +63,9 @@ static inline bool master_try_fast_forward(master* const ctxt) {
     for (int i = ctxt->path_steps; i >= 0; i--) {
         if (ctxt->path[i].type == PATH_SENSOR) {
 
+#ifdef DEBUG
             if (start == -1) start = i;
+#endif
 
             if (ctxt->path[i].data.sensor == ctxt->checkpoint) {
 #ifdef DEBUG
@@ -135,6 +137,7 @@ master_goto(master* const ctxt, const int destination, const int offset) {
     assert(worker_tid >= 0,
            "[%s] Invalid path worker tid (%d)",
            ctxt->name, worker_tid);
+    UNUSED(result);
 }
 
 static inline void
@@ -160,6 +163,7 @@ master_goto_command(master* const ctxt,
     const int result = Reply(tid, (char*)pkg, sizeof(control_req));
     assert(result == 0,
            "[%s] Did not wake up %d (%d)", ctxt->name, tid, result);
+    UNUSED(result);
 }
 
 static inline void master_calculate_turnout_point(master* const ctxt) {
@@ -350,6 +354,8 @@ master_flip_turnout(master* const ctxt,
     assert(result == 0,
            "[%s] Failed to kill delay notifier (%d)",
            ctxt->name, result);
+    UNUSED(result);
+    UNUSED(ctxt);
 }
 
 static inline void
@@ -363,6 +369,7 @@ master_stop_train(master* const ctxt, const int tid) {
     assert(result == 0,
            "[%s] Failed to kill delay notifier (%d)",
            ctxt->name, result);
+    UNUSED(result);
 }
 
 static TEXT_COLD void master_init(master* const ctxt) {
