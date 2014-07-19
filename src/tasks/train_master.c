@@ -141,7 +141,7 @@ static inline void master_path_update(master* const ctxt,
 
     const sensor to = pos_to_sensor(ctxt->destination);
 
-    sensor from;
+    sensor from = { 'F', 1 };
     for (int i = size - 1; i >= 0; i--) {
         if (path[i].type == PATH_SENSOR) {
             from = pos_to_sensor(path[i].data.sensor);
@@ -244,6 +244,7 @@ static void master_init_couriers(master* const ctxt,
            ctxt->name, result);
 
     UNUSED(result);
+    UNUSED(ctxt);
 }
 
 // who really runs Bartertown!
@@ -281,6 +282,7 @@ void train_master() {
         master_req req;
 
         int result = Receive(&tid, (char*)&req, sizeof(req));
+        UNUSED(result);
         assert(result > 0,
                "[%s] Invalid message size (%d)", context.name, result);
 

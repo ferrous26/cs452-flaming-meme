@@ -40,12 +40,12 @@ static inline sensor __attribute__ ((const))
 pos_to_sensor(const int num) {
     sensor name = {
         .bank = 'A' + (num >> 4),
-        .num  = mod2(num, 16) + 1
+        .num  = mod2_int(num, 16) + 1
     };
     return name;
 }
 
-static inline char* __attribute__ ((const))
+static inline const char* __attribute__ ((const))
 train_to_colour(const int train) {
     switch (train) {
     case 45: return MAGENTA;
