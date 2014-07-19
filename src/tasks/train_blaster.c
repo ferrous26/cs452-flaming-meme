@@ -34,6 +34,21 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
+void create_console_reply(const blaster* const ctxt,
+                          const int s_time,
+                          int* result) {
+
+    if (ctxt->reversing) {
+        result[0] = 100;
+        result[1] = ctxt->next_sensor;
+        result[2] = blaster_estimate_timeout(s_time, ctxt->next_time);
+    } else {
+        result[0] = ctxt->current_sensor;
+        result[1] = ctxt->next_sensor;
+        result[2] = blaster_estimate_timeout(s_time, ctxt->next_time);
+    }
+}
+
 static int blaster_create_new_delay_courier(blaster* const ctxt) {
 
     const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
@@ -435,7 +450,7 @@ blaster_reset_simulation(blaster* const ctxt,
 
     // TODO: we should probably hit speed 0, then do a reverse and
     // plan how to get out of here
-    if (ctxt->current_distance < 0) {
+    if (ctxt->current_distance < 0 && ctxt->current_speed > 0) {
         blaster_reverse_step1(ctxt, service_time);
         log("[%s] ZOMG, heading towards an exit! Reversing!", ctxt->name);
     }
@@ -445,16 +460,14 @@ blaster_reset_simulation(blaster* const ctxt,
 
     blaster_master_where_am_i(ctxt, service_time);
 
-    const int reply[3] = {
-        ctxt->current_sensor,
-        ctxt->next_sensor,
-        blaster_estimate_timeout(sensor_hit_time, ctxt->next_time)
-    };
-
+    int reply[3];
+    create_console_reply(ctxt, sensor_hit_time, reply);
     result = Reply(tid, (char*)&reply, sizeof(reply));
+    
     assert(result == 0, "failed to wait for next sensor");
     UNUSED(result);
 }
+
 
 static inline void
 blaster_check_sensor_to_stop_at(blaster* const ctxt,
@@ -531,11 +544,8 @@ blaster_adjust_simulation(blaster* const ctxt,
 
     blaster_master_where_am_i(ctxt, service_time);
 
-    const int reply[3] = {
-        ctxt->current_sensor,
-        ctxt->next_sensor,
-        blaster_estimate_timeout(sensor_time, ctxt->next_time)
-    };
+    int reply[3];
+    create_console_reply(ctxt, sensor_time, reply);
     result = Reply(tid, (char*)&reply, sizeof(reply));
     assert(result == 0,
            "[%s] failed to get next sensor (%d)",
@@ -851,9 +861,11 @@ void train_blaster() {
         case BLASTER_SENSOR_FEEDBACK:
             blaster_adjust_simulation(&context, tid, &req, time);
             continue;
+
         case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
             blaster_reset_simulation(&context, tid, &req, time);
             continue;
+
         case BLASTER_SENSOR_TIMEOUT: {
             log("[%s] sensor timeout...", context.name);
 
