@@ -21,7 +21,7 @@ typedef enum {
     MISSED_DEADLINE  = -8
 } err;
 
-#define TASK_MAX 256 // Maximum number of live tasks in the system
+#define TASK_MAX 512 // Maximum number of live tasks in the system
 
 #define TASK_PRIORITY_LEVELS 32
 #define TASK_PRIORITY_MAX    31
