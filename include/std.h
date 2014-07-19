@@ -45,6 +45,9 @@ static inline int __attribute__ ((const)) mod2_int(int top, int mod) {
     return (top & (mod - 1));
 }
 
+#define MIN(x, y) (x > y ? y : x)
+#define MAX(x, y) (x > y ? x : y)
+
 #define TEXT_COLD __attribute__ ((section (".text.cold")))
 #define DATA_COLD __attribute__ ((section (".data.cold")))
 

@@ -121,11 +121,16 @@ void shutdown(void) {
     irq_deinit();
     _flush_caches();
 
-    asm volatile ("mov  sp, %0\n"
-		  "mov	pc, %1\n"
-		  :
-		  : "r" (exit_sp),
-		    "r" (exit_point));
+    asm volatile (
+                  // unlock cache lines for Dididier/Kelsy
+                  "mcr      p15, 0, r2, c9, c0,  1      \n\t"
+                  "mcr      p15, 0, r2, c9, c0,  0      \n\t"
+
+                  "mov  sp, %0\n"
+                  "mov	pc, %1\n"
+                  :
+                  : "r" (exit_sp),
+                    "r" (exit_point));
 
     FOREVER;
 }
