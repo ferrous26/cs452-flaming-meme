@@ -11,7 +11,7 @@ static void blaster_dump_velocity_table(blaster* const ctxt) {
 
     char buffer[1024];
     char* ptr = log_start(buffer);
-    ptr = sprintf(ptr, "[%s] Velocity Table Dump\n", ctxt->name);
+    ptr = sprintf(ptr, "[%s] Velocity Table Dump\n\r", ctxt->name);
 
     for (int speed = 0; speed < TRAIN_SPEEDS; speed++) {
         ptr = sprintf(ptr, "%d,%d,", ctxt->train_id, speed);
@@ -22,7 +22,7 @@ static void blaster_dump_velocity_table(blaster* const ctxt) {
             if (type != TRACK_TYPE_COUNT - 1)
                 ptr = sprintf_char(ptr, ',');
         }
-        ptr = sprintf_char(ptr, '\n');
+        ptr = sprintf_string(ptr, "\n\r");
     }
 
     ptr = log_end(ptr);

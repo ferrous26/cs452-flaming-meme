@@ -99,12 +99,12 @@ static void _debug_psr(const char* const name, const uint status) {
 	logger = klog;
     };
 
-    logger("%s Information\n"
-	   "       Current Mode: %s\n"
-	   "        Thumb State: %s\n"
-	   "        FIQ Enabled: %s\n"
-	   "        IRQ Enabled: %s\n"
-	   "      Abort Enabled: %s\n"
+    logger("%s Information\n\r"
+	   "       Current Mode: %s\n\r"
+	   "        Thumb State: %s\n\r"
+	   "        FIQ Enabled: %s\n\r"
+	   "        IRQ Enabled: %s\n\r"
+	   "      Abort Enabled: %s\n\r"
 	   "    Condition Codes: %c %c %c %c %c",
 	   name,
 	   processor_mode_string(status),

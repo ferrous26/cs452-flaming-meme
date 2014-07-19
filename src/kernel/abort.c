@@ -78,30 +78,30 @@ void abort(const kreq_abort* const req) {
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_goto(ptr, 80, 1);
     ptr = vt_restore_cursor(ptr);
-    ptr = sprintf(ptr, "assertion failure at %s:%u\n", req->file, req->line);
+    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", req->file, req->line);
     ptr = sprintf_va(ptr, req->msg, *req->args);
 
 #define ITID(n) _abort_tid(ptr, int_queue[n])
-    ptr = sprintf_string(ptr, "\n\n       Active Task: ");
+    ptr = sprintf_string(ptr, "\n\r\n\r       Active Task: ");
     ptr = _abort_tid(ptr, task_active);
-    ptr = sprintf_string(ptr, "\n        Clock Task: ");
+    ptr = sprintf_string(ptr, "\n\r        Clock Task: ");
     ptr = ITID(0);
-    ptr = sprintf_string(ptr, "\nUART2    Send Task: ");
+    ptr = sprintf_string(ptr, "\n\rUART2    Send Task: ");
     ptr = ITID(1);
     ptr = sprintf_string(ptr,   "UART2 Receive Task: ");
     ptr = ITID(2);
-    ptr = sprintf_string(ptr, "\nUART1    Send Task: ");
+    ptr = sprintf_string(ptr, "\n\rUART1    Send Task: ");
     ptr = ITID(3);
     ptr = sprintf_string(ptr,   "UART1 Receive Task: ");
     ptr = ITID(4);
-    ptr = sprintf_string(ptr, "\nUART1     CTS Task: ");
+    ptr = sprintf_string(ptr, "\n\rUART1     CTS Task: ");
     ptr = ITID(5);
     ptr = sprintf_string(ptr,   "UART1    Down Task: ");
     ptr = ITID(6);
 
     // Table header
     ptr = sprintf_string(ptr,
-                         "\n"
+                         "\n\r"
                          "TID         "
                          "PTID        "
                          "Priority    "
@@ -109,10 +109,10 @@ void abort(const kreq_abort* const req) {
                          "Stack Head  "
                          "Stack Butt  "
                          "Receiver    "
-                         "Send      \n");
+                         "Send      \n\r");
     for (int i = 0; i < 96; i++)
         ptr = sprintf_char(ptr, '#');
-    ptr = sprintf_char(ptr, '\n');
+    ptr = sprintf_string(ptr, "\n\r");
 
     for (int i = 0; i < TASK_MAX; i++) {
         task* t = &tasks[i];
@@ -128,7 +128,7 @@ void abort(const kreq_abort* const req) {
         ptr = _abort_sp_butt(ptr, t);
         ptr = _abort_receiver(ptr, t);
         ptr = _abort_send(ptr, t);
-        ptr = sprintf_string(ptr, "\n");
+        ptr = sprintf_string(ptr, "\n\r");
     }
 
     uart2_bw_write(buffer, ptr - buffer);

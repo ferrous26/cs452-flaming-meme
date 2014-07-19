@@ -35,7 +35,7 @@ static int parse_argument(const char* const cmd,
 			  int* const arg) {
 
     if (consume_whitespace(cmd, index)) {
-        log("Command parsing failed at position %d (%d)\n",
+        log("Command parsing failed at position %d (%d)\n\r",
 	    (uint)*index,
 	    cmd[*index]);
         return -1;
