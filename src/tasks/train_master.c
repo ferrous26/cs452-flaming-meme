@@ -88,23 +88,8 @@ static inline bool master_try_fast_forward(master* const ctxt) {
     return false; // nope :(
 }
 
-static inline void
-master_goto(master* const ctxt,
-            const master_req* const req,
-            const control_req* const pkg,
-            const int tid) {
-
-    const int destination = req->arg1;
-    const int offset      = req->arg2;
-
-    if (ctxt->destination == destination) {
-        if (master_try_fast_forward(ctxt))
-            return;
-
-        // TODO: try to rewind?
-
-        // TODO: handle the offset
-    }
+static void
+master_goto(master* const ctxt, const int destination, const int offset) {
 
     // we may need to release the worker
     if (ctxt->path_worker >= 0) {
@@ -150,8 +135,29 @@ master_goto(master* const ctxt,
     assert(worker_tid >= 0,
            "[%s] Invalid path worker tid (%d)",
            ctxt->name, worker_tid);
+}
 
-    result = Reply(tid, (char*)pkg, sizeof(control_req));
+static inline void
+master_goto_command(master* const ctxt,
+                    const master_req* const req,
+                    const control_req* const pkg,
+                    const int tid) {
+
+    const int destination = req->arg1;
+    const int offset      = req->arg2;
+
+    if (ctxt->destination == destination) {
+        if (master_try_fast_forward(ctxt))
+            return;
+
+        // TODO: try to rewind?
+
+        // TODO: handle the offset
+    }
+
+    master_goto(ctxt, destination, offset);
+
+    const int result = Reply(tid, (char*)pkg, sizeof(control_req));
     assert(result == 0,
            "[%s] Did not wake up %d (%d)", ctxt->name, tid, result);
 }
@@ -326,7 +332,8 @@ static inline void master_location_update(master* const ctxt,
             master_simulate_pathing(ctxt);
         }
         else { // shit, we need a new path...
-            log("[%s] Path is fucked", ctxt->name);
+            log("[%s] Finding a new route!", ctxt->name);
+            master_goto(ctxt, ctxt->destination, ctxt->destination_offset);
         }
     }
 }
@@ -468,7 +475,7 @@ void train_master() {
 
         switch (req.type) {
         case MASTER_GOTO_LOCATION:
-            master_goto(&context, &req, &control_callin, tid);
+            master_goto_command(&context, &req, &control_callin, tid);
             break;
         case MASTER_PATH_DATA:
             master_path_update(&context, req.arg1, (path_node*)req.arg2, tid);
