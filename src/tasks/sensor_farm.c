@@ -152,7 +152,7 @@ static inline void __attribute__((always_inline)) _flush_sensors() {
     for(int i = 0; i < NUM_SENSOR_BANKS; i++) get_train_bank();
 }
 
-static inline void _init_farm(sf_context* const ctxt) {
+static TEXT_COLD void _init_farm(sf_context* const ctxt) {
     int tid, result;
 
     if (RegisterAs((char*)SENSOR_FARM_NAME))

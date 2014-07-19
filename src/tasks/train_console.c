@@ -101,7 +101,7 @@ static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
     ABORT("TRAIN CONSOLE has run out of waiting space!");
 }
 
-static inline void _init_context(tc_context* const ctxt) {
+static TEXT_COLD void _init_context(tc_context* const ctxt) {
     int tid, result, init_data[2], sensor_data[2];
     memset(ctxt, -1, sizeof(*ctxt));
 
@@ -131,10 +131,10 @@ static inline void _init_context(tc_context* const ctxt) {
     *(int*)&ctxt->driver_tid = Create(TC_CHILDREN_PRIORITY, courier);
     CHECK_CREATE(ctxt->driver_tid, "Failed to create driver courier");
 
-    *(int*)&ctxt->timer_tid = Create(TC_CHILDREN_PRIORITY, time_notifier);
+    *(int*)&ctxt->timer_tid  = Create(TC_CHILDREN_PRIORITY, time_notifier);
     CHECK_CREATE(ctxt->timer_tid, "Failed to create timer courier");
 
-    *(int*)&ctxt->sensor_tid  = Create(TC_CHILDREN_PRIORITY, courier);
+    *(int*)&ctxt->sensor_tid = Create(TC_CHILDREN_PRIORITY, courier);
     CHECK_CREATE(ctxt->sensor_tid, "Failed to create farm courier");
 
     result = Send(sensor_tid,
@@ -278,13 +278,30 @@ void train_console() {
             context.sensor_iter++;
             reject_remaining_sensors(&context);
 
-            if (80 == args[0]) {
+            switch (args[0]) {
+            case 80:
                 log ("TRAIN LOST %x", context.docked);
                 context.sensor_expect  = 80;
                 context.sensor_timeout = 0;
-
                 try_send_sensor(&context, 80);
-            } else {
+                break;
+
+            case 100:
+                log("REVERSE!");
+                
+                const track_node* const node = context.track[args[1]].reverse;
+                _get_next_sensors(node->edge[DIR_AHEAD].dest,
+                                  &context.next_sensors);
+                
+                while (intb_count(&context.next_sensors) > 0) {
+                    const int sensor_num = intb_consume(&context.next_sensors);
+                    assert(sensor_num < 80 && sensor_num >= 0, "Ba");
+                    try_send_sensor(&context, sensor_num);
+                }
+                
+                break;
+
+            default:
                 assert(args[0] < 80, "bad sensor %d", args[0]);
                 context.sensor_expect  = args[1];
                 context.sensor_timeout = args[2];
@@ -301,8 +318,8 @@ void train_console() {
                     assert(sensor_num < 80 && sensor_num >= 0, "Ba");
                     try_send_sensor(&context, sensor_num);
                 }
+                break;
             }
-
             try_send_timeout(&context);
 
         } else if (tid == context.timer_tid) {
@@ -317,7 +334,6 @@ void train_console() {
                     .type = BLASTER_SENSOR_TIMEOUT
                 };
 
-                // log("Sending Timeout %d", args[1]);
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;
@@ -328,7 +344,6 @@ void train_console() {
             int index = get_sensor_index(&context, tid);
             assert(index >= 0, "got send from invalid task %d", tid);
             context.sent_waiters[index] = -1;
-            // log("KIED %d %d %d", tid, args[1], args[2]);
 
             if (intb_count(&context.waiters) < BUFFER_SIZE) {
                 intb_produce(&context.waiters, tid);
