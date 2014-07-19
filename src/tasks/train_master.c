@@ -162,14 +162,20 @@ static inline void master_path_update(master* const ctxt,
 
 static inline void master_location_update(master* const ctxt,
                                           const master_req* const req,
+                                          const blaster_req* const pkg,
                                           const int tid) {
 
-    log("[%s] Got position update");
+    log("[%s] Got position update", ctxt->name);
+
     ctxt->checkpoint        = req->arg1;
     ctxt->checkpoint_offset = req->arg2;
     ctxt->checkpoint_time   = req->arg3;
 
-    UNUSED(tid); // TODO: reply to courier...but when?
+    const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
+    UNUSED(result);
+    assert(result == 0,
+           "[%s] Failed to send courier back to blaster (%d)",
+           ctxt->name, result);
 }
 
 static void master_init(master* const ctxt) {
@@ -286,7 +292,7 @@ void train_master() {
             master_path_update(&context, req.arg1, (path_node*)req.arg2, tid);
             break;
         case MASTER_BLASTER_LOCATION:
-            master_location_update(&context, &req, tid);
+            master_location_update(&context, &req, &blaster_callin, tid);
             break;
         }
     }
