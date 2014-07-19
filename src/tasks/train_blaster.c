@@ -57,6 +57,58 @@ static void blaster_checkpoint(blaster* const ctxt, const int time) {
     ctxt->current_time    = time;
 }
 
+static inline track_location blaster_where_am_i(blaster* ctxt,
+                                                const int time) {
+
+    const int current_offset =
+        physics_current_velocity(ctxt) * (time - ctxt->current_time);
+
+    const track_location l = {
+        .sensor = ctxt->current_sensor,
+        .offset = ctxt->current_offset + current_offset
+    };
+
+    return l;
+}
+
+static inline void blaster_where_are_you(blaster* const ctxt,
+                                        const int tid,
+                                        const int time) {
+
+    const track_location l = blaster_where_am_i(ctxt, time);
+
+    const int result = Reply(tid, (char*)&l, sizeof(l));
+    assert(result == 0,
+           "[%s] Failed to respond to whereis command (%d)",
+           result);
+    UNUSED(result);
+}
+
+static inline void blaster_master_where_am_i(blaster* const ctxt,
+                                             const int time) {
+
+    // Not ready,
+    if (ctxt->master_courier == -1) return;
+
+    const track_location l = blaster_where_am_i(ctxt, time);
+
+    master_req req = {
+        .type  = MASTER_BLASTER_LOCATION,
+        .arg1  = l.sensor,
+        .arg2  = l.offset,
+        .arg3  = time,
+        .arg4  = physics_current_velocity(ctxt)
+    };
+
+    const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));
+    assert(result == 0,
+           "[%s] Failed to respond to master where is command (%d)",
+           result);
+    UNUSED(result);
+
+    ctxt->master_courier = -1;
+}
+
 static void blaster_start_accelerate(blaster* const ctxt,
                                     const int to_speed,
                                     const int time) {
@@ -101,7 +153,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
 
     struct {
         tnotify_header head;
-        blaster_req      req;
+        blaster_req     req;
     } msg = {
         .head = {
             .type  = DELAY_ABSOLUTE,
@@ -123,6 +175,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
               ctxt->name, result, ctxt->acceleration_courier);
 
     blaster_checkpoint(ctxt, time);
+    blaster_master_where_am_i(ctxt, time);
 }
 
 static void blaster_start_deccelerate(blaster* const ctxt,
@@ -138,7 +191,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
         // process when it comes back in...
         struct {
             tnotify_header head;
-            blaster_req      req;
+            blaster_req     req;
         } msg = {
             .head = {
                 .type  = DELAY_RELATIVE,
@@ -200,6 +253,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
               ctxt->name, result, ctxt->acceleration_courier);
 
     blaster_checkpoint(ctxt, time);
+    blaster_master_where_am_i(ctxt, time);
 }
 
 static void blaster_complete_accelerate(blaster* const ctxt,
@@ -227,6 +281,8 @@ static void blaster_complete_accelerate(blaster* const ctxt,
         blaster_resume_short_moving(ctxt, time_taken);
     else if (ctxt->reversing == 1)
         blaster_reverse_step2(ctxt);
+
+    blaster_master_where_am_i(ctxt, ctxt->current_time);
 }
 
 static void blaster_set_speed(blaster* const ctxt,
@@ -388,6 +444,8 @@ blaster_reset_simulation(blaster* const ctxt,
     physics_update_velocity_ui(ctxt);
     physics_update_tracking_ui(ctxt, 0);
 
+    blaster_master_where_am_i(ctxt, service_time);
+
     const int reply[3] = {
         ctxt->current_sensor,
         ctxt->next_sensor,
@@ -472,6 +530,8 @@ blaster_adjust_simulation(blaster* const ctxt,
     physics_update_velocity_ui(ctxt);
     physics_update_tracking_ui(ctxt, delta_v);
 
+    blaster_master_where_am_i(ctxt, service_time);
+
     const int reply[3] = {
         ctxt->current_sensor,
         ctxt->next_sensor,
@@ -552,54 +612,6 @@ static void blaster_short_move(blaster* const ctxt, const int offset) {
 
     log("[%s] Distance %d mm too short to start and stop!",
         ctxt->name, offset);
-}
-
-static inline track_location blaster_where_am_i(blaster* ctxt,
-                                                const int time) {
-
-    const int current_offset =
-        physics_current_velocity(ctxt) * (time - ctxt->current_time);
-
-    const track_location l = {
-        .sensor = ctxt->current_sensor,
-        .offset = ctxt->current_offset + current_offset
-    };
-
-    return l;
-}
-
-static inline void blaster_where_are_you(blaster* const ctxt,
-                                        const int tid,
-                                        const int time) {
-
-    const track_location l = blaster_where_am_i(ctxt, time);
-
-    const int result = Reply(tid, (char*)&l, sizeof(l));
-    assert(result == 0,
-           "[%s] Failed to respond to whereis command (%d)",
-           result);
-    UNUSED(result);
-}
-
-static inline void blaster_master_where_am_i(blaster* const ctxt,
-                                             const int tid,
-                                             const int time) {
-
-    const track_location l = blaster_where_am_i(ctxt, time);
-
-    master_req req = {
-        .type  = MASTER_BLASTER_LOCATION,
-        .arg1  = l.sensor,
-        .arg2  = l.offset,
-        .arg3  = time,
-        .arg4  = physics_current_velocity(ctxt)
-    };
-
-    const int result = Reply(tid, (char*)&req, sizeof(req));
-    assert(result == 0,
-           "[%s] Failed to respond to master where is command (%d)",
-           result);
-    UNUSED(result);
 }
 
 static inline void blaster_wait(blaster* const ctxt,
@@ -707,6 +719,7 @@ static void blaster_init(blaster* const ctxt) {
 
     ctxt->last_sensor       = 80;
     ctxt->sensor_to_stop_at = -1;
+    ctxt->master_courier    = -1;
     ctxt->accelerating      =  1;
 }
 
@@ -783,7 +796,7 @@ void train_blaster() {
             blaster_where_are_you(&context, req.arg1, time);
             break;
         case MASTER_BLASTER_WHERE_ARE_YOU:
-            blaster_master_where_am_i(&context, tid, time);
+            context.master_courier = tid;
             continue;
 
         case BLASTER_STOP_AT_SENSOR:
