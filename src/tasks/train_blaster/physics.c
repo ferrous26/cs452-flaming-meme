@@ -184,6 +184,13 @@ physics_current_velocity(const blaster* const ctxt) {
                             velocity_type(ctxt->current_sensor));
 }
 
+static inline int
+physics_last_velocity(const blaster* const ctxt) {
+    return physics_velocity(ctxt,
+                            ctxt->current_speed,
+                            velocity_type(ctxt->last_sensor));
+}
+
 static inline void
 physics_update_velocity_ui(const blaster* const ctxt) {
 

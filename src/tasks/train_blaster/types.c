@@ -88,6 +88,7 @@ typedef struct blaster_context {
     bool      last_sensor_accelerating;
     int       last_sensor;      // previous-previous sensor hit
     int       last_distance;    // distance from previous-previous sensor to current_sensor
+    int       last_time;
 
     bool      current_sensor_accelerating;
     int       current_sensor;   // sensor we are currently travelling through

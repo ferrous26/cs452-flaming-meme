@@ -146,6 +146,7 @@ static void blaster_checkpoint(blaster* const ctxt,
     ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
     ctxt->last_sensor              = ctxt->current_sensor;
     ctxt->last_distance            = ctxt->current_distance;
+    ctxt->last_time                = ctxt->current_time;
 
     ctxt->current_sensor           = sensor_hit;
     // ctxt->current_distance         = 0; // this is looked up below
@@ -172,6 +173,57 @@ static void blaster_checkpoint(blaster* const ctxt,
 
     physics_update_velocity_ui(ctxt);
     blaster_master_where_am_i(ctxt, service_time);
+}
+
+static void  __attribute__ ((unused))
+blaster_wait_for_next_estimate(blaster* const ctxt) {
+
+    if (ctxt->current_speed == 0) return;
+
+    ctxt->checkpoint_courier = blaster_create_new_delay_courier(ctxt);
+
+    struct {
+        tnotify_header head;
+        blaster_req     req;
+    } msg = {
+        .head = {
+            .type  = DELAY_ABSOLUTE,
+            .ticks = ctxt->current_time + ctxt->next_time
+        },
+        .req = {
+            .type = BLASTER_NEXT_NODE_ESTIMATE,
+            .arg1 = ctxt->next_sensor,
+        }
+    };
+
+    const int result = Send(ctxt->checkpoint_courier,
+                            (char*)&msg, sizeof(msg),
+                            NULL, 0);
+    if (result < 0)
+        ABORT("[%s] Failed to setup new delay courier (%d) to %d",
+              ctxt->name, result, ctxt->acceleration_courier);
+}
+
+static void blaster_expected_sensor(blaster* const ctxt,
+                                    const int tid,
+                                    const int sensor_hit,
+                                    const int time) {
+
+    log("Next node");
+
+    int result = Reply(tid, NULL, 0);
+    assert(result == 0, "[%s] Failed to kill estimation task", ctxt->name);
+    UNUSED(result);
+
+    if (tid != ctxt->checkpoint_courier) {
+        log("[%s] Invalid checkpoint courier checked-in (%d)",
+            ctxt->name, tid);
+        return;
+    }
+
+    // only update if we are early, because it might be a dead sensor
+    if (sensor_hit == ctxt->next_sensor)
+        blaster_checkpoint(ctxt, sensor_hit, time, 0, time);
 }
 
 static void blaster_start_accelerate(blaster* const ctxt,
@@ -554,6 +606,22 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
 }
 
 static inline void
+blaster_check_sensor_to_stop_at(blaster* const ctxt,
+                               const int sensor_hit,
+                               const int sensor_time,
+                               const int service_time) {
+
+    if (ctxt->sensor_to_stop_at != sensor_hit) return;
+
+    blaster_set_speed(ctxt, 0, service_time);
+
+    ctxt->sensor_to_stop_at = 80;
+    const sensor s = pos_to_sensor(sensor_hit);
+    log("[%s] Hit sensor %c%d at %d. Stopping!",
+        ctxt->name, s.bank, s.num, sensor_time);
+}
+
+static inline void
 blaster_reset_simulation(blaster* const ctxt,
                         const int tid,
                         const blaster_req* const req,
@@ -575,23 +643,8 @@ blaster_reset_simulation(blaster* const ctxt,
     const int result = Reply(tid, (char*)&reply, sizeof(reply));
     assert(result == 0, "failed to wait for next sensor");
     UNUSED(result);
-}
 
-
-static inline void
-blaster_check_sensor_to_stop_at(blaster* const ctxt,
-                               const int sensor_hit,
-                               const int sensor_time,
-                               const int service_time) {
-
-    if (ctxt->sensor_to_stop_at != sensor_hit) return;
-
-    blaster_set_speed(ctxt, 0, service_time);
-
-    ctxt->sensor_to_stop_at = 80;
-    const sensor s = pos_to_sensor(sensor_hit);
-    log("[%s] Hit sensor %c%d at %d. Stopping!",
-        ctxt->name, s.bank, s.num, sensor_time);
+    //blaster_wait_for_next_estimate(ctxt);
 }
 
 static inline void
@@ -603,25 +656,42 @@ blaster_adjust_simulation(blaster* const ctxt,
     const int  sensor_hit = req->arg1;
     const int sensor_time = req->arg2;
 
-    assert(sensor_hit == ctxt->next_sensor,
-           "[%s] Bad Expected Sensor %d", ctxt->name, sensor_hit);
-
     blaster_check_sensor_to_stop_at(ctxt,
                                    sensor_hit,
                                    sensor_time,
                                    service_time);
 
-    const int expected_v = physics_current_velocity(ctxt);
-    const int   actual_v = ctxt->current_distance /
-        (sensor_time - ctxt->current_time);
-    const int    delta_v = actual_v - expected_v;
+    // we have to do some stuff in weird order here
+    if (ctxt->last_sensor == sensor_hit) {
+        const int expected_v = physics_last_velocity(ctxt);
+        const int   actual_v = ctxt->last_distance /
+            (sensor_time - ctxt->last_time);
+        const int    delta_v = actual_v - expected_v;
 
-    // only do feedback if we are in steady state
-    if (!(ctxt->last_sensor_accelerating || ctxt->current_sensor_accelerating))
-        physics_feedback(ctxt, actual_v, expected_v, delta_v);
+        // only do feedback if we are in steady state
+        if (!(ctxt->last_sensor_accelerating ||
+              ctxt->current_sensor_accelerating))
+            physics_feedback(ctxt, actual_v, expected_v, delta_v);
 
-    blaster_checkpoint(ctxt, sensor_hit, sensor_time, 0, service_time);
-    physics_update_tracking_ui(ctxt, delta_v);
+        ctxt->current_time   = sensor_time;
+        ctxt->current_offset = 0;
+
+        physics_update_tracking_ui(ctxt, delta_v);
+    }
+    else {
+        const int expected_v = physics_current_velocity(ctxt);
+        const int   actual_v = ctxt->current_distance /
+            (sensor_time - ctxt->current_time);
+        const int    delta_v = actual_v - expected_v;
+
+        // only do feedback if we are in steady state
+        if (!(ctxt->last_sensor_accelerating ||
+              ctxt->current_sensor_accelerating))
+            physics_feedback(ctxt, actual_v, expected_v, delta_v);
+
+        blaster_checkpoint(ctxt, sensor_hit, sensor_time, 0, service_time);
+        physics_update_tracking_ui(ctxt, delta_v);
+    }
 
     int reply[3];
     create_console_reply(ctxt, sensor_time, reply);
@@ -630,6 +700,8 @@ blaster_adjust_simulation(blaster* const ctxt,
            "[%s] failed to get next sensor (%d)",
            ctxt->name, result);
     UNUSED(result);
+
+    //blaster_wait_for_next_estimate(ctxt);
 }
 
 static void blaster_stop_at_sensor(blaster* const ctxt, const int sensor_idx) {
@@ -804,11 +876,12 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
                   ctxt->train_gid);
     Puts(buffer, ptr - buffer);
 
-    ctxt->last_sensor       = 80;
-    ctxt->sensor_to_stop_at = -1;
-    ctxt->master_courier    = -1;
-    ctxt->reverse_courier   = -1;
-    ctxt->accelerating      =  1;
+    ctxt->last_sensor        = 80;
+    ctxt->sensor_to_stop_at  = -1;
+    ctxt->master_courier     = -1;
+    ctxt->reverse_courier    = -1;
+    ctxt->checkpoint_courier = -1;
+    ctxt->accelerating       =  1;
 }
 
 static TEXT_COLD void blaster_init_other_couriers(blaster* const ctxt,
@@ -930,8 +1003,8 @@ void train_blaster() {
             continue;
 
         case BLASTER_NEXT_NODE_ESTIMATE:
-            // TODO: today!
-            break;
+            blaster_expected_sensor(&context, tid, req.arg1, time);
+            continue;
 
         case BLASTER_SENSOR_FEEDBACK:
             blaster_adjust_simulation(&context, tid, &req, time);
