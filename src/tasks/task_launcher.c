@@ -205,13 +205,16 @@ static void action(command cmd, int args[]) {
 
     case PATH_FIND: {
         int time = Time();
+
         pa_request req = {
             .type = PA_GET_PATH,
             .req  = {
                 .requestor   = myTid(),
                 .header      = 0,
-                .sensor_to   = sensor_to_pos(args[2], args[3]),
-                .sensor_from = sensor_to_pos(args[0], args[1])
+                .sensor_to   = (short)sensor_to_pos(args[2], args[3]),
+                .sensor_from = (short)sensor_to_pos(args[0], args[1]),
+                .opts        = (short)PATH_NO_REVERSE_MASK | 0x3,
+                .reserve     = 0
             }
         };
 

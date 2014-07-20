@@ -37,11 +37,18 @@ void path_worker() {
         assert(sizeof(req.req) == result,
                "Received invalid request from %d", tid);
 
+        path_requisition requisition = {
+            .start               = track + req.req.sensor_from,
+            .end                 = track + req.req.sensor_to,
+            .train_offset        = req.req.opts & OPTS_TRAIN_NUM_MASK,
+            .reserve_dist        = req.req.reserve,
+            .allow_short_move    = !(req.req.opts & PATH_SHORT_MOVE_OFF_MASK),
+            .allow_start_reverse = !(req.req.opts & PATH_START_REVERSE_OFF_MASK),
+            .allow_approach_back = !(req.req.opts & PATH_BACK_APPROACH_OFF_MASK)
+        };
+
         response.response = req.req.header;
-        response.size     = dijkstra(track,
-                                     track + req.req.sensor_from,
-                                     track + req.req.sensor_to,
-                                     path);
+        response.size     = dijkstra(track, &requisition, path);
 
         assert(response.size > 0, "No path exists to sensor %d",
                req.req.sensor_to);
@@ -49,6 +56,7 @@ void path_worker() {
         result = Send(req.req.requestor,
                       (char*)&response, sizeof(response),
                       NULL, 0);
+
         assert(0 == result, "Worked failed to respond to %d",
                 req.req.requestor);
     }

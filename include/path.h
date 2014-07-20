@@ -21,8 +21,10 @@ typedef union {
 
 typedef struct {
     path_type type;
-    int       dist;
     path_data data;
+    int       dist;
+    int       pre_dist;
 } path_node;
 
 #endif
+
