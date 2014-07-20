@@ -53,8 +53,7 @@ static char* _abort_stack_size(char* ptr, task* const t) {
     const int bot = (int)t->sp;
     const int siz = top - bot;
 
-    ptr = sprintf_int(ptr, siz);
-    return ui_pad(ptr, log10(siz), COLUMN_WIDTH);
+    return sprintf(ptr, "%p  ", siz);
 }
 
 static char* _abort_receiver(char* ptr, task* const t) {
@@ -81,28 +80,28 @@ void abort(const kreq_abort* const req) {
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_goto(ptr, 80, 1);
     ptr = vt_restore_cursor(ptr);
-    ptr = sprintf(ptr, "assertion failure at %s:%u\n\r", req->file, req->line);
+    ptr = sprintf(ptr, "assertion failure at %s:%u\n", req->file, req->line);
     ptr = sprintf_va(ptr, req->msg, *req->args);
 
 #define ITID(n) _abort_tid(ptr, int_queue[n])
-    ptr = sprintf_string(ptr, "\r\n\r\n       Active Task: ");
+    ptr = sprintf_string(ptr, "\n\n       Active Task: ");
     ptr = _abort_tid(ptr, task_active);
-    ptr = sprintf_string(ptr,     "\r\n        Clock Task: ");
+    ptr = sprintf_string(ptr,   "\n        Clock Task: ");
     ptr = ITID(0);
-    ptr = sprintf_string(ptr,     "\r\nUART2    Send Task: ");
+    ptr = sprintf_string(ptr,   "\nUART2    Send Task: ");
     ptr = ITID(1);
-    ptr = sprintf_string(ptr,         "UART2 Receive Task: ");
+    ptr = sprintf_string(ptr,     "UART2 Receive Task: ");
     ptr = ITID(2);
-    ptr = sprintf_string(ptr,     "\r\nUART1    Send Task: ");
+    ptr = sprintf_string(ptr,   "\nUART1    Send Task: ");
     ptr = ITID(3);
-    ptr = sprintf_string(ptr,         "UART1 Receive Task: ");
+    ptr = sprintf_string(ptr,     "UART1 Receive Task: ");
     ptr = ITID(4);
-    ptr = sprintf_string(ptr,     "\r\nUART1     CTS Task: ");
+    ptr = sprintf_string(ptr,   "\nUART1     CTS Task: ");
     ptr = ITID(5);
-    ptr = sprintf_string(ptr,         "UART1    Down Task: ");
+    ptr = sprintf_string(ptr,     "UART1    Down Task: ");
     ptr = ITID(6);
     ptr = sprintf(ptr,
-                  "\r\nStack "
+                  "\nStack "
                   "TOP: %p    "
                   "BOTTOM: %p    "
                   "TOTAL: %p    "
@@ -114,17 +113,17 @@ void abort(const kreq_abort* const req) {
 
     // Table header
     ptr = sprintf_string(ptr,
-                         "\r\n"
+                         "\n"
                          "TID         "
                          "PTID        "
                          "Priority    "
                          "Next        "
                          "Receiver    "
                          "Send        "
-                         "Stack Size\r\n");
+                         "Stack Size\n");
     for (int i = 0; i < 84; i++)
         ptr = sprintf_char(ptr, '#');
-    ptr = sprintf_string(ptr, "\r\n");
+    ptr = sprintf_string(ptr, "\n");
 
     for (int i = 0; i < TASK_MAX; i++) {
         task* t = &tasks[i];
@@ -139,7 +138,7 @@ void abort(const kreq_abort* const req) {
         ptr = _abort_receiver(ptr, t);
         ptr = _abort_send(ptr, t);
         ptr = _abort_stack_size(ptr, t);
-        ptr = sprintf_string(ptr, "\r\n");
+        ptr = sprintf_string(ptr, "\n");
     }
 
     uart2_bw_write(buffer, ptr - buffer);

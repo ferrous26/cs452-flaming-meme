@@ -30,7 +30,7 @@ void vt_deinit() {
 
     ptr = vt_reset_scroll_region(ptr);
     ptr = vt_unhide_cursor(ptr);
-    ptr = sprintf_string(ptr, "\n\rSHUTTING DOWN");
+    ptr = sprintf_string(ptr, "\nSHUTTING DOWN");
     uart2_bw_write(buffer, ptr - buffer);
 }
 
@@ -298,7 +298,7 @@ char* klog_start(char* buffer) {
 }
 
 char* log_end(char* buffer) {
-    buffer = sprintf_string(buffer, "\r\n");
+    buffer = sprintf_string(buffer, "\n");
     return vt_save_cursor(buffer);
 }
 

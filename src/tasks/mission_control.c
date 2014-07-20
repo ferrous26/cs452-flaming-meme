@@ -38,14 +38,14 @@ static void train_ui() {
 
     ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
     ptr = sprintf_string(ptr,
-"Train  Speed    Sensors              Turnouts/Gates/Switches     __Sensor__\r\n"
-"--------------------------------    +-----------------------+    |        | Newest\r\n"
-"                                    | 1   | 2   | 3   | 4   |    |        |\r\n"
-"                                    | 5   | 6   | 7   | 8   |    |        |\r\n"
-"                                    | 9   |10   |11   |12   |    |        |\r\n"
-"                                    |13   |14   |15   |16   |    |        |\r\n"
-"                                    |17   |18   |-----------|    |        |\r\n"
-"                                    |153   154  |155   156  |    |        |\r\n"
+"Train  Speed    Sensors              Turnouts/Gates/Switches     __Sensor__\n"
+"--------------------------------    +-----------------------+    |        | Newest\n"
+"                                    | 1   | 2   | 3   | 4   |    |        |\n"
+"                                    | 5   | 6   | 7   | 8   |    |        |\n"
+"                                    | 9   |10   |11   |12   |    |        |\n"
+"                                    |13   |14   |15   |16   |    |        |\n"
+"                                    |17   |18   |-----------|    |        |\n"
+"                                    |153   154  |155   156  |    |        |\n"
 "                                    +-----------------------+    |        | Oldest");
     Puts(buffer, ptr - buffer);
 }

@@ -100,11 +100,11 @@ static void _debug_psr(const char* const name, const uint status) {
     };
 
     logger("%s Information\r\n"
-	   "       Current Mode: %s\r\n"
-	   "        Thumb State: %s\r\n"
-	   "        FIQ Enabled: %s\r\n"
-	   "        IRQ Enabled: %s\r\n"
-	   "      Abort Enabled: %s\r\n"
+	   "       Current Mode: %s\n"
+	   "        Thumb State: %s\n"
+	   "        FIQ Enabled: %s\n"
+	   "        IRQ Enabled: %s\n"
+	   "      Abort Enabled: %s\n"
 	   "    Condition Codes: %c %c %c %c %c",
 	   name,
 	   processor_mode_string(status),

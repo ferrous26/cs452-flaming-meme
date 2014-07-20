@@ -154,19 +154,19 @@ static void action(command cmd, int args[]) {
         char buffer[512];
         char* ptr = log_start(buffer);
         ptr = sprintf(ptr,
-                      "\r\n"
-                      "Data:\r\n"
-                      "    Kernel Hot: %u bytes\r\n"
-                      "   Kernel Warm: %u bytes\r\n"
-                      "          Task: %u bytes\r\n"
-                      "         Total: %u bytes\r\n"
+                      "\n"
+                      "Data:\n"
+                      "    Kernel Hot: %u bytes\n"
+                      "   Kernel Warm: %u bytes\n"
+                      "          Task: %u bytes\n"
+                      "         Total: %u bytes\n"
                       "Text:\r\n"
-                      "    Kernel Hot: %u bytes\r\n"
-                      "     Task Reg.: %u bytes\r\n"
-                      "     Task Cold: %u bytes\r\n"
-                      "         Total: %u bytes\r\n"
-                      "BSS:            %u bytes\r\n"
-                      "ROData:         %u bytes\r\n",
+                      "    Kernel Hot: %u bytes\n"
+                      "     Task Reg.: %u bytes\n"
+                      "     Task Cold: %u bytes\n"
+                      "         Total: %u bytes\n"
+                      "BSS:            %u bytes\n"
+                      "ROData:         %u bytes\n",
                       &_DataKernEnd     - &_DataStart,
                       &_DataKernWarmEnd - &_DataKernEnd,
                       &_DataEnd         - &_DataKernWarmEnd,

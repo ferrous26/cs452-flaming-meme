@@ -48,7 +48,7 @@ int dijkstra(const track_node* const track,
     while (1) {
         const int curr_dist = pq_peek_key(&q);
         if (INT_MAX == curr_dist) {
-            log("NO PATH EXISTS!\r\n");
+            log("NO PATH EXISTS!\n");
             return -1;
         }
 
