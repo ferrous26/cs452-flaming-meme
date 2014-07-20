@@ -14,8 +14,9 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 
-#include <tasks/sensor_farm.h>
 #include <tasks/mission_control.h>
+#include <tasks/sensor_farm.h>
+#include <tasks/track_reservation.h>
 
 #include <tasks/courier.h>
 #include <tasks/path_admin.h>
@@ -50,8 +51,7 @@ inline static void print_help() {
     log("  q                      ~ Quit");
 }
 
-static void seppuku() {
-}
+static void seppuku() {}
 
 static void __attribute__((noreturn)) echo_test() {
     char buffer[32];
@@ -245,7 +245,6 @@ static void action(command cmd, int args[]) {
     }
 
     case TEST_TIME: {
-
         struct {
             tnotify_header head;
             int            number;
@@ -266,13 +265,26 @@ static void action(command cmd, int args[]) {
 
         log("%d", ret);
         Reply(tid, NULL, 0);
-
-        break;
-    }
+    }   break;
 
     case STOP_OFFSET:
         train_update_stop_offset(args[0], args[1]);
         break;
+
+    case CMD_RESERVE_NODE: {
+        int res = reserve_section_term(args[1], args[2], args[0]);
+        log("RESERVE: %d", res);
+    }   break;
+
+    case CMD_RELEASE_NODE: {
+        int res = reserve_section_term(args[1], args[2], args[0]);
+        log("RELEASE: %d", res);
+    }   break;
+
+    case CMD_LOOKUP_RESERVATION: {
+        int res = reserve_who_owns_term(args[0], args[1]);
+        log("LOOKUP: %d", res);
+    }   break;
 
     case ERROR:
         log("invalid command");

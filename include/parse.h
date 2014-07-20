@@ -34,6 +34,10 @@ typedef enum {
     PATH_FIND,
     TEST_TIME,
 
+    CMD_RESERVE_NODE,
+    CMD_LOOKUP_RESERVATION,
+    CMD_RELEASE_NODE,
+
     QUIT,
     ERROR,
 } command;

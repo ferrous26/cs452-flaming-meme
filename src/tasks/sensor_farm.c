@@ -2,6 +2,7 @@
 #include <debug.h>
 #include <syscall.h>
 #include <normalize.h>
+#include <track_data.h>
 
 #include <tasks/priority.h>
 
@@ -12,19 +13,18 @@
 
 #include <tasks/sensor_farm.h>
 
-#define LOG_HEAD "[SENSOR FARM] "
-#define NUM_SENSOR_BANKS     5
-#define NUM_SENSORS_PER_BANK 16
-#define NUM_SENSORS          (NUM_SENSOR_BANKS * NUM_SENSORS_PER_BANK)
-#define SENSOR_LIST_SIZE     9
+#define LOG_HEAD         "[SENSOR FARM] "
+#define SENSOR_LIST_SIZE 9
 
 static int sensor_farm_tid;
 
 typedef struct {
     sensor* sensor_insert;
     sensor  recent_sensors[SENSOR_LIST_SIZE];
+
     int     wait_all;
     int     sensor_delay[NUM_SENSORS];
+    int     sensor_error[NUM_SENSORS];
 } sf_context;
 
 static void __attribute__ ((noreturn)) sensor_poll() {

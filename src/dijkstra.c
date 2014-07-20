@@ -69,6 +69,7 @@ int dijkstra(const track_node* const track,
         }
 
         switch (ptr->type) {
+        case NODE_NONE:
         case NODE_ENTER:
         case NODE_SENSOR: {
             track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
@@ -125,7 +126,6 @@ int dijkstra(const track_node* const track,
                 }
             }
             break;
-        case NODE_NONE:
         case NODE_EXIT:
             break;
         }
@@ -152,8 +152,8 @@ int dijkstra(const track_node* const track,
                 path[path_size].dist = data[offset].dist;
                 path_size++;
             }
-
             break;
+
         case NODE_BRANCH:
             node->type             = PATH_TURNOUT;
             node->dist             = data[offset].dist;
@@ -161,6 +161,7 @@ int dijkstra(const track_node* const track,
             node->data.turnout.dir = direction ? 'C' : 'S';
             path_size++;
             break;
+
         case NODE_MERGE:
             if (direction == 3) {
                 path[path_size].type = PATH_REVERSE;

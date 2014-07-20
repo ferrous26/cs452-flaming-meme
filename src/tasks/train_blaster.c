@@ -408,7 +408,7 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
     const sensor s = pos_to_sensor(sensor_hit);
 
     if (ctxt->direction != DIRECTION_UNKNOWN) {
-        log("[%s] Halp! I'm lost at %c%d", ctxt->name, s.bank, s.num);
+        // log("[%s] Halp! I'm lost at %c%d", ctxt->name, s.bank, s.num);
         // TODO: proper lost logic
         return;
     }
@@ -868,7 +868,7 @@ void train_blaster() {
             continue;
 
         case BLASTER_SENSOR_TIMEOUT: {
-            log("[%s] sensor timeout...", context.name);
+            // log("[%s] sensor timeout...", context.name);
 
             int lost = 80;
             Reply(tid, (char*)&lost, sizeof(lost));
