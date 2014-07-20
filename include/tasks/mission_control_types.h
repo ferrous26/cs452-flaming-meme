@@ -3,6 +3,7 @@
 #define __MISSION_CONTROL_TYPES_H__
 
 #include <normalize.h>
+#include <tasks/train_control.h>
 
 typedef enum {
     // load
@@ -13,13 +14,22 @@ typedef enum {
     MC_R_TRACK,
     // delay
     MC_TD_GET_NEXT_SENSOR,
+    // derp
+    MC_TD_GET_NEXT_POSITION,
     // misc
     MC_TYPE_COUNT
 } mc_type;
 
+typedef struct {
+    track_location  from;
+    int             travel_dist;
+    track_location* to; // this is an array
+} position_req;
+
 typedef union {
-    turnout turn;
-    int     int_value;
+    position_req position;
+    turnout      turn;
+    int          int_value;
 } mc_payload;
 
 typedef struct {

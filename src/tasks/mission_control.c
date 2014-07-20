@@ -89,6 +89,58 @@ static void mc_get_next_sensor(mc_context* const ctxt,
     if (result) ABORT("Train driver died! (%d)", result);
 }
 
+// need to be given the current sensor
+// and offset
+// and the distance to travel
+static void mc_get_next_position(mc_context* const ctxt,
+                                 position_req* const req,
+                                 const int tid) {
+
+    assert(req->from.sensor >= 0 && req->from.sensor < NUM_SENSORS,
+           "can't get next from invalid sensor %d", req->from.sensor);
+
+    int    distance = req->travel_dist;
+    int last_sensor = req->from.sensor;
+
+    for (int i = 0; i < NUM_SENSORS; i++) {
+        const track_node* const node_curr = &ctxt->track[last_sensor];
+        const track_node*       node_next;
+
+        int next_dist =
+            get_next_sensor(node_curr, ctxt->turnouts, &node_next);
+
+        if (i == 0)
+            next_dist -= req->from.offset;
+
+        if (next_dist < 0) { // exit node
+            req->to[i].sensor = AN_EXIT;
+            req->to[i].offset = distance + next_dist;
+            break;
+        }
+
+        const int next_diff = distance - next_dist;
+
+        req->to[i].offset = next_diff;
+
+        if (next_diff < 0) {
+            req->to[i].sensor = NUM_SENSORS;
+            break;
+        }
+        else if (next_diff == 0) {
+            req->to[i].sensor = node_next->num;
+            break;
+        }
+        else { // next_diff > 0
+            req->to[i].sensor = node_next->num;
+            last_sensor = node_next->num;
+            distance = next_diff;
+        }
+    }
+
+    const int result = Reply(tid, NULL, 0);
+    if (result) ABORT("Train driver died! (%d)", result);
+}
+
 static inline void mc_update_turnout(mc_context* const ctxt,
                                      const int turn_num,
                                      const int turn_state) {
@@ -260,6 +312,10 @@ void mission_control() {
             mc_get_next_sensor(&context, req.payload.int_value, tid);
             continue;
 
+        case MC_TD_GET_NEXT_POSITION:
+            mc_get_next_position(&context, &req.payload.position, tid);
+            continue;
+
         case MC_L_TRACK:
         case MC_TYPE_COUNT:
             break;
@@ -343,5 +399,28 @@ int get_sensor_from(int from, int* const res_dist, int* const res_name) {
     *res_dist = values[0];
     *res_name = values[1];
 
+    return 0;
+}
+
+int get_position_from(const track_location from,
+                      track_location* to,
+                      const int travel_dist) {
+
+    mc_req req = {
+        .type             = MC_TD_GET_NEXT_POSITION,
+        .payload.position = {
+            .from         = {
+                .sensor   = from.sensor,
+                .offset   = from.offset
+            },
+            .travel_dist  = travel_dist,
+            .to           = to
+        }
+    };
+
+    int result = Send(mission_control_tid,
+                      (char*)&req, sizeof(req),
+                      (char*)to, sizeof(track_location));
+    if (result < 0) return result;
     return 0;
 }

@@ -4,6 +4,7 @@
 
 #include <normalize.h>
 #include <track_node.h>
+#include <tasks/train_control.h>
 
 #define MISSION_CONTROL_NAME "BORIS"
 
@@ -13,5 +14,8 @@ int reset_train_state(void);
 int load_track(const int track_value);
 int update_turnout(const int num, const int state);
 int get_sensor_from(int from, int* const res_dist, int* const res_name);
+int get_position_from(const track_location from,
+                      track_location* to,
+                      const int travel_dist);
 
 #endif

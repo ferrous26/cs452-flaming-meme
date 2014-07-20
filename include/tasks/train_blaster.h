@@ -28,8 +28,6 @@ typedef enum {
     BLASTER_UPDATE_CLEARANCE_OFFSET,
     BLASTER_UPDATE_FUDGE_FACTOR,
 
-    BLASTER_RESUME_ACCELERATION,
-    BLASTER_RESUME_DECCELERATION,
     BLASTER_ACCELERATION_COMPLETE,
 
     BLASTER_NEXT_NODE_ESTIMATE,
@@ -45,7 +43,7 @@ typedef struct {
     blaster_req_type type;
     int  arg1;
     int  arg2;
+    int  arg3;
 } blaster_req;
 
 #endif
-

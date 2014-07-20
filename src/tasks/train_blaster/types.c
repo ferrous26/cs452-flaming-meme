@@ -60,6 +60,7 @@ typedef struct blaster_context {
 
     int       master_courier;       // courier to the master
     int       acceleration_courier; // acceleration delay courier
+    int       reverse_courier;
     int       checkpoint_courier;   // courier used to wake at checkpoints
     int       sensor_to_stop_at;    // special case for handling ss command
 
@@ -87,9 +88,6 @@ typedef struct blaster_context {
     bool      last_sensor_accelerating;
     int       last_sensor;      // previous-previous sensor hit
     int       last_distance;    // distance from previous-previous sensor to current_sensor
-
-    int       last_offset;      // offset of last event between last_sensor and current_sensor
-    int       last_time;        // time at last event between
 
     bool      current_sensor_accelerating;
     int       current_sensor;   // sensor we are currently travelling through
