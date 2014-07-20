@@ -41,7 +41,7 @@ void path_worker() {
             .start               = track + req.req.sensor_from,
             .end                 = track + req.req.sensor_to,
             .train_offset        = req.req.opts & OPTS_TRAIN_NUM_MASK,
-            .reserve_dist        = req.req.reserve,
+            .reserve_dist        = req.req.reserve * 1000,
             .allow_short_move    = !(req.req.opts & PATH_SHORT_MOVE_OFF_MASK),
             .allow_start_reverse = !(req.req.opts & PATH_START_REVERSE_OFF_MASK),
             .allow_approach_back = !(req.req.opts & PATH_BACK_APPROACH_OFF_MASK)

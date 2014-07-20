@@ -33,7 +33,7 @@ typedef enum {
 typedef struct { 
     const track_node* const track;
     int train_pieces[8];
-    int reserve[TRACK_MAX][2];
+    int reserve[TRACK_MAX];
 } _context;
 
 static TEXT_COLD void _init(_context* const ctxt) {
@@ -73,40 +73,38 @@ void track_reservation() {
                "[Track Reservation] Received invalid message (%d)",
                result);
 
-        const int index_for = req.node - context.track;
-        const int index_rev = req.node->reverse - context.track;
-        assert(index_for < TRACK_MAX,
-               "index is out of bounds (%d - %p)", index_for, req.node);
-        assert(index_rev < TRACK_MAX,
-               "reverse is out of bounds (%d - %p)",
-               index_rev, req.node->reverse);
+        const int index = (req.direction ? req.node->reverse : req.node)
+                            - context.track;
+        assert(index < TRACK_MAX, "index is out of bounds (%d - %p + %d)",
+               index, req.node, req.direction);
 
         switch (req.type) {
         case RESERVE_SECTION: {
-            log(LOG_HEAD "Reserving Section %d For %d", index_for, req.train_num);
-            const int old_owner = context.reserve[index_for][req.direction];
+            log(LOG_HEAD "Reserving Section %s For %d",
+                context.track[index].name, req.train_num);
 
+            const int old_owner = context.reserve[index];
             if (old_owner == -1 || old_owner == req.train_num) {
                 const int reply[1] = {RESERVE_SUCCESS};
-                context.reserve[index_for][req.direction]     = req.train_num;
-                context.reserve[index_rev][req.direction ^ 1] = req.train_num;
+                context.reserve[index] = req.train_num;
                 result = Reply(tid, (char*)reply, sizeof(reply));
             } else {
                 const int reply[2] = {RESERVE_FAILURE, old_owner};
                 result = Reply(tid, (char*)reply, sizeof(reply));
-                log(LOG_HEAD "Rejecting owned section %d %s",
-                    index_for, req.direction ? "->" : "<-" ); 
+                log(LOG_HEAD "Rejecting owned section %s",
+                    context.track[index].name);
             }
+
             assert(result == 0, "Failed to repond to track query");
         }   break;
-        case RESERVE_RELEASE:
-            log(LOG_HEAD "Releasing Section %d For %d",
-                index_for, req.train_num);
 
-            if (context.reserve[index_for][req.direction] == req.train_num) { 
+        case RESERVE_RELEASE:
+            log(LOG_HEAD "Releasing Section %s For %d",
+                context.track[index].name, req.train_num);
+
+            if (context.reserve[index] == req.train_num) { 
                 const int reply[1] = {RESERVE_SUCCESS};
-                context.reserve[index_for][req.direction]     = -1;
-                context.reserve[index_rev][req.direction ^ 1] = -1;
+                context.reserve[index] = -1;
                 result = Reply(tid, (char*)reply, sizeof(reply));
             } else {
                 const int reply[1] = {RESERVE_FAILURE};
@@ -114,13 +112,15 @@ void track_reservation() {
             }
             assert(result == 0, "Failed to repond to track query");
             break;
+
         case RESERVE_WHO: {
-            const int* const track_point = &context.reserve[index_for][0];
-            log(LOG_HEAD "LOOKUP %d on %d", *track_point, index_for); 
-            
+            const int* const track_point = &context.reserve[index];
+            log(LOG_HEAD "LOOKUP %d on %s", *track_point,
+                context.track[index].name); 
             result = Reply(tid, (char*)track_point, sizeof(*track_point));
             assert(result == 0, "Failed to repond to track query");
         }   break;
+
         }
     }
 }

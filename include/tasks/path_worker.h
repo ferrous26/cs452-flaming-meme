@@ -13,8 +13,8 @@
                                     |PATH_BACK_APPROACH_OFF_MASK)
 
 typedef struct {
-    int requestor;
-    int header;
+    int   requestor;
+    int   header;
     short sensor_to;
     short sensor_from;
     short opts;

@@ -120,7 +120,9 @@ master_goto(master* const ctxt, const int destination, const int offset) {
             .requestor   = ctxt->my_tid,
             .header      = MASTER_PATH_DATA,
             .sensor_to   = destination,
-            .sensor_from = ctxt->checkpoint // hmmm
+            .sensor_from = ctxt->checkpoint, // hmmm
+            .opts        = PATH_NO_REVERSE_MASK | ctxt->train_id,
+            .reserve     = 600,
         }
     };
 
