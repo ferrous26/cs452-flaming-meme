@@ -60,11 +60,11 @@ _get_next_sensors(const track_node* const track, int_buffer* const list) {
         _get_next_sensors(track->edge[DIR_STRAIGHT].dest, list);
         _get_next_sensors(track->edge[DIR_CURVED].dest,   list);
         break;
+    case NODE_NONE:
     case NODE_MERGE:
         _get_next_sensors(track->edge[DIR_AHEAD].dest, list);
         break;
     case NODE_ENTER:
-    case NODE_NONE:
         log("WEIRD NODE!! %d", track->type);
     case NODE_EXIT:
         break;
@@ -280,7 +280,7 @@ void train_console() {
 
             switch (args[0]) {
             case 80:
-                log ("TRAIN LOST %x", context.docked);
+                // log ("TRAIN LOST %x", context.docked);
                 context.sensor_expect  = 80;
                 context.sensor_timeout = 0;
                 try_send_sensor(&context, 80);

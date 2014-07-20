@@ -6,12 +6,14 @@
 #include <track_data.h>
 
 #include <dijkstra.h>
+#include <tasks/track_reservation.h>
 
-#define HEAP_SIZE (TRACK_MAX+1)
+
+#define RESERVE_DIST 
+#define HEAP_SIZE    (TRACK_MAX+1)
 
 int dijkstra(const track_node* const track,
-             const track_node* const start,
-             const track_node* const end,
+             const path_requisition* const opts,
              path_node* const path) {
 
     struct {
@@ -22,18 +24,17 @@ int dijkstra(const track_node* const track,
 
     pq_node        heap[HEAP_SIZE];
     priority_queue q;
-
     pq_init(&q, heap, HEAP_SIZE);
 
     const track_node* ptr = track;
     for (int i = 0; i < TRACK_MAX; i++, ptr++) {
-        if (ptr == start) {
-            data[i].prev = start;
+        if (ptr == opts->start) {
+            data[i].prev = opts->start;
             data[i].dist = 0;
             data[i].dir  = 0;
             pq_add(&q, 0, (int)ptr);
-        } else if (ptr == start->reverse) {
-            data[i].prev = start->reverse;
+        } else if (opts->allow_start_reverse && ptr == opts->start->reverse) {
+            data[i].prev = opts->start->reverse;
             data[i].dist = 0;
             data[i].dir  = 0;
             pq_add(&q, 0, (int)ptr);
@@ -51,11 +52,10 @@ int dijkstra(const track_node* const track,
             log("NO PATH EXISTS!\n");
             return -1;
         }
-
         ptr = (track_node*) pq_delete(&q);
-        if (end == ptr) break;
 
-        else if (end == ptr->reverse) {
+        if (opts->end == ptr) break;
+        else if (opts->allow_approach_back && opts->end == ptr->reverse) {
             const int nxt_off = ptr->reverse - track;
             assert(nxt_off > 0 && nxt_off < TRACK_MAX,
                     "track calculation came across invalid node");
@@ -69,6 +69,7 @@ int dijkstra(const track_node* const track,
         }
 
         switch (ptr->type) {
+        case NODE_NONE:
         case NODE_ENTER:
         case NODE_SENSOR: {
             track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
@@ -82,8 +83,8 @@ int dijkstra(const track_node* const track,
 
                 pq_raise(&q, (int)nxt_ptr, nxt_dist);
             }
-            break;
-        }
+        }   break;
+
         case NODE_MERGE: {
             const track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
             const int nxt_dist              = curr_dist + ptr->edge[DIR_AHEAD].dist;
@@ -100,16 +101,15 @@ int dijkstra(const track_node* const track,
             const track_node* const rev_ptr = ptr->reverse;
             const int rev_off               = rev_ptr - track;
 
-            if (data[rev_off].dist > curr_dist) {
+            if (opts->allow_short_move && data[rev_off].dist > curr_dist) {
                 data[rev_off].dist = curr_dist;
                 data[rev_off].prev = ptr;
                 data[rev_off].dir  = 3;
 
                 pq_raise(&q, (int)rev_ptr, curr_dist);
             }
+        }   break;
 
-            break;
-        }
         case NODE_BRANCH:
             for (int i = 0; i < 2; i++) {
                 track_node* const nxt_ptr = ptr->edge[i].dest;
@@ -125,7 +125,8 @@ int dijkstra(const track_node* const track,
                 }
             }
             break;
-        case NODE_NONE:
+
+
         case NODE_EXIT:
             break;
         }
@@ -152,8 +153,8 @@ int dijkstra(const track_node* const track,
                 path[path_size].dist = data[offset].dist;
                 path_size++;
             }
-
             break;
+
         case NODE_BRANCH:
             node->type             = PATH_TURNOUT;
             node->dist             = data[offset].dist;
@@ -161,6 +162,7 @@ int dijkstra(const track_node* const track,
             node->data.turnout.dir = direction ? 'C' : 'S';
             path_size++;
             break;
+
         case NODE_MERGE:
             if (direction == 3) {
                 path[path_size].type = PATH_REVERSE;
@@ -175,7 +177,7 @@ int dijkstra(const track_node* const track,
         ptr       = data[offset].prev;
     }
 
-    if (ptr != start) {
+    if (ptr != opts->start) {
         path[path_size].type = PATH_REVERSE;
         // since this is the first command in the path, must be 0
         path[path_size].dist = 0;

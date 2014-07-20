@@ -16,6 +16,9 @@
 
 static int track_reservation_tid;
 
+//TODO: remove when no longer needed
+static const track_node* term_hack;
+
 typedef enum {
     RESERVE_SECTION,
     RESERVE_RELEASE,
@@ -33,7 +36,7 @@ typedef struct {
     int reserve[TRACK_MAX][2];
 } _context;
 
-static inline void _init(_context* const ctxt) {
+static TEXT_COLD void _init(_context* const ctxt) {
     int tid, result;
     memset(ctxt, -1, sizeof(*ctxt));
 
@@ -46,6 +49,8 @@ static inline void _init(_context* const ctxt) {
            "received invalid startup message (%d)", result);
     result = Reply(tid, NULL, 0);
     assert(result == 0, "failed replying after initalization");
+
+    term_hack = ctxt->track;
 }
 
 void track_reservation() {
@@ -68,14 +73,17 @@ void track_reservation() {
                "[Track Reservation] Received invalid message (%d)",
                result);
 
-        const int index_for = context.track - req.node;
-        const int index_rev = context.track - req.node->reverse;
+        const int index_for = req.node - context.track;
+        const int index_rev = req.node->reverse - context.track;
+        assert(index_for < TRACK_MAX,
+               "index is out of bounds (%d - %p)", index_for, req.node);
+        assert(index_rev < TRACK_MAX,
+               "reverse is out of bounds (%d - %p)",
+               index_rev, req.node->reverse);
 
         switch (req.type) {
         case RESERVE_SECTION: {
-            log(LOG_HEAD "Reserving Section %d For %d",
-                index_for, req.train_num);
-
+            log(LOG_HEAD "Reserving Section %d For %d", index_for, req.train_num);
             const int old_owner = context.reserve[index_for][req.direction];
 
             if (old_owner == -1 || old_owner == req.train_num) {
@@ -86,7 +94,8 @@ void track_reservation() {
             } else {
                 const int reply[2] = {RESERVE_FAILURE, old_owner};
                 result = Reply(tid, (char*)reply, sizeof(reply));
-                log(LOG_HEAD "Rejecting owned section %d->", index_for); 
+                log(LOG_HEAD "Rejecting owned section %d %s",
+                    index_for, req.direction ? "->" : "<-" ); 
             }
             assert(result == 0, "Failed to repond to track query");
         }   break;
@@ -107,7 +116,9 @@ void track_reservation() {
             break;
         case RESERVE_WHO: {
             const int* const track_point = &context.reserve[index_for][0];
-            result = Reply(tid, (char*)&track_point, sizeof(*track_point));
+            log(LOG_HEAD "LOOKUP %d on %d", *track_point, index_for); 
+            
+            result = Reply(tid, (char*)track_point, sizeof(*track_point));
             assert(result == 0, "Failed to repond to track query");
         }   break;
         }
@@ -142,7 +153,7 @@ int reserve_section(const track_node* const node,
         int                     dir;
         int                     train;
     } req = {
-        .type  = RESERVE_WHO,
+        .type  = RESERVE_SECTION,
         .node  = node,
         .dir   = dir > 0 ? 1 : 0,
         .train = train,
@@ -156,4 +167,37 @@ int reserve_section(const track_node* const node,
     return result[0];
 }
 
+int reserve_release(const track_node* const node,
+                    const int dir,
+                    const int train) {
+    struct {
+        tr_req_type             type;
+        const track_node* const node;
+        int                     dir;
+        int                     train;
+    } req = {
+        .type  = RESERVE_RELEASE,
+        .node  = node,
+        .dir   = dir > 0 ? 1 : 0,
+        .train = train,
+    };
+
+    int size, result[2];
+    size = Send(track_reservation_tid,
+                (char*)&req,   sizeof(req),
+                (char*)&result, sizeof(result));
+    assert(size >= (int)sizeof(int), "Bad send to track reservation");
+    return result[0];
+}
+int reserve_who_owns_term(const int node_index, const int dir) {
+    return reserve_who_owns(&term_hack[node_index], dir);
+}
+
+int reserve_section_term(const int node_index, const int dir, const int train) {
+    return reserve_section(&term_hack[node_index], dir, train);
+}
+
+int reserve_release_term(const int node_index, const int dir, const int train) {
+    return reserve_release(&term_hack[node_index], dir, train);
+}
 
