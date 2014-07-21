@@ -241,7 +241,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
             return;
         }
         // got to the end
-        else if (l->sensor == NUM_SENSORS) {
+        else if (l->offset <= 0) {
             break;
         }
 
@@ -250,8 +250,9 @@ static void blaster_start_accelerate(blaster* const ctxt,
 
     // if we travel less than one sensor, then unfudge it
     if (i == 0) {
-        locs[i - 1].sensor = ctxt->current_sensor;
-        locs[i - 1].offset = start_dist;
+        i = 1;
+        locs[0].sensor = ctxt->current_sensor;
+        locs[0].offset = ctxt->current_offset + start_dist;
     }
 
     // need to create a message that will restart the acceleration
@@ -324,7 +325,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
             break;
         }
         // got to the end
-        else if (l->sensor == NUM_SENSORS) {
+        else if (l->offset <= 0) {
             break;
         }
 
@@ -333,8 +334,9 @@ static void blaster_start_deccelerate(blaster* const ctxt,
 
     // if we travel less than one sensor, then unfudge it
     if (i == 0) {
-        locs[i - 1].sensor = ctxt->current_sensor;
-        locs[i - 1].offset = stop_dist;
+        i = 1;
+        locs[0].sensor = ctxt->current_sensor;
+        locs[0].offset = ctxt->current_offset + stop_dist;
     }
 
     // need to create a message that will restart the acceleration
@@ -898,7 +900,7 @@ void train_blaster() {
 
         case MASTER_BLASTER_WHERE_ARE_YOU:
             context.master_courier = tid;
-            blaster_master_where_am_i(&context, time);
+            //            blaster_master_where_am_i(&context, time);
             continue;
 
         case BLASTER_SHORT_MOVE:
