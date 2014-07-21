@@ -6,6 +6,7 @@
 typedef enum {
     MASTER_GOTO_LOCATION,     // new destination from control
     MASTER_STOP_AT_SENSOR,
+    MASTER_WHERE_ARE_YOU,
     MASTER_PATH_DATA,         // track route from path worker
     MASTER_BLASTER_LOCATION,  // current location from blaster
 

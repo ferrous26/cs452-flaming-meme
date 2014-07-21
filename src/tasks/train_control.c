@@ -34,7 +34,6 @@ typedef struct {
         int  speed;              // next speed to send to the train
 
         bool reverse;            // should send a reverse command
-        int  whereis;            // should send send whereis command
 
         bool dump_velocity;      // should send a dump command
         int  feedback_threshold;
@@ -51,6 +50,7 @@ typedef struct {
         int             courier;
         track_location location;
         int            stop_sensor; // sensor to stop after hitting
+        int            whereis;     // should send send whereis command
     } master[NUM_TRAINS];
 
     const track_node* const track;
@@ -63,7 +63,6 @@ static inline void control_init_context(control_context* const ctxt) {
         ctxt->blaster[i].courier            = -1;
         ctxt->blaster[i].speed              = -1;
         ctxt->blaster[i].feedback_alpha     = -1;
-        ctxt->blaster[i].whereis            = -1;
         ctxt->blaster[i].stop_offset        = INT_MAX;
         ctxt->blaster[i].clearance_offset   = INT_MAX;
         ctxt->blaster[i].fudge_factor       = INT_MAX;
@@ -71,6 +70,7 @@ static inline void control_init_context(control_context* const ctxt) {
         ctxt->master[i].courier             = -1;
         ctxt->master[i].location.sensor     = -1;
         ctxt->master[i].stop_sensor         = -1;
+        ctxt->master[i].whereis             = -1;
     }
 
     int tid;
@@ -134,11 +134,6 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
         req.type                    = BLASTER_REVERSE;
         ctxt->blaster[index].reverse = false;
 
-    } else if (ctxt->blaster[index].whereis != -1) {
-        req.type                    = BLASTER_WHERE_ARE_YOU;
-        req.arg1                    = ctxt->blaster[index].whereis;
-        ctxt->blaster[index].whereis = -1;
-
     } else if (ctxt->blaster[index].short_move) {
         req.type = BLASTER_SHORT_MOVE;
         req.arg1 = ctxt->blaster[index].short_move;
@@ -194,6 +189,11 @@ control_try_send_master(control_context* const ctxt, const int index) {
         req.arg1 = ctxt->master[index].location.sensor;
         req.arg2 = ctxt->master[index].location.offset;
         ctxt->master[index].location.sensor = -1;
+
+    } else if (ctxt->master[index].whereis != -1) {
+        req.type = MASTER_WHERE_ARE_YOU;
+        req.arg1 = ctxt->master[index].whereis;
+        ctxt->master[index].whereis = -1;
 
     } else if (ctxt->master[index].stop_sensor != -1) {
         req.type = MASTER_STOP_AT_SENSOR;
@@ -258,8 +258,8 @@ void train_control() {
             context.blaster[index].reverse = true;
             break;
         case CONTROL_WHERE_ARE_YOU:
-            context.blaster[index].whereis = tid;
-            control_try_send_blaster(&context, index);
+            context.master[index].whereis = tid;
+            control_try_send_master(&context, index);
             continue;
         case CONTROL_STOP_AT_SENSOR:
             context.master[index].stop_sensor = req.arg2;

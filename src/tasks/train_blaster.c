@@ -27,9 +27,9 @@ static void blaster_resume_short_moving(blaster* const ctxt, const int time);
 static void blaster_reverse_step1(blaster* const ctxt, const int time);
 static void blaster_reverse_step2(blaster* const ctxt);
 static void blaster_reverse_step3(blaster* const ctxt, const int tid);
-static inline void blaster_reverse_step4(blaster* const ctxt,
-                                         const int time,
-                                         const int tid);
+static void blaster_reverse_step4(blaster* const ctxt,
+                                  const int time,
+                                  const int tid);
 static void blaster_set_speed(blaster* const ctxt,
                               const int speed,
                               const int time);
@@ -69,47 +69,22 @@ static int blaster_create_new_delay_courier(blaster* const ctxt) {
     return tid;
 }
 
-static inline track_location blaster_where_am_i(blaster* ctxt,
-                                                const int time) {
-
-    const int current_offset =
-        physics_current_velocity(ctxt) * (time - ctxt->current_time);
-
-    const track_location l = {
-        .sensor = ctxt->current_sensor,
-        .offset = ctxt->current_offset + current_offset
-    };
-
-    return l;
-}
-
-static inline void blaster_where_are_you(blaster* const ctxt,
-                                        const int tid,
-                                        const int time) {
-
-    const track_location l = blaster_where_am_i(ctxt, time);
-
-    const int result = Reply(tid, (char*)&l, sizeof(l));
-    assert(result == 0,
-           "[%s] Failed to respond to whereis command (%d)",
-           result);
-    UNUSED(result);
-}
-
 static inline void blaster_master_where_am_i(blaster* const ctxt,
                                              const int time) {
 
-    // Not ready,
+    // master is not ready to receive the update :(
+    // TODO: maybe we should assert on this?
     if (ctxt->master_courier == -1) return;
 
-    const track_location l = blaster_where_am_i(ctxt, time);
+    const int       velocity = physics_current_velocity(ctxt);
+    const int current_offset = velocity * (time - truth.timestamp);
 
     master_req req = {
         .type  = MASTER_BLASTER_LOCATION,
-        .arg1  = l.sensor,
-        .arg2  = l.offset,
+        .arg1  = truth.location.sensor,
+        .arg2  = truth.location.offset + current_offset,
         .arg3  = time,
-        .arg4  = physics_current_velocity(ctxt),
+        .arg4  = velocity,
         .arg5  = physics_current_stopping_distance(ctxt)
     };
 
@@ -561,9 +536,9 @@ static void blaster_reverse_step3(blaster* const ctxt, const int tid) {
     ctxt->reversing = 3;
 }
 
-static inline void blaster_reverse_step4(blaster* const ctxt,
-                                         const int time,
-                                         const int tid) {
+static void blaster_reverse_step4(blaster* const ctxt,
+                                  const int time,
+                                  const int tid) {
      // if the reverse was overridden
     if (tid != ctxt->reverse_courier) {
         log("[%s] Someone overrode a reverse command!", ctxt->name);
@@ -592,8 +567,8 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
     const sensor s = pos_to_sensor(sensor_hit);
 
     if (ctxt->direction != DIRECTION_UNKNOWN) {
-        // log("[%s] Halp! I'm lost at %c%d", ctxt->name, s.bank, s.num);
         // TODO: proper lost logic
+        // log("[%s] Halp! I'm lost at %c%d", ctxt->name, s.bank, s.num);
         return;
     }
 
@@ -772,9 +747,6 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_REVERSE:
             blaster_reverse_step1(ctxt, time);
             return;
-        case BLASTER_WHERE_ARE_YOU:
-            blaster_where_are_you(ctxt, req.arg1, time);
-            break;
         case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
             blaster_update_feedback_threshold(ctxt, req.arg1);
             break;
@@ -852,8 +824,8 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
     ctxt->accelerating       =  1;
 }
 
-static TEXT_COLD void blaster_init_other_couriers(blaster* const ctxt,
-                                        const courier_package* const package) {
+static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
+                                            const courier_package* const package) {
 
     // Setup the sensor courier
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
@@ -894,7 +866,7 @@ void train_blaster() {
     };
 
     blaster_wait(&context, &callin);
-    blaster_init_other_couriers(&context, &package);
+    blaster_init_couriers(&context, &package);
 
     int tid = 0;
     blaster_req req;
@@ -924,11 +896,9 @@ void train_blaster() {
             blaster_reverse_step4(&context, time, tid);
             continue;
 
-        case BLASTER_WHERE_ARE_YOU:
-            blaster_where_are_you(&context, req.arg1, time);
-            break;
         case MASTER_BLASTER_WHERE_ARE_YOU:
             context.master_courier = tid;
+            blaster_master_where_am_i(&context, time);
             continue;
 
         case BLASTER_SHORT_MOVE:

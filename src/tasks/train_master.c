@@ -58,6 +58,7 @@ static int master_new_delay_courier(master* const ctxt) {
 
 static void
 master_stop_at_sensor(master* const ctxt,
+                      const control_req* const pkg,
                       const int sensor_idx,
                       const int tid) {
 
@@ -66,11 +67,39 @@ master_stop_at_sensor(master* const ctxt,
         ctxt->name, s.bank, s.num);
     ctxt->sensor_to_stop_at = sensor_idx;
 
-    const int result = Reply(tid, NULL, 0);
+    const int result = Reply(tid, (char*)pkg, sizeof(control_req));
     assert(result == 0,
            "[%s] Failed to send courier back to Lenin (%d)",
            ctxt->name, result);
     UNUSED(result);
+}
+
+static void
+master_where_are_you(master* const ctxt,
+                     const control_req* const pkg,
+                     const int request_tid,
+                     const int courier_tid) {
+
+    const int     time_delta = Time() - ctxt->checkpoint_time;
+    const int distance_delta =
+        ctxt->checkpoint_offset + (ctxt->checkpoint_velocity * time_delta);
+
+    const track_location l = {
+        .sensor = ctxt->checkpoint,
+        .offset = distance_delta
+    };
+
+    const int result1 = Reply(request_tid, (char*)&l, sizeof(l));
+    assert(result1 == 0,
+           "[%s] Failed to respond to whereis command (%d)",
+           result1);
+    UNUSED(result1);
+
+    const int result2 = Reply(courier_tid, (char*)pkg, sizeof(control_req));
+    assert(result2 == 0,
+           "[%s] Failed to respond to whereis command (%d)",
+           result2);
+    UNUSED(result2);
 }
 
 static inline bool master_try_fast_forward(master* const ctxt) {
@@ -523,7 +552,11 @@ void train_master() {
             break;
 
         case MASTER_STOP_AT_SENSOR:
-            master_stop_at_sensor(&context, req.arg1, tid);
+            master_stop_at_sensor(&context, &control_callin, req.arg1, tid);
+            break;
+
+        case MASTER_WHERE_ARE_YOU:
+            master_where_are_you(&context, &control_callin, req.arg1, tid);
             break;
 
         case MASTER_PATH_DATA:
