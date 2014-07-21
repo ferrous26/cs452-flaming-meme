@@ -247,6 +247,13 @@ static command parse_p(const char* const cmd, int* const buffer) {
 	if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
         if (!isspace(cmd[index++]))                       return ERROR;
         return PATH_FIND;
+    case 's':
+	if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
+	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+	if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
+	if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
+        if (!isspace(cmd[index++]))                       return ERROR;
+        return PATH_STEPS;
     }
     return ERROR;
 }

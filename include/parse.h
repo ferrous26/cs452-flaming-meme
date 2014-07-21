@@ -32,6 +32,7 @@ typedef enum {
     WHEREIS,
 
     PATH_FIND,
+    PATH_STEPS,
     TEST_TIME,
 
     CMD_RESERVE_NODE,

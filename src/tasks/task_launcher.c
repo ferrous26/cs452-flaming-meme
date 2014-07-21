@@ -4,6 +4,8 @@
 #include <parse.h>
 
 #include <track_node.h>
+#include <normalize.h>
+#include <track_data.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -243,6 +245,35 @@ static void action(command cmd, int args[]) {
         }
         log("delta %d", Time() - time);
         Reply(worker_tid, NULL, 0);
+
+        break;
+    }
+
+    case PATH_STEPS: {
+        const int start_sensor = sensor_to_pos(args[0], args[1]);
+
+        const track_location start_location = {
+            .sensor = start_sensor,
+            .offset = args[2] * 1000
+        };
+
+        track_location locs[NUM_SENSORS];
+
+        // now find out our end position
+        const int result = get_position_from(start_location, locs, args[3]);
+        assert(result == 0, "Failed to scan ahead on the track (%d)", result);
+
+        log("Trip distance %d mm", args[3]);
+
+        // we need to walk the list and see what we have
+        for (int i = 0; i < NUM_SENSORS; i++) {
+            const sensor loc = pos_to_sensor(locs[i].sensor);
+            log("At checkpoint %c%d there are %d mm left",
+                loc.bank, loc.num, locs[i].offset / 1000);
+
+            if (locs[i].sensor == NUM_SENSORS || locs[i].sensor == AN_EXIT)
+                break;
+        }
 
         break;
     }
