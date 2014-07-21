@@ -279,13 +279,15 @@ void mission_control() {
     int        tid;
     mc_req     req;
     mc_context context;
+   
     mission_control_tid = myTid();
-
     mc_initalize(&context);
 
     FOREVER {
         int result = Receive(&tid, (char*)&req, sizeof(req));
-        assert(req.type < MC_TYPE_COUNT, "Invalid MC Request %d", req.type);
+        assert(result >= (int)sizeof(req.type),
+                "Invalid amount of data %d", result);
+        assert(req.type < MC_TYPE_COUNT,  "Invalid MC Request %d", req.type);
 
         switch (req.type) {
         case MC_U_TURNOUT:
@@ -305,6 +307,22 @@ void mission_control() {
         case MC_TD_GET_NEXT_POSITION:
             mc_get_next_position(&context, &req.payload.position, tid);
             continue;
+
+        case MC_KILL_SENSOR: {
+            track_node* const node = &context.track[req.payload.int_value];
+            assert(XBETWEEN(req.payload.int_value, -1, NUM_SENSORS),
+                   "Can't Kill invalid sensor %d", req.payload.int_value);
+            log (LOG_HEAD "Killing sensor %s", node->name);
+            node->type = NODE_NONE;
+        }   break;
+
+        case MC_REVIVE_SENSOR: {
+            track_node* const node = &context.track[req.payload.int_value];
+            assert(XBETWEEN(req.payload.int_value, -1, NUM_SENSORS),
+                   "Can't Revive invalid sensor %d", req.payload.int_value);
+            log (LOG_HEAD "Reviving sensor %s", node->name);
+            node->type = NODE_SENSOR;
+        }   break;
 
         case MC_L_TRACK:
         case MC_TYPE_COUNT:
@@ -346,14 +364,10 @@ int update_turnout(int num, int state) {
 }
 
 int reset_train_state() {
-    mc_req req = {
-        .type = MC_R_TRACK,
-    };
-
+    mc_type req = MC_R_TRACK;
+    
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
-
-
 
 int load_track(int track_value) {
     switch (track_value) {
@@ -376,9 +390,12 @@ int load_track(int track_value) {
 
 int get_sensor_from(int from, int* const res_dist, int* const res_name) {
     int    values[2];
-    mc_req req = {
-        .type              = MC_TD_GET_NEXT_SENSOR,
-        .payload.int_value = from
+    struct {
+        mc_type   type;
+        const int sensor;
+    } req = {
+        .type   = MC_TD_GET_NEXT_SENSOR,
+        .sensor = from
     };
 
     int result = Send(mission_control_tid,
@@ -414,3 +431,50 @@ int get_position_from(const track_location from,
     if (result < 0) return result;
     return 0;
 }
+
+int disable_sensor_num(const int sensor_num) {
+    if (!XBETWEEN(sensor_num, -1, NUM_SENSORS)) return INVALID_MESSAGE;
+
+    struct {
+        mc_type   type;
+        const int sensor;
+    } req = {
+        .type   = MC_KILL_SENSOR,
+        .sensor = sensor_num
+    };
+
+    int result = Send(mission_control_tid,
+                      (char*)&req, sizeof(req),
+                      NULL, 0);
+    return result;
+}
+
+int disable_sensor_name(const int bank, const int num) {
+    const int sensor_num = sensor_to_pos(bank, num);
+    return disable_sensor_num(sensor_num);
+}
+
+int revive_sensor_num(const int sensor_num) {
+    if (!XBETWEEN(sensor_num, -1, NUM_SENSORS)) return INVALID_MESSAGE;
+
+    struct {
+        mc_type   type;
+        const int sensor;
+    } req = {
+        .type   = MC_REVIVE_SENSOR,
+        .sensor = sensor_num
+    };
+
+    int result = Send(mission_control_tid,
+                      (char*)&req, sizeof(req),
+                      NULL, 0);
+    return result;
+}
+
+int revive_sensor_name(const int bank, const int num) {
+    const int sensor_num = sensor_to_pos(bank, num);
+    return revive_sensor_num(sensor_num);
+}
+
+
+

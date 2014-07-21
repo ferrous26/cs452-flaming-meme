@@ -89,6 +89,17 @@ static command parse_s(const char* const cmd, int* buffer) {
         return SEPPUKU;
     case 'z':
         return SIZES;
+    case 'k':
+        if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return CMD_SENSOR_KILL;
+    case 'r':
+        if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return CMD_SENSOR_REVIVE;
+
     default:
         return ERROR;
     }

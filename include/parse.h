@@ -39,6 +39,9 @@ typedef enum {
     CMD_LOOKUP_RESERVATION,
     CMD_RELEASE_NODE,
 
+    CMD_SENSOR_KILL,
+    CMD_SENSOR_REVIVE,
+
     QUIT,
     ERROR,
 } command;

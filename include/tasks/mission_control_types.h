@@ -10,12 +10,15 @@ typedef enum {
     MC_L_TRACK,
     // update
     MC_U_TURNOUT,
+    MC_KILL_SENSOR,
+    MC_REVIVE_SENSOR,
+
     // reset
     MC_R_TRACK,
-    // delay
+    
     MC_TD_GET_NEXT_SENSOR,
-    // derp
     MC_TD_GET_NEXT_POSITION,
+    
     // misc
     MC_TYPE_COUNT
 } mc_type;

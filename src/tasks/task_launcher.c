@@ -321,6 +321,14 @@ static void action(command cmd, int args[]) {
         log("LOOKUP: %d", res);
     }   break;
 
+    case CMD_SENSOR_KILL: {
+        disable_sensor_name(args[0], args[1]);
+    }   break;
+    
+    case CMD_SENSOR_REVIVE: {
+        revive_sensor_name(args[0], args[1]);
+    }   break;
+
     case ERROR:
         log("invalid command");
 	print_help();
