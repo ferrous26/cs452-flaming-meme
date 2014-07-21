@@ -15,26 +15,25 @@ typedef enum {
     BLASTER_WHERE_ARE_YOU,
     MASTER_BLASTER_WHERE_ARE_YOU, // special version for master
 
-    BLASTER_STOP_AT_SENSOR, // TODO: move this to train_entity
-
-    BLASTER_SHORT_MOVE,
-    BLASTER_FINISH_SHORT_MOVE,
-
+    // TODO: some of these need to move to train_master
     BLASTER_DUMP_VELOCITY_TABLE,
-
     BLASTER_UPDATE_FEEDBACK_THRESHOLD,
     BLASTER_UPDATE_FEEDBACK_ALPHA,
     BLASTER_UPDATE_STOP_OFFSET,
     BLASTER_UPDATE_CLEARANCE_OFFSET,
     BLASTER_UPDATE_FUDGE_FACTOR,
 
+    // TODO: move these to train_master
+    BLASTER_SHORT_MOVE,
+    BLASTER_FINISH_SHORT_MOVE,
+
+    // these are the event types we care about for position simulation
     BLASTER_ACCELERATION_COMPLETE,
-
     BLASTER_NEXT_NODE_ESTIMATE,
-
-    BLASTER_SENSOR_TIMEOUT,
     BLASTER_SENSOR_FEEDBACK,
     BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
+
+    BLASTER_SENSOR_TIMEOUT, // lol wut?
 
     BLASTER_REQ_TYPE_COUNT
 } blaster_req_type;

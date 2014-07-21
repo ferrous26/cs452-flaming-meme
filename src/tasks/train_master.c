@@ -35,6 +35,7 @@ typedef struct {
 
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
+    int              sensor_to_stop_at;  // special case for handling ss command
 
     int              path_steps;
     const path_node* path;
@@ -53,6 +54,23 @@ static int master_new_delay_courier(master* const ctxt) {
     UNUSED(ctxt);
 
     return tid;
+}
+
+static void
+master_stop_at_sensor(master* const ctxt,
+                      const int sensor_idx,
+                      const int tid) {
+
+    const sensor s = pos_to_sensor(sensor_idx);
+    log("[%s] Gonna hit the brakes when we hit sensor %c%d",
+        ctxt->name, s.bank, s.num);
+    ctxt->sensor_to_stop_at = sensor_idx;
+
+    const int result = Reply(tid, NULL, 0);
+    assert(result == 0,
+           "[%s] Failed to send courier back to Lenin (%d)",
+           ctxt->name, result);
+    UNUSED(result);
 }
 
 static inline bool master_try_fast_forward(master* const ctxt) {
@@ -314,6 +332,20 @@ static inline void master_simulate_pathing(master* const ctxt) {
     }
 }
 
+static inline void
+master_check_sensor_to_stop_at(master* const ctxt) {
+
+    if (ctxt->sensor_to_stop_at != ctxt->checkpoint) return;
+
+    // TODO: perhaps we should send this directly?
+    train_set_speed(ctxt->train_gid, 0);
+
+    ctxt->sensor_to_stop_at = -1;
+    const sensor s = pos_to_sensor(ctxt->checkpoint);
+    log("[%s] Hit sensor %c%d at %d. Stopping!",
+        ctxt->name, s.bank, s.num, ctxt->checkpoint_time);
+}
+
 static inline void master_location_update(master* const ctxt,
                                           const master_req* const req,
                                           const blaster_req* const pkg,
@@ -332,6 +364,8 @@ static inline void master_location_update(master* const ctxt,
     assert(result == 0,
            "[%s] Failed to send courier back to blaster (%d)",
            ctxt->name, result);
+
+    master_check_sensor_to_stop_at(ctxt);
 
     if (ctxt->path_steps >= 0) {
         if (master_try_fast_forward(ctxt)) {
@@ -406,9 +440,10 @@ static TEXT_COLD void master_init(master* const ctxt) {
            "[%s] I started up before the path admin! (%d)",
            ctxt->name, ctxt->path_admin);
 
-    ctxt->path_worker = -1;
-    ctxt->destination = -1;
-    ctxt->path_steps  = -1;
+    ctxt->path_worker       = -1;
+    ctxt->destination       = -1;
+    ctxt->path_steps        = -1;
+    ctxt->sensor_to_stop_at = -1;
 }
 
 static TEXT_COLD void master_init_couriers(master* const ctxt,
@@ -486,9 +521,15 @@ void train_master() {
         case MASTER_GOTO_LOCATION:
             master_goto_command(&context, &req, &control_callin, tid);
             break;
+
+        case MASTER_STOP_AT_SENSOR:
+            master_stop_at_sensor(&context, req.arg1, tid);
+            break;
+
         case MASTER_PATH_DATA:
             master_path_update(&context, req.arg1, (path_node*)req.arg2, tid);
             break;
+
         case MASTER_BLASTER_LOCATION:
             master_location_update(&context, &req, &blaster_callin, tid);
             break;

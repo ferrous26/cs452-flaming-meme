@@ -62,7 +62,6 @@ typedef struct blaster_context {
     int       acceleration_courier; // acceleration delay courier
     int       reverse_courier;
     int       checkpoint_courier;   // courier used to wake at checkpoints
-    int       sensor_to_stop_at;    // special case for handling ss command
 
     ratio     feedback_ratio;
     int       feedback_threshold;

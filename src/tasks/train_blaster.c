@@ -606,22 +606,6 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
 }
 
 static inline void
-blaster_check_sensor_to_stop_at(blaster* const ctxt,
-                               const int sensor_hit,
-                               const int sensor_time,
-                               const int service_time) {
-
-    if (ctxt->sensor_to_stop_at != sensor_hit) return;
-
-    blaster_set_speed(ctxt, 0, service_time);
-
-    ctxt->sensor_to_stop_at = 80;
-    const sensor s = pos_to_sensor(sensor_hit);
-    log("[%s] Hit sensor %c%d at %d. Stopping!",
-        ctxt->name, s.bank, s.num, sensor_time);
-}
-
-static inline void
 blaster_reset_simulation(blaster* const ctxt,
                         const int tid,
                         const blaster_req* const req,
@@ -655,11 +639,6 @@ blaster_adjust_simulation(blaster* const ctxt,
 
     const int  sensor_hit = req->arg1;
     const int sensor_time = req->arg2;
-
-    blaster_check_sensor_to_stop_at(ctxt,
-                                   sensor_hit,
-                                   sensor_time,
-                                   service_time);
 
     // we have to do some stuff in weird order here
     if (ctxt->last_sensor == sensor_hit) {
@@ -702,13 +681,6 @@ blaster_adjust_simulation(blaster* const ctxt,
     UNUSED(result);
 
     //blaster_wait_for_next_estimate(ctxt);
-}
-
-static void blaster_stop_at_sensor(blaster* const ctxt, const int sensor_idx) {
-    const sensor s = pos_to_sensor(sensor_idx);
-    log("[%s] Gonna hit the brakes when we hit sensor %c%d",
-        ctxt->name, s.bank, s.num);
-    ctxt->sensor_to_stop_at = sensor_idx;
 }
 
 static void blaster_resume_short_moving(blaster* const ctxt,
@@ -803,9 +775,6 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_WHERE_ARE_YOU:
             blaster_where_are_you(ctxt, req.arg1, time);
             break;
-        case BLASTER_STOP_AT_SENSOR:
-            blaster_stop_at_sensor(ctxt, req.arg1);
-            break;
         case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
             blaster_update_feedback_threshold(ctxt, req.arg1);
             break;
@@ -877,7 +846,6 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
     Puts(buffer, ptr - buffer);
 
     ctxt->last_sensor        = 80;
-    ctxt->sensor_to_stop_at  = -1;
     ctxt->master_courier     = -1;
     ctxt->reverse_courier    = -1;
     ctxt->checkpoint_courier = -1;
@@ -962,10 +930,6 @@ void train_blaster() {
         case MASTER_BLASTER_WHERE_ARE_YOU:
             context.master_courier = tid;
             continue;
-
-        case BLASTER_STOP_AT_SENSOR:
-            blaster_stop_at_sensor(&context, req.arg1);
-            break;
 
         case BLASTER_SHORT_MOVE:
             blaster_short_move(&context, req.arg1);
