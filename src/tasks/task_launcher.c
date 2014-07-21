@@ -260,7 +260,9 @@ static void action(command cmd, int args[]) {
         track_location locs[NUM_SENSORS];
 
         // now find out our end position
-        const int result = get_position_from(start_location, locs, args[3]);
+        const int result = get_position_from(start_location,
+                                             locs,
+                                             args[3] * 1000);
         assert(result == 0, "Failed to scan ahead on the track (%d)", result);
 
         log("Trip distance %d mm", args[3]);
@@ -271,8 +273,7 @@ static void action(command cmd, int args[]) {
             log("At checkpoint %c%d there are %d mm left",
                 loc.bank, loc.num, locs[i].offset / 1000);
 
-            if (locs[i].sensor == NUM_SENSORS || locs[i].sensor == AN_EXIT)
-                break;
+            if (locs[i].offset <= 0 || locs[i].sensor == AN_EXIT) break;
         }
 
         break;

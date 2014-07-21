@@ -77,12 +77,12 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     if (ctxt->master_courier == -1) return;
 
     const int       velocity = physics_current_velocity(ctxt);
-    const int current_offset = velocity * (time - truth.timestamp);
+    const int current_offset = velocity * (time - ctxt->current_time);
 
     master_req req = {
         .type  = MASTER_BLASTER_LOCATION,
-        .arg1  = truth.location.sensor,
-        .arg2  = truth.location.offset + current_offset,
+        .arg1  = ctxt->current_sensor,
+        .arg2  = ctxt->current_offset + current_offset,
         .arg3  = time,
         .arg4  = velocity,
         .arg5  = physics_current_stopping_distance(ctxt)

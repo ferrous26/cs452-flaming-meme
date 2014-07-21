@@ -89,9 +89,6 @@ static void mc_get_next_sensor(mc_context* const ctxt,
     if (result) ABORT("Train driver died! (%d)", result);
 }
 
-// need to be given the current sensor
-// and offset
-// and the distance to travel
 static void mc_get_next_position(mc_context* const ctxt,
                                  position_req* const req,
                                  const int tid) {
@@ -112,29 +109,22 @@ static void mc_get_next_position(mc_context* const ctxt,
         if (i == 0)
             next_dist -= req->from.offset;
 
+        int next_sensor = node_next->num;
+
         if (next_dist < 0) { // exit node
-            req->to[i].sensor = AN_EXIT;
-            req->to[i].offset = distance + next_dist;
-            break;
+            next_sensor = AN_EXIT;
+            next_dist   = -next_dist;
         }
 
         const int next_diff = distance - next_dist;
 
+        req->to[i].sensor = next_sensor;
         req->to[i].offset = next_diff;
+        distance    = next_diff;
+        last_sensor = node_next->num;
 
-        if (next_diff < 0) {
-            req->to[i].sensor = NUM_SENSORS;
-            break;
-        }
-        else if (next_diff == 0) {
-            req->to[i].sensor = node_next->num;
-            break;
-        }
-        else { // next_diff > 0
-            req->to[i].sensor = node_next->num;
-            last_sensor = node_next->num;
-            distance = next_diff;
-        }
+        // if we have past our stopping point, then we are done
+        if (next_diff <= 0 || next_sensor == AN_EXIT) break;
     }
 
     const int result = Reply(tid, NULL, 0);
