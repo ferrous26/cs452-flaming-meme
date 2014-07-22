@@ -268,7 +268,7 @@ static inline void master_path_update(master* const ctxt,
 static void master_delay_flip_turnout(master* const ctxt,
                                       const int turn,
                                       const int direction,
-                                      const int delay) {
+                                      const int action_time) {
     const int c = master_new_delay_courier(ctxt);
 
     struct {
@@ -276,8 +276,8 @@ static void master_delay_flip_turnout(master* const ctxt,
         master_req     req;
     } msg = {
         .head = {
-            .type  = DELAY_RELATIVE,
-            .ticks = delay
+            .type  = DELAY_ABSOLUTE,
+            .ticks = action_time
         },
         .req = {
             .type = MASTER_FLIP_TURNOUT,
@@ -287,6 +287,9 @@ static void master_delay_flip_turnout(master* const ctxt,
     };
 
     const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
+    log("[%s] Sent Switch: \t%d\tDir: %d\tTime: %d", ctxt->name,
+        turn, direction, action_time);
+
     if (result < 0)
         ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
 }
@@ -319,32 +322,37 @@ static inline void master_simulate_pathing(master* const ctxt) {
         &ctxt->path[ctxt->path_steps];
     const path_node* const next_step =
         &ctxt->path[MAX(ctxt->path_steps - 1, 0)];
-    const path_node* const next_next_step =
+    const path_node* const following_step =
         &ctxt->path[MAX(ctxt->path_steps - 2, 0)];
+
 
     // it is in the next sensor range, so calculate how long to wait
     log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
          ctxt->path[ctxt->turnout_step].dist);
-    while (next_step->dist > ctxt->path[ctxt->turnout_step].dist ||
-           next_next_step->dist > ctxt->path[ctxt->turnout_step].dist) {
+
+    while (ctxt->turnout_step > 0) {
+        const int turn_dist  = ctxt->path[ctxt->turnout_step].dist;
+        const int turn_point = turn_dist - TURNOUT_DISTANCE; 
+            
+        if (next_step->dist < turn_point && following_step->dist < turn_point)
+            break;
 
         const path_node* const node = &ctxt->path[ctxt->turnout_step];
+        const int danger_zone = turn_point - curr_step->dist;
 
-        const int danger_zone =
-            (node->dist - TURNOUT_DISTANCE) - curr_step->dist;
         const int delay = danger_zone / ctxt->checkpoint_velocity;
 
         master_delay_flip_turnout(ctxt,
                                   node->data.turnout.num,
                                   node->data.turnout.dir,
-                                  delay);
+                                  ctxt->checkpoint_time + delay);
 
         master_calculate_turnout_point(ctxt);
     }
 
     // it is in the next sensor range, so calculate how long to wait
     if (next_step->dist == ctxt->path[0].dist ||
-           next_next_step->dist == ctxt->path[0].dist) {
+           following_step->dist == ctxt->path[0].dist) {
 
         const path_node* const node = &ctxt->path[0];
 

@@ -89,7 +89,7 @@ blaster_debug_state(blaster* const ctxt,
                   state->next_distance / 1000, state->next_timestamp);
 
     ptr = log_end(ptr);
-    Puts(buffer, ptr - buffer);
+    // Puts(buffer, ptr - buffer);
 }
 #endif
 
