@@ -4,6 +4,7 @@
 #include <syscall.h>
 #include <normalize.h>
 #include <track_node.h>
+#include <track_data.h>
 #include <char_buffer.h>
 
 #include <tasks/priority.h>
@@ -24,6 +25,8 @@
 #define SENT_WAITER_SIZE 16
 
 #define CHECK_CREATE(tid, msg) assert(tid >= 0, msg " (%d)", tid)
+#define CHECK_SENSOR(s_num) assert(XBETWEEN(s_num, -1, NUM_SENSORS), \
+                            "bad sensor num %d", s_num)
 
 TYPE_BUFFER(int, 8)
 
@@ -198,6 +201,9 @@ get_sensor_index(const tc_context* const ctxt, const int tid) {
 }
 
 static void try_send_timeout(tc_context* const ctxt) {
+    assert(ctxt->sensor_timeout >= 0, "Invalid timeout time %d",
+           ctxt->sensor_timeout);
+    
     int result; UNUSED(result);
     if (!((ctxt->docked & TIMER_MASK) && ctxt->sensor_timeout)) return;
 
@@ -261,6 +267,63 @@ static void reject_remaining_sensors(const tc_context* const ctxt) {
     }
 }
 
+static inline void _driver_lost(tc_context* const ctxt) {
+    reject_remaining_sensors(ctxt);
+    ctxt->sensor_iter++;
+    
+    log(LOG_HEAD "TRAIN %d LOST %x", ctxt->train_pos, ctxt->docked);
+    ctxt->sensor_expect  = 80;
+    ctxt->sensor_timeout = 0;
+    try_send_sensor(ctxt, 80);
+}
+
+static inline void _driver_reverse(tc_context* const ctxt,
+                                   const int s_front,
+                                   const int timeout) {
+    log(LOG_HEAD "REVERSE!");
+    reject_remaining_sensors(ctxt); 
+    ctxt->sensor_timeout = timeout;
+    ctxt->sensor_iter++;
+
+    CHECK_SENSOR(s_front);
+    const track_node* const node = ctxt->track[s_front].reverse;
+    assert(node - ctxt->track < TRACK_MAX,
+           "Invalid track node pointer %p off %d",
+           node, node - ctxt->track); 
+
+    _get_next_sensors(node->edge[DIR_AHEAD].dest, &ctxt->next_sensors);     
+    while (intb_count(&ctxt->next_sensors) > 0) {
+        const int sensor_num = intb_consume(&ctxt->next_sensors);
+        assert(XBETWEEN(sensor_num, -1, NUM_SENSORS), 
+               "Bad sensor num %d", sensor_num);
+        try_send_sensor(ctxt, sensor_num);
+    }
+}
+
+static inline void _driver_setup_sensors(tc_context* const ctxt,
+                                         const int last_sensor,
+                                         const int next_sensor,
+                                         const int timeout) {
+    CHECK_SENSOR(last_sensor);
+    CHECK_SENSOR(next_sensor);
+    ctxt->sensor_timeout = timeout;
+    ctxt->sensor_expect  = next_sensor;
+    ctxt->sensor_last    = last_sensor;
+    ctxt->sensor_iter++;
+    
+    reject_remaining_sensors(ctxt);
+
+    _get_next_sensors(ctxt->track[last_sensor].edge[DIR_AHEAD].dest,
+                      &ctxt->next_sensors);
+
+    while (intb_count(&ctxt->next_sensors) > 0) {
+        const int sensor_num = intb_consume(&ctxt->next_sensors);
+        CHECK_SENSOR(sensor_num);
+        try_send_sensor(ctxt, sensor_num);
+    }
+
+}
+
 void train_console() {
     int tid, result, args[4];
     tc_context context;
@@ -275,49 +338,40 @@ void train_console() {
 
         if (tid == context.driver_tid) {
             context.docked |= DRIVER_MASK;
-            context.sensor_iter++;
-            reject_remaining_sensors(&context);
 
             switch (args[0]) {
             case 80:
-                // log ("TRAIN LOST %x", context.docked);
-                context.sensor_expect  = 80;
-                context.sensor_timeout = 0;
-                try_send_sensor(&context, 80);
+                _driver_lost(&context);
                 break;
 
             case 100:
-                log("REVERSE!");
-                
-                const track_node* const node = context.track[args[1]].reverse;
-                _get_next_sensors(node->edge[DIR_AHEAD].dest,
-                                  &context.next_sensors);
-                
-                while (intb_count(&context.next_sensors) > 0) {
-                    const int sensor_num = intb_consume(&context.next_sensors);
-                    assert(sensor_num < 80 && sensor_num >= 0, "Ba");
-                    try_send_sensor(&context, sensor_num);
-                }
-                
+                assert(result >= 3 * (int)sizeof(int),
+                       "train invalid number of args %d", result);
+                _driver_reverse(&context, args[1], args[2]);
                 break;
 
-            default:
-                assert(args[0] < 80, "bad sensor %d", args[0]);
-                context.sensor_expect  = args[1];
+            case 200:
+                assert(result >= 2 * (int)sizeof(int),
+                       "train invalid number of args %d", result);
+                log(LOG_HEAD "PASSIVE!");
+                context.sensor_timeout = args[1];
+                break;
+
+            case 201: {
+                log(LOG_HEAD "ADD SENSOR QUERY");
+                assert(result >= 3 * (int)sizeof(int),
+                       "train invalid number of args %d", result);
+
+                CHECK_SENSOR(args[1]);
                 context.sensor_timeout = args[2];
 
-                assert(result == 3 * sizeof(int),
-                       "bad number of args for driver %d",
-                       result / sizeof(int));
+                try_send_sensor(&context, args[1]);
+            }   break;
 
-                _get_next_sensors(context.track[args[0]].edge[DIR_AHEAD].dest,
-                                  &context.next_sensors);
-
-                while (intb_count(&context.next_sensors) > 0) {
-                    const int sensor_num = intb_consume(&context.next_sensors);
-                    assert(sensor_num < 80 && sensor_num >= 0, "Ba");
-                    try_send_sensor(&context, sensor_num);
-                }
+            default:
+                assert(result >= 3 * (int)sizeof(int),
+                       "train invalid number of args %d", result);
+                _driver_setup_sensors(&context, args[0], args[1], args[2]);
                 break;
             }
             try_send_timeout(&context);

@@ -45,7 +45,6 @@ typedef struct {
 
 
 static int master_new_delay_courier(master* const ctxt) {
-
     const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
 
     assert(tid >= 0,
