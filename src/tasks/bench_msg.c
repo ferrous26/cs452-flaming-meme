@@ -23,6 +23,20 @@ static void baseline() {
 
 static void send_it(int child) {
 
+    log("0 bytes (NULL message)");
+
+    BENCH_START(bench);
+    for (uint i = ITERATIONS; i; i--) {
+	const int result = Send(child, NULL, 0, NULL, 0);
+        if (result != 0)
+            ABORT("Message passing failure %d", result);
+	BENCH_LAP(bench)
+    }
+
+    BENCH_PRINT_WORST(bench);
+    BENCH_PRINT_AVERAGE(bench);
+
+
     log("4 bytes (1 word)");
 
     const char* msg = "hey";
@@ -30,8 +44,8 @@ static void send_it(int child) {
 
     BENCH_START(bench);
     for (uint i = ITERATIONS; i; i--) {
-	int result = Send(child, (char*)msg, 4, rply, 4);
-        if (result <= 0)
+	const int result = Send(child, (char*)msg, 4, rply, 4);
+        if (result != 4)
             ABORT("Message passing failure %d", result);
 	BENCH_LAP(bench)
     }
@@ -50,8 +64,8 @@ static void send_it(int child) {
 
     BENCH_START(bench)
     for (uint i = ITERATIONS; i; i--) {
-	int result = Send(child, (char*)big_msg, 64, big_rply, 64);
-        if (result <= 0)
+	const int result = Send(child, (char*)big_msg, 64, big_rply, 64);
+        if (result != 64)
             ABORT("Message passing failure %d", result);
 	BENCH_LAP(bench)
     }
@@ -97,7 +111,7 @@ void bench_msg() {
 
     for (;;) {
         int siz = Receive(&tid, buffer, 64);
-        if (siz > 0) {
+        if (siz >= 0) {
             siz = Reply(tid, buffer, siz);
             if (siz != 0)
                 ABORT("Message sending failure %d", siz);
