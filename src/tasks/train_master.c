@@ -323,8 +323,8 @@ static inline void master_simulate_pathing(master* const ctxt) {
         &ctxt->path[MAX(ctxt->path_steps - 2, 0)];
 
     // it is in the next sensor range, so calculate how long to wait
-    //    log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
-    //ctxt->path[ctxt->turnout_step].dist);
+    log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
+         ctxt->path[ctxt->turnout_step].dist);
     while (next_step->dist > ctxt->path[ctxt->turnout_step].dist ||
            next_next_step->dist > ctxt->path[ctxt->turnout_step].dist) {
 
@@ -412,7 +412,7 @@ master_flip_turnout(master* const ctxt,
                     const int tid) {
 
     update_turnout(turn, direction);
-    log ("[%s] Threw Turnout %d %c", ctxt->name, turn, direction);
+    log("[%s] Threw Turnout %d %c", ctxt->name, turn, direction);
 
     const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
     assert(result == 0,
