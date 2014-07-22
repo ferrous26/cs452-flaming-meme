@@ -264,6 +264,7 @@ static void action(command cmd, int args[]) {
                                              locs,
                                              args[3] * 1000);
         assert(result == 0, "Failed to scan ahead on the track (%d)", result);
+        UNUSED(result);
 
         log("Trip distance %d mm", args[3]);
 

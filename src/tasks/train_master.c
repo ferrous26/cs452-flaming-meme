@@ -412,7 +412,7 @@ master_flip_turnout(master* const ctxt,
                     const int tid) {
 
     update_turnout(turn, direction);
-    log ("[%s] Threw Turnout %d %c", turn, direction);
+    log ("[%s] Threw Turnout %d %c", ctxt->name, turn, direction);
 
     const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
     assert(result == 0,
