@@ -5,6 +5,12 @@
 void __attribute__ ((noreturn)) train_blaster(void);
 
 typedef enum {
+    EVENT_ACCELERATION,
+    EVENT_VIRTUAL,
+    EVENT_SENSOR
+} train_event;
+
+typedef enum {
     BLASTER_CHANGE_SPEED,
 
     BLASTER_REVERSE,  // step 1

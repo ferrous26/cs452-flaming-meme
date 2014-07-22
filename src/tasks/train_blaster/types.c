@@ -53,12 +53,6 @@ typedef struct {
     int mega_scale;
 } cubic;
 
-typedef enum {
-    EVENT_ACCELERATION,
-    EVENT_CHECKPOINT,
-    EVENT_SENSOR
-} train_event;
-
 typedef struct {
     train_event    event;            // event that caused this state
     int            timestamp;

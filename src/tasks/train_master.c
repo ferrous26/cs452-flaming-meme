@@ -25,6 +25,7 @@ typedef struct {
     int              path_admin;         // tid of the path admin
     int              path_worker;        // tid of the path worker
 
+    train_event      checkpoint_type;
     int              checkpoint;         // sensor we last had update at
     int              checkpoint_offset;  // in micrometers
     int              checkpoint_time;
@@ -362,9 +363,10 @@ static inline void master_simulate_pathing(master* const ctxt) {
 static inline void
 master_check_sensor_to_stop_at(master* const ctxt) {
 
-    if (ctxt->sensor_to_stop_at != ctxt->checkpoint) return;
+    if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint &&
+          ctxt->checkpoint_type == EVENT_SENSOR)) return;
 
-    // TODO: perhaps we should send this directly?
+    // TODO: send this directly to blaster
     train_set_speed(ctxt->train_gid, 0);
 
     ctxt->sensor_to_stop_at = -1;
@@ -380,11 +382,12 @@ static inline void master_location_update(master* const ctxt,
 
     // log("[%s] Got position update", ctxt->name);
 
-    ctxt->checkpoint                   = req->arg1;
-    ctxt->checkpoint_offset            = req->arg2;
-    ctxt->checkpoint_time              = req->arg3;
-    ctxt->checkpoint_velocity          = req->arg4;
-    ctxt->checkpoint_stopping_distance = req->arg5;
+    ctxt->checkpoint_type              = req->arg1;
+    ctxt->checkpoint                   = req->arg2;
+    ctxt->checkpoint_offset            = req->arg3;
+    ctxt->checkpoint_time              = req->arg4;
+    ctxt->checkpoint_velocity          = req->arg5;
+    ctxt->checkpoint_stopping_distance = req->arg6;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     UNUSED(result);
