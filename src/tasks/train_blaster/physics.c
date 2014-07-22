@@ -180,42 +180,33 @@ physics_velocity(const blaster* const ctxt,
 static inline int
 physics_current_velocity(const blaster* const ctxt) {
     return physics_velocity(ctxt,
-                            ctxt->current_speed,
-                            velocity_type(ctxt->current_sensor));
-}
-
-static inline int
-physics_last_velocity(const blaster* const ctxt) {
-    return physics_velocity(ctxt,
-                            ctxt->current_speed,
-                            velocity_type(ctxt->last_sensor));
+                            truth.speed,
+                            velocity_type(truth.location.sensor));
 }
 
 static inline void
 physics_update_velocity_ui(const blaster* const ctxt) {
 
     // NOTE: we currently display in units of (integer) rounded off mm/s
-
     char  buffer[32];
     char* ptr = vt_goto(buffer,
                         TRAIN_ROW + ctxt->train_id,
-                        TRAIN_SPEED_COL);;
+                        TRAIN_SPEED_COL);
 
-    switch (ctxt->direction) {
+    switch (truth.direction) {
     case DIRECTION_BACKWARD:
         ptr = sprintf_string(ptr, COLOUR(MAGENTA));
         break;
     case DIRECTION_UNKNOWN:
-        ptr = sprintf_string(ptr, COLOUR(BG_RED) COLOUR(BLACK));
+        ptr = sprintf_string(ptr, COLOUR(RED));
         break;
     case DIRECTION_FORWARD:
         ptr = sprintf_string(ptr, COLOUR(CYAN));
         break;
     }
 
-    const char* const format =
-        ctxt->current_speed && ctxt->current_speed < 150 ?
-        "%d "     COLOUR_RESET:
+    const char* const format = truth.speed && truth.speed < 150 ?
+        "%d "     COLOUR_RESET :
         "-      " COLOUR_RESET;
 
     const int v = physics_current_velocity(ctxt);
@@ -239,10 +230,12 @@ physics_update_tracking_ui(blaster* const ctxt, const int delta_v) {
                         TRAIN_ROW + ctxt->train_id,
                         TRAIN_SENSORS_COL);
 
-    const sensor last = pos_to_sensor(ctxt->last_sensor);
-    const sensor curr = pos_to_sensor(ctxt->current_sensor);
-    const sensor next = pos_to_sensor(ctxt->next_sensor);
+    const sensor last = pos_to_sensor(last_sensor.location.sensor);
+    const sensor curr = pos_to_sensor(current_sensor.location.sensor);
+    const sensor next = pos_to_sensor(current_sensor.next_location.sensor);
 
+    // TODO: separate delta printing to only show up when actually
+    //       calculating a delta (i.e. only on sensor updates)
     ptr = sprintf_int(ptr, delta_v / 10);
     ptr = ui_pad(ptr, log10(abs(delta_v)) + (delta_v < 0 ? 1 : 0), 5);
 
@@ -263,20 +256,22 @@ physics_feedback(blaster* const ctxt,
                  const int delta_v) {
 
     // do not feedback while accelerating
-    if (ctxt->current_speed == 0) return;
+    if (current_sensor.speed == 0) return;
 
     if (abs(delta_v) > ctxt->feedback_threshold) {
-        const sensor s = pos_to_sensor(ctxt->current_sensor);
-        log("[%s] Feedback is off by too much %d / %d (%c%d)."
+        const sensor from = pos_to_sensor(last_sensor.location.sensor);
+        const sensor   to = pos_to_sensor(current_sensor.location.sensor);
+        log("[%s] Feedback is off by too much %d / %d (%c%d -> %c%d)."
             " I suspect foul play!",
             ctxt->name,
             delta_v, ctxt->feedback_threshold,
-            s.bank, s.num);
+            from.bank, from.num,
+            to.bank, to.num);
         return;
     }
 
-    const int type = velocity_type(ctxt->current_sensor);
-    const int speed_idx = (ctxt->current_speed / 10) - 1;
+    const int      type = velocity_type(last_sensor.location.sensor);
+    const int speed_idx = (current_sensor.speed / 10) - 1;
 
     switch (ctxt->feedback_ratio) {
     case HALF_AND_HALF:
@@ -301,7 +296,7 @@ physics_stopping_distance(const blaster* const ctxt, const int speed) {
 
 static inline int
 physics_current_stopping_distance(const blaster* const ctxt) {
-    return physics_stopping_distance(ctxt, ctxt->current_speed);
+    return physics_stopping_distance(ctxt, truth.speed);
 }
 
 static inline int

@@ -20,20 +20,26 @@
 #include <tasks/train_blaster/physics.c>
 
 #define TEMPORARY_ACCEL_FUDGE \
-    (ctxt->acceleration_time_fudge_factor - (ctxt->current_speed / 5))
+    (ctxt->acceleration_time_fudge_factor - (truth.speed / 5))
 
 static void blaster_resume_short_moving(blaster* const ctxt, const int time);
 static void blaster_reverse_step1(blaster* const ctxt, const int time);
 static void blaster_reverse_step2(blaster* const ctxt);
-static void blaster_reverse_step3(blaster* const ctxt, const int tid);
+static void blaster_reverse_step3(blaster* const ctxt,
+                                  const int tid,
+                                  const int time);
 static void blaster_reverse_step4(blaster* const ctxt,
-                                  const int time,
-                                  const int tid);
+                                  const int tid,
+                                  const int time);
 static void blaster_set_speed(blaster* const ctxt,
                               const int speed,
                               const int time);
 
 
+static inline int __attribute__ ((const))
+blaster_distance_remaining(train_state* const state) {
+    return state->next_distance - state->location.offset;
+}
 
 static inline int __attribute__((const, always_inline))
 blaster_estimate_timeout(int time_current, int time_next) {
@@ -41,18 +47,68 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-void create_console_reply(const blaster* const ctxt,
-                          const int s_time,
-                          int* result) {
+#if 1
+#define blaster_debug_state( ... )
+#else
+static void __attribute__ ((unused))
+blaster_debug_state(blaster* const ctxt,
+                    const train_state* const state) {
+
+    const char* event = "Unknown Event";
+    switch (state->event) {
+    case EVENT_ACCELERATION:
+        event = "Acceleration Event";
+        break;
+    case EVENT_CHECKPOINT:
+        event = "Virtual Checkpoint Event";
+        break;
+    case EVENT_SENSOR:
+        event = "Sensor Checkpoint Event";
+        break;
+    }
+
+    const sensor current_loc = pos_to_sensor(state->location.sensor);
+    const sensor    next_loc = pos_to_sensor(state->next_location.sensor);
+
+    const int current_offset = state->location.offset / 1000;
+    const int    next_offset = state->next_location.offset / 1000;
+
+    char  buffer[512];
+    char* ptr = log_start(buffer);
+    ptr = sprintf(ptr,
+                  "[%s]\n"
+                  "%s @ %d ticks (travelling at %c%d%s)\n"
+                  "       Location: %c%d + %d mm (travelled %d mm from last)\n"
+                  "  Next Location: %c%d + %d mm in %d mm @ %d ticks\n",
+                  ctxt->name, event, state->timestamp,
+                  state->direction ? '+' : '-', state->speed,
+                  state->is_accelerating ? " accelerating" : "",
+                  current_loc.bank, current_loc.num, current_offset,
+                  state->distance / 1000,
+                  next_loc.bank, next_loc.num, next_offset,
+                  state->next_distance / 1000, state->next_timestamp);
+
+    ptr = log_end(ptr);
+    Puts(buffer, ptr - buffer);
+}
+#endif
+
+static void create_console_reply(const blaster* const ctxt,
+                                 const int s_time,
+                                 int* result) {
 
     if (ctxt->reversing) {
         result[0] = 100;
-        result[1] = ctxt->next_sensor;
-        result[2] = blaster_estimate_timeout(s_time, ctxt->next_time);
+        result[1] = truth.next_location.sensor;
+        result[2] = blaster_estimate_timeout(s_time,
+                                             truth.next_timestamp -
+                                             truth.timestamp);
     } else {
-        result[0] = ctxt->current_sensor;
-        result[1] = ctxt->next_sensor;
-        result[2] = blaster_estimate_timeout(s_time, ctxt->next_time);
+        result[0] = truth.location.sensor;
+        result[1] = truth.next_location.sensor;
+        result[2] = blaster_estimate_timeout(s_time,
+                                             truth.next_timestamp -
+                                             truth.timestamp);
     }
 }
 
@@ -72,19 +128,19 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
                                              const int time) {
 
     // master is not ready to receive the update :(
-    // TODO: maybe we should assert on this?
+    // TODO: maybe we should assert on this? (to make sure we are not late)
     if (ctxt->master_courier == -1) return;
 
-    const int       velocity = physics_current_velocity(ctxt);
-    const int current_offset = velocity * (time - ctxt->current_time);
+    const int velocity = physics_current_velocity(ctxt);
+    const int   offset = velocity * (time - truth.timestamp);
 
     master_req req = {
-        .type  = MASTER_BLASTER_LOCATION,
-        .arg1  = ctxt->current_sensor,
-        .arg2  = ctxt->current_offset + current_offset,
-        .arg3  = time,
-        .arg4  = velocity,
-        .arg5  = physics_current_stopping_distance(ctxt)
+        .type = MASTER_BLASTER_LOCATION,
+        .arg1 = truth.location.sensor,
+        .arg2 = truth.location.offset + offset,
+        .arg3 = time,
+        .arg4 = velocity,
+        .arg5 = physics_current_stopping_distance(ctxt)
     };
 
     const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));
@@ -94,110 +150,17 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     UNUSED(result);
 
     ctxt->master_courier = -1;
+    ctxt->master_message = false;
 }
 
-static void blaster_acceleration_checkpoint(blaster* const ctxt,
-                                            const int time) {
+static inline void
+blaster_position_after_distance(const track_location start,
+                                track_location* locs,
+                                const int distance) {
 
-     // we need to checkpoint where we are right now
-    const track_type type = velocity_type(ctxt->current_sensor);
-    const int    velocity = physics_velocity(ctxt,
-                                             ctxt->last_speed,
-                                             type);
-    ctxt->current_offset += (velocity * (time - ctxt->current_time));
-    ctxt->current_time    = time;
-
-    ctxt->current_sensor_accelerating = true;
-    blaster_master_where_am_i(ctxt, time);
-}
-
-static void blaster_checkpoint(blaster* const ctxt,
-                               const int sensor_hit,
-                               const int timestamp,
-                               const int offset,
-                               const int service_time) {
-
-    ctxt->last_sensor_accelerating = ctxt->current_sensor_accelerating;
-    ctxt->last_sensor              = ctxt->current_sensor;
-    ctxt->last_distance            = ctxt->current_distance;
-    ctxt->last_time                = ctxt->current_time;
-
-    ctxt->current_sensor           = sensor_hit;
-    // ctxt->current_distance         = 0; // this is looked up below
-    ctxt->current_offset           = offset;
-    ctxt->current_time             = timestamp;
-
-    const int result = get_sensor_from(sensor_hit,
-                                       &ctxt->current_distance,
-                                       &ctxt->next_sensor);
-
-    assert(result == 0,
-           "[%s] failed to get next sensor (%d)",
-           ctxt->name, result);
+    const int result = get_position_from(start, locs, distance);
+    assert(result == 0, "Failed to scan ahead on the track (%d)", result);
     UNUSED(result);
-
-    if (ctxt->current_distance < 0 && ctxt->current_speed > 0) {
-        blaster_reverse_step1(ctxt, service_time);
-        // TODO: maybe it should just stop?
-        log("[%s] ZOMG, heading towards an exit! Reversing!", ctxt->name);
-    }
-
-    const int velocity = physics_current_velocity(ctxt);
-    ctxt->next_time    = ctxt->current_distance / velocity;
-
-    physics_update_velocity_ui(ctxt);
-    blaster_master_where_am_i(ctxt, service_time);
-}
-
-static void  __attribute__ ((unused))
-blaster_wait_for_next_estimate(blaster* const ctxt) {
-
-    if (ctxt->current_speed == 0) return;
-
-    ctxt->checkpoint_courier = blaster_create_new_delay_courier(ctxt);
-
-    struct {
-        tnotify_header head;
-        blaster_req     req;
-    } msg = {
-        .head = {
-            .type  = DELAY_ABSOLUTE,
-            .ticks = ctxt->current_time + ctxt->next_time
-        },
-        .req = {
-            .type = BLASTER_NEXT_NODE_ESTIMATE,
-            .arg1 = ctxt->next_sensor,
-        }
-    };
-
-    const int result = Send(ctxt->checkpoint_courier,
-                            (char*)&msg, sizeof(msg),
-                            NULL, 0);
-    if (result < 0)
-        ABORT("[%s] Failed to setup new delay courier (%d) to %d",
-              ctxt->name, result, ctxt->acceleration_courier);
-}
-
-static void blaster_expected_sensor(blaster* const ctxt,
-                                    const int tid,
-                                    const int sensor_hit,
-                                    const int time) {
-
-    log("Next node");
-
-    int result = Reply(tid, NULL, 0);
-    assert(result == 0, "[%s] Failed to kill estimation task", ctxt->name);
-    UNUSED(result);
-
-    if (tid != ctxt->checkpoint_courier) {
-        log("[%s] Invalid checkpoint courier checked-in (%d)",
-            ctxt->name, tid);
-        return;
-    }
-
-    // only update if we are early, because it might be a dead sensor
-    if (sensor_hit == ctxt->next_sensor)
-        blaster_checkpoint(ctxt, sensor_hit, time, 0, time);
 }
 
 static void blaster_start_accelerate(blaster* const ctxt,
@@ -208,50 +171,54 @@ static void blaster_start_accelerate(blaster* const ctxt,
         log("[%s] Overriding previous accel. event, estimates will off",
             ctxt->name);
 
-    ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
-
     // calculate when to wake up and send off that guy
-    const int start_dist = physics_starting_distance(ctxt, to_speed);
-    const int start_time = physics_starting_time(ctxt, start_dist);
+    const int speed_delta = to_speed - truth.speed;
+    const int start_dist  = physics_starting_distance(ctxt, speed_delta);
+    const int start_time  = physics_starting_time(ctxt, start_dist);
+    const int velocity    = physics_current_velocity(ctxt);
 
-    const track_location start = {
-        .sensor = ctxt->current_sensor,
-        .offset = ctxt->current_offset
+    const track_location current_location = {
+        .sensor = truth.location.sensor,
+        .offset = truth.location.offset + ((time - truth.timestamp) * velocity)
     };
-    track_location locs[4];
 
-    // now find out our end position
-    int result = get_position_from(start, locs, start_dist);
-    assert(result == 0,
-           "[%s] Failed to scan ahead on the track (%d)",
-           ctxt->name, result);
+    track_location locs[4];
+    blaster_position_after_distance(current_location, locs, start_dist);
 
     // we need to walk the list and see what we have
     int i = 0;
-    FOREVER {
+    for (; i < 4; i++) {
         track_location* const l = &locs[i];
 
-        // crap
-        if (l->sensor == AN_EXIT) {
-            // we can't have these while accelerating...abort!
-            log("[%s] Cannot accelerate into an exit!", ctxt->name);
-            blaster_acceleration_checkpoint(ctxt, time);
-            blaster_set_speed(ctxt, 0, time);
+        // if we do not have the room, then give up
+        if (l->sensor == AN_EXIT && l->offset > 0) {
+            log("[%s] Cannot accelerate into a barrier! Reversing!", ctxt->name);
+            // TODO: do we want to do this?
+            blaster_reverse_step2(ctxt);
+            ctxt->reverse_speed = to_speed;
             return;
         }
-        // got to the end
-        else if (l->offset <= 0) {
+        // but if we do have room, allow it?
+        // maybe we should check stop distance as well...
+
+        if (l->offset == 0) {// boom, exactly on target
             break;
         }
-
-        i++;
+        else if (l->offset < 0) {
+            // if still on first sensor, then just compensate
+            if (l->sensor == current_location.sensor)
+                l->offset = current_location.offset + start_dist;
+            else // otherwise we need only go back one step
+                i--;
+            break;
+        }
     }
 
-    // if we travel less than one sensor, then unfudge it
-    if (i == 0) {
-        i = 1;
-        locs[0].sensor = ctxt->current_sensor;
-        locs[0].offset = ctxt->current_offset + start_dist;
+    // this is a weird thing that happens at startup because we
+    // have no state history
+    if (i == -1) {
+        i = 0;
+        locs[i].offset = start_dist;
     }
 
     // need to create a message that will restart the acceleration
@@ -266,76 +233,103 @@ static void blaster_start_accelerate(blaster* const ctxt,
         },
         .req = {
             .type = BLASTER_ACCELERATION_COMPLETE,
-            .arg1 = locs[i - 1].sensor,
-            .arg2 = locs[i - 1].offset,
-            .arg3 = time + start_time
+            .arg1 = locs[i].sensor,
+            .arg2 = time + start_time,
+            .arg3 = locs[i].offset
         }
     };
 
-    result = Send(ctxt->acceleration_courier,
-                  (char*)&msg, sizeof(msg),
-                  NULL, 0);
+    ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
+    const int result = Send(ctxt->acceleration_courier,
+                            (char*)&msg, sizeof(msg),
+                            NULL, 0);
     if (result < 0)
         ABORT("[%s] Failed to setup new delay courier (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
 
-    ctxt->accelerating = 1;
-    blaster_acceleration_checkpoint(ctxt, time);
+    last_accel                      = current_accel;
+    current_accel.event             = EVENT_ACCELERATION;
+    current_accel.timestamp         = time;
+    current_accel.is_accelerating   = true;
+    current_accel.location          = current_location;
+    current_accel.distance          = truth.distance;  // does not change
+    current_accel.speed             = truth.speed + (speed_delta / 2); // fudge
+    current_accel.direction         = truth.direction; // hmmm
+    current_accel.next_location     = locs[i];
+    current_accel.next_distance     = truth.next_distance;
+    current_accel.next_timestamp    = time + start_time;
+    current_accel.next_speed        = to_speed;
+
+    blaster_debug_state(ctxt, &current_accel);
+
+    // boom! new truth!
+    truth = current_accel;
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, time);
+
+    physics_update_velocity_ui(ctxt);
 }
 
 static void blaster_start_deccelerate(blaster* const ctxt,
-                                      const int from_speed,
+                                      const int to_speed,
                                       const int time) {
 
     if (ctxt->acceleration_courier != -1)
         log("[%s] Overriding previous accel. event, estimates will off",
             ctxt->name);
 
-    ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
-
     // calculate when to wake up and send off that guy
-    const int stop_dist = physics_stopping_distance(ctxt, from_speed);
-    const int stop_time = physics_stopping_time(ctxt, stop_dist);
+    const int speed_delta = truth.speed - to_speed;
+    const int stop_dist   = physics_stopping_distance(ctxt, speed_delta);
+    const int stop_time   = physics_stopping_time(ctxt, stop_dist);
+    const int velocity    = physics_current_velocity(ctxt);
 
-    const track_location start = {
-        .sensor = ctxt->current_sensor,
-        .offset = ctxt->current_offset
+    const track_location current_location = {
+        .sensor = truth.location.sensor,
+        .offset = truth.location.offset + ((time - truth.timestamp) * velocity)
     };
-    track_location locs[4];
 
-    // now find out our end position
-    int result = get_position_from(start, locs, stop_dist);
-    assert(result == 0,
-           "[%s] Failed to scan ahead on the track (%d)",
-           ctxt->name, result);
+    track_location locs[4];
+    blaster_position_after_distance(current_location, locs, stop_dist);
 
     // we need to walk the list and see what we have
     int i = 0;
-    FOREVER {
+    for (; i < 4; i++) {
         track_location* const l = &locs[i];
 
         if (l->sensor == AN_EXIT) {
-            // we're gonna hit the barrier!
-            // so we set our offset to just be the end of the track
-            if (i > 0)
-                locs[i - 1].offset -= l->offset;
-            else
-                ABORT("[%s] You found an important test case!", ctxt->name);
-            break;
-        }
-        // got to the end
-        else if (l->offset <= 0) {
-            break;
-        }
+            // so, our actual position is going to be the stopping
+            // distance minus the remaining offset
+            l->offset = stop_dist - l->offset;
 
-        i++;
+            // we need to set the next_location.sensor to be the
+            // sensor before the exit, which is almost impossible
+            // to determine from here...
+            // this is a hack that will probably not work very well...
+            l->sensor = truth.location.sensor;
+            break;
+        }
+        else if (l->offset == 0) { // boom, exactly on target
+            break;
+        }
+        else if (l->offset < 0) {
+            // if still on first sensor, then just compensate
+            if (l->sensor == current_location.sensor)
+                l->offset = current_location.offset + stop_dist;
+            else // otherwise we need only go back one step
+                i--;
+            break;
+        }
     }
 
-    // if we travel less than one sensor, then unfudge it
-    if (i == 0) {
-        i = 1;
-        locs[0].sensor = ctxt->current_sensor;
-        locs[0].offset = ctxt->current_offset + stop_dist;
+    // so...i == -1 means we crash because we chose the wrong guy due to
+    // some sort of teleportation, try to compensate
+    if (i == -1) {
+        // TODO: try and log out what conditions might have caused this
+        i = 0;
+        locs[0].sensor = current_location.sensor;
+        locs[0].offset = current_location.offset + stop_dist;
     }
 
     // need to create a message that will restart the acceleration
@@ -350,77 +344,42 @@ static void blaster_start_deccelerate(blaster* const ctxt,
         },
         .req = {
             .type = BLASTER_ACCELERATION_COMPLETE,
-            .arg1 = locs[i - 1].sensor,
-            .arg2 = locs[i - 1].offset,
-            .arg3 = time + stop_time
+            .arg1 = locs[i].sensor,
+            .arg2 = time + stop_time,
+            .arg3 = locs[i].offset
         }
     };
 
-    result = Send(ctxt->acceleration_courier,
-                  (char*)&msg, sizeof(msg),
-                  NULL, 0);
+    ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
+    const int result = Send(ctxt->acceleration_courier,
+                            (char*)&msg, sizeof(msg),
+                            NULL, 0);
     if (result < 0)
         ABORT("[%s] Failed to setup new delay courier (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
 
-    ctxt->accelerating = -1;
-    blaster_acceleration_checkpoint(ctxt, time);
-}
+    last_accel                      = current_accel;
+    current_accel.event             = EVENT_ACCELERATION;
+    current_accel.timestamp         = time;
+    current_accel.is_accelerating   = true;
+    current_accel.location          = current_location;
+    current_accel.distance          = truth.next_distance; // does not change
+    current_accel.speed             = truth.speed - (speed_delta / 2); // fudge
+    current_accel.direction         = truth.direction;     // hmmm
+    current_accel.next_location     = locs[i];
+    current_accel.next_distance     = truth.next_distance;
+    current_accel.next_timestamp    = time + stop_time;
+    current_accel.next_speed        = to_speed;
 
-static void blaster_complete_accelerate(blaster* const ctxt,
-                                        const int tid,
-                                        const int sensor_hit,
-                                        const int offset,
-                                        const int timestamp,
-                                        const int service_time) {
+    blaster_debug_state(ctxt, &current_accel);
 
-    const int expected_tid = ctxt->acceleration_courier;
-    ctxt->acceleration_courier = -1;
+    // boom! new truth!
+    truth = current_accel;
 
-    // no matter what, we want to kill the delay courier
-    const int result = Reply(tid, NULL, 0);
-    UNUSED(result);
-    assert(result == 0,
-           "[%s] Failed to kill old delay courier %d (%d)",
-           ctxt->name, tid, result);
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, time);
 
-    // message came from cancelled acceleration, so we will ignore the data
-    if (tid != expected_tid) return;
-
-    // figure out what to do with the checkpoint data
-    if (sensor_hit == ctxt->last_sensor) {
-        // we're really late, so just ignore this checkpoint data
-        log("[%s] Acceleration finished later than expected", ctxt->name);
-    }
-    else if (sensor_hit == ctxt->current_sensor) {
-        // doing ok
-        ctxt->current_time   = timestamp;
-        ctxt->current_offset = offset;
-    }
-    else if (sensor_hit == ctxt->current_sensor) {
-        // we were early or the sensor is dead
-        // for now, assume that sensor is dead, keep this estimate
-        // so we need to move all the state up (and over)
-        blaster_checkpoint(ctxt, sensor_hit, timestamp, offset, service_time);
-    }
-    else {
-        log("[%s] Acceleration finished after teleportation", ctxt->name);
-
-        const sensor expected = pos_to_sensor(sensor_hit);
-        const sensor   actual = pos_to_sensor(ctxt->current_sensor);
-        log("[%s] Expected %c%d, but was %c%d",
-            ctxt->name, expected.bank, expected.num, actual.bank, actual.num);
-
-        //blaster_checkpoint(ctxt, sensor_hit, timestamp, offset, service_time);
-    }
-
-    ctxt->accelerating   = 0;
-    ctxt->current_sensor_accelerating = false;
-
-    if (ctxt->short_moving_distance)
-        blaster_resume_short_moving(ctxt, timestamp);
-    else if (ctxt->reversing == 1)
-        blaster_reverse_step2(ctxt);
+    physics_update_velocity_ui(ctxt);
 }
 
 static void blaster_set_speed(blaster* const ctxt,
@@ -430,29 +389,49 @@ static void blaster_set_speed(blaster* const ctxt,
     // if we are reversing, then store the speed such that the reverse
     // will choose that speed when it finishes
     if (ctxt->reversing) {
-        ctxt->last_speed = ctxt->current_speed;
+        ctxt->reverse_speed = speed;
         return;
     }
 
-    ctxt->last_speed    = ctxt->current_speed;
-    ctxt->current_speed = speed;
-
     put_train_speed((char)ctxt->train_gid, (char)(speed / 10));
 
-    if (ctxt->last_speed > ctxt->current_speed) {
-        blaster_start_deccelerate(ctxt, ctxt->last_speed, time);
-        if (ctxt->current_speed != 0)
+    if (truth.speed > speed) {
+        if (speed != 0)
             log("[%s] Unsupported decceleration %d -> %d",
-                ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+                ctxt->name, current_accel.speed / 10, speed / 10);
+        blaster_start_deccelerate(ctxt, speed, time);
     }
     else {
-        blaster_start_accelerate(ctxt, speed, time);
-        if (ctxt->last_speed != 0)
+        if (truth.speed != 0)
             log("[%s] Unsupported acceleration %d -> %d",
-                ctxt->name, ctxt->last_speed / 10, ctxt->current_speed / 10);
+                ctxt->name, current_accel.speed / 10, speed / 10);
+        blaster_start_accelerate(ctxt, speed, time);
     }
+}
 
-    physics_update_velocity_ui(ctxt);
+static void blaster_reverse_direction(blaster* const ctxt,
+                                      const int time) {
+
+    // boom, change the lights
+    put_train_speed((char)ctxt->train_gid, (char)TRAIN_REVERSE);
+    truth.direction = -truth.direction;
+
+    // now we need to update the train state
+    const int    velocity = physics_current_velocity(ctxt);
+    const int      offset = (time - truth.timestamp) * velocity;
+    const int next_sensor = truth.location.sensor;
+
+    // need to flip around our next expected place
+    truth.location.sensor = truth.next_location.sensor;
+    truth.location.offset = truth.next_distance -
+        (truth.location.offset + offset);
+
+    truth.next_location.sensor = next_sensor;
+    truth.next_location.offset = 0; // TODO: is this right?
+    // truth.next_distance        = pi; // this _should_ stay the same
+    // truth.next_timestamp       = I don't fucking know;
+
+    blaster_debug_state(ctxt, &truth);
 }
 
 static void blaster_reverse_step1(blaster* const ctxt, const int time) {
@@ -462,13 +441,12 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
         return;
     }
 
-    if (ctxt->current_speed == 0) {
-        // doesn't matter, had sex
-        put_train_speed((char)ctxt->train_gid, TRAIN_REVERSE);
-        ctxt->direction = -ctxt->direction;
+    if (truth.speed == 0) {
+        blaster_reverse_direction(ctxt, time);
         return;
     }
 
+    ctxt->reverse_speed = truth.speed;
     blaster_set_speed(ctxt, 0, time); // STAHP!
     ctxt->reversing = 1;
 }
@@ -500,7 +478,9 @@ static void blaster_reverse_step2(blaster* const ctxt) {
     ctxt->reversing = 2; // all done as far as acceleration logic is concerned
 }
 
-static void blaster_reverse_step3(blaster* const ctxt, const int tid) {
+static void blaster_reverse_step3(blaster* const ctxt,
+                                  const int tid,
+                                  const int time) {
 
     // if the reverse was overridden
     if (tid != ctxt->reverse_courier) {
@@ -513,12 +493,11 @@ static void blaster_reverse_step3(blaster* const ctxt, const int tid) {
         return;
     }
 
-    put_train_speed((char)ctxt->train_gid, TRAIN_REVERSE);
-    ctxt->direction = -ctxt->direction;
+    blaster_reverse_direction(ctxt, time);
 
     struct {
         tnotify_header head;
-        blaster_req      req;
+        blaster_req     req;
     } msg = {
         .head = {
             .type  = DELAY_RELATIVE,
@@ -538,21 +517,22 @@ static void blaster_reverse_step3(blaster* const ctxt, const int tid) {
 }
 
 static void blaster_reverse_step4(blaster* const ctxt,
-                                  const int time,
-                                  const int tid) {
+                                  const int tid,
+                                  const int time) {
+
      // if the reverse was overridden
     if (tid != ctxt->reverse_courier) {
         log("[%s] Someone overrode a reverse command!", ctxt->name);
 
         const int result = Reply(tid, NULL, 0);
         if (result < 0)
-            ABORT("[%s] Failed to kill old delay reverse courier (%d)",
-                  ctxt->name, result);
+            ABORT("[%s] Failed to kill old delay reverse courier %d (%d)",
+                  ctxt->name, tid, result);
         return;
     }
 
     ctxt->reversing = 0;
-    blaster_set_speed(ctxt, ctxt->last_speed, time);
+    blaster_set_speed(ctxt, ctxt->reverse_speed, time);
 
     const int result = Reply(ctxt->reverse_courier, NULL, 0);
     if (result < 0)
@@ -567,100 +547,293 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
                                                  const int time) {
     const sensor s = pos_to_sensor(sensor_hit);
 
-    if (ctxt->direction != DIRECTION_UNKNOWN) {
+    if (truth.direction != DIRECTION_UNKNOWN) {
         // TODO: proper lost logic
         // log("[%s] Halp! I'm lost at %c%d", ctxt->name, s.bank, s.num);
         return;
     }
 
     if (s.bank == 'B') {
-        ctxt->direction = DIRECTION_FORWARD;
+        truth.direction = DIRECTION_FORWARD;
         blaster_reverse_step1(ctxt, time);
     } else {
-        ctxt->direction = DIRECTION_BACKWARD;
+        truth.direction = DIRECTION_BACKWARD;
     }
 }
 
+static bool blaster_kill_courier(const int expected_tid,
+                                 const int courier_tid) {
+
+    // no matter what, we want to kill the delay courier
+    const int result = Reply(courier_tid, NULL, 0);
+    UNUSED(result);
+    assert(result == 0,
+           "Failed to kill delay courier %d (%d)",
+           courier_tid, result);
+
+    return (expected_tid == courier_tid);
+}
+
 static inline void
-blaster_reset_simulation(blaster* const ctxt,
-                        const int tid,
-                        const blaster_req* const req,
-                        const int service_time) {
+blaster_process_acceleration_event(blaster* const ctxt,
+                                   blaster_req* const req,
+                                   const int courier_tid,
+                                   const int timestamp) {
+
+    // do not process the event if it has been overridden by a future event
+    if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid)) {
+        // this causes a problem with reversing while accelerating:
+        // the speed that will be set when the reverse finishes is not
+        // the speed that the train thinks it currently has (it is half)...
+        // the real solution is more complicated than this, but at 3AM this
+        // is good enough (TM)
+        if (ctxt->reversing)
+            ctxt->reverse_speed = current_accel.next_speed; // mad h4x
+        return;
+    }
+    else {
+        ctxt->acceleration_courier = -1;
+    }
+
+    last_accel                         = current_accel;
+    current_accel.event                = EVENT_ACCELERATION;
+    current_accel.timestamp            = req->arg2;
+    current_accel.is_accelerating      = false;
+    current_accel.location.sensor      = req->arg1;
+    current_accel.location.offset      = req->arg3;
+    current_accel.distance             = last_accel.next_distance; // hmmm
+    current_accel.speed                = last_accel.next_speed;
+    current_accel.direction            = last_accel.direction;
+    current_accel.next_location        = truth.next_location;
+    current_accel.next_distance        = truth.next_distance;
+    current_accel.next_timestamp       = truth.next_timestamp;
+
+    // at the very least, this subset of state has to become truth
+    truth.event           = current_accel.event;
+    truth.timestamp       = current_accel.timestamp;
+    truth.is_accelerating = current_accel.is_accelerating; // false!
+    truth.speed           = current_accel.speed;
+    // this can screw up during boot or if we are lost
+    // truth.direction       = current_accel.direction;
+    truth.next_speed      = current_accel.next_speed;
+
+    // now, the question is, what other state do we need to merge?
+    // remember that if we update the master state we need to notify master
+
+    // we were late
+    if (last_sensor.location.sensor == current_accel.location.sensor) {
+        log("[%s] Late acceleration event!", ctxt->name);
+    }
+    // we are (somewhat) on time
+    else if (current_sensor.location.sensor == current_accel.location.sensor) {
+        // so, just the location needs to be futzed with
+
+        // if truth is behind current, then we update
+        if (truth.location.offset < current_accel.location.offset)
+            truth.location.offset = current_accel.location.offset;
+    }
+    // we are early
+    else if (current_sensor.next_location.sensor ==
+             current_accel.location.sensor) {
+
+        // so we are now the truth
+        truth.location = current_accel.location;
+        truth.distance = current_accel.distance;
+
+        // but that means the values for next_* are not correct
+        const int result = get_sensor_from(truth.location.sensor,
+                                           &truth.next_distance,
+                                           &truth.next_location.sensor);
+        assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+        UNUSED(result);
+
+        truth.next_location.offset = 0;
+        current_accel.next_location = truth.next_location;
+        current_accel.next_distance = truth.next_distance;
+    }
+    // I don't fuckin' know
+    else {
+        log("[%s] Teleported since train started accelerating!",
+            ctxt->name);
+        // TODO: set state to be lost?
+    }
+
+    blaster_debug_state(ctxt, &truth);
+
+    // let the master know where we are
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, truth.timestamp);
+
+    // do not forget to update now that speed is actually finalized
+    physics_update_velocity_ui(ctxt);
+
+    if (ctxt->short_moving_distance)
+        blaster_resume_short_moving(ctxt, timestamp);
+    else if (ctxt->reversing == 1)
+        blaster_reverse_step2(ctxt);
+}
+
+static inline void
+blaster_process_unexpected_sensor_event(blaster* const ctxt,
+                                        blaster_req* const req,
+                                        const int courier_tid,
+                                        const int timestamp) {
 
     const int      sensor_hit = req->arg1;
     const int sensor_hit_time = req->arg2;
 
-    blaster_checkpoint(ctxt, sensor_hit, sensor_hit_time, 0, service_time);
+    // just need to update state here and move on to next stuffs
+    // this is essentially a state reset, we cannot really use previous state
+
+    last_sensor = current_sensor;
+    current_sensor.event                = EVENT_SENSOR;
+    current_sensor.timestamp            = sensor_hit_time;
+    current_sensor.is_accelerating      = truth.is_accelerating;
+    current_sensor.location.sensor      = sensor_hit;
+    current_sensor.location.offset      = 0;
+    current_sensor.distance             = 0; // we do not know this (don't care)
+    current_sensor.speed                = truth.speed;
+    current_sensor.direction            = truth.direction;
+    current_sensor.next_location.offset = 0;
+    current_sensor.next_speed           = truth.next_speed;
+
+    const int result = get_sensor_from(current_sensor.location.sensor,
+                                       &current_sensor.next_distance,
+                                       &current_sensor.next_location.sensor);
+    assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+    UNUSED(result);
+
+
+    // calculate expected next time
+    const int v = physics_velocity(ctxt,
+                                   current_sensor.speed,
+                                   velocity_type(current_sensor.location.sensor));
+
+    current_sensor.next_timestamp = current_sensor.timestamp +
+        current_sensor.next_distance / v;
+
+    // now we need to update the truth...except that a sensor hit is always the
+    // considered to be the truth...
+    truth = current_sensor;
+
+    blaster_debug_state(ctxt, &truth);
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, timestamp);
 
     // need to pass the service_time in case we do a reverse
-    blaster_detect_train_direction(ctxt, sensor_hit, service_time);
+    blaster_detect_train_direction(ctxt, sensor_hit, timestamp);
 
+    if (truth.next_distance < 0 &&
+        physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
+        log("[%s] Barreling towards an exit! Hitting emergency brakes!",
+            ctxt->name);
+        blaster_reverse_step1(ctxt, timestamp);
+    }
+
+    // TODO: replace this with call that does not update the delta value
     physics_update_tracking_ui(ctxt, 0);
+    physics_update_velocity_ui(ctxt);
 
     int reply[3];
     create_console_reply(ctxt, sensor_hit_time, reply);
 
-    const int result = Reply(tid, (char*)&reply, sizeof(reply));
-    assert(result == 0, "failed to wait for next sensor");
-    UNUSED(result);
+    const int reply_result = Reply(courier_tid, (char*)&reply, sizeof(reply));
+    assert(reply_result == 0,
+           "failed to wait for next sensor (%d)",
+           reply_result);
+    UNUSED(reply_result);
 
+    // TODO: send off the estimate guy
     //blaster_wait_for_next_estimate(ctxt);
 }
 
 static inline void
-blaster_adjust_simulation(blaster* const ctxt,
-                         const int tid,
-                         const blaster_req* const req,
-                         const int service_time) {
+blaster_process_sensor_event(blaster* const ctxt,
+                             blaster_req* const req,
+                             const int courier_tid,
+                             const int timestamp) {
 
     const int  sensor_hit = req->arg1;
     const int sensor_time = req->arg2;
 
-    // we have to do some stuff in weird order here
-    if (ctxt->last_sensor == sensor_hit) {
-        const int expected_v = physics_last_velocity(ctxt);
-        const int   actual_v = ctxt->last_distance /
-            (sensor_time - ctxt->last_time);
-        const int    delta_v = actual_v - expected_v;
+    // just need to update state here and move on to next stuffs
+    // this is essentially a state reset, we cannot really use previous state
 
-        // only do feedback if we are in steady state
-        if (!(ctxt->last_sensor_accelerating ||
-              ctxt->current_sensor_accelerating))
-            physics_feedback(ctxt, actual_v, expected_v, delta_v);
+    last_sensor = current_sensor;
+    current_sensor.event                = EVENT_SENSOR;
+    current_sensor.timestamp            = sensor_time;
+    current_sensor.is_accelerating      = truth.is_accelerating;
+    current_sensor.location.sensor      = sensor_hit;
+    current_sensor.location.offset      = 0;
+    current_sensor.distance             = last_sensor.next_distance;
+    current_sensor.speed                = truth.speed;
+    current_sensor.direction            = truth.direction;
+    current_sensor.next_location.offset = 0;
+    current_sensor.next_speed           = truth.next_speed;
 
-        ctxt->current_time   = sensor_time;
-        ctxt->current_offset = 0;
+    const int result = get_sensor_from(current_sensor.location.sensor,
+                                       &current_sensor.next_distance,
+                                       &current_sensor.next_location.sensor);
+    assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+    UNUSED(result);
 
-        physics_update_tracking_ui(ctxt, delta_v);
+    // calculate expected next time
+    const int v = physics_velocity(ctxt,
+                                   current_sensor.speed,
+                                   velocity_type(current_sensor.location.sensor));
+
+    current_sensor.next_timestamp = current_sensor.timestamp +
+        current_sensor.next_distance / v;
+
+    // now we need to update the truth...except that a sensor hit is always the
+    // considered to be the truth...
+    // TODO: we may not want to accept this feedback if it is _TOO_ early
+    truth = current_sensor;
+
+    blaster_debug_state(ctxt, &truth);
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, timestamp);
+
+    const int expected_v =
+        physics_velocity(ctxt,
+                         truth.speed,
+                         velocity_type(last_sensor.location.sensor));
+    const int   actual_v =
+        current_sensor.distance / (sensor_time - last_sensor.timestamp);
+    const int    delta_v = actual_v - expected_v;
+
+    // only do feedback if we are in steady state
+    if (!(last_sensor.is_accelerating || current_sensor.is_accelerating))
+        physics_feedback(ctxt, actual_v, expected_v, delta_v);
+
+    // has to be going too fast before we hit the emergency brakes
+    // because otherwise it might have been intentional
+    if (truth.next_distance < 0 &&
+        physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
+        log("[%s] Barreling towards an exit! Hitting emergency brakes!",
+            ctxt->name);
+        blaster_reverse_step1(ctxt, timestamp);
     }
-    else {
-        const int expected_v = physics_current_velocity(ctxt);
-        const int   actual_v = ctxt->current_distance /
-            (sensor_time - ctxt->current_time);
-        const int    delta_v = actual_v - expected_v;
 
-        // only do feedback if we are in steady state
-        if (!(ctxt->last_sensor_accelerating ||
-              ctxt->current_sensor_accelerating))
-            physics_feedback(ctxt, actual_v, expected_v, delta_v);
-
-        blaster_checkpoint(ctxt, sensor_hit, sensor_time, 0, service_time);
-        physics_update_tracking_ui(ctxt, delta_v);
-    }
+    physics_update_tracking_ui(ctxt, delta_v);
+    physics_update_velocity_ui(ctxt);
 
     int reply[3];
     create_console_reply(ctxt, sensor_time, reply);
-    const int result = Reply(tid, (char*)&reply, sizeof(reply));
-    assert(result == 0,
+    const int reply_result = Reply(courier_tid, (char*)&reply, sizeof(reply));
+    assert(reply_result == 0,
            "[%s] failed to get next sensor (%d)",
-           ctxt->name, result);
-    UNUSED(result);
+           ctxt->name, reply_result);
+    UNUSED(reply_result);
 
+    // TODO: send off the estimate guy
     //blaster_wait_for_next_estimate(ctxt);
 }
 
 static void blaster_resume_short_moving(blaster* const ctxt,
-                                       const int time) {
+                                       const int timestamp) {
 
     // calculate when to wake up and send off that guy
     const int stop_dist = physics_current_stopping_distance(ctxt);
@@ -676,13 +849,14 @@ static void blaster_resume_short_moving(blaster* const ctxt,
     } msg = {
         .head = {
             .type  = DELAY_ABSOLUTE,
-            .ticks = time + stop_time
+            .ticks = timestamp + stop_time
         },
         .req = {
             .type = BLASTER_FINISH_SHORT_MOVE
         }
     };
 
+    // TODO: this will probably crash because acceleration_courier == -1
     const int result = Reply(ctxt->acceleration_courier,
                              (char*)&msg, sizeof(msg));
     if (result < 0)
@@ -693,6 +867,7 @@ static void blaster_resume_short_moving(blaster* const ctxt,
 }
 
 static void blaster_short_move(blaster* const ctxt, const int offset) {
+
     // offset was given in mm, so convert it to um
     const int offset_um = offset * 1000;
     const int  max_dist = offset_um;
@@ -827,11 +1002,10 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
     ptr = sprintf(ptr, "%s%d" COLOUR_RESET, colour, ctxt->train_gid);
     Puts(buffer, ptr - buffer);
 
-    ctxt->last_sensor        = 80;
+    truth.location.sensor    =  0;
     ctxt->master_courier     = -1;
     ctxt->reverse_courier    = -1;
     ctxt->checkpoint_courier = -1;
-    ctxt->accelerating       =  1;
 }
 
 static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
@@ -900,15 +1074,16 @@ void train_blaster() {
         case BLASTER_REVERSE2:
             ABORT("[%s] Should never get reverse 2 (%d)", context.name, tid);
         case BLASTER_REVERSE3:
-            blaster_reverse_step3(&context, tid);
+            blaster_reverse_step3(&context, tid, time);
             continue;
         case BLASTER_REVERSE4:
-            blaster_reverse_step4(&context, time, tid);
+            blaster_reverse_step4(&context, tid, time);
             continue;
 
         case MASTER_BLASTER_WHERE_ARE_YOU:
             context.master_courier = tid;
-            //            blaster_master_where_am_i(&context, time);
+            if (context.master_message)
+                blaster_master_where_am_i(&context, time);
             continue;
 
         case BLASTER_SHORT_MOVE:
@@ -938,29 +1113,19 @@ void train_blaster() {
             break;
 
         case BLASTER_ACCELERATION_COMPLETE:
-            blaster_complete_accelerate(&context,
-                                        tid,
-                                        req.arg1,  // sensor
-                                        req.arg2,  // offset
-                                        req.arg3,  // expected timestamp
-                                        time);     // actual time
+            blaster_process_acceleration_event(&context, &req, tid, time);
             continue;
-
         case BLASTER_NEXT_NODE_ESTIMATE:
-            blaster_expected_sensor(&context, tid, req.arg1, time);
+            //            blaster_process_checkpoint_event(&context, &req, tid, time);
             continue;
-
         case BLASTER_SENSOR_FEEDBACK:
-            blaster_adjust_simulation(&context, tid, &req, time);
+            blaster_process_sensor_event(&context, &req, tid, time);
             continue;
-
         case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
-            blaster_reset_simulation(&context, tid, &req, time);
+            blaster_process_unexpected_sensor_event(&context, &req, tid, time);
             continue;
 
         case BLASTER_SENSOR_TIMEOUT: {
-            // log("[%s] sensor timeout...", context.name);
-
             int lost = 80;
             Reply(tid, (char*)&lost, sizeof(lost));
         }   continue;

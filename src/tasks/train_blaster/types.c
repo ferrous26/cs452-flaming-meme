@@ -53,14 +53,38 @@ typedef struct {
     int mega_scale;
 } cubic;
 
+typedef enum {
+    EVENT_ACCELERATION,
+    EVENT_CHECKPOINT,
+    EVENT_SENSOR
+} train_event;
+
+typedef struct {
+    train_event    event;            // event that caused this state
+    int            timestamp;
+
+    bool           is_accelerating;  // acceleration going on during this event?
+    track_location location;         // location of the state
+    int            distance;         // distance from previous event location
+
+    int            speed;            // speed setting of the train
+    train_dir      direction;        // direction of the train during event
+
+    track_location next_location;    // expected next location for same event type
+    int            next_distance;    // total distance from current location to next
+    int            next_timestamp;
+    int            next_speed;
+} train_state;
+
 typedef struct blaster_context {
     int       train_id;      // internal index
     int       train_gid;     // global identifier
-    char      name[8];
+    char      name[32];
 
-    int       master_courier;       // courier to the master
+    bool      master_message;       // position update available for master
+    int       master_courier;       // courier to the master for pos. update
     int       acceleration_courier; // acceleration delay courier
-    int       reverse_courier;
+    int       reverse_courier;      // reverse step delay courier
     int       checkpoint_courier;   // courier used to wake at checkpoints
 
     ratio     feedback_ratio;
@@ -84,28 +108,29 @@ typedef struct blaster_context {
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates
 
-    bool      last_sensor_accelerating;
-    int       last_sensor;      // previous-previous sensor hit
-    int       last_distance;    // distance from previous-previous sensor to current_sensor
-    int       last_time;
+#define last_checkpoint      ctxt->last_checkpoint_event
+#define last_sensor          ctxt->last_sensor_event
+#define last_acceleration    ctxt->last_acceleration_event
+#define last_accel           last_acceleration
+#define current_checkpoint   ctxt->current_checkpoint_event
+#define current_sensor       ctxt->current_sensor_event
+#define current_acceleration ctxt->current_acceleration_event
+#define current_accel        current_acceleration
+#define current_truth        ctxt->truth_event
+#define truth                current_truth
 
-    bool      current_sensor_accelerating;
-    int       current_sensor;   // sensor we are currently travelling through
-    int       current_distance; // distance from current_sensor to next_sensor
+    train_state last_acceleration_event;
+    train_state current_acceleration_event;
+    train_state last_sensor_event;
+    train_state current_sensor_event;
+    train_state last_checkpoint_event;
+    train_state current_checkpoint_event;
+    train_state truth_event;
 
-    int       current_offset;   // offset from last sensor when last event occurred
-    int       current_time;     // time when event happened (at offset)
-
-    int       last_speed;       // speed of train at last event
-    int       current_speed;
-
-    train_dir direction;
-    int       reversing;         // reverse step counter
-    int       accelerating;      // accelerating or deccelerating state
-
-    // these are estimates
-    int       next_sensor;       // expected next sensor hit
-    int       next_time;         // estimated time of arrival at next landmark
+    // TODO: maybe these should be encoded into train_state?
+    //       or maybe not, they are h4x
+    int         reversing;         // reverse step counter
+    int         reverse_speed;     // speed to pick up when finished reversing
 
     const track_node* const track;
 } blaster;
