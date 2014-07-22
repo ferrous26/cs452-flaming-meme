@@ -180,7 +180,7 @@ int dijkstra(const track_node* const track,
             }
         }
 
-        switch(ptr->type) {
+        switch(path_ptr->type) {
         case NODE_NONE:
         case NODE_EXIT:
         case NODE_ENTER: 

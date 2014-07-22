@@ -11,9 +11,7 @@
 #include <tasks/clock_server.h>
 #include <tasks/mission_control.h>
 
-
 #define TURNOUT_DISTANCE 300000
-
 
 typedef struct {
     int              train_id;
@@ -207,7 +205,6 @@ master_goto_command(master* const ctxt,
     }
 
     master_goto(ctxt, destination, offset);
-
     const int result = Reply(tid, (char*)pkg, sizeof(control_req));
     assert(result == 0,
            "[%s] Did not wake up %d (%d)", ctxt->name, tid, result);
@@ -218,6 +215,7 @@ static inline void master_calculate_turnout_point(master* const ctxt) {
     for (int i = ctxt->turnout_step - 1; i >= 0; i--) {
         if (ctxt->path[i].type == PATH_TURNOUT) {
             ctxt->turnout_step = i;
+            log("[%s] FOUND TURN %d", ctxt->name, i);
             return;
         }
     }
@@ -325,6 +323,8 @@ static inline void master_simulate_pathing(master* const ctxt) {
         &ctxt->path[MAX(ctxt->path_steps - 2, 0)];
 
     // it is in the next sensor range, so calculate how long to wait
+    log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
+         ctxt->path[ctxt->turnout_step].dist);
     while (next_step->dist > ctxt->path[ctxt->turnout_step].dist ||
            next_next_step->dist > ctxt->path[ctxt->turnout_step].dist) {
 
@@ -338,15 +338,13 @@ static inline void master_simulate_pathing(master* const ctxt) {
                                   node->data.turnout.num,
                                   node->data.turnout.dir,
                                   delay);
+
         master_calculate_turnout_point(ctxt);
     }
 
     // it is in the next sensor range, so calculate how long to wait
     if (next_step->dist == ctxt->path[0].dist ||
            next_next_step->dist == ctxt->path[0].dist) {
-
-
-        log("Gonna stop!");
 
         const path_node* const node = &ctxt->path[0];
 
@@ -356,6 +354,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
         const int delay = danger_zone / ctxt->checkpoint_velocity;
 
         master_delay_stop(ctxt, delay);
+        log("Gonna stop!");
         ctxt->path_steps = -1;
     }
 }
@@ -413,6 +412,7 @@ master_flip_turnout(master* const ctxt,
                     const int tid) {
 
     update_turnout(turn, direction);
+    log ("[%s] Threw Turnout %d %c", turn, direction);
 
     const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
     assert(result == 0,
