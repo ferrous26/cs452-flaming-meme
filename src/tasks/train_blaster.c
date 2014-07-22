@@ -805,17 +805,26 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
         ABORT("[Blaster] Failed to initialize (%d)", result);
 
     // Setup the train name
-    sprintf(ctxt->name, "TRAIN%d", ctxt->train_gid);
+    sprintf(ctxt->name, "BLAST%d", ctxt->train_gid);
     ctxt->name[7] = '\0';
     if (RegisterAs(ctxt->name))
         ABORT("[Blaster] Failed to register train (%d)", ctxt->train_gid);
 
-    char buffer[32];
-    char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_id, TRAIN_NUMBER_COL);
+    char colour[32];
+    char* ptr = sprintf(colour,
+                        ESC_CODE "%s" COLOUR_SUFFIX,
+                        train_to_colour(ctxt->train_gid));
+    sprintf_char(ptr, '\0');
 
-    ptr = sprintf(ptr, ESC_CODE "%s" COLOUR_SUFFIX "%d" COLOUR_RESET,
-                  train_to_colour(ctxt->train_gid),
-                  ctxt->train_gid);
+    ptr = sprintf(ctxt->name,
+                  "%sBlaster %d" COLOUR_RESET,
+                  colour, ctxt->train_gid);
+    sprintf_char(ptr, '\0');
+
+    char buffer[32];
+    ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_id, TRAIN_NUMBER_COL);
+
+    ptr = sprintf(ptr, "%s%d" COLOUR_RESET, colour, ctxt->train_gid);
     Puts(buffer, ptr - buffer);
 
     ctxt->last_sensor        = 80;
