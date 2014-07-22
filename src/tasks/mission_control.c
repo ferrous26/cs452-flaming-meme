@@ -279,7 +279,7 @@ void mission_control() {
     int        tid;
     mc_req     req;
     mc_context context;
-   
+
     mission_control_tid = myTid();
     mc_initalize(&context);
 
@@ -365,7 +365,7 @@ int update_turnout(int num, int state) {
 
 int reset_train_state() {
     mc_type req = MC_R_TRACK;
-    
+
     return Send(mission_control_tid, (char*)&req, sizeof(req), NULL, 0);
 }
 
@@ -475,6 +475,3 @@ int revive_sensor_name(const int bank, const int num) {
     const int sensor_num = sensor_to_pos(bank, num);
     return revive_sensor_num(sensor_num);
 }
-
-
-
