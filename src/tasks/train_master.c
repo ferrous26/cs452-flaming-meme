@@ -16,7 +16,7 @@
 typedef struct {
     int              train_id;
     int              train_gid;
-    char             name[8];
+    char             name[32];
 
     int              my_tid;             // tid of self
     int              blaster;            // tid of control task
@@ -323,8 +323,8 @@ static inline void master_simulate_pathing(master* const ctxt) {
         &ctxt->path[MAX(ctxt->path_steps - 2, 0)];
 
     // it is in the next sensor range, so calculate how long to wait
-    log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
-         ctxt->path[ctxt->turnout_step].dist);
+    //    log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
+    //ctxt->path[ctxt->turnout_step].dist);
     while (next_step->dist > ctxt->path[ctxt->turnout_step].dist ||
            next_next_step->dist > ctxt->path[ctxt->turnout_step].dist) {
 
@@ -445,19 +445,30 @@ static TEXT_COLD void master_init(master* const ctxt) {
     int result = Receive(&tid, (char*)&init, sizeof(init));
 
     if (result != sizeof(init))
-        ABORT("[Aunt] Failed to receive init data (%d)", result);
+        ABORT("[Master] Failed to receive init data (%d)", result);
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
 
     result = Reply(tid, NULL, 0);
     if (result != 0)
-        ABORT("[Aunt] Failed to wake up Lenin (%d)", result);
+        ABORT("[Master] Failed to wake up Lenin (%d)", result);
 
-    sprintf(ctxt->name, "AUNT%d", ctxt->train_gid);
+    sprintf(ctxt->name, "MASTR%d", ctxt->train_gid);
     ctxt->name[7] = '\0';
     if (RegisterAs(ctxt->name))
-        ABORT("[Aunt] Failed to register train (%d)", ctxt->train_gid);
+        ABORT("[Master] Failed to register train (%d)", ctxt->train_gid);
+
+    char colour[32];
+    char* ptr = sprintf(colour,
+                        ESC_CODE "%s" COLOUR_SUFFIX,
+                        train_to_colour(ctxt->train_gid));
+    sprintf_char(ptr, '\0');
+
+    ptr = sprintf(ctxt->name,
+                  "%sMaster %d" COLOUR_RESET,
+                  colour, ctxt->train_gid);
+    sprintf_char(ptr, '\0');
 
     ctxt->my_tid  = myTid(); // cache it, avoid unneeded syscalls
     ctxt->blaster = init[1];
