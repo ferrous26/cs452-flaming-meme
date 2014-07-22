@@ -29,7 +29,7 @@
 
 #define TASK_HEAP_TOP 0x1F00000 // 31 MB
 #define TASK_HEAP_BOT 0x0300000 //  3 MB
-#define TASK_HEAP_SIZ 0x4000    // 16 kB == 2 * cache size
+#define TASK_HEAP_SIZ 0x8000    // 32 kB == 2 * cache size
 
 #ifdef DEBUG
 extern const int _TextStart;
