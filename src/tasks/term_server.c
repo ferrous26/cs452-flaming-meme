@@ -27,8 +27,8 @@ typedef struct {
 struct term_state;
 struct term_puts;
 
-#define INPUT_BUFFER_SIZE  512
-#define OUTPUT_BUFFER_SIZE 256
+#define INPUT_BUFFER_SIZE  1024
+#define OUTPUT_BUFFER_SIZE 512
 #define OUTPUT_Q_SIZE      TASK_MAX
 
 BULK_CHAR_BUFFER(INPUT_BUFFER_SIZE)
