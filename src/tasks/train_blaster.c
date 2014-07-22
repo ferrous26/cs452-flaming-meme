@@ -47,7 +47,7 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-#if 1
+#if 0
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
@@ -409,6 +409,13 @@ static void blaster_set_speed(blaster* const ctxt,
     }
 }
 
+// mad h4x
+static inline int blaster_reverse_sensor(const int s) {
+    if (mod2_int(s, 2) == 1) // if it is odd (remember, 0 indexing)
+        return s - 1; // then the reverse sensor is + 1
+    return s + 1; // otherwise it is - 1
+}
+
 static void blaster_reverse_direction(blaster* const ctxt,
                                       const int time) {
 
@@ -417,19 +424,35 @@ static void blaster_reverse_direction(blaster* const ctxt,
     truth.direction = -truth.direction;
 
     // now we need to update the train state
-    const int    velocity = physics_current_velocity(ctxt);
-    const int      offset = (time - truth.timestamp) * velocity;
-    const int next_sensor = truth.location.sensor;
+    const int velocity = physics_current_velocity(ctxt);
+    const int   offset = (time - truth.timestamp) * velocity;
 
     // need to flip around our next expected place
-    truth.location.sensor = truth.next_location.sensor;
+    truth.location.sensor = blaster_reverse_sensor(truth.next_location.sensor);
     truth.location.offset = truth.next_distance -
         (truth.location.offset + offset);
 
-    truth.next_location.sensor = next_sensor;
+    // the next sensor _would_ be the reverse of the current next
+    // in most cases, but that is not true if we just went over a
+    // merge (now a branch) which is pointed in the opposite direction
+    // from which we came, so we need to ask mission control wazzup
+
+    const int result = get_sensor_from(truth.location.sensor,
+                                       &truth.next_distance,
+                                       &truth.next_location.sensor);
+    assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+    UNUSED(result);
+
     truth.next_location.offset = 0; // TODO: is this right?
-    // truth.next_distance        = pi; // this _should_ stay the same
-    // truth.next_timestamp       = I don't fucking know;
+    // truth.next_timestamp    = I don't fucking know; // I don't need to know
+
+    // TODO: maybe we need to setup the sensor polling guys here?
+    //       or maybe do it later in acceleration
+    //       or just wait until we hit another sensor
+    // NIK HALP!
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, time);
 
     blaster_debug_state(ctxt, &truth);
 }
@@ -604,13 +627,37 @@ blaster_process_acceleration_event(blaster* const ctxt,
     current_accel.distance             = last_accel.next_distance; // hmmm
     current_accel.speed                = last_accel.next_speed;
     current_accel.direction            = last_accel.direction;
-    current_accel.next_location        = truth.next_location;
-    current_accel.next_distance        = truth.next_distance;
-    current_accel.next_timestamp       = truth.next_timestamp;
+
+    // if the next location is the same sensor as the current location
+    // but with a different offset, then we need to do some magic to
+    // move that thing up to the actual next sensor
+
+    if (req->arg1 == truth.location.sensor) {
+        const int result = get_sensor_from(current_accel.location.sensor,
+                                           &current_accel.next_distance,
+                                           &current_accel.next_location.sensor);
+        assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+        UNUSED(result);
+
+        current_accel.next_location.offset = 0;
+
+        const int v =
+            physics_velocity(ctxt,
+                             current_accel.speed,
+                             velocity_type(req->arg1));
+        const int d =
+            current_accel.next_distance - current_accel.location.offset;
+
+        current_accel.next_timestamp = req->arg2 + (d / v);
+    }
+    else {
+        current_accel.next_location  = truth.next_location;
+        current_accel.next_distance  = truth.next_distance;
+        current_accel.next_timestamp = truth.next_timestamp;
+    }
 
     // at the very least, this subset of state has to become truth
     truth.event           = current_accel.event;
-    truth.timestamp       = current_accel.timestamp;
     truth.is_accelerating = current_accel.is_accelerating; // false!
     truth.speed           = current_accel.speed;
     // this can screw up during boot or if we are lost
@@ -622,6 +669,10 @@ blaster_process_acceleration_event(blaster* const ctxt,
 
     // we were late
     if (last_sensor.location.sensor == current_accel.location.sensor) {
+        // TODO: this might also be caused by a dead sensor
+        // because the sensor is not tripped... that makes no sense
+        // but I had an issue with this when I passed over D8 on track B
+        // while stopping just after hitting E8
         log("[%s] Late acceleration event!", ctxt->name);
     }
     // we are (somewhat) on time
@@ -629,16 +680,40 @@ blaster_process_acceleration_event(blaster* const ctxt,
         // so, just the location needs to be futzed with
 
         // if truth is behind current, then we update
-        if (truth.location.offset < current_accel.location.offset)
+        if (truth.location.offset < current_accel.location.offset) {
+            truth.timestamp       = current_accel.timestamp;
             truth.location.offset = current_accel.location.offset;
+            truth.distance        = current_accel.distance;
+
+            if (current_accel.timestamp == truth.next_timestamp) {
+                const int result = get_sensor_from(truth.location.sensor,
+                                                   &truth.next_distance,
+                                                   &truth.next_location.sensor);
+                assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+                UNUSED(result);
+
+                truth.next_location.offset = 0;
+                current_accel.next_location = truth.next_location;
+                current_accel.next_distance = truth.next_distance;
+
+                const int d = truth.next_distance - truth.location.offset;
+                const int v = physics_current_velocity(ctxt);
+                truth.next_timestamp = d / v;
+            }
+        }
     }
-    // we are early
+    // we are early OR
+    // we have not hit a sensor since the last acceleration event
+    // started, so we need to just keep on trucking, and hope that we
+    // are correct in our calculations
     else if (current_sensor.next_location.sensor ==
-             current_accel.location.sensor) {
+             current_accel.location.sensor ||
+             current_accel.timestamp == truth.next_timestamp) {
 
         // so we are now the truth
-        truth.location = current_accel.location;
-        truth.distance = current_accel.distance;
+        truth.timestamp = current_accel.timestamp;
+        truth.location  = current_accel.location;
+        truth.distance  = current_accel.distance;
 
         // but that means the values for next_* are not correct
         const int result = get_sensor_from(truth.location.sensor,
@@ -650,8 +725,12 @@ blaster_process_acceleration_event(blaster* const ctxt,
         truth.next_location.offset = 0;
         current_accel.next_location = truth.next_location;
         current_accel.next_distance = truth.next_distance;
+
+        const int d = truth.next_distance - truth.location.offset;
+        const int v = physics_current_velocity(ctxt);
+        truth.next_timestamp = d / v;
     }
-    // I don't fuckin' know
+    // I don't fuckin' know what to do in this case
     else {
         log("[%s] Teleported since train started accelerating!",
             ctxt->name);
