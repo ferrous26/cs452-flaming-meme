@@ -583,7 +583,7 @@ void train_master() {
             break;
 
         case MASTER_PATH_DATA:
-            master_path_update(&context, req.arg1, (path_node*)req.arg2, tid);
+            master_path_update(&context, req.arg1, (path_node*)req.arg3, tid);
             break;
 
         case MASTER_BLASTER_LOCATION:
