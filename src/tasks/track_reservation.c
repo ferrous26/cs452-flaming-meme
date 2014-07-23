@@ -1,6 +1,7 @@
 
 #include <std.h>
 #include <debug.h>
+#include <train.h>
 #include <syscall.h>
 #include <normalize.h>
 #include <track_node.h>
@@ -32,13 +33,23 @@ typedef enum {
 
 typedef struct { 
     const track_node* const track;
-    int train_pieces[8];
     int reserve[TRACK_MAX];
+    
+    struct {
+        const track_node* front;
+        const track_node* back;
+    } tracking[NUM_TRAINS + 1];
+    // extra space is reserved for the terminal
 } _context;
 
 static TEXT_COLD void _init(_context* const ctxt) {
     int tid, result;
+    
     memset(ctxt, -1, sizeof(*ctxt));
+    for (int i = 0; i < NUM_TRAINS+1; i++) {
+        ctxt->tracking[i].front = NULL;
+        ctxt->tracking[i].back  = NULL;
+    }
 
     result = RegisterAs((char*)TRACK_RESERVATION_NAME);
 
@@ -52,6 +63,41 @@ static TEXT_COLD void _init(_context* const ctxt) {
 
     term_hack = ctxt->track;
 }
+
+static inline int __attribute__((pure))
+get_reserve_length(const track_node* const node) {
+    int result = 0;
+    
+    if (node->type == NODE_BRANCH)
+        result = MIN(node->edge[DIR_STRAIGHT].dist,
+                     node->edge[DIR_CURVED].dist);
+    else if (node->type != NODE_EXIT)
+        result = node->edge[DIR_AHEAD].dist;
+
+    return result >> 1;
+}
+
+static inline int __attribute__((pure))
+is_node_adjacent(const track_node* const n1,
+                 const track_node* const n2) {
+    switch (n1->type) {
+    case NODE_NONE:
+    case NODE_MERGE:
+    case NODE_SENSOR:
+        return n2 == n1->edge[DIR_AHEAD].dest->reverse
+            || n2 == n1->reverse;
+    case NODE_ENTER:
+        return n2 == n1->edge[DIR_AHEAD].dest->reverse;
+    case NODE_EXIT:
+        return n2 == n1->reverse;
+    case NODE_BRANCH:
+        return n2 == n1->edge[DIR_STRAIGHT].dest->reverse
+            || n2 == n1->edge[DIR_CURVED].dest->reverse
+            || n2 == n1->reverse;
+    }
+    return 0;
+}
+
 
 void track_reservation() {
     int tid, result;
@@ -69,27 +115,46 @@ void track_reservation() {
 
     FOREVER {
         result = Receive(&tid, (char*)&req, sizeof(req));
-        assert(result > 0,
-               "[Track Reservation] Received invalid message (%d)",
+        assert(result > 0, LOG_HEAD "Received invalid message (%d)",
                result);
 
-        const int index = (req.direction ? req.node->reverse : req.node)
-                            - context.track;
+        const track_node* const node =
+            req.direction ? req.node->reverse : req.node;
+        const int index = node - context.track;
+
         assert(index < TRACK_MAX, "index is out of bounds (%d - %p + %d)",
                index, req.node, req.direction);
 
         switch (req.type) {
         case RESERVE_SECTION: {
-            log(LOG_HEAD "Reserving Section %s For %d",
-                context.track[index].name, req.train_num);
-
             const int old_owner = context.reserve[index];
+            assert(XBETWEEN(req.train_num, -1, NUM_TRAINS+2),
+                   "Bad Register Train Num %d", req.train_num);
+            
             if (old_owner == -1 || old_owner == req.train_num) {
-                const int reply[1] = {RESERVE_SUCCESS};
+                log(LOG_HEAD "Reserving Section %s For %d",
+                    context.track[index].name, req.train_num);
+
+                const int length  = get_reserve_length(node);
+                      int reply[] = {RESERVE_SUCCESS, length};
                 context.reserve[index] = req.train_num;
+                
+            if (context.tracking[req.train_num].front == NULL) {
+                context.tracking[req.train_num].front = node;
+                context.tracking[req.train_num].back  = node;
+            } else if (is_node_adjacent(node, context.tracking[req.train_num].front)) {
+                context.tracking[req.train_num].front = node;
+            } else if (is_node_adjacent(node, context.tracking[req.train_num].back)) {
+                context.tracking[req.train_num].back  = node;
+            } else {
+                log ("NOT IN A LINE REJECTED! %d\n\t%p\t%p", 
+                     req.train_num, context.tracking[req.train_num].front, NULL);
+                reply[0] = RESERVE_FAILURE;
+            }
+
                 result = Reply(tid, (char*)reply, sizeof(reply));
             } else {
-                const int reply[2] = {RESERVE_FAILURE, old_owner};
+                const int reply[] = {RESERVE_FAILURE, old_owner};
                 result = Reply(tid, (char*)reply, sizeof(reply));
                 log(LOG_HEAD "Rejecting owned section %s",
                     context.track[index].name);
@@ -101,9 +166,11 @@ void track_reservation() {
         case RESERVE_RELEASE:
             log(LOG_HEAD "Releasing Section %s For %d",
                 context.track[index].name, req.train_num);
+            assert(XBETWEEN(req.train_num, -1, NUM_TRAINS+2),
+                   "Bad Register Train Num %d", req.train_num);
 
             if (context.reserve[index] == req.train_num) { 
-                const int reply[1] = {RESERVE_SUCCESS};
+                const int reply[] = {RESERVE_SUCCESS};
                 context.reserve[index] = -1;
                 result = Reply(tid, (char*)reply, sizeof(reply));
             } else {
@@ -162,9 +229,11 @@ int reserve_section(const track_node* const node,
     int size, result[2];
     size = Send(track_reservation_tid,
                 (char*)&req,   sizeof(req),
-                (char*)&result, sizeof(result));
-    assert(size >= (int)sizeof(int), "Bad send to track reservation");
-    return result[0];
+                (char*)result, sizeof(result));
+    assert(size == (int)sizeof(result), "Bad send to track reservation");
+    
+    if (result[0] == RESERVE_FAILURE) return REQUEST_REJECTED;
+    return result[1];
 }
 
 int reserve_release(const track_node* const node,
@@ -185,7 +254,7 @@ int reserve_release(const track_node* const node,
     int size, result[2];
     size = Send(track_reservation_tid,
                 (char*)&req,   sizeof(req),
-                (char*)&result, sizeof(result));
+                (char*)result, sizeof(result));
     assert(size >= (int)sizeof(int), "Bad send to track reservation");
     return result[0];
 }

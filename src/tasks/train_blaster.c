@@ -248,18 +248,18 @@ static void blaster_start_accelerate(blaster* const ctxt,
         ABORT("[%s] Failed to setup new delay courier (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
 
-    last_accel                      = current_accel;
-    current_accel.event             = EVENT_ACCELERATION;
-    current_accel.timestamp         = time;
-    current_accel.is_accelerating   = true;
-    current_accel.location          = current_location;
-    current_accel.distance          = truth.distance;  // does not change
-    current_accel.speed             = truth.speed + (speed_delta / 2); // fudge
-    current_accel.direction         = truth.direction; // hmmm
-    current_accel.next_location     = locs[i];
-    current_accel.next_distance     = truth.next_distance;
-    current_accel.next_timestamp    = time + start_time;
-    current_accel.next_speed        = to_speed;
+    last_accel                    = current_accel;
+    current_accel.event           = EVENT_ACCELERATION;
+    current_accel.timestamp       = time;
+    current_accel.is_accelerating = true;
+    current_accel.location        = current_location;
+    current_accel.distance        = truth.distance;  // does not change
+    current_accel.speed           = truth.speed + (speed_delta / 2); // fudge
+    current_accel.direction       = truth.direction; // hmmm
+    current_accel.next_location   = locs[i];
+    current_accel.next_distance   = truth.next_distance;
+    current_accel.next_timestamp  = time + start_time;
+    current_accel.next_speed      = to_speed;
 
     blaster_debug_state(ctxt, &current_accel);
 

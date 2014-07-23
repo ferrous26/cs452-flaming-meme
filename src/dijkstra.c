@@ -19,7 +19,8 @@ TYPE_BUFFER(vptr, HEAP_SIZE);
 
 int dijkstra(const track_node* const track,
              const path_requisition* const opts,
-             path_node* const path) {
+             path_node* const path,
+             int* const reserved_dist) {
 
     struct {
         int dist;
@@ -157,6 +158,7 @@ int dijkstra(const track_node* const track,
 
     int path_size = 0;
     const track_node* path_ptr = ptr; 
+    *reserved_dist = 0;
 
     FOREVER {
         path_node* const node  = &path[path_size];
@@ -167,12 +169,19 @@ int dijkstra(const track_node* const track,
         const int next_offset  = next - track;
 
         if (total_reserve - data[next_offset].dist > 0) {
-            if (reserve_section(path_ptr, DIR_FORWARD, opts->train_offset)
-                || reserve_section(path_ptr, DIR_REVERSE, opts->train_offset)) {
+            const int res_1 = 
+                reserve_section(path_ptr, DIR_FORWARD, opts->train_offset);
+            *reserved_dist += res_1;
+            
+            const int res_2 =
+                reserve_section(path_ptr, DIR_REVERSE, opts->train_offset);
+            *reserved_dist += res_2;
 
-                while (ptr != path_ptr) {
+            if (res_1 < 0 || res_2 < 0) {
+                FOREVER {
                     reserve_release(ptr, DIR_FORWARD, opts->train_offset);
                     reserve_release(ptr, DIR_REVERSE, opts->train_offset);
+                    if (ptr == path_ptr) return -100;
                     ptr = data[ptr - track].prev;
                 }
 

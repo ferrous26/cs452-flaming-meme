@@ -24,6 +24,7 @@ typedef struct {
 typedef struct {
     int        response;
     int        size;
+    int        reserved;
     path_node* path;
 } path_response;
 

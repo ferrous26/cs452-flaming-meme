@@ -19,6 +19,7 @@ typedef struct {
 
 int dijkstra(const track_node* const track,
              const path_requisition* const opts,
-             path_node* const path);
+             path_node* const path,
+             int* const reserved_dist);
 
 #endif

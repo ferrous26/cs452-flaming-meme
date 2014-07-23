@@ -40,6 +40,8 @@ typedef struct {
     const path_node* path;
     int              turnout_step;       // next turnout step
     int              reverse_step;       // next reverse step
+
+
 } master;
 
 

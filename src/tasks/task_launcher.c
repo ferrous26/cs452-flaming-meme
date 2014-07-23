@@ -215,8 +215,8 @@ static void action(command cmd, int args[]) {
                 .header      = 0,
                 .sensor_to   = (short)sensor_to_pos(args[2], args[3]),
                 .sensor_from = (short)sensor_to_pos(args[0], args[1]),
-                .opts        = (short)PATH_NO_REVERSE_MASK | 0x3,
-                .reserve     = 0
+                .opts        = (short)PATH_NO_REVERSE_MASK | NUM_TRAINS,
+                .reserve     = 100
             }
         };
 
@@ -243,7 +243,8 @@ static void action(command cmd, int args[]) {
                 break;
             }
         }
-        log("delta %d", Time() - time);
+
+        log("delta %d\treserved %d", Time() - time, res.reserved);
         Reply(worker_tid, NULL, 0);
 
         break;
