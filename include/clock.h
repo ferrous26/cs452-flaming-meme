@@ -5,10 +5,10 @@
 #include <kernel.h>
 #include <ts7200.h>
 
-void clock_init(void);
-void clock_deinit(void);
+void clock_init(void) TEXT_COLD;
+void clock_deinit(void) TEXT_COLD;
 
-void clock_t4enable(void);
+void clock_t4enable(void) TEXT_COLD;
 
 uint __attribute__ ((pure)) clock_t4tick(void);
 void irq_clock(void) TEXT_HOT;
