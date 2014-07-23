@@ -8,7 +8,7 @@
 #include <std.h>
 #include <kernel.h>
 
-void uart_init(void);
+void uart_init(void) TEXT_COLD;
 
 #define kprintf(n, fmt, ...)					\
     {								\
@@ -25,15 +25,15 @@ void uart_init(void);
     }
 
 // actually doing I/O
-void uart2_bw_write(const char* string, int length);
+void uart2_bw_write(const char* string, int length) TEXT_COLD;
 
-bool __attribute__ ((pure)) uart2_bw_can_read(void);
-char uart2_bw_read(void);
-char uart2_bw_waitget(void);
+bool __attribute__ ((pure)) uart2_bw_can_read(void) TEXT_COLD;
+char uart2_bw_read(void) TEXT_COLD;
+char uart2_bw_waitget(void) TEXT_COLD;
 
 
 void irq_uart2(void);
-void irq_uart2_send(void);
+void irq_uart2_send(void) TEXT_HOT;
 void irq_uart2_recv(void);
 
 void irq_uart1(void) TEXT_HOT;

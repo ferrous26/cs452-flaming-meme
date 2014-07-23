@@ -21,7 +21,7 @@ extern const void* const _TextKernEnd;
 static void* exit_point = NULL;
 static void* exit_sp    = NULL;
 
-static inline void _flush_caches() {
+static inline TEXT_COLD void _flush_caches() {
     // Invalidate the I/D-Cache
     asm volatile ("mov r0, #0                \n\t"
                   "mcr p15, 0, r0, c7, c7, 0 \n\t"
@@ -32,7 +32,7 @@ static inline void _flush_caches() {
 }
 
 #define FILL_SIZE 0x1F
-static void _lockdown_icache() {
+static TEXT_COLD void _lockdown_icache() {
     register uint r0 asm ("r0") = (uint)&_TextStart & FILL_SIZE;
     register uint r1 asm ("r1") = (uint)&_TextKernEnd;
 
@@ -56,7 +56,7 @@ static void _lockdown_icache() {
                   : "r2", "r3" );
 }
 
-static void _lockdown_dcache() {
+static TEXT_COLD void _lockdown_dcache() {
 
     const uint warm_chunk =
         (((uint)&_DataKernWarmEnd - (uint)&_DataKernEnd) / sizeof(task)) *
@@ -84,7 +84,7 @@ static void _lockdown_dcache() {
                   : "r2", "r3" );
 }
 
-static inline void _enable_caches() {
+static TEXT_COLD void _enable_caches() {
     // Turn on the I-Cache
     asm volatile ("mrc p15, 0, r0, c1, c0, 0 \n\t" //get cache control
                   "orr r0, r0, #0x1000       \n\t" //turn I-Cache
@@ -95,7 +95,7 @@ static inline void _enable_caches() {
 		  : "r0");
 }
 
-static inline void _init() {
+static TEXT_COLD void _init() {
     _flush_caches(); // we want to flush caches immediately
     _lockdown_icache();
     _lockdown_dcache();
@@ -111,7 +111,7 @@ static inline void _init() {
     scheduler_first_run(); // go go go
 }
 
-void shutdown(void) {
+void TEXT_COLD shutdown() {
     assert(debug_processor_mode() == SUPERVISOR,
 	   "Trying to shutdown from non-supervisor mode");
 
@@ -135,7 +135,7 @@ void shutdown(void) {
     FOREVER;
 }
 
-int main(int argc, char** argv);
+int main(int argc, char** argv) TEXT_COLD;
 int main(int argc, char** argv) {
     uint* volatile ep;
     uint* volatile sp;
@@ -149,6 +149,10 @@ int main(int argc, char** argv) {
     memset((void*)&_DataStart, 0, (uint)&_BssEnd - (uint)&_DataStart);
 
     exit_point = ep;
+// So...none of this works completely...it will get the stack pointer
+// close to where it should be, but will leak a varying amount of
+// memory depending on the build type...release builds currently do
+// not leak.
 #ifdef COWAN
     exit_sp    = sp - 1;
 #else

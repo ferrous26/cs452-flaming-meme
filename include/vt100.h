@@ -9,8 +9,8 @@
 #define ESC "\x1B"
 #define ESC_CODE ESC "["
 
-void vt_init(void);
-void vt_deinit(void);
+void vt_init(void) TEXT_COLD;
+void vt_deinit(void) TEXT_COLD;
 
 /**
  * Similar to sprintf(3), except it only supports a subset of format specifiers.

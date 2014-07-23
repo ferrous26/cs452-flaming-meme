@@ -34,8 +34,8 @@ typedef enum {
     SYSTEM     = 0x1F
 } pmode;
 
-pmode __attribute__ ((const)) debug_processor_mode(void);
-void debug_cpsr(void);
-void debug_spsr(void);
+pmode __attribute__ ((const)) debug_processor_mode(void) TEXT_COLD;
+void debug_cpsr(void) TEXT_COLD;
+void debug_spsr(void) TEXT_COLD;
 
 #endif

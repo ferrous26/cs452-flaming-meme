@@ -76,8 +76,8 @@ typedef struct {
 } kreq_abort;
 
 
-void kernel_init(void);
-void kernel_deinit(void);
+void kernel_init(void) TEXT_COLD;
+void kernel_deinit(void) TEXT_COLD;
 
 void hwi_enter(void);                             /* found in context.asm */
 void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
@@ -85,8 +85,8 @@ void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
 void syscall_handle(const syscall_num code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 
-void __attribute__ ((noreturn)) shutdown(void);
-void __attribute__ ((noreturn)) abort(const kreq_abort* const req);
+void __attribute__ ((noreturn)) shutdown(void) TEXT_COLD;
+void __attribute__ ((noreturn)) abort(const kreq_abort* const req) TEXT_COLD;
 
 
 typedef int32  task_id;
@@ -110,7 +110,7 @@ typedef struct task_descriptor {
 extern task* task_active;
 extern task* int_queue[EVENT_COUNT];
 
-void scheduler_first_run(void);
+void scheduler_first_run(void) TEXT_COLD;
 
 /**
  * The non-inlined, but still important, version of scheduler_schedule().
