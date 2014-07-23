@@ -138,7 +138,9 @@ void track_reservation() {
                 const int length  = get_reserve_length(node);
                       int reply[] = {RESERVE_SUCCESS, length};
                 context.reserve[index] = req.train_num;
-                
+                result = Reply(tid, (char*)reply, sizeof(reply));
+
+            /*
             if (context.tracking[req.train_num].front == NULL) {
                 context.tracking[req.train_num].front = node;
                 context.tracking[req.train_num].back  = node;
@@ -151,15 +153,14 @@ void track_reservation() {
                      req.train_num, context.tracking[req.train_num].front, NULL);
                 reply[0] = RESERVE_FAILURE;
             }
+            */
 
-                result = Reply(tid, (char*)reply, sizeof(reply));
             } else {
                 const int reply[] = {RESERVE_FAILURE, old_owner};
-                result = Reply(tid, (char*)reply, sizeof(reply));
                 log(LOG_HEAD "Rejecting owned section %s",
                     context.track[index].name);
+                result = Reply(tid, (char*)reply, sizeof(reply));
             }
-
             assert(result == 0, "Failed to repond to track query");
         }   break;
 
