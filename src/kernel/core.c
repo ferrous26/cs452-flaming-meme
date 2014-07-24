@@ -6,6 +6,7 @@
 #include <io.h>
 #include <debug.h>
 #include <ui.h>
+#include <clz.h>
 
 #include <tasks/idle.h>
 #include <tasks/priority.h>
@@ -45,25 +46,10 @@ task*  task_active             DATA_HOT;
 task*  int_queue[EVENT_COUNT]  DATA_HOT;
 static task   tasks[TASK_MAX]  DATA_WARM;
 static task_q free_list        DATA_HOT;
-static uint8  table[256]       DATA_HOT;
+uint8  table[256]              DATA_HOT;
 
 static inline uint __attribute__ ((const)) task_index_from_tid(const task_id tid) {
     return mod2((uint32)tid, TASK_MAX);
-}
-
-// This algorithm is borrowed from
-// http://graphics.stanford.edu/%7Eseander/bithacks.html#IntegerLogLookup
-static inline uint32 __attribute__ ((pure)) choose_priority(const uint32 v) {
-    uint32 result;
-    uint  t;
-    uint  tt;
-
-    if ((tt = v >> 16))
-        result = (t = tt >> 8) ? 24 + table[t] : 16 + table[tt];
-    else
-        result = (t = v >> 8) ? 8 + table[t] : table[v];
-
-    return result;
 }
 
 static inline int* __attribute__ ((const)) task_stack(const task* const t) {

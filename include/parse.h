@@ -21,10 +21,7 @@ typedef enum {
     GO,
     SHORT_MOVE,
 
-    STOP_OFFSET, // TODO: change name to match scheme
-    UPDATE_THRESHOLD,
-    UPDATE_FEEDBACK,
-    UPDATE_FUDGE_FACTOR,
+    UPDATE_TWEAK,
 
     SIZES,
     SEPPUKU,

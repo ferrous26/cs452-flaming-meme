@@ -12,21 +12,18 @@ typedef enum {
 
 typedef enum {
     BLASTER_CHANGE_SPEED,
+    BLASTER_MASTER_CHANGE_SPEED,
 
+    BLASTER_MASTER_REVERSE,
     BLASTER_REVERSE,  // step 1
     BLASTER_REVERSE2, // step 2 (used by delay courier)
     BLASTER_REVERSE3, // step 3 (used by delay courier)
     BLASTER_REVERSE4, // step 4 (used by delay courier)
 
-    MASTER_BLASTER_WHERE_ARE_YOU, // special version for master
+    BLASTER_MASTER_WHERE_ARE_YOU,
 
-    // TODO: some of these need to move to train_master
     BLASTER_DUMP_VELOCITY_TABLE,
-    BLASTER_UPDATE_FEEDBACK_THRESHOLD,
-    BLASTER_UPDATE_FEEDBACK_ALPHA,
-    BLASTER_UPDATE_STOP_OFFSET,
-    BLASTER_UPDATE_CLEARANCE_OFFSET,
-    BLASTER_UPDATE_FUDGE_FACTOR,
+    BLASTER_UPDATE_TWEAK,
 
     // TODO: move these to train_master (need to share some physics)
     BLASTER_SHORT_MOVE,

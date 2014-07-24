@@ -80,11 +80,6 @@ static command parse_s(const char* const cmd, int* buffer) {
     case 'd':
         if (!isspace(cmd[index])) return ERROR;
         return SWITCH_TIME;
-    case 'o':
-        if (parse_argument(cmd, 'i', &index, &buffer[0])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return STOP_OFFSET;
     case 'p':
         return SEPPUKU;
     case 'z':
@@ -108,11 +103,6 @@ static command parse_s(const char* const cmd, int* buffer) {
 static command parse_t(const char* const cmd, int* const buffer) {
     int index = 1;
     switch(cmd[index++]) {
-    case 'h':
-        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return UPDATE_THRESHOLD;
     case 'r':
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
@@ -122,6 +112,12 @@ static command parse_t(const char* const cmd, int* const buffer) {
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (!isspace(cmd[index]))                         return ERROR;
         return TEST_TIME;
+    case 'k':
+        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
+        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
+        if (!isspace(cmd[index]))                         return ERROR;
+        return UPDATE_TWEAK;
     default:
         return ERROR;
     }
@@ -199,31 +195,6 @@ static command parse_e(const char* const cmd, int* const buffer) {
     return CMD_ECHO;
 }
 
-static command parse_f(const char* const cmd, int* const buffer) {
-    UNUSED(buffer);
-    int index = 1;
-
-    if (cmd[index++] != 'f')   return ERROR;
-    if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-    if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-    if (!isspace(cmd[index++])) return ERROR;
-
-    return UPDATE_FUDGE_FACTOR;
-}
-
-static command parse_a(const char* const cmd, int* const buffer) {
-    int index = 1;
-
-    switch (cmd[index++]) {
-    case 'a':
-        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        return UPDATE_FEEDBACK;
-    }
-
-    return ERROR;
-}
-
 static command parse_g(const char* const cmd, int* const buffer) {
     int index = 1;
     switch (cmd[index++]) {
@@ -296,11 +267,9 @@ static command parse_n(const char* const cmd, int* const buffer) {
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
-    case 'a':  return parse_a(cmd, buffer);
     case 'b':  return parse_b(cmd, buffer);
     case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);
-    case 'f':  return parse_f(cmd, buffer);
     case 'g':  return parse_g(cmd, buffer);
     case 'h':  return parse_h(cmd, buffer);
     case 'n':  return parse_n(cmd, buffer);

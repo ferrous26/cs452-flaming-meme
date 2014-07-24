@@ -11,7 +11,9 @@ typedef enum {
     MASTER_BLASTER_LOCATION,  // current location from blaster
 
     MASTER_FLIP_TURNOUT,
-    MASTER_STOP_TRAIN
+    MASTER_STOP_TRAIN,
+
+    MASTER_UPDATE_TWEAK
 
 } master_req_type;
 

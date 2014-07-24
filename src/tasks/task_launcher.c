@@ -183,16 +183,8 @@ static void action(command cmd, int args[]) {
         Puts(buffer, ptr - buffer);
         break;
     }
-    case UPDATE_THRESHOLD:
-        train_update_feedback_threshold(args[0], args[1]);
-        break;
-
-    case UPDATE_FEEDBACK:
-        train_update_feedback_alpha(args[0], args[1]);
-        break;
-
-    case UPDATE_FUDGE_FACTOR:
-        train_update_reverse_time_fudge(args[0], args[1]);
+    case UPDATE_TWEAK:
+        train_update_tweak(args[0], args[1], args[2]);
         break;
 
     case REVERSE_LOOKUP: {
@@ -304,10 +296,6 @@ static void action(command cmd, int args[]) {
         Reply(tid, NULL, 0);
     }   break;
 
-    case STOP_OFFSET:
-        train_update_stop_offset(args[0], args[1]);
-        break;
-
     case CMD_RESERVE_NODE: {
         int res = reserve_section_term(args[1], args[2], args[0]);
         log("RESERVE: %d", res);
@@ -326,7 +314,7 @@ static void action(command cmd, int args[]) {
     case CMD_SENSOR_KILL: {
         disable_sensor_name(args[0], args[1]);
     }   break;
-    
+
     case CMD_SENSOR_REVIVE: {
         revive_sensor_name(args[0], args[1]);
     }   break;

@@ -12,6 +12,7 @@ typedef enum {
     INVALID_SENSOR         = -102,
     INVALID_TURNOUT        = -103,
     INVALID_FEEDBACK_ALPHA = -104,
+    INVALID_TRAIN_TWEAK    = -105
 } control_err;
 
 typedef enum {

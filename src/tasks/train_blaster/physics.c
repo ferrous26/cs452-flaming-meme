@@ -31,48 +31,60 @@ static void blaster_dump_velocity_table(blaster* const ctxt) {
     Puts(buffer, ptr - buffer);
 }
 
-static void blaster_update_feedback_threshold(blaster* const ctxt,
-                                             const int threshold) {
-    log("[%s] Updating feedback threshold to %d um/s (was %d um/s)",
-        ctxt->name, threshold, ctxt->feedback_threshold);
-    ctxt->feedback_threshold = threshold;
-}
+static void blaster_update_tweak(blaster* const ctxt,
+                                 const train_tweakable tweak,
+                                 const int value) {
 
-static void blaster_update_feedback_ratio(blaster* const ctxt,
-                                         const ratio alpha) {
-    switch (alpha) {
-    case HALF_AND_HALF:
-        log("[%s] Updating feedback ratio to 50/50", ctxt->name);
+    switch (tweak) {
+    case TWEAK_FEEDBACK_THRESHOLD:
+        log("[%s] Updating feedback threshold to %d um/s (was %d um/s)",
+            ctxt->name, value, ctxt->feedback_threshold);
+        ctxt->feedback_threshold = value;
         break;
-    case EIGHTY_TWENTY:
-        log("[%s] Updating feedback ratio to 80/20", ctxt->name);
-        break;
-    case NINTY_TEN:
-        log("[%s] Updating feedback ratio to 90/10", ctxt->name);
+
+    case TWEAK_FEEDBACK_RATIO: {
+        const ratio alpha = (ratio)value;
+
+        switch (alpha) {
+        case HALF_AND_HALF:
+            log("[%s] Updating feedback ratio to 50/50", ctxt->name);
+            break;
+        case EIGHTY_TWENTY:
+            log("[%s] Updating feedback ratio to 80/20", ctxt->name);
+            break;
+        case NINTY_TEN:
+            log("[%s] Updating feedback ratio to 90/10", ctxt->name);
+            break;
+        }
+        ctxt->feedback_ratio = alpha;
         break;
     }
-    ctxt->feedback_ratio = alpha;
-}
 
-static void blaster_update_stopping_distance_offset(blaster* const ctxt,
-                                                   const int offset) {
-    log("[%s] Updating stop distance offset to %d mm (was %d mm)",
-        ctxt->name, offset / 1000, ctxt->stopping_distance_offset / 1000);
-    ctxt->stopping_distance_offset = offset;
-}
+    case TWEAK_STOP_OFFSET:
+        log("[%s] Updating stop distance offset to %d mm (was %d mm)",
+            ctxt->name, value / 1000, ctxt->stopping_distance_offset / 1000);
+        ctxt->stopping_distance_offset = value;
+        break;
 
-static void blaster_update_turnout_clearance_offset(blaster* const ctxt,
-                                                   const int offset) {
-    log("[%s] Updating turnout clearance offset to %d mm (was %d mm)",
-        ctxt->name, offset / 1000, ctxt->turnout_clearance_offset / 1000);
-    ctxt->turnout_clearance_offset = offset;
-}
+    case TWEAK_REVERSE_STOP_TIME_PADDING:
+        log("[%s] Updating reverse time peanut butter factor to %d ticks "
+            "(was %d ticks)...creamy",
+            ctxt->name, value, ctxt->reverse_time_fudge_factor);
+        ctxt->reverse_time_fudge_factor = value;
+        break;
 
-static void blaster_update_reverse_time_fudge(blaster* const ctxt,
-                                             const int fudge) {
-    log("[%s] Updating reverse time fudge factor to %d ticks (was %d ticks)",
-        ctxt->name, fudge, ctxt->reverse_time_fudge_factor);
-    ctxt->reverse_time_fudge_factor = fudge;
+    case TWEAK_ACCELERATION_TIME_FUDGE:
+        log("[%s] Updating acceleration time fudge factor to %d ticks "
+            "(was %d ticks)...chunky",
+            ctxt->name, value, ctxt->acceleration_time_fudge_factor);
+        ctxt->acceleration_time_fudge_factor = value;
+        break;
+
+    case TWEAK_TURNOUT_CLEARANCE:
+    case TWEAK_COUNT:
+        log("[%s] I do not have a tweakable for id %d", ctxt->name, tweak);
+        break;
+    }
 }
 
 static track_type __attribute__ ((const))
@@ -299,12 +311,6 @@ physics_current_stopping_distance(const blaster* const ctxt) {
     return physics_stopping_distance(ctxt, truth.speed);
 }
 
-static inline int
-physics_turnout_stopping_distance(const blaster* const ctxt) {
-    return physics_current_stopping_distance(ctxt) +
-        ctxt->turnout_clearance_offset;
-}
-
 static int
 physics_stopping_time(const blaster* const ctxt, const int stop_dist) {
 
@@ -341,7 +347,7 @@ physics_starting_distance(const blaster* const ctxt, const int speed) {
 
     sum += map->terms[0].factor / map->terms[0].scale;
 
-    return sum + ctxt->starting_distance_offset;
+    return sum;
 }
 
 static int
@@ -373,8 +379,6 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
     ctxt->feedback_threshold         = FEEDBACK_THRESHOLD_DEFAULT;
     ctxt->stopping_distance_offset   = STOPPING_DISTANCE_OFFSET_DEFAULT;
     ctxt->reverse_time_fudge_factor  = REVERSE_TIME_FUDGE_FACTOR;
-    ctxt->turnout_clearance_offset   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
-    ctxt->starting_distance_offset   = STARTING_DISTANCE_OFFSET_DEFAULT;
     ctxt->acceleration_time_fudge_factor = ACCELERATION_TIME_FUDGE_DEFAULT;
 
     switch (ctxt->train_gid) {

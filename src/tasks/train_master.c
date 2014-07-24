@@ -11,6 +11,11 @@
 #include <tasks/clock_server.h>
 #include <tasks/mission_control.h>
 
+// we want to clear a turnout by at least this much in order to compensate
+// for position error
+#define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
+
+// we want to flip a turnout when we are
 #define TURNOUT_DISTANCE 300000
 
 typedef struct {
@@ -24,6 +29,8 @@ typedef struct {
 
     int              path_admin;         // tid of the path admin
     int              path_worker;        // tid of the path worker
+
+    int              turnout_padding;
 
     train_event      checkpoint_type;
     int              checkpoint;         // sensor we last had update at
@@ -74,11 +81,50 @@ master_stop_at_sensor(master* const ctxt,
     UNUSED(result);
 }
 
+
+static void master_update_tweak(master* const ctxt,
+                                const control_req* const pkg,
+                                const master_req* const req,
+                                const int request_tid) {
+
+    const train_tweakable tweak = (train_tweakable)req->arg1;
+    const int value = req->arg2;
+
+    switch (tweak) {
+    case TWEAK_TURNOUT_CLEARANCE:
+        log("[%s] Updating turnout clearance offset to %d mm (was %d mm)",
+            ctxt->name, value / 1000, ctxt->turnout_padding / 1000);
+        ctxt->turnout_padding = value;
+        break;
+
+    case TWEAK_FEEDBACK_THRESHOLD:
+    case TWEAK_FEEDBACK_RATIO:
+    case TWEAK_STOP_OFFSET:
+    case TWEAK_REVERSE_STOP_TIME_PADDING:
+    case TWEAK_ACCELERATION_TIME_FUDGE:
+    case TWEAK_COUNT:
+        log("[%s] I do not have a tweakable for id %d", ctxt->name, tweak);
+        break;
+    }
+
+    const int result = Reply(request_tid, (char*)pkg, sizeof(control_req));
+    assert(result == 0,
+           "[%s] Failed to reply to control courier (%d)",
+           result);
+    UNUSED(result);
+}
+
+//static inline int
+//physics_turnout_stopping_distance(const master* const ctxt) {
+//    return physics_current_stopping_distance(ctxt) +
+//        ctxt->turnout_padding;
+//}
+
 static void
-master_where_are_you(master* const ctxt,
-                     const control_req* const pkg,
-                     const int request_tid,
-                     const int courier_tid) {
+master_where_you_at(master* const ctxt,
+                    const control_req* const pkg,
+                    const int request_tid,
+                    const int courier_tid) {
 
     const int     time_delta = Time() - ctxt->checkpoint_time;
     const int distance_delta =
@@ -335,8 +381,8 @@ static inline void master_simulate_pathing(master* const ctxt) {
 
     while (ctxt->turnout_step > 0) {
         const int turn_dist  = ctxt->path[ctxt->turnout_step].dist;
-        const int turn_point = turn_dist - TURNOUT_DISTANCE; 
-            
+        const int turn_point = turn_dist - TURNOUT_DISTANCE;
+
         if (next_step->dist < turn_point && following_step->dist < turn_point)
             break;
 
@@ -492,6 +538,7 @@ static TEXT_COLD void master_init(master* const ctxt) {
            "[%s] I started up before the path admin! (%d)",
            ctxt->name, ctxt->path_admin);
 
+    ctxt->turnout_padding   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
     ctxt->path_worker       = -1;
     ctxt->destination       = -1;
     ctxt->path_steps        = -1;
@@ -548,7 +595,7 @@ void train_master() {
     };
 
     const blaster_req blaster_callin = {
-        .type = MASTER_BLASTER_WHERE_ARE_YOU
+        .type = BLASTER_MASTER_WHERE_ARE_YOU
     };
 
     const courier_package blaster_package = {
@@ -579,7 +626,7 @@ void train_master() {
             break;
 
         case MASTER_WHERE_ARE_YOU:
-            master_where_are_you(&context, &control_callin, req.arg1, tid);
+            master_where_you_at(&context, &control_callin, req.arg1, tid);
             break;
 
         case MASTER_PATH_DATA:
@@ -596,6 +643,10 @@ void train_master() {
 
         case MASTER_STOP_TRAIN:
             master_stop_train(&context, tid);
+            break;
+
+        case MASTER_UPDATE_TWEAK:
+            master_update_tweak(&context, &control_callin, &req, tid);
             break;
         }
     }

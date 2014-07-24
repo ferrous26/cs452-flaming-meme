@@ -23,6 +23,9 @@
     (ctxt->acceleration_time_fudge_factor - (truth.speed / 5))
 
 static void blaster_resume_short_moving(blaster* const ctxt, const int time);
+static void blaster_master_reverse(blaster* const ctxt,
+                                   const int time,
+                                   const int tid);
 static void blaster_reverse_step1(blaster* const ctxt, const int time);
 static void blaster_reverse_step2(blaster* const ctxt);
 static void blaster_reverse_step3(blaster* const ctxt,
@@ -47,7 +50,7 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-#if 0
+#if 1
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
@@ -89,7 +92,7 @@ blaster_debug_state(blaster* const ctxt,
                   state->next_distance / 1000, state->next_timestamp);
 
     ptr = log_end(ptr);
-    // Puts(buffer, ptr - buffer);
+    Puts(buffer, ptr - buffer);
 }
 #endif
 
@@ -410,6 +413,15 @@ static void blaster_set_speed(blaster* const ctxt,
     }
 }
 
+static void blaster_master_set_speed(blaster* const ctxt,
+                                     const int speed,
+                                     const int time,
+                                     const int tid) {
+    blaster_set_speed(ctxt, speed, time);
+    // TODO: reply
+    UNUSED(tid);
+}
+
 // mad h4x
 static inline int blaster_reverse_sensor(const int s) {
     if (mod2_int(s, 2) == 1) // if it is odd (remember, 0 indexing)
@@ -456,6 +468,14 @@ static void blaster_reverse_direction(blaster* const ctxt,
     blaster_master_where_am_i(ctxt, time);
 
     blaster_debug_state(ctxt, &truth);
+}
+
+static void blaster_master_reverse(blaster* const ctxt,
+                                   const int time,
+                                   const int tid) {
+    blaster_reverse_step1(ctxt, time);
+    // TODO: reply
+    UNUSED(tid);
 }
 
 static void blaster_reverse_step1(blaster* const ctxt, const int time) {
@@ -611,7 +631,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
         // the speed that the train thinks it currently has (it is half)...
         // the real solution is more complicated than this, but at 3AM this
         // is good enough (TM)
-        if (ctxt->reversing)
+        if (truth.is_accelerating)
             ctxt->reverse_speed = current_accel.next_speed; // mad h4x
         return;
     }
@@ -762,6 +782,9 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     const int      sensor_hit = req->arg1;
     const int sensor_hit_time = req->arg2;
 
+    // TODO: is it really unexpected, or is just further down the track;
+    //       the result of a dead sensor?
+
     // just need to update state here and move on to next stuffs
     // this is essentially a state reset, we cannot really use previous state
 
@@ -798,9 +821,6 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
 
     blaster_debug_state(ctxt, &truth);
 
-    ctxt->master_message = true;
-    blaster_master_where_am_i(ctxt, timestamp);
-
     // need to pass the service_time in case we do a reverse
     blaster_detect_train_direction(ctxt, sensor_hit, timestamp);
 
@@ -810,6 +830,9 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
             ctxt->name);
         blaster_reverse_step1(ctxt, timestamp);
     }
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, timestamp);
 
     // TODO: replace this with call that does not update the delta value
     physics_update_tracking_ui(ctxt, 0);
@@ -873,9 +896,6 @@ blaster_process_sensor_event(blaster* const ctxt,
 
     blaster_debug_state(ctxt, &truth);
 
-    ctxt->master_message = true;
-    blaster_master_where_am_i(ctxt, timestamp);
-
     const int expected_v =
         physics_velocity(ctxt,
                          truth.speed,
@@ -896,6 +916,9 @@ blaster_process_sensor_event(blaster* const ctxt,
             ctxt->name);
         blaster_reverse_step1(ctxt, timestamp);
     }
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, timestamp);
 
     physics_update_tracking_ui(ctxt, delta_v);
     physics_update_velocity_ui(ctxt);
@@ -997,29 +1020,17 @@ static inline void blaster_wait(blaster* const ctxt,
             blaster_set_speed(ctxt, req.arg1, time);
             if (req.arg1 > 0) return;
             break;
-        case BLASTER_SHORT_MOVE:
-            blaster_short_move(ctxt, req.arg1);
-            return;
         case BLASTER_REVERSE:
             blaster_reverse_step1(ctxt, time);
             return;
-        case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
-            blaster_update_feedback_threshold(ctxt, req.arg1);
-            break;
-        case BLASTER_UPDATE_FEEDBACK_ALPHA:
-            blaster_update_feedback_ratio(ctxt, (ratio)req.arg1);
-            break;
-        case BLASTER_UPDATE_STOP_OFFSET:
-            blaster_update_stopping_distance_offset(ctxt, req.arg1);
-            break;
-        case BLASTER_UPDATE_CLEARANCE_OFFSET:
-            blaster_update_turnout_clearance_offset(ctxt, req.arg1);
-            break;
-        case BLASTER_UPDATE_FUDGE_FACTOR:
-            blaster_update_reverse_time_fudge(ctxt, req.arg1);
+        case BLASTER_UPDATE_TWEAK:
+            blaster_update_tweak(ctxt, (train_tweakable)req.arg1, req.arg2);
             break;
             // We should not get any of these as the first event
             // so we abort if we get them
+        case BLASTER_SHORT_MOVE:
+        case BLASTER_MASTER_CHANGE_SPEED:
+        case BLASTER_MASTER_REVERSE:
         case BLASTER_REVERSE2:
         case BLASTER_REVERSE3:
         case BLASTER_REVERSE4:
@@ -1030,7 +1041,7 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_SENSOR_TIMEOUT:
         case BLASTER_SENSOR_FEEDBACK:
         case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
-        case MASTER_BLASTER_WHERE_ARE_YOU:
+        case BLASTER_MASTER_WHERE_ARE_YOU:
         case BLASTER_REQ_TYPE_COUNT:
             ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
         }
@@ -1147,10 +1158,17 @@ void train_blaster() {
         case BLASTER_CHANGE_SPEED:
             blaster_set_speed(&context, req.arg1, time);
             break;
+        case BLASTER_MASTER_CHANGE_SPEED:
+            blaster_master_set_speed(&context, req.arg1, time, tid);
+            continue;
 
         case BLASTER_REVERSE:
             blaster_reverse_step1(&context, time);
             break;
+        case BLASTER_MASTER_REVERSE:
+            blaster_master_reverse(&context, time, tid);
+            continue;
+
         case BLASTER_REVERSE2:
             ABORT("[%s] Should never get reverse 2 (%d)", context.name, tid);
         case BLASTER_REVERSE3:
@@ -1160,10 +1178,9 @@ void train_blaster() {
             blaster_reverse_step4(&context, tid, time);
             continue;
 
-        case MASTER_BLASTER_WHERE_ARE_YOU:
+        case BLASTER_MASTER_WHERE_ARE_YOU:
             context.master_courier = tid;
-            if (context.master_message)
-                blaster_master_where_am_i(&context, time);
+            blaster_master_where_am_i(&context, time);
             continue;
 
         case BLASTER_SHORT_MOVE:
@@ -1176,27 +1193,15 @@ void train_blaster() {
         case BLASTER_DUMP_VELOCITY_TABLE:
             blaster_dump_velocity_table(&context);
             break;
-        case BLASTER_UPDATE_FEEDBACK_THRESHOLD:
-            blaster_update_feedback_threshold(&context, req.arg1);
-            break;
-        case BLASTER_UPDATE_FEEDBACK_ALPHA:
-            blaster_update_feedback_ratio(&context, (ratio)req.arg1);
-            break;
-        case BLASTER_UPDATE_STOP_OFFSET:
-            blaster_update_stopping_distance_offset(&context, req.arg1);
-            break;
-        case BLASTER_UPDATE_CLEARANCE_OFFSET:
-            blaster_update_turnout_clearance_offset(&context, req.arg1);
-            break;
-        case BLASTER_UPDATE_FUDGE_FACTOR:
-            blaster_update_reverse_time_fudge(&context, req.arg1);
+        case BLASTER_UPDATE_TWEAK:
+            blaster_update_tweak(&context, (train_tweakable)req.arg1, req.arg2);
             break;
 
         case BLASTER_ACCELERATION_COMPLETE:
             blaster_process_acceleration_event(&context, &req, tid, time);
             continue;
         case BLASTER_NEXT_NODE_ESTIMATE:
-            //            blaster_process_checkpoint_event(&context, &req, tid, time);
+            // blaster_process_checkpoint_event(&context, &req, tid, time);
             continue;
         case BLASTER_SENSOR_FEEDBACK:
             blaster_process_sensor_event(&context, &req, tid, time);

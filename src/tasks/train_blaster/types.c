@@ -7,9 +7,7 @@
 
 #define FEEDBACK_THRESHOLD_DEFAULT        10000 // um/s
 #define STOPPING_DISTANCE_OFFSET_DEFAULT  0     // um
-#define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
 #define REVERSE_TIME_FUDGE_FACTOR         10    // cs
-#define STARTING_DISTANCE_OFFSET_DEFAULT  0     // um
 #define ACCELERATION_TIME_FUDGE_DEFAULT   20    // cs
 
 typedef enum {
@@ -84,9 +82,7 @@ typedef struct blaster_context {
     ratio     feedback_ratio;
     int       feedback_threshold;
     int       stopping_distance_offset;
-    int       turnout_clearance_offset;
     int       reverse_time_fudge_factor;
-    int       starting_distance_offset;
     int       acceleration_time_fudge_factor;
 
     train_dim measurements;
@@ -110,8 +106,7 @@ typedef struct blaster_context {
 #define current_sensor       ctxt->current_sensor_event
 #define current_acceleration ctxt->current_acceleration_event
 #define current_accel        current_acceleration
-#define current_truth        ctxt->truth_event
-#define truth                current_truth
+#define truth                ctxt->truth_event
 
     train_state last_acceleration_event;
     train_state current_acceleration_event;

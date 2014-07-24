@@ -8,6 +8,16 @@
 
 void __attribute__ ((noreturn)) train_control(void);
 
+typedef enum {
+    TWEAK_FEEDBACK_THRESHOLD,
+    TWEAK_FEEDBACK_RATIO,
+    TWEAK_STOP_OFFSET,
+    TWEAK_TURNOUT_CLEARANCE,
+    TWEAK_REVERSE_STOP_TIME_PADDING,
+    TWEAK_ACCELERATION_TIME_FUDGE,
+    TWEAK_COUNT
+} train_tweakable;
+
 // Blaster API
 typedef enum {
     BLASTER_CONTROL_REQUEST_COMMAND,
@@ -21,11 +31,7 @@ typedef enum {
     CONTROL_SHORT_MOVE,
 
     CONTROL_DUMP_VELOCITY_TABLE,
-    CONTROL_UPDATE_FEEDBACK_THRESHOLD,
-    CONTROL_UPDATE_FEEDBACK_ALPHA,
-    CONTROL_UPDATE_STOP_OFFSET,
-    CONTROL_UPDATE_CLEARANCE_OFFSET,
-    CONTROL_UPDATE_FUDGE_FACTOR,
+    CONTROL_UPDATE_TWEAK,
 
     CONTROL_TOGGLE_HORN
 } control_req_type;
@@ -57,11 +63,9 @@ int train_goto_location(const int train,
 int train_short_move(const int train, const int off);
 
 int train_dump_velocity_table(const int train);
-int train_update_feedback_threshold(const int train, const int threshold);
-int train_update_feedback_alpha(const int train, const int alpha);
-int train_update_stop_offset(const int train, const int offset);
-int train_update_clearance_offset(const int train, const int offset);
-int train_update_reverse_time_fudge(const int train, const int offset);
+int train_update_tweak(const int train,
+                       const train_tweakable tweak,
+                       const int value);
 int train_toggle_horn(const int train);
 
 #endif

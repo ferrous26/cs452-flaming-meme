@@ -1,16 +1,19 @@
 #include <std.h>
+#include <clz.h>
 #include <debug.h>
-#include <vt100.h>
 #include <train.h>
+#include <normalize.h>
 #include <syscall.h>
 
 #include <tasks/priority.h>
 #include <tasks/name_server.h>
+#include <tasks/term_server.h>
 #include <tasks/train_server.h>
 #include <tasks/mission_control.h>
 #include <tasks/train_master.h>
 #include <tasks/train_blaster.h>
 #include <tasks/train_control.h>
+
 
 static int train_control_tid;
 
@@ -29,43 +32,37 @@ static int train_control_tid;
     }
 
 typedef struct {
+
     struct {
         int  courier;            // tid of train_blaster courier
         int  speed;              // next speed to send to the train
-
         bool reverse;            // should send a reverse command
-
         bool dump_velocity;      // should send a dump command
-        int  feedback_threshold;
-        int  feedback_alpha;
-        int  stop_offset;
-        int  clearance_offset;
-        int  fudge_factor;
         int  short_move;
-
+        int  tweaks_mask;
+        int  tweak[TWEAK_COUNT];
         int  horn;               // horn state
     } blaster[NUM_TRAINS];
 
     struct {
-        int             courier;
+        int            courier;
         track_location location;
         int            stop_sensor; // sensor to stop after hitting
         int            whereis;     // should send send whereis command
+        int            tweaks_mask;
+        int            tweak[TWEAK_COUNT];
     } master[NUM_TRAINS];
 
     const track_node* const track;
 } control_context;
 
-static inline void control_init_context(control_context* const ctxt) {
+static inline void
+control_init_context(control_context* const ctxt) {
     memset(ctxt, 0, sizeof(control_context));
 
     for(int i = 0; i < NUM_TRAINS; i++) {
         ctxt->blaster[i].courier            = -1;
         ctxt->blaster[i].speed              = -1;
-        ctxt->blaster[i].feedback_alpha     = -1;
-        ctxt->blaster[i].stop_offset        = INT_MAX;
-        ctxt->blaster[i].clearance_offset   = INT_MAX;
-        ctxt->blaster[i].fudge_factor       = INT_MAX;
 
         ctxt->master[i].courier             = -1;
         ctxt->master[i].location.sensor     = -1;
@@ -84,7 +81,8 @@ static inline void control_init_context(control_context* const ctxt) {
     assert(0 == result, "Failed releasing parent (%d)", result);
 }
 
-static inline void control_spawn_thunderdome(const track_node* const track) {
+static inline void
+control_spawn_thunderdome(const track_node* const track) {
 
     for (int i = 0; i < NUM_TRAINS; i++) {
         const int train_num = pos_to_train(i);
@@ -126,12 +124,12 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
     if (ctxt->blaster[index].courier == -1) return; // no way to send work
 
     if (ctxt->blaster[index].speed >= 0) {
-        req.type                  = BLASTER_CHANGE_SPEED;
-        req.arg1                  = ctxt->blaster[index].speed;
+        req.type                   = BLASTER_CHANGE_SPEED;
+        req.arg1                   = ctxt->blaster[index].speed;
         ctxt->blaster[index].speed = -1;
 
     } else if (ctxt->blaster[index].reverse) {
-        req.type                    = BLASTER_REVERSE;
+        req.type                     = BLASTER_REVERSE;
         ctxt->blaster[index].reverse = false;
 
     } else if (ctxt->blaster[index].short_move) {
@@ -143,30 +141,14 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
         req.type                           = BLASTER_DUMP_VELOCITY_TABLE;
         ctxt->blaster[index].dump_velocity = false;
 
-    } else if (ctxt->blaster[index].feedback_threshold) {
-        req.type = BLASTER_UPDATE_FEEDBACK_THRESHOLD;
-        req.arg1 = ctxt->blaster[index].feedback_threshold;
-        ctxt->blaster[index].feedback_threshold = 0;
+    } else if (ctxt->blaster[index].tweaks_mask) {
+        req.type = BLASTER_UPDATE_TWEAK;
 
-    } else if (ctxt->blaster[index].feedback_alpha != -1) {
-        req.type = BLASTER_UPDATE_FEEDBACK_ALPHA;
-        req.arg1 = ctxt->blaster[index].feedback_alpha;
-        ctxt->blaster[index].feedback_alpha = -1;
+        const int tweak = choose_priority(ctxt->blaster[index].tweaks_mask);
+        ctxt->blaster[index].tweaks_mask ^= (1 << tweak);
 
-    } else if (ctxt->blaster[index].stop_offset != INT_MAX) {
-        req.type = BLASTER_UPDATE_STOP_OFFSET;
-        req.arg1 = ctxt->blaster[index].stop_offset;
-        ctxt->blaster[index].stop_offset = INT_MAX;
-
-    } else if (ctxt->blaster[index].clearance_offset != INT_MAX) {
-        req.type = BLASTER_UPDATE_CLEARANCE_OFFSET;
-        req.arg1 = ctxt->blaster[index].clearance_offset;
-        ctxt->blaster[index].clearance_offset = INT_MAX;
-
-    } else if (ctxt->blaster[index].fudge_factor != INT_MAX) {
-        req.type = BLASTER_UPDATE_FUDGE_FACTOR;
-        req.arg1 = ctxt->blaster[index].fudge_factor;
-        ctxt->blaster[index].fudge_factor = INT_MAX;
+        req.arg1 = tweak;
+        req.arg2 = ctxt->blaster[index].tweak[tweak];
 
     } else { return; }
 
@@ -200,8 +182,16 @@ control_try_send_master(control_context* const ctxt, const int index) {
         req.arg1 = ctxt->master[index].stop_sensor;
         ctxt->master[index].stop_sensor = -1;
 
-    }
-    else { return; }
+    } else if (ctxt->master[index].tweaks_mask) {
+        req.type = MASTER_UPDATE_TWEAK;
+
+        const int tweak = choose_priority(ctxt->master[index].tweaks_mask);
+        ctxt->master[index].tweaks_mask ^= (1 << tweak);
+
+        req.arg1 = tweak;
+        req.arg2 = ctxt->master[index].tweak[tweak];
+
+    } else { return; }
 
     const int result = Reply(ctxt->master[index].courier,
                              (char*)&req,
@@ -210,7 +200,70 @@ control_try_send_master(control_context* const ctxt, const int index) {
     ctxt->master[index].courier = -1;
 }
 
-static void
+static inline void
+control_update_tweak(control_context* const ctxt,
+                     const control_req* const req) {
+
+    const int index = req->arg1; // index of the train
+    const train_tweakable tweak = (train_tweakable)req->arg2;
+
+    switch (tweak) {
+    case TWEAK_FEEDBACK_THRESHOLD:
+        ctxt->blaster[index].tweaks_mask |=
+            (1 << TWEAK_FEEDBACK_THRESHOLD);
+
+        ctxt->blaster[index].tweak[TWEAK_FEEDBACK_THRESHOLD] =
+            req->arg3; // don't futz with these units...
+        break;
+    case TWEAK_FEEDBACK_RATIO: {
+        const ratio alpha = (ratio)req->arg3;
+        if (alpha > NINTY_TEN) {
+            log("[Control] Invalid alpha value %d", alpha);
+        }
+        else {
+            ctxt->blaster[index].tweaks_mask |=
+                (1 << TWEAK_FEEDBACK_RATIO);
+
+            ctxt->blaster[index].tweak[TWEAK_FEEDBACK_RATIO] =
+                req->arg3;
+        }
+        break;
+    }
+    case TWEAK_STOP_OFFSET:
+        ctxt->blaster[index].tweaks_mask |=
+            (1 << TWEAK_STOP_OFFSET);
+
+        ctxt->blaster[index].tweak[TWEAK_STOP_OFFSET] =
+            req->arg3 * 1000; // convert to um
+        break;
+    case TWEAK_TURNOUT_CLEARANCE:
+        ctxt->master[index].tweaks_mask |=
+            (1 << TWEAK_TURNOUT_CLEARANCE);
+
+        ctxt->master[index].tweak[TWEAK_TURNOUT_CLEARANCE] =
+            req->arg3 * 1000; // convert to um
+        break;
+    case TWEAK_REVERSE_STOP_TIME_PADDING:
+        ctxt->blaster[index].tweaks_mask |=
+            (1 << TWEAK_REVERSE_STOP_TIME_PADDING);
+
+        ctxt->blaster[index].tweak[TWEAK_REVERSE_STOP_TIME_PADDING] =
+            req->arg3; // in clock ticks...
+        break;
+    case TWEAK_ACCELERATION_TIME_FUDGE:
+        ctxt->blaster[index].tweaks_mask |=
+            (1 << TWEAK_ACCELERATION_TIME_FUDGE);
+
+        ctxt->blaster[index].tweak[TWEAK_ACCELERATION_TIME_FUDGE] =
+            req->arg3; // in clock ticks
+        break;
+    case TWEAK_COUNT:
+        log("[Control] Invalid tweak number %d", tweak);
+        return;
+    }
+}
+
+static inline void
 control_toggle_horn(control_context* const ctxt,
                     const int tid,
                     const int index) {
@@ -270,20 +323,8 @@ void train_control() {
         case CONTROL_DUMP_VELOCITY_TABLE:
             context.blaster[index].dump_velocity = true;
             break;
-        case CONTROL_UPDATE_FEEDBACK_THRESHOLD:
-            context.blaster[index].feedback_threshold = req.arg2;
-            break;
-        case CONTROL_UPDATE_FEEDBACK_ALPHA:
-            context.blaster[index].feedback_alpha = req.arg2;
-            break;
-        case CONTROL_UPDATE_STOP_OFFSET:
-            context.blaster[index].stop_offset = req.arg2;
-            break;
-        case CONTROL_UPDATE_CLEARANCE_OFFSET:
-            context.blaster[index].clearance_offset = req.arg2;
-            break;
-        case CONTROL_UPDATE_FUDGE_FACTOR:
-            context.blaster[index].fudge_factor = req.arg2;
+        case CONTROL_UPDATE_TWEAK:
+            control_update_tweak(&context, &req);
             break;
         case CONTROL_GOTO_LOCATION:
             context.master[index].location.sensor = req.arg2;
@@ -435,78 +476,45 @@ int train_dump_velocity_table(const int train) {
                 NULL, 0);
 }
 
-int train_update_feedback_threshold(const int train, const int threshold) {
+int train_update_tweak(const int train,
+                       const train_tweakable tweak,
+                       const int value) {
     NORMALIZE_TRAIN(train_index, train);
 
-    control_req req = {
-        .type = CONTROL_UPDATE_FEEDBACK_THRESHOLD,
-        .arg1 = train_index,
-        .arg2 = threshold // convert to micrometers
-    };
+    if (tweak >= TWEAK_COUNT) {
+        char buffer[512];
+        char* ptr = log_start(buffer);
 
-    return Send(train_control_tid,
-                (char*)&req, sizeof(req) - sizeof(int),
-                NULL, 0);
-}
+        ptr = sprintf(ptr,
+                      "[Control] Invalid tweak %d. Valid tweaks:\n\t"
+                      "TWEAK_FEEDBACK_THRESHOLD        = %d\n\t"
+                      "TWEAK_FEEDBACK_RATIO            = %d\n\t"
+                      "TWEAK_STOP_OFFSET               = %d\n\t"
+                      "TWEAK_TURNOUT_CLEARANCE         = %d\n\t"
+                      "TWEAK_REVERSE_STOP_TIME_PADDING = %d\n\t"
+                      "TWEAK_ACCELERATION_TIME_FUDGE   = %d\n",
+                      tweak,
+                      TWEAK_FEEDBACK_THRESHOLD,
+                      TWEAK_FEEDBACK_RATIO,
+                      TWEAK_STOP_OFFSET,
+                      TWEAK_TURNOUT_CLEARANCE,
+                      TWEAK_REVERSE_STOP_TIME_PADDING,
+                      TWEAK_ACCELERATION_TIME_FUDGE);
 
-int train_update_feedback_alpha(const int train, const int alpha) {
-    NORMALIZE_TRAIN(train_index, train);
-
-    if (alpha > NINTY_TEN) {
-        log("[Control] Invalid alpha value %d", alpha);
-        return INVALID_FEEDBACK_ALPHA;
+        ptr = log_end(ptr);
+        Puts(buffer, ptr - buffer);
+        return INVALID_TRAIN_TWEAK;
     }
 
     control_req req = {
-        .type = CONTROL_UPDATE_FEEDBACK_ALPHA,
+        .type = CONTROL_UPDATE_TWEAK,
         .arg1 = train_index,
-        .arg2 = alpha
+        .arg2 = tweak,
+        .arg3 = value
     };
 
     return Send(train_control_tid,
-                (char*)&req, sizeof(req) - sizeof(int),
-                NULL, 0);
-}
-
-int train_update_stop_offset(const int train, const int offset) {
-    NORMALIZE_TRAIN(train_index, train);
-
-    control_req req = {
-        .type = CONTROL_UPDATE_STOP_OFFSET,
-        .arg1 = train_index,
-        .arg2 = offset * 1000
-    };
-
-    return Send(train_control_tid,
-                (char*)&req, sizeof(req) - sizeof(int),
-                NULL, 0);
-}
-
-int train_update_clearance_offset(const int train, const int offset) {
-    NORMALIZE_TRAIN(train_index, train);
-
-    control_req req = {
-        .type = CONTROL_UPDATE_CLEARANCE_OFFSET,
-        .arg1 = train_index,
-        .arg2 = offset * 1000
-    };
-
-    return Send(train_control_tid,
-                (char*)&req, sizeof(req) - sizeof(int),
-                NULL, 0);
-}
-
-int train_update_reverse_time_fudge(const int train, const int fudge) {
-    NORMALIZE_TRAIN(train_index, train);
-
-    control_req req = {
-        .type = CONTROL_UPDATE_FUDGE_FACTOR,
-        .arg1 = train_index,
-        .arg2 = fudge
-    };
-
-    return Send(train_control_tid,
-                (char*)&req, sizeof(req) - sizeof(int),
+                (char*)&req, sizeof(req),
                 NULL, 0);
 }
 
