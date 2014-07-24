@@ -1193,8 +1193,8 @@ void train_blaster() {
             continue;
 
         case BLASTER_MASTER_CONTEXT: {
-            result = Reply(tid,
-                           (char*)&context, sizeof(struct blaster_context*));
+            struct blaster_context* const ctxt = &context;
+            result = Reply(tid, (char*)&ctxt, sizeof(ctxt));
             assert(result == 0,
                    "[%s] Failed to give context pointer to master (%d)",
                    context.name, result);
