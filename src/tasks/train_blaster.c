@@ -413,13 +413,21 @@ static void blaster_set_speed(blaster* const ctxt,
     }
 }
 
-static void blaster_master_set_speed(blaster* const ctxt,
-                                     const int speed,
-                                     const int time,
-                                     const int tid) {
+static inline void
+blaster_master_set_speed(blaster* const ctxt,
+                         const blaster_req* const req,
+                         const int time,
+                         const int tid) {
+
+    const int speed = req->arg1;
+
     blaster_set_speed(ctxt, speed, time);
-    // TODO: reply
-    UNUSED(tid);
+
+    const int result = Reply(tid, NULL, 0);
+    assert(result == 0,
+           "[%s] Failed to return master command courier (%d)",
+           ctxt->name, result);
+    UNUSED(result);
 }
 
 // mad h4x
@@ -474,8 +482,12 @@ static void blaster_master_reverse(blaster* const ctxt,
                                    const int time,
                                    const int tid) {
     blaster_reverse_step1(ctxt, time);
-    // TODO: reply
-    UNUSED(tid);
+
+    const int result = Reply(tid, NULL, 0);
+    assert(result == 0,
+           "[%s] Failed to return master courier (%d)",
+           ctxt->name, result);
+    UNUSED(result);
 }
 
 static void blaster_reverse_step1(blaster* const ctxt, const int time) {
@@ -1007,9 +1019,9 @@ static inline void blaster_wait(blaster* const ctxt,
     const int control = myParentTid();
 
     FOREVER {
-        int result = Send(control,
-                          (char*)callin, sizeof(control_req),
-                          (char*)&req,    sizeof(req));
+        const int result = Send(control,
+                                (char*)callin, sizeof(control_req),
+                                (char*)&req,    sizeof(req));
         if (result <= 0)
             ABORT("[%s] Bad train init (%d)", ctxt->name, result);
 
@@ -1028,8 +1040,8 @@ static inline void blaster_wait(blaster* const ctxt,
             break;
             // We should not get any of these as the first event
             // so we abort if we get them
-        case BLASTER_SHORT_MOVE:
         case BLASTER_MASTER_CHANGE_SPEED:
+        case BLASTER_SHORT_MOVE:
         case BLASTER_MASTER_REVERSE:
         case BLASTER_REVERSE2:
         case BLASTER_REVERSE3:
@@ -1060,7 +1072,6 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
 
-    // Tell the actual train to stop
     put_train_speed((char)ctxt->train_gid, 0);
 
     //I Want this to explicity never be changeable from here
@@ -1143,6 +1154,8 @@ void train_blaster() {
     blaster_wait(&context, &callin);
     blaster_init_couriers(&context, &package);
 
+    log("[%s] Initialized", context.name);
+
     int tid = 0;
     blaster_req req;
 
@@ -1159,7 +1172,7 @@ void train_blaster() {
             blaster_set_speed(&context, req.arg1, time);
             break;
         case BLASTER_MASTER_CHANGE_SPEED:
-            blaster_master_set_speed(&context, req.arg1, time, tid);
+            blaster_master_set_speed(&context, &req, time, tid);
             continue;
 
         case BLASTER_REVERSE:

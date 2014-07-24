@@ -64,6 +64,33 @@ static int master_new_delay_courier(master* const ctxt) {
 }
 
 static void
+master_set_speed(master* const ctxt,
+                 const int speed) {
+
+    struct {
+        int head;
+        blaster_req req;
+    } message = {
+        .head = ctxt->blaster,
+        .req  = {
+            .type = BLASTER_MASTER_CHANGE_SPEED,
+            .arg1 = speed
+        }
+    };
+
+    const int tid = Create(TRAIN_COURIER_PRIORITY, one_time_courier);
+    assert(tid >= 0,
+           "[%s] Failed to create one time courier (%d)",
+           ctxt->name, tid);
+
+    const int result = Send(tid, (char*)&message, sizeof(message), NULL, 0);
+    assert(result == 0,
+           "[%s] Failed to setup one time courier (%d)",
+           ctxt->name, result);
+    UNUSED(result);
+}
+
+static void
 master_stop_at_sensor(master* const ctxt,
                       const control_req* const pkg,
                       const int sensor_idx,
@@ -422,8 +449,7 @@ master_check_sensor_to_stop_at(master* const ctxt) {
     if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint &&
           ctxt->checkpoint_type == EVENT_SENSOR)) return;
 
-    // TODO: send this directly to blaster
-    train_set_speed(ctxt->train_gid, 0);
+    master_set_speed(ctxt, 0);
 
     ctxt->sensor_to_stop_at = -1;
     const sensor s = pos_to_sensor(ctxt->checkpoint);
@@ -486,7 +512,7 @@ master_stop_train(master* const ctxt, const int tid) {
 
     log("Stopping!");
     // TODO: courier this directly to the train?
-    train_set_speed(ctxt->train_gid, 0);
+    master_set_speed(ctxt, 0);
 
     const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
     assert(result == 0,
@@ -546,8 +572,8 @@ static TEXT_COLD void master_init(master* const ctxt) {
 }
 
 static TEXT_COLD void master_init_couriers(master* const ctxt,
-                                          const courier_package* const cpkg,
-                                          const courier_package* const bpkg) {
+                                           const courier_package* const cpkg,
+                                           const courier_package* const bpkg) {
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,
@@ -604,8 +630,11 @@ void train_master() {
         .size     = sizeof(blaster_callin)
     };
 
-    master_init_couriers(&context, &control_package, &blaster_package);
+    master_init_couriers(&context,
+                         &control_package,
+                         &blaster_package);
 
+    log("[%s] Initialized", context.name);
 
     FOREVER {
         int tid;
