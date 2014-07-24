@@ -173,6 +173,17 @@ static command parse_b(const char* const cmd, int* const buffer) {
     return CMD_BENCHMARK;
 }
 
+static command parse_a(const char* const cmd, int* const buffer) {
+    int index = 1;
+    UNUSED(buffer);
+
+    if (cmd[index++] != 'c')    return ERROR;
+    if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+    if (!isspace(cmd[index++])) return ERROR;
+
+    return CALIBRATE_ACCELERATION;
+}
+
 static command parse_h(const char* const cmd, int* const buffer) {
     int index = 1;
 
@@ -267,6 +278,7 @@ static command parse_n(const char* const cmd, int* const buffer) {
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
+    case 'a':  return parse_a(cmd, buffer);
     case 'b':  return parse_b(cmd, buffer);
     case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);

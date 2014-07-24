@@ -18,6 +18,8 @@ typedef enum {
     LOC_REVERSE,
     LOC_HORN,
 
+    CALIBRATE_ACCELERATION,
+
     GO,
     SHORT_MOVE,
 

@@ -25,6 +25,7 @@
 
 #include <tasks/train_control.h>
 #include <tasks/task_launcher.h>
+#include <tasks/calibrate.h>
 
 extern uint* _DataStart;
 extern uint* _DataKernEnd;
@@ -318,6 +319,12 @@ static void action(command cmd, int args[]) {
     case CMD_SENSOR_REVIVE: {
         revive_sensor_name(args[0], args[1]);
     }   break;
+
+    case CALIBRATE_ACCELERATION: {
+        int tid = Create(5, accelerate);
+        Send(tid, (char*)args, sizeof(int), NULL, 0);
+        break;
+    }
 
     case ERROR:
         log("invalid command");
