@@ -1180,7 +1180,8 @@ void train_blaster() {
 
         case BLASTER_MASTER_WHERE_ARE_YOU:
             context.master_courier = tid;
-            blaster_master_where_am_i(&context, time);
+            if (context.master_message)
+                blaster_master_where_am_i(&context, time);
             continue;
 
         case BLASTER_SHORT_MOVE:
