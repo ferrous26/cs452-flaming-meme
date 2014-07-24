@@ -112,6 +112,31 @@ void time_notifier() {
     } while (size != 0);
 }
 
+void one_time_courier() {
+
+    struct {
+        int  receiver;
+        char message [248];
+    } delay_req;
+
+    int tid;
+    const int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
+    assert(size >= (int)sizeof(int),
+           "Recived an invalid setup message %d / %d",
+           size, sizeof(delay_req.receiver));
+
+    const int result = Reply(tid, NULL, 0);
+    assert(result == 0, "Failed reposnding to setup task (%d)", result);
+    UNUSED(result);
+
+    const int send_size = size - (int)sizeof(int);
+    const int   result2 = Send(delay_req.receiver,
+                               delay_req.message, send_size,
+                               delay_req.message, sizeof(delay_req.message));
+    assert(result2 >= 0, "failed sending to receiver %d", result);
+    UNUSED(result2);
+}
+
 void delayed_one_way_courier() {
     struct {
         tdelay_header head;
@@ -141,9 +166,6 @@ void delayed_one_way_courier() {
                   delay_req.message, send_size,
                   delay_req.message, sizeof(delay_req.message));
     assert(result >= 0, "failed sending to receiver %d", result);
-
-
-    log("[DelayedCourrier%d] has died", myTid());
 }
 
 void courier() {
