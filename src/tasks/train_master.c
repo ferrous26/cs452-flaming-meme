@@ -11,6 +11,7 @@
 #include <tasks/clock_server.h>
 #include <tasks/mission_control.h>
 #include <tasks/train_blaster_types.h>
+#include <tasks/train_blaster_physics.h>
 
 // we want to clear a turnout by at least this much in order to compensate
 // for position error
