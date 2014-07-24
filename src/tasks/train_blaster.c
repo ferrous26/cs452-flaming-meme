@@ -143,8 +143,7 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
         .arg2 = truth.location.sensor,
         .arg3 = truth.location.offset + offset,
         .arg4 = time,
-        .arg5 = velocity,
-        .arg6 = physics_current_stopping_distance(ctxt)
+        .arg5 = truth.speed
     };
 
     const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));

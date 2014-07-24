@@ -20,7 +20,7 @@
 // we want to flip a turnout when we are
 #define TURNOUT_DISTANCE 300000
 
-typedef struct {
+typedef struct master_context {
     int              train_id;
     int              train_gid;
     char             name[32];
@@ -38,8 +38,7 @@ typedef struct {
     int              checkpoint;         // sensor we last had update at
     int              checkpoint_offset;  // in micrometers
     int              checkpoint_time;
-    int              checkpoint_velocity;
-    int              checkpoint_stopping_distance;
+    int              checkpoint_speed;
 
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
@@ -64,6 +63,18 @@ static int master_new_delay_courier(master* const ctxt) {
 
     return tid;
 }
+
+static int master_current_velocity(master* const ctxt) {
+    return physics_velocity(ctxt->blaster_ctxt,
+                            ctxt->checkpoint_speed,
+                            velocity_type(ctxt->checkpoint));
+}
+
+static int master_current_stopping_distance(master* const ctxt) {
+    return physics_stopping_distance(ctxt->blaster_ctxt,
+                                     ctxt->checkpoint_speed);
+}
+
 
 static void
 master_set_speed(master* const ctxt,
@@ -157,7 +168,7 @@ master_where_you_at(master* const ctxt,
 
     const int     time_delta = Time() - ctxt->checkpoint_time;
     const int distance_delta =
-        ctxt->checkpoint_offset + (ctxt->checkpoint_velocity * time_delta);
+        ctxt->checkpoint_offset + (master_current_velocity(ctxt) * time_delta);
 
     const track_location l = {
         .sensor = ctxt->checkpoint,
@@ -403,6 +414,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
     const path_node* const following_step =
         &ctxt->path[MAX(ctxt->path_steps - 2, 0)];
 
+    const int velocity = master_current_velocity(ctxt);
 
     // it is in the next sensor range, so calculate how long to wait
     log ("[%s]\tdist: %d\tturn: %d", ctxt->name, next_step->dist,
@@ -418,7 +430,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
         const path_node* const node = &ctxt->path[ctxt->turnout_step];
         const int danger_zone = turn_point - curr_step->dist;
 
-        const int delay = danger_zone / ctxt->checkpoint_velocity;
+        const int delay = danger_zone / velocity;
 
         master_delay_flip_turnout(ctxt,
                                   node->data.turnout.num,
@@ -435,9 +447,9 @@ static inline void master_simulate_pathing(master* const ctxt) {
         const path_node* const node = &ctxt->path[0];
 
         const int danger_zone =
-            (node->dist - ctxt->checkpoint_stopping_distance) -
+            (node->dist - master_current_stopping_distance(ctxt)) -
             curr_step->dist;
-        const int delay = danger_zone / ctxt->checkpoint_velocity;
+        const int delay = danger_zone / velocity;
 
         master_delay_stop(ctxt, delay);
         log("Gonna stop!");
@@ -466,12 +478,11 @@ static inline void master_location_update(master* const ctxt,
 
     // log("[%s] Got position update", ctxt->name);
 
-    ctxt->checkpoint_type              = req->arg1;
-    ctxt->checkpoint                   = req->arg2;
-    ctxt->checkpoint_offset            = req->arg3;
-    ctxt->checkpoint_time              = req->arg4;
-    ctxt->checkpoint_velocity          = req->arg5;
-    ctxt->checkpoint_stopping_distance = req->arg6;
+    ctxt->checkpoint_type   = req->arg1;
+    ctxt->checkpoint        = req->arg2;
+    ctxt->checkpoint_offset = req->arg3;
+    ctxt->checkpoint_time   = req->arg4;
+    ctxt->checkpoint_speed  = req->arg5;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     UNUSED(result);
