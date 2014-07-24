@@ -1,6 +1,6 @@
 
-#ifndef __BLASTER_T__
-#define __BLASTER_T__
+#ifndef __TRAIN_BLASTER_TYPES_H__
+#define __TRAIN_BLASTER_TYPES_H__
 
 #include <std.h>
 #include <track_node.h>

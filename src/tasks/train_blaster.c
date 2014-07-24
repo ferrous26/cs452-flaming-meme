@@ -16,7 +16,7 @@
 #include <tasks/mission_control.h>
 
 #include <tasks/train_blaster.h>
-#include <tasks/train_blaster/types.c>
+#include <tasks/train_blaster_types.h>
 #include <tasks/train_blaster/physics.c>
 
 #define TEMPORARY_ACCEL_FUDGE \
@@ -1054,6 +1054,7 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_SENSOR_FEEDBACK:
         case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
         case BLASTER_MASTER_WHERE_ARE_YOU:
+        case BLASTER_MASTER_CONTEXT:
         case BLASTER_REQ_TYPE_COUNT:
             ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
         }
@@ -1196,6 +1197,15 @@ void train_blaster() {
             if (context.master_message)
                 blaster_master_where_am_i(&context, time);
             continue;
+
+        case BLASTER_MASTER_CONTEXT: {
+            result = Reply(tid,
+                           (char*)&context, sizeof(struct blaster_context*));
+            assert(result == 0,
+                   "[%s] Failed to give context pointer to master (%d)",
+                   context.name, result);
+            continue;
+        }
 
         case BLASTER_SHORT_MOVE:
             blaster_short_move(&context, req.arg1);

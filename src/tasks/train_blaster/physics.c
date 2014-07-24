@@ -4,7 +4,7 @@
 
 #include <std.h>
 #include <debug.h>
-#include <tasks/train_blaster/types.c>
+#include <tasks/train_blaster_types.h>
 
 
 static void blaster_dump_velocity_table(blaster* const ctxt) {

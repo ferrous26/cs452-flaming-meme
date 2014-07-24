@@ -10,6 +10,7 @@
 #include <tasks/courier.h>
 #include <tasks/clock_server.h>
 #include <tasks/mission_control.h>
+#include <tasks/train_blaster_types.h>
 
 // we want to clear a turnout by at least this much in order to compensate
 // for position error
@@ -48,7 +49,7 @@ typedef struct {
     int              turnout_step;       // next turnout step
     int              reverse_step;       // next reverse step
 
-
+    struct blaster_context* const blaster_ctxt;
 } master;
 
 
@@ -558,6 +559,14 @@ static TEXT_COLD void master_init(master* const ctxt) {
     ctxt->my_tid  = myTid(); // cache it, avoid unneeded syscalls
     ctxt->blaster = init[1];
     ctxt->control = myParentTid();
+
+    blaster_req_type info = BLASTER_MASTER_CONTEXT;
+    result = Send(ctxt->blaster,
+                  (char*)&info, sizeof(info),
+                  (char*)&ctxt->blaster_ctxt, sizeof(struct blaster_context*));
+    assert(result > 0,
+           "[%s] Failed to get context pointer from blaster (%d)",
+           ctxt->name, result);
 
     ctxt->path_admin = WhoIs((char*)PATH_ADMIN_NAME);
     assert(ctxt->path_admin >= 0,

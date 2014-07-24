@@ -21,6 +21,7 @@ typedef enum {
     BLASTER_REVERSE4, // step 4 (used by delay courier)
 
     BLASTER_MASTER_WHERE_ARE_YOU,
+    BLASTER_MASTER_CONTEXT,
 
     BLASTER_DUMP_VELOCITY_TABLE,
     BLASTER_UPDATE_TWEAK,
