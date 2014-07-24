@@ -1115,8 +1115,8 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->dmap.terms[0].factor  = 34;
         ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->stop_dist_map.slope  =   6391;
-        ctxt->stop_dist_map.offset = -41611;
+        ctxt->stop_dist_map.slope  =   6803;
+        ctxt->stop_dist_map.offset = -64611;
 
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
@@ -1295,8 +1295,8 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->dmap.terms[0].factor  = 34;
         ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->stop_dist_map.slope  =   6948;
-        ctxt->stop_dist_map.offset = -60825;
+        ctxt->stop_dist_map.slope  =   7055;
+        ctxt->stop_dist_map.offset = -60500;
 
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
@@ -1475,8 +1475,8 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->dmap.terms[0].factor  = 34;
         ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->stop_dist_map.slope  =   7357;
-        ctxt->stop_dist_map.offset = -59043;
+        ctxt->stop_dist_map.slope  =   7208;
+        ctxt->stop_dist_map.offset = -60200;
 
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;
