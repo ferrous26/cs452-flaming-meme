@@ -119,9 +119,9 @@ control_spawn_thunderdome(const track_node* const track) {
 static inline void
 control_try_send_blaster(control_context* const ctxt, const int index) {
 
-    blaster_req req;
-
     if (ctxt->blaster[index].courier == -1) return; // no way to send work
+
+    blaster_req req;
 
     if (ctxt->blaster[index].speed >= 0) {
         req.type                   = BLASTER_CHANGE_SPEED;
@@ -152,8 +152,6 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
 
     } else { return; }
 
-    if (ctxt->master[index].courier == -1) return; // no way to send work
-
     const int result = Reply(ctxt->blaster[index].courier,
                              (char*)&req,
                              sizeof(req));
@@ -163,6 +161,8 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
 
 static inline void
 control_try_send_master(control_context* const ctxt, const int index) {
+
+    if (ctxt->master[index].courier == -1) return; // no way to send work
 
     master_req req;
 
@@ -334,6 +334,7 @@ void train_control() {
         case CONTROL_TOGGLE_HORN:
             control_toggle_horn(&context, tid, index);
             continue;
+
         case BLASTER_CONTROL_REQUEST_COMMAND:
             context.blaster[index].courier = tid;
             control_try_send_blaster(&context, index);
