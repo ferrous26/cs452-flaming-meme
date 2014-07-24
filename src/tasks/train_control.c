@@ -111,7 +111,7 @@ control_spawn_thunderdome(const track_node* const track) {
                       (char*)master_data, sizeof(master_data),
                       NULL, 0);
         assert(result == 0,
-               "[Control] Failed to send to aunty %d (%d)",
+               "[Control] Failed to send to master %d (%d)",
                train_num, result);
     }
 }
