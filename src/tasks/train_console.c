@@ -367,6 +367,16 @@ void train_console() {
 
                 try_send_sensor(&context, args[1]);
             }   break;
+            case 300: {
+                log(LOG_HEAD "Delay Until Sensor %d", args[1]);
+                CHECK_SENSOR(args[1]);
+
+                reject_remaining_sensors(&context);
+                context.sensor_iter++;
+                context.sensor_timeout = 0;
+
+                try_send_sensor(&context, args[1]);
+            }   break;
 
             default:
                 assert(result >= 3 * (int)sizeof(int),
