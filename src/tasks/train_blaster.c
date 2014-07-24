@@ -1108,21 +1108,21 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
 static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
                                             const courier_package* const package) {
 
-    // Setup the sensor courier
-    int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
-    assert(tid >= 0, "[%s] Failed creating train console (%d)",
-           ctxt->name, tid);
+    /* // Setup the sensor courier */
+    /* int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console); */
+    /* assert(tid >= 0, "[%s] Failed creating train console (%d)", */
+    /*        ctxt->name, tid); */
 
-    int c_init[2] = {ctxt->train_id, (int)ctxt->track};
-    int result    = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
-    assert(result == 0, "Failed to setup train console! (%d)", result);
+    /* int c_init[2] = {ctxt->train_id, (int)ctxt->track}; */
+    /* int result    = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0); */
+    /* assert(result == 0, "Failed to setup train console! (%d)", result); */
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,
            "[%s] Error setting up command courier (%d)",
            ctxt->name, control_courier);
 
-    result = Send(control_courier,
+    int result = Send(control_courier,
                   (char*)package, sizeof(courier_package),
                   NULL, 0);
     assert(result == 0,
