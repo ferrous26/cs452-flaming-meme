@@ -181,16 +181,12 @@ static void mc_reset_track_state(mc_context* const context) {
     mc_update_turnout(context, 3, 'C');
     mc_update_turnout(context, 4, 'S');
     mc_update_turnout(context, 5, 'C');
-    mc_update_turnout(context, 6, 'S'); // 6 frequently derails when curved
 
-    for (int i = 7; i < 16; i++)
+    for (int i = 6; i < 19; i++)
         mc_update_turnout(context, i, 'C');
 
-    mc_update_turnout(context,  16, 'S'); // 16 frequently derails when curved
-
-    for (int i = 17; i < 19; i++)
-        mc_update_turnout(context, i, 'C');
-
+    // we want to keep this default configuration because it
+    // optimizes fun
     mc_update_turnout(context, 153, 'S');
     mc_update_turnout(context, 154, 'C');
     mc_update_turnout(context, 155, 'S');
