@@ -501,7 +501,11 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
         return;
     }
 
-    ctxt->reverse_speed = truth.speed;
+    if (truth.is_accelerating)
+        ctxt->reverse_speed = current_accel.next_speed;
+    else
+        ctxt->reverse_speed = truth.speed;
+
     blaster_set_speed(ctxt, 0, time); // STAHP!
     ctxt->reversing = 1;
 }
@@ -636,19 +640,10 @@ blaster_process_acceleration_event(blaster* const ctxt,
                                    const int timestamp) {
 
     // do not process the event if it has been overridden by a future event
-    if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid)) {
-        // this causes a problem with reversing while accelerating:
-        // the speed that will be set when the reverse finishes is not
-        // the speed that the train thinks it currently has (it is half)...
-        // the real solution is more complicated than this, but at 3AM this
-        // is good enough (TM)
-        if (truth.is_accelerating)
-            ctxt->reverse_speed = current_accel.next_speed; // mad h4x
+    if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid))
         return;
-    }
-    else {
+    else
         ctxt->acceleration_courier = -1;
-    }
 
     last_accel                         = current_accel;
     current_accel.event                = EVENT_ACCELERATION;
