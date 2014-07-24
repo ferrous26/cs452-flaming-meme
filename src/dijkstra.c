@@ -64,16 +64,10 @@ int dijkstra(const track_node* const track,
         
         ptr = (track_node*) pq_delete(&q);
         if (reserve > 0) {
-            const int own_f = reserve_who_owns(ptr, DIR_FORWARD);
-            const int own_r = reserve_who_owns(ptr, DIR_REVERSE);
-
             reserve = total_reserve - curr_dist;
-            if ( own_f != -1
-               &&own_r != -1
-               &&own_f != opts->train_offset
-               &&own_r != opts->train_offset) {
-                log("Reservation in way of %d finding path around %d-%d",
-                    opts->train_offset, own_r, own_f);
+            if(!reserve_can_double(ptr, opts->train_offset)) {
+                log("Reservation in way of %d finding path around %s",
+                    opts->train_offset, ptr->name);
                 continue;
             }
         }

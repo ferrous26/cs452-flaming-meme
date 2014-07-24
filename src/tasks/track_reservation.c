@@ -11,9 +11,14 @@
 #include <tasks/name_server.h>
 #include <tasks/track_reservation.h>
 
-#define LOG_HEAD  "[TRACK RESERVATION]"
+#define LOG_HEAD  "[TRACK RESERVATION]\t"
 // #define DIR_FRONT 0
 // #define DIR_BACK  1
+
+
+#define NUM_RES_ENTRIES (NUM_TRAINS + 1)
+#define CHECK_TRAIN(train) assert(XBETWEEN(train, -1, NUM_RES_ENTRIES + 1), \
+                                  "Bad Register Train Num %d", train)       
 
 static int track_reservation_tid;
 
@@ -23,7 +28,10 @@ static const track_node* term_hack;
 typedef enum {
     RESERVE_SECTION,
     RESERVE_RELEASE,
-    RESERVE_WHO
+    RESERVE_CAN_DOUBLE,
+    RESERVE_WHO,
+
+    RESERVE_REQ_TYPE_COUNT
 } tr_req_type;
 
 typedef enum {
@@ -34,11 +42,7 @@ typedef enum {
 typedef struct { 
     const track_node* const track;
     int reserve[TRACK_MAX];
-    
-    struct {
-        const track_node* front;
-        const track_node* back;
-    } tracking[NUM_TRAINS + 1];
+    int reserved_nodes[NUM_TRAINS + 1];
     // extra space is reserved for the terminal
 } _context;
 
@@ -46,12 +50,10 @@ static TEXT_COLD void _init(_context* const ctxt) {
     int tid, result;
     
     memset(ctxt, -1, sizeof(*ctxt));
-    for (int i = 0; i < NUM_TRAINS+1; i++) {
-        ctxt->tracking[i].front = NULL;
-        ctxt->tracking[i].back  = NULL;
-    }
+    memset(ctxt->reserved_nodes, 0, sizeof(ctxt->reserved_nodes));
 
     result = RegisterAs((char*)TRACK_RESERVATION_NAME);
+    if (result != 0) ABORT(LOG_HEAD "failed to register name %d", result);
 
     result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
     assert(tid == myParentTid(),
@@ -98,28 +100,35 @@ is_node_adjacent(const track_node* const n1,
     return 0;
 }
 
+static inline int __attribute__((pure))
+get_node_index(_context* const ctxt, const track_node* const node) {
+    const int index = node - ctxt->track;
+    assert(XBETWEEN(index, -1, TRACK_MAX+1),
+           "Bad Track Node Index %d %p", index, node);
+    return index;
+}
+
 static void _handle_reserve_section(_context* const ctxt,
                                     const int tid,
                                     const track_node* const node,
                                     const int train) {
-    int result;
-    const int index = node - ctxt->track;
+    CHECK_TRAIN(train);    
+    const int index = get_node_index(ctxt, node);
     const int owner = ctxt->reserve[index];
+    int result, reply[] = {RESERVE_SUCCESS, 0};
     
-    assert(XBETWEEN(train, -1, NUM_TRAINS+2),
-           "Bad Register Train Num %d", train);
-    assert(XBETWEEN(index, -1, TRACK_MAX+1),
-           "Bad Track Node Index %d %p", index, node);
-          int reply[] = {RESERVE_SUCCESS, 0};
-
-   
-
     if (owner == -1) {
-        log(LOG_HEAD "Reserving Section %s For %d",
-            node->name, train);
+        log(LOG_HEAD "Reserving Section %s For %d", node->name, train);
 
-        reply[1]             = get_reserve_length(node);
+        if (ctxt->reserved_nodes[train]) {
+            //TODO: check for adj
+            // if its not adjacent we should maybe reject?
+        }
+
         ctxt->reserve[index] = train;
+        reply[1]             = get_reserve_length(node);
+        ctxt->reserved_nodes[train]++;
+
         result = Reply(tid, (char*)reply, sizeof(reply));
 
     } else if(owner == train) {
@@ -131,11 +140,10 @@ static void _handle_reserve_section(_context* const ctxt,
         reply[0] = RESERVE_FAILURE;
         reply[1] = owner;
 
-        log(LOG_HEAD "Rejecting owned section %s",
-            ctxt->track[index].name);
+        log(LOG_HEAD "train %d can't reserve %s, already owned by %d",
+            train, node->name, owner);
         result = Reply(tid, (char*)reply, sizeof(reply));
-    }
-    
+    } 
     assert(result == 0, "Failed to repond to track query");
 }
 
@@ -143,10 +151,11 @@ static void _handle_release_section(_context* const ctxt,
                                     const int tid,
                                     const track_node* const node,
                                     const int train) {
-    int result;
-    const int index = node - ctxt->track;
+    CHECK_TRAIN(train);    
+    const int index = get_node_index(ctxt, node);
     const int owner = ctxt->reserve[index];
-    
+    int result;
+
     assert(XBETWEEN(train, -1, NUM_TRAINS+2),
            "Bad Register Train Num %d", train);
     assert(XBETWEEN(index, -1, TRACK_MAX+1),
@@ -156,14 +165,14 @@ static void _handle_release_section(_context* const ctxt,
         node->name, train);
 
     if (owner == train) { 
-        const int reply[]    = {RESERVE_SUCCESS};
         ctxt->reserve[index] = -1;
-        result = Reply(tid, (char*)reply, sizeof(reply));
+        ctxt->reserved_nodes[train]--;
 
+        const int reply[]    = {RESERVE_SUCCESS};
+        result = Reply(tid, (char*)reply, sizeof(reply));
     } else {
         const int reply[] = {RESERVE_FAILURE, owner};
         result = Reply(tid, (char*)reply, sizeof(reply));
-
     }
 
     assert(result == 0, "Failed to repond to track query");
@@ -171,10 +180,7 @@ static void _handle_release_section(_context* const ctxt,
 
 static int _who_owns(_context* const ctxt,
                      const track_node* const node){
-    const int index = node - ctxt->track;
-    assert(XBETWEEN(index, -1, TRACK_MAX+1),
-           "Bad Track Node Index %d %p", index, node);
-
+    const int index = get_node_index(ctxt, node);
     return ctxt->reserve[index]; 
 }
 
@@ -199,26 +205,48 @@ void track_reservation() {
                               +sizeof(req.direction)),
                LOG_HEAD "Received invalid message (%d)",
                result);
-
-        const track_node* const node =
-            req.direction ? req.node->reverse : req.node;
+        assert(req.type < RESERVE_REQ_TYPE_COUNT,
+               LOG_HEAD"got invalid req type %d", req.type);
 
         switch (req.type) {
-        case RESERVE_SECTION:
+        case RESERVE_SECTION: {
+            const track_node* const node =
+                req.direction ? req.node->reverse : req.node;
             _handle_reserve_section(&context, tid, node, req.train_num);
-            break;
+        }   break;
 
-        case RESERVE_RELEASE:
+        case RESERVE_RELEASE: {
+            const track_node* const node =
+                req.direction ? req.node->reverse : req.node;
             _handle_release_section(&context, tid, node, req.train_num);
-            break;
+        }   break;
 
         case RESERVE_WHO: {
+            const track_node* const node =
+                req.direction ? req.node->reverse : req.node;
             const int owner = _who_owns(&context, node);
             log(LOG_HEAD "LOOKUP %d on %s", owner, node->name); 
             result = Reply(tid, (char*)&owner, sizeof(owner));
             assert(result == 0, "Failed to repond to track query");
         }   break;
 
+        case RESERVE_CAN_DOUBLE: {
+            int reply;
+            const int own1 = _who_owns(&context, req.node);
+            if (own1 != -1 || own1 == req.train_num) {
+                reply = 0;
+            } else {
+                const int own2 = _who_owns(&context, req.node->reverse);
+                reply = own2 == -1 && own2 != req.train_num; 
+            }
+            log(LOG_HEAD "LOOKUP %d - %d on %s",
+                req.train_num, reply, req.node->name);
+            result = Reply(tid, (char*)&reply, sizeof(reply));
+            assert(result == 0, "Failed to repond to track query");
+        }   break;
+
+        case RESERVE_REQ_TYPE_COUNT:
+            ABORT("GOT INVALID RESERVATION TYPE");
         }
     }
 }
@@ -289,6 +317,26 @@ int reserve_release(const track_node* const node,
     assert(size >= (int)sizeof(int), "Bad send to track reservation");
     return result[0];
 }
+
+int reserve_can_double(const track_node* const node, const int train) {
+    struct {
+        tr_req_type             type;
+        const track_node* const node;
+        int                     train;
+    } req = {
+        .type  = RESERVE_CAN_DOUBLE,
+        .node  = node,
+        .train = train
+    };
+
+    int size, result;
+    size = Send(track_reservation_tid,
+                (char*)&req,    sizeof(req),
+                (char*)&result, sizeof(result));
+    assert(size >= (int)sizeof(int), "Bad send to track reservation");
+    return result; 
+}
+
 int reserve_who_owns_term(const int node_index, const int dir) {
     return reserve_who_owns(&term_hack[node_index], dir);
 }
