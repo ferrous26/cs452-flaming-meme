@@ -284,7 +284,6 @@ void mission_control() {
         assert(result >= (int)sizeof(req.type),
                 "Invalid amount of data %d", result);
         assert(req.type < MC_TYPE_COUNT,  "Invalid MC Request %d", req.type);
-        log(LOG_HEAD "Mission Control %d", req.type);
 
         switch (req.type) {
         case MC_U_TURNOUT:
