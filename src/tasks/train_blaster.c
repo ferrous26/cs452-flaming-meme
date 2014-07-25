@@ -22,7 +22,6 @@
 #define TEMPORARY_ACCEL_FUDGE \
     (ctxt->acceleration_time_fudge_factor - (truth.speed / 5))
 
-static void blaster_resume_short_moving(blaster* const ctxt, const int time);
 static void blaster_master_reverse(blaster* const ctxt,
                                    const int time,
                                    const int tid);
@@ -777,6 +776,8 @@ blaster_process_acceleration_event(blaster* const ctxt,
 
     if (ctxt->reversing == 1)
         blaster_reverse_step2(ctxt);
+
+    UNUSED(timestamp);
 }
 
 static inline void
