@@ -42,20 +42,18 @@ typedef struct train_checkpoint {
 } train_checkpoint;
 
 typedef struct master_context {
-    // identifying variables 
+    // identifying variables
     int  train_id;
     int  train_gid;
     char name[32];
 
-    // the tids that are used by this 
+    // the tids that are used by this
     int my_tid;              // tid of self
     int blaster;             // tid of control task
     int control;             // tid of control task
     int path_admin;          // tid of the path admin
     int path_worker;         // tid of the path worker
     int mission_control_tid; // tid of mission control
-
-
 
     int              turnout_padding;
     train_checkpoint checkpoint;
@@ -564,10 +562,10 @@ void reserve_stop_dist(master* const ctxt,
     const int index                   = used_node - ctxt->track;
     assert(XBETWEEN(index, -1, TRACK_MAX+1), "bad track index %d", index);
 
-    const int res = get_reserve_length(used_node); 
+    const int res = get_reserve_length(used_node);
     lst[*insert]  = used_node;
-    *insert      += 1;      
-    // next reserve the forward direction; 
+    *insert      += 1;
+    // next reserve the forward direction;
 
     if (dir == 1) {
         reserve_stop_dist(ctxt, dist-res, 0, node, lst, insert);
@@ -579,18 +577,18 @@ void reserve_stop_dist(master* const ctxt,
     case NODE_SENSOR:
     case NODE_MERGE:
         reserve_stop_dist(ctxt, dist-res, 1, node->edge[DIR_AHEAD].dest,
-                          lst, insert); 
+                          lst, insert);
         break;
     case NODE_BRANCH:
         reserve_stop_dist(ctxt, dist-res, 1, node->edge[DIR_STRAIGHT].dest,
                           lst, insert);
         reserve_stop_dist(ctxt, dist-res, 1, node->edge[DIR_CURVED].dest,
-                          lst, insert); 
+                          lst, insert);
         break;
     case NODE_EXIT:
         break;
     case NODE_ENTER:
-        assert(false, "I'm legit curious if this can happen");
+        assert(false, "I'm legit curious if this can happen TROLOLO");
     }
 }
 
@@ -634,12 +632,12 @@ static inline void master_location_update(master* const ctxt,
     if (ctxt->active && ctxt->checkpoint.type != EVENT_ACCELERATION) {
         int   insert = 0;
         const track_node* path_way[40];
-    
+
         const int dist         = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
 
         reserve_stop_dist(ctxt, dist + 2000, 0, node, path_way, &insert);
-        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
+        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert);
 
         if (!reserve_section(ctxt->train_id, path_way, insert)) {
             log ("TRAIN DIEDDED");
@@ -647,7 +645,7 @@ static inline void master_location_update(master* const ctxt,
         }
     }
 
-    master_check_sensor_to_stop_at(ctxt); 
+    master_check_sensor_to_stop_at(ctxt);
     master_check_sensor_to_block_until(ctxt);
 
     if (ctxt->short_moving_distance &&
