@@ -127,14 +127,15 @@ void delayed_one_way_courier() {
     const int result = Reply(tid, NULL, 0);
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
 
-    switch (delay_req.head.type) {
-    case DELAY_RELATIVE:
-        Delay(delay_req.head.ticks);
-        break;
-    case DELAY_ABSOLUTE:
-        DelayUntil(delay_req.head.ticks);
-        break;
-    }
+    if (delay_req.head.ticks)
+        switch (delay_req.head.type) {
+        case DELAY_RELATIVE:
+            Delay(delay_req.head.ticks);
+            break;
+        case DELAY_ABSOLUTE:
+            DelayUntil(delay_req.head.ticks);
+            break;
+        }
 
     const int send_size = size - (int)sizeof(tdelay_header);
     const int result2 = Send(delay_req.head.receiver,
