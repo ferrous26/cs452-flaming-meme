@@ -78,6 +78,18 @@ static int master_current_stopping_distance(master* const ctxt) {
 }
 
 
+static void master_release_control_courier(master* const ctxt,
+                                           const control_req* const pkg,
+                                           const int tid) {
+
+    const int result = Reply(tid, (char*)pkg, sizeof(control_req));
+    assert(result == 0,
+           "[%s] Failed to send courier back to Lenin (%d)",
+           ctxt->name, result);
+    UNUSED(result);
+    UNUSED(ctxt);
+}
+
 static void
 master_set_speed(master* const ctxt,
                  const int speed) {
@@ -116,11 +128,7 @@ master_stop_at_sensor(master* const ctxt,
         ctxt->name, s.bank, s.num);
     ctxt->sensor_to_stop_at = sensor_idx;
 
-    const int result = Reply(tid, (char*)pkg, sizeof(control_req));
-    assert(result == 0,
-           "[%s] Failed to send courier back to Lenin (%d)",
-           ctxt->name, result);
-    UNUSED(result);
+    master_release_control_courier(ctxt, pkg, tid);
 }
 
 
@@ -149,11 +157,7 @@ static void master_update_tweak(master* const ctxt,
         break;
     }
 
-    const int result = Reply(request_tid, (char*)pkg, sizeof(control_req));
-    assert(result == 0,
-           "[%s] Failed to reply to control courier (%d)",
-           result);
-    UNUSED(result);
+    master_release_control_courier(ctxt, pkg, request_tid);
 }
 
 //static inline int
@@ -296,10 +300,7 @@ master_goto_command(master* const ctxt,
     }
 
     master_goto(ctxt, destination, offset);
-    const int result = Reply(tid, (char*)pkg, sizeof(control_req));
-    assert(result == 0,
-           "[%s] Did not wake up %d (%d)", ctxt->name, tid, result);
-    UNUSED(result);
+    master_release_control_courier(ctxt, pkg, tid);
 }
 
 static inline void master_calculate_turnout_point(master* const ctxt) {
@@ -480,11 +481,13 @@ static inline void master_location_update(master* const ctxt,
 
     // log("[%s] Got position update", ctxt->name);
 
-    ctxt->checkpoint_type   = req->arg1;
-    ctxt->checkpoint        = req->arg2;
-    ctxt->checkpoint_offset = req->arg3;
-    ctxt->checkpoint_time   = req->arg4;
-    ctxt->checkpoint_speed  = req->arg5;
+    ctxt->checkpoint_type            = req->arg1;
+    ctxt->checkpoint                 = req->arg2;
+    ctxt->checkpoint_offset          = req->arg3;
+    ctxt->checkpoint_time            = req->arg4;
+    ctxt->checkpoint_speed           = req->arg5;
+    ctxt->checkpoint_direction       = req->arg6;
+    ctxt->checkpoint_is_accelerating = req->arg7;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     UNUSED(result);
