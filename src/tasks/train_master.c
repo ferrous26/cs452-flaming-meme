@@ -44,7 +44,7 @@ typedef struct master_context {
     train_event      checkpoint_type;
     int              checkpoint;         // sensor we last had update at
     int              checkpoint_offset;  // in micrometers
-    int              checkpoint_time;
+    int              checkpoint_timestamp;
     int              checkpoint_speed;
     train_dir        checkpoint_direction;
     bool             checkpoint_is_accelerating;
@@ -113,7 +113,7 @@ master_set_speed(master* const ctxt, const int speed, const int delay) {
         blaster_req   req;
     } message = {
         .head = {
-            .type     = DELAY_RELATIVE,
+            .type     = DELAY_ABSOLUTE,
             .ticks    = delay,
             .receiver = ctxt->blaster
         },
@@ -181,7 +181,7 @@ static void master_update_tweak(master* const ctxt,
 static track_location
 master_current_location(master* const ctxt, const int time) {
 
-    const int     time_delta = time - ctxt->checkpoint_time;
+    const int     time_delta = time - ctxt->checkpoint_timestamp;
     const int distance_delta =
         ctxt->checkpoint_offset + (master_current_velocity(ctxt) * time_delta);
 
@@ -438,7 +438,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
         master_delay_flip_turnout(ctxt,
                                   node->data.turnout.num,
                                   node->data.turnout.dir,
-                                  ctxt->checkpoint_time + delay);
+                                  ctxt->checkpoint_timestamp + delay);
 
         master_calculate_turnout_point(ctxt);
     }
@@ -454,7 +454,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
             curr_step->dist;
         const int delay = danger_zone / velocity;
 
-        master_set_speed(ctxt, 0, delay);
+        master_set_speed(ctxt, 0, ctxt->checkpoint_timestamp + delay);
         log("Gonna stop!");
         ctxt->path_steps = -1;
     }
@@ -471,7 +471,7 @@ master_check_sensor_to_stop_at(master* const ctxt) {
     ctxt->sensor_to_stop_at = -1;
     const sensor s = pos_to_sensor(ctxt->checkpoint);
     log("[%s] Hit sensor %c%d at %d. Stopping!",
-        ctxt->name, s.bank, s.num, ctxt->checkpoint_time);
+        ctxt->name, s.bank, s.num, ctxt->checkpoint_timestamp);
 }
 
 static inline void master_location_update(master* const ctxt,
@@ -483,7 +483,7 @@ static inline void master_location_update(master* const ctxt,
     ctxt->checkpoint_type            = req->arg1;
     ctxt->checkpoint                 = req->arg2;
     ctxt->checkpoint_offset          = req->arg3;
-    ctxt->checkpoint_time            = req->arg4;
+    ctxt->checkpoint_timestamp       = req->arg4;
     ctxt->checkpoint_speed           = req->arg5;
     ctxt->checkpoint_direction       = req->arg6;
     ctxt->checkpoint_is_accelerating = req->arg7;
