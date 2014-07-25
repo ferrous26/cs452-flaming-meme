@@ -12,7 +12,9 @@ typedef struct thunderdome_context {
 void thunderdome() {
     context ctxt;
 
-    sprintf_string(ctxt.name, COLOUR(YELLOW) "Thunderdome" COLOUR_RESET);
+    char* ptr = sprintf_string(ctxt.name,
+                               COLOUR(YELLOW) "Thunderdome" COLOUR_RESET);
+    sprintf_char(ptr, '\0');
 
     log("[%s] Two trains enter, one train leaves", ctxt.name);
 }
