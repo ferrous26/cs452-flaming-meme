@@ -2,19 +2,21 @@
 #include <std.h>
 #include <debug.h>
 #include <track_data.h>
+
 #include <tasks/priority.h>
-#include <tasks/courier.h>
+#include <tasks/term_server.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
-#include <tasks/term_server.h>
-#include <tasks/train_console.h>
 #include <tasks/train_server.h>
-#include <tasks/train_master.h>
-#include <tasks/train_control.h>
+
+#include <tasks/courier.h>
 #include <tasks/path_admin.h>
 #include <tasks/path_worker.h>
+#include <tasks/train_console.h>
+#include <tasks/train_control.h>
 #include <tasks/mission_control.h>
 
+#include <tasks/train_master.h>
 #include <tasks/train_blaster.h>
 #include <tasks/train_blaster_types.h>
 #include <tasks/train_blaster/physics.c>

@@ -118,16 +118,16 @@ void delayed_one_way_courier() {
         char          message[244];
     } delay_req;
 
-    int tid;
+    int tid, result;
     const int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
     assert(size >= (int)sizeof(delay_req.head),
            "Recived an invalid setup message %d / %d",
            size, sizeof(delay_req.head));
 
-    const int result = Reply(tid, NULL, 0);
+    result = Reply(tid, NULL, 0);
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
 
-    if (delay_req.head.ticks)
+    if (delay_req.head.ticks) {
         switch (delay_req.head.type) {
         case DELAY_RELATIVE:
             Delay(delay_req.head.ticks);
@@ -136,12 +136,13 @@ void delayed_one_way_courier() {
             DelayUntil(delay_req.head.ticks);
             break;
         }
+    }
 
     const int send_size = size - (int)sizeof(tdelay_header);
-    const int result2 = Send(delay_req.head.receiver,
-                             delay_req.message, send_size,
-                             delay_req.message, sizeof(delay_req.message));
-    assert(result2 >= 0, "failed sending to receiver %d", result2);
+    result = Send(delay_req.head.receiver,
+                  delay_req.message, send_size,
+                  delay_req.message, sizeof(delay_req.message));
+    assert(result >= 0, "failed sending to receiver %d", result);
 }
 
 void courier() {

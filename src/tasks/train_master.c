@@ -26,6 +26,15 @@
 #define CHECK_WHOIS(tid, msg) \
 if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
 
+typedef struct train_checkpoint {
+    train_event type;
+    int         sensor;
+    int         offset;
+    int         timestamp;
+    int         speed;
+    train_dir   direction;
+    bool        is_accel;
+} train_checkpoint;
 
 typedef struct master_context {
     int              train_id;
@@ -40,14 +49,7 @@ typedef struct master_context {
     int              mission_control_tid; // tid of mission control
 
     int              turnout_padding;
-
-    train_event      checkpoint_type;
-    int              checkpoint;         // sensor we last had update at
-    int              checkpoint_offset;  // in micrometers
-    int              checkpoint_timestamp;
-    int              checkpoint_speed;
-    train_dir        checkpoint_direction;
-    bool             checkpoint_is_accelerating;
+    train_checkpoint checkpoint;
 
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
@@ -62,29 +64,15 @@ typedef struct master_context {
     struct blaster_context* const blaster_ctxt;
 } master;
 
-/*
-static int master_new_delay_courier(master* const ctxt) {
-    const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
-
-    assert(tid >= 0,
-           "[%s] Error setting up a timer notifier (%d)",
-           ctxt->name, tid);
-    UNUSED(ctxt);
-
-    return tid;
-}
-*/
-
-
 static int master_current_velocity(master* const ctxt) {
     return physics_velocity(ctxt->blaster_ctxt,
-                            ctxt->checkpoint_speed,
-                            velocity_type(ctxt->checkpoint));
+                            ctxt->checkpoint.speed,
+                            velocity_type(ctxt->checkpoint.sensor));
 }
 
 static int master_current_stopping_distance(master* const ctxt) {
     return physics_stopping_distance(ctxt->blaster_ctxt,
-                                     ctxt->checkpoint_speed);
+                                     ctxt->checkpoint.speed);
 }
 
 static inline int
@@ -181,12 +169,12 @@ static void master_update_tweak(master* const ctxt,
 static track_location
 master_current_location(master* const ctxt, const int time) {
 
-    const int     time_delta = time - ctxt->checkpoint_timestamp;
+    const int     time_delta = time - ctxt->checkpoint.timestamp;
     const int distance_delta =
-        ctxt->checkpoint_offset + (master_current_velocity(ctxt) * time_delta);
+        ctxt->checkpoint.offset + (master_current_velocity(ctxt) * time_delta);
 
     const track_location l = {
-        .sensor = ctxt->checkpoint,
+        .sensor = ctxt->checkpoint.sensor,
         .offset = distance_delta
     };
 
@@ -221,7 +209,7 @@ static inline bool master_try_fast_forward(master* const ctxt) {
 #ifdef DEBUG
             if (start == -1) start = i;
 #endif
-            if (ctxt->path[i].data.sensor == ctxt->checkpoint) {
+            if (ctxt->path[i].data.sensor == ctxt->checkpoint.sensor) {
 #ifdef DEBUG
                 if (start != i) {
                     const sensor head =
@@ -273,7 +261,7 @@ master_goto(master* const ctxt, const int destination, const int offset) {
             .requestor   = ctxt->my_tid,
             .header      = MASTER_PATH_DATA,
             .sensor_to   = destination,
-            .sensor_from = ctxt->checkpoint, // hmmm
+            .sensor_from = ctxt->checkpoint.sensor, // hmmm
             .opts        = PATH_NO_REVERSE_MASK | ctxt->train_id,
             .reserve     = 600,
         }
@@ -438,7 +426,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
         master_delay_flip_turnout(ctxt,
                                   node->data.turnout.num,
                                   node->data.turnout.dir,
-                                  ctxt->checkpoint_timestamp + delay);
+                                  ctxt->checkpoint.timestamp + delay);
 
         master_calculate_turnout_point(ctxt);
     }
@@ -454,7 +442,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
             curr_step->dist;
         const int delay = danger_zone / velocity;
 
-        master_set_speed(ctxt, 0, ctxt->checkpoint_timestamp + delay);
+        master_set_speed(ctxt, 0, ctxt->checkpoint.timestamp + delay);
         log("Gonna stop!");
         ctxt->path_steps = -1;
     }
@@ -463,15 +451,15 @@ static inline void master_simulate_pathing(master* const ctxt) {
 static inline void
 master_check_sensor_to_stop_at(master* const ctxt) {
 
-    if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint &&
-          ctxt->checkpoint_type == EVENT_SENSOR)) return;
+    if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint.sensor &&
+          ctxt->checkpoint.type == EVENT_SENSOR)) return;
 
     master_set_speed(ctxt, 0, 0);
 
     ctxt->sensor_to_stop_at = -1;
-    const sensor s = pos_to_sensor(ctxt->checkpoint);
+    const sensor s = pos_to_sensor(ctxt->checkpoint.sensor);
     log("[%s] Hit sensor %c%d at %d. Stopping!",
-        ctxt->name, s.bank, s.num, ctxt->checkpoint_timestamp);
+        ctxt->name, s.bank, s.num, ctxt->checkpoint.timestamp);
 }
 
 static inline void master_location_update(master* const ctxt,
@@ -480,13 +468,13 @@ static inline void master_location_update(master* const ctxt,
                                           const int tid) {
 
     // log("[%s] Got position update", ctxt->name);
-    ctxt->checkpoint_type            = req->arg1;
-    ctxt->checkpoint                 = req->arg2;
-    ctxt->checkpoint_offset          = req->arg3;
-    ctxt->checkpoint_timestamp       = req->arg4;
-    ctxt->checkpoint_speed           = req->arg5;
-    ctxt->checkpoint_direction       = req->arg6;
-    ctxt->checkpoint_is_accelerating = req->arg7;
+    ctxt->checkpoint.type      = req->arg1;
+    ctxt->checkpoint.sensor    = req->arg2;
+    ctxt->checkpoint.offset    = req->arg3;
+    ctxt->checkpoint.timestamp = req->arg4;
+    ctxt->checkpoint.speed     = req->arg5;
+    ctxt->checkpoint.direction = req->arg6;
+    ctxt->checkpoint.is_accel  = req->arg7;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     UNUSED(result);
