@@ -45,6 +45,7 @@ typedef struct master_context {
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
     int              sensor_to_stop_at;  // special case for handling ss command
+    int              short_moving_distance;
 
     int              path_steps;
     const path_node* path;
@@ -77,6 +78,11 @@ static int master_current_stopping_distance(master* const ctxt) {
                                      ctxt->checkpoint_speed);
 }
 
+static inline int
+master_turnout_stopping_distance(master* const ctxt) {
+    return master_current_stopping_distance(ctxt) +
+        ctxt->turnout_padding;
+}
 
 static void master_release_control_courier(master* const ctxt,
                                            const control_req* const pkg,
@@ -91,21 +97,24 @@ static void master_release_control_courier(master* const ctxt,
 }
 
 static void
-master_set_speed(master* const ctxt,
-                 const int speed) {
+master_set_speed(master* const ctxt, const int speed, const int delay) {
 
     struct {
-        int head;
-        blaster_req req;
+        tdelay_header head;
+        blaster_req   req;
     } message = {
-        .head = ctxt->blaster,
+        .head = {
+            .type     = DELAY_RELATIVE,
+            .ticks    = delay,
+            .receiver = ctxt->blaster
+        },
         .req  = {
             .type = BLASTER_MASTER_CHANGE_SPEED,
             .arg1 = speed
         }
     };
 
-    const int tid = Create(TRAIN_COURIER_PRIORITY, one_time_courier);
+    const int tid = Create(TRAIN_COURIER_PRIORITY, delayed_one_way_courier);
     assert(tid >= 0,
            "[%s] Failed to create one time courier (%d)",
            ctxt->name, tid);
@@ -160,19 +169,10 @@ static void master_update_tweak(master* const ctxt,
     master_release_control_courier(ctxt, pkg, request_tid);
 }
 
-//static inline int
-//physics_turnout_stopping_distance(const master* const ctxt) {
-//    return physics_current_stopping_distance(ctxt) +
-//        ctxt->turnout_padding;
-//}
+static track_location
+master_current_location(master* const ctxt, const int time) {
 
-static void
-master_where_you_at(master* const ctxt,
-                    const control_req* const pkg,
-                    const int request_tid,
-                    const int courier_tid) {
-
-    const int     time_delta = Time() - ctxt->checkpoint_time;
+    const int     time_delta = time - ctxt->checkpoint_time;
     const int distance_delta =
         ctxt->checkpoint_offset + (master_current_velocity(ctxt) * time_delta);
 
@@ -181,17 +181,24 @@ master_where_you_at(master* const ctxt,
         .offset = distance_delta
     };
 
-    const int result1 = Reply(request_tid, (char*)&l, sizeof(l));
-    assert(result1 == 0,
-           "[%s] Failed to respond to whereis command (%d)",
-           result1);
-    UNUSED(result1);
+    return l;
+}
 
-    const int result2 = Reply(courier_tid, (char*)pkg, sizeof(control_req));
-    assert(result2 == 0,
+static void
+master_where_you_at(master* const ctxt,
+                    const control_req* const pkg,
+                    const int request_tid,
+                    const int courier_tid) {
+
+    const track_location l = master_current_location(ctxt, Time());
+
+    const int result = Reply(request_tid, (char*)&l, sizeof(l));
+    assert(result == 0,
            "[%s] Failed to respond to whereis command (%d)",
-           result2);
-    UNUSED(result2);
+           result);
+    UNUSED(result);
+
+    master_release_control_courier(ctxt, pkg, courier_tid);
 }
 
 static inline bool master_try_fast_forward(master* const ctxt) {
@@ -386,28 +393,6 @@ static void master_delay_flip_turnout(master* const ctxt,
         ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
 }
 
-static void master_delay_stop(master* const ctxt,
-                              const int delay) {
-    const int c = master_new_delay_courier(ctxt);
-
-    struct {
-        tnotify_header head;
-        master_req     req;
-    } msg = {
-        .head = {
-            .type  = DELAY_ABSOLUTE,
-            .ticks = ctxt->checkpoint_time + delay
-        },
-        .req = {
-            .type = MASTER_STOP_TRAIN
-        }
-    };
-
-    const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
-    if (result < 0)
-        ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
-}
-
 static inline void master_simulate_pathing(master* const ctxt) {
 
     const path_node* const curr_step =
@@ -454,7 +439,7 @@ static inline void master_simulate_pathing(master* const ctxt) {
             curr_step->dist;
         const int delay = danger_zone / velocity;
 
-        master_delay_stop(ctxt, delay);
+        master_set_speed(ctxt, 0, delay);
         log("Gonna stop!");
         ctxt->path_steps = -1;
     }
@@ -466,7 +451,7 @@ master_check_sensor_to_stop_at(master* const ctxt) {
     if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint &&
           ctxt->checkpoint_type == EVENT_SENSOR)) return;
 
-    master_set_speed(ctxt, 0);
+    master_set_speed(ctxt, 0, 0);
 
     ctxt->sensor_to_stop_at = -1;
     const sensor s = pos_to_sensor(ctxt->checkpoint);
@@ -530,7 +515,7 @@ master_stop_train(master* const ctxt, const int tid) {
 
     log("Stopping!");
     // TODO: courier this directly to the train?
-    master_set_speed(ctxt, 0);
+    master_set_speed(ctxt, 0, 0);
 
     const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
     assert(result == 0,
@@ -674,6 +659,9 @@ void train_master() {
         switch (req.type) {
         case MASTER_GOTO_LOCATION:
             master_goto_command(&context, &req, &control_callin, tid);
+            break;
+
+        case MASTER_SHORT_MOVE:
             break;
 
         case MASTER_STOP_AT_SENSOR:
