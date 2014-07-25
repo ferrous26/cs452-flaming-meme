@@ -571,8 +571,8 @@ void reserve_stop_dist(master* const ctxt,
     if (dist <= 0) return;
 
     const track_node* const used_node = dir ? node->reverse : node;
-    const int index                   = used_node - ctxt->track;
-    assert(XBETWEEN(index, -1, TRACK_MAX+1), "bad track index %d", index);
+    assert(XBETWEEN(used_node - ctxt->track, -1, TRACK_MAX+1),
+           "bad track index %d", used_node - ctxt->track);
 
     const int res = get_reserve_length(used_node);
     lst[*insert]  = used_node;
@@ -614,6 +614,7 @@ master_check_sensor_to_block_until(master* const ctxt) {
     assert(result == 0,
            "[%s] Fuuuuu at %d (%d)",
            ctxt->name, ctxt->sensor_block.tid, result);
+    UNUSED(result);
 
     log("[%s] Waking up %d", ctxt->name, ctxt->sensor_block.tid);
 
@@ -648,11 +649,11 @@ static inline void master_location_update(master* const ctxt,
         const int dist         = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
 
-        reserve_stop_dist(ctxt, dist + 2000, 0, node, path_way, &insert);
-        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert);
+        reserve_stop_dist(ctxt, dist + 100000, 1, node, path_way, &insert);
+        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
 
         if (!reserve_section(ctxt->train_id, path_way, insert)) {
-            log ("TRAIN DIEDDED");
+            log ("TRAIN Encrouching");
             master_set_speed(ctxt, 0, 0);
         }
     }
