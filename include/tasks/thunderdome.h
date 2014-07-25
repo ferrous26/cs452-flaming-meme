@@ -4,6 +4,6 @@
 
 #include <std.h>
 
-void __attribute__ ((noreturn)) thunderdome(void);
+void thunderdome(void);
 
 #endif
