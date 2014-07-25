@@ -64,6 +64,10 @@ ifdef STRICT
 CFLAGS += -Werror
 endif
 
+ifdef NO_TRAIN_CONSOLE
+CFLAGS += -D NO_TRAIN_CONSOLE
+endif
+
 CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99 -fomit-frame-pointer
 CFLAGS += -c -Isrc -I. -Iinclude -mcpu=arm920t
 
