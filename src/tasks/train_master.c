@@ -39,7 +39,7 @@ typedef struct master_context {
     int              checkpoint_offset;  // in micrometers
     int              checkpoint_time;
     int              checkpoint_speed;
-    train_direction  checkpoint_direction;
+    train_dir        checkpoint_direction;
     bool             checkpoint_is_accelerating;
 
     int              destination;        // destination sensor

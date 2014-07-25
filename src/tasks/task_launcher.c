@@ -19,6 +19,7 @@
 #include <tasks/mission_control.h>
 #include <tasks/sensor_farm.h>
 #include <tasks/track_reservation.h>
+#include <tasks/thunderdome.h>
 
 #include <tasks/courier.h>
 #include <tasks/path_admin.h>
