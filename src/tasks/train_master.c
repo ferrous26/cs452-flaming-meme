@@ -563,7 +563,7 @@ int reserve_stop_dist(master* const ctxt,
 
     int res;
     if (!ctxt->reserved[index]) {
-        res = reserve_section(used_node, 0, ctxt->train_id);
+        // res = reserve_section(used_node, 0, ctxt->train_id);
     } else {
         res = get_reserve_length(used_node);
     }
@@ -627,7 +627,6 @@ static inline void master_location_update(master* const ctxt,
     ctxt->checkpoint.direction = req->arg6;
     ctxt->checkpoint.is_accel  = req->arg7;
 
-    if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
@@ -635,6 +634,7 @@ static inline void master_location_update(master* const ctxt,
            ctxt->name, result);
     UNUSED(result);
 
+    if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
     if (ctxt->active) {
         const int dist         = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];

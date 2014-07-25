@@ -211,34 +211,36 @@ int dijkstra(const track_node* const track,
     }
 
     ptr = path_ptr;
-
+    
+    int i = 0;
     *reserved_dist = 0;
+    const track_node* reservation[TRACK_MAX];
+    
     while (*reserved_dist < total_reserve) {
+        log("%s", path_ptr->name);
         const int index = path_ptr - track;
 
-        const int res_2 =
-            reserve_section(path_ptr, DIR_REVERSE, opts->train_offset);
-        const int res_1 = 
-            reserve_section(path_ptr, DIR_FORWARD, opts->train_offset);
+        reservation[i++] = path_ptr->reverse;
+        *reserved_dist += get_reserve_length(path_ptr->reverse);
+        log("%d %d %d", i, *reserved_dist, total_reserve);
 
-        while (res_1 < 0 || res_2 < 0) {
-            reserve_release(ptr, DIR_FORWARD, opts->train_offset);
-            reserve_release(ptr, DIR_REVERSE, opts->train_offset);
-            if (ptr == path_ptr) return -100;
-            ptr = data[ptr - track].next;
-        }
-        *reserved_dist += res_1;
-        *reserved_dist += res_2;
+        reservation[i++] = path_ptr;
+        *reserved_dist += get_reserve_length(path_ptr);
+        log("%d %d", i, *reserved_dist);
 
         if (data[index].next == path_ptr) break;
         path_ptr = data[index].next;
     }
 
     if (path_ptr != opts->start) {
-        path[path_size].type = PATH_REVERSE;
         // since this is the first command in the path, must be 0
+        path[path_size].type = PATH_REVERSE;
         path[path_size].dist = 0;
         path_size++;
+    }
+    
+    if (i && !reserve_section(opts->train_offset, reservation, i)) {
+        return -1;
     }
 
     return path_size;

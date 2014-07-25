@@ -262,12 +262,6 @@ static command parse_n(const char* const cmd, int* const buffer) {
 	if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
         if (!isspace(cmd[index++]))                       return ERROR;
         return CMD_RESERVE_NODE;
-    case 'r':
-	if (parse_argument(cmd, 'i', &index, &buffer[0])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
-        if (!isspace(cmd[index++]))                       return ERROR;
-        return CMD_RELEASE_NODE;
     case 'w':
 	if (parse_argument(cmd, 'i', &index, &buffer[0])) return ERROR;
 	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;

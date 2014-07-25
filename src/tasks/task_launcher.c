@@ -299,17 +299,12 @@ static void action(command cmd, int args[]) {
     }   break;
 
     case CMD_RESERVE_NODE: {
-        int res = reserve_section_term(args[1], args[2], args[0]);
+        int res = reserve_section_term(args[1], args[0]);
         log("RESERVE: %d", res);
     }   break;
 
-    case CMD_RELEASE_NODE: {
-        int res = reserve_section_term(args[1], args[2], args[0]);
-        log("RELEASE: %d", res);
-    }   break;
-
     case CMD_LOOKUP_RESERVATION: {
-        int res = reserve_who_owns_term(args[0], args[1]);
+        int res = reserve_who_owns_term(args[0]);
         log("LOOKUP: %d", res);
     }   break;
 
