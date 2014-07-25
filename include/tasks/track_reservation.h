@@ -8,6 +8,8 @@
 #define DIR_REVERSE 1
 
 void __attribute__((noreturn)) track_reservation(void);
+int  __attribute__((pure)) get_reserve_length(const track_node* const node);
+
 
 int reserve_who_owns(const track_node* const node, const int dir);
 int reserve_section(const track_node* const node, const int dir, const int train);

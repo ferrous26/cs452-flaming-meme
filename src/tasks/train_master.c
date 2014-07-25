@@ -1,20 +1,25 @@
-
+#include <std.h>
 #include <debug.h>
-#include <tasks/train_master.h>
-#include <tasks/train_blaster.h>
-#include <tasks/train_control.h>
-#include <tasks/path_admin.h>
-#include <tasks/path_worker.h>
-#include <tasks/name_server.h>
+#include <track_data.h>
+
 #include <tasks/priority.h>
 #include <tasks/courier.h>
+#include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
+#include <tasks/track_reservation.h>
 
+#include <tasks/path_admin.h>
+#include <tasks/path_worker.h>
+
+#include <tasks/train_control.h>
+#include <tasks/train_blaster.h>
 #include <tasks/train_blaster_types.h>
 #include <tasks/train_blaster_physics.h>
+
+#include <tasks/train_master.h>
 
 // we want to clear a turnout by at least this much in order to compensate
 // for position error
@@ -62,6 +67,9 @@ typedef struct master_context {
     int              reverse_step;       // next reverse step
 
     struct blaster_context* const blaster_ctxt;
+
+    int reserved[TRACK_MAX];
+    const track_node* const track;
 } master;
 
 static int master_current_velocity(master* const ctxt) {
@@ -462,6 +470,53 @@ master_check_sensor_to_stop_at(master* const ctxt) {
         ctxt->name, s.bank, s.num, ctxt->checkpoint.timestamp);
 }
 
+int reserve_stop_dist(master* const ctxt,
+                      const int dist,
+                      const int dir,
+                      const track_node* const node) {
+    if (dist <= 0) return true;
+
+    const track_node* const used_node = dir ? node : node->reverse;
+    const int index                   = used_node - ctxt->track;
+    assert(XBETWEEN(index, -1, TRACK_MAX+1), "bad track index %d", index);
+
+    int res;
+    if (!ctxt->reserved[index]) {
+        res = reserve_section(used_node, 0, ctxt->train_id);
+    } else {
+        res = get_reserve_length(used_node);
+    }
+   
+    // can't reserve section, return false 
+    if (res < 0)  return false;
+    // mark that this node has been reserved
+    ctxt->reserved[index] = 1;
+
+    // next reserve the forward direction; 
+    if (dir == 1) return reserve_stop_dist(ctxt, dist-res, 0, node);
+
+    switch (node->type) {
+    case NODE_NONE:
+    case NODE_SENSOR:
+    case NODE_MERGE:
+        return reserve_stop_dist(ctxt, dist-res, 1,
+                                 node->edge[DIR_AHEAD].dest); 
+    case NODE_BRANCH:
+        return reserve_stop_dist(ctxt, dist-res, 1,
+                                 node->edge[DIR_STRAIGHT].dest)
+            && reserve_stop_dist(ctxt, dist-res, 1,
+                                 node->edge[DIR_CURVED].dest); 
+    case NODE_EXIT:
+        //possibly going over an exit but hopefully not
+        return true;
+    case NODE_ENTER:
+        assert(false, "I'm legit curious if this can happen");
+    }
+
+    return false;
+}
+
+
 static inline void master_location_update(master* const ctxt,
                                           const master_req* const req,
                                           const blaster_req* const pkg,
@@ -477,13 +532,16 @@ static inline void master_location_update(master* const ctxt,
     ctxt->checkpoint.is_accel  = req->arg7;
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
-    UNUSED(result);
     assert(result == 0,
            "[%s] Failed to send courier back to blaster (%d)",
            ctxt->name, result);
+    UNUSED(result);
+
+    const int dist         = master_current_stopping_distance(ctxt);
+    const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
+    reserve_stop_dist(ctxt, dist, 0, node);
 
     master_check_sensor_to_stop_at(ctxt);
-
     if (ctxt->path_steps >= 0) {
         if (master_try_fast_forward(ctxt)) {
             master_simulate_pathing(ctxt);
@@ -510,7 +568,6 @@ master_stop_train(master* const ctxt, const int tid) {
 }
 
 static TEXT_COLD void master_init(master* const ctxt) {
-
     memset(ctxt, 0, sizeof(master));
 
     int tid;
@@ -554,6 +611,9 @@ static TEXT_COLD void master_init(master* const ctxt) {
     assert(result > 0,
            "[%s] Failed to get context pointer from blaster (%d)",
            ctxt->name, result);
+    //TODO: I dont like this but easier than passing both pointers
+    *(const track_node**)&ctxt->track = ctxt->blaster_ctxt->track;
+
 
     ctxt->path_admin = WhoIs((char*)PATH_ADMIN_NAME);
     CHECK_WHOIS(ctxt->path_admin, "I started before path admin!");

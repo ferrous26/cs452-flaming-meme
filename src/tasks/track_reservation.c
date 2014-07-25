@@ -66,8 +66,7 @@ static TEXT_COLD void _init(_context* const ctxt) {
     term_hack = ctxt->track;
 }
 
-static inline int __attribute__((pure))
-get_reserve_length(const track_node* const node) {
+int get_reserve_length(const track_node* const node) {
     int result = 0;
     
     if (node->type == NODE_BRANCH)
@@ -231,14 +230,13 @@ void track_reservation() {
         }   break;
 
         case RESERVE_CAN_DOUBLE: {
-            int reply;
+            int reply = 0;
             const int own1 = _who_owns(&context, req.node);
-            if (own1 != -1 || own1 == req.train_num) {
-                reply = 0;
-            } else {
+            if (own1 == -1 || own1 == req.train_num) {
                 const int own2 = _who_owns(&context, req.node->reverse);
-                reply = own2 == -1 && own2 != req.train_num; 
+                reply          = (own2 == -1 || own2 == req.train_num); 
             }
+
             log(LOG_HEAD "LOOKUP %d - %d on %s",
                 req.train_num, reply, req.node->name);
             result = Reply(tid, (char*)&reply, sizeof(reply));
