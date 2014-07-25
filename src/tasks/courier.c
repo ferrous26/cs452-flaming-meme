@@ -112,44 +112,20 @@ void time_notifier() {
     } while (size != 0);
 }
 
-void one_time_courier() {
+void delayed_one_way_courier() {
 
     struct {
-        int  receiver;
-        char message [248];
+        tdelay_header head;
+        char          message[244];
     } delay_req;
 
     int tid;
     const int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
-    assert(size >= (int)sizeof(int),
-           "Recived an invalid setup message %d / %d",
-           size, sizeof(delay_req.receiver));
-
-    const int result = Reply(tid, NULL, 0);
-    assert(result == 0, "Failed reposnding to setup task (%d)", result);
-    UNUSED(result);
-
-    const int send_size = size - (int)sizeof(int);
-    const int   result2 = Send(delay_req.receiver,
-                               delay_req.message, send_size,
-                               delay_req.message, sizeof(delay_req.message));
-    assert(result2 >= 0, "failed sending to receiver %d", result);
-    UNUSED(result2);
-}
-
-void delayed_one_way_courier() {
-    struct {
-        tdelay_header head;
-        char          message [244];
-    } delay_req;
-
-    int tid;
-    int size = Receive(&tid, (char*)&delay_req, sizeof(delay_req));
     assert(size >= (int)sizeof(delay_req.head),
            "Recived an invalid setup message %d / %d",
            size, sizeof(delay_req.head));
 
-    int result = Reply(tid, NULL, 0);
+    const int result = Reply(tid, NULL, 0);
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
 
     switch (delay_req.head.type) {
@@ -162,10 +138,10 @@ void delayed_one_way_courier() {
     }
 
     const int send_size = size - (int)sizeof(delay_req);
-    result = Send(delay_req.head.receiver,
-                  delay_req.message, send_size,
-                  delay_req.message, sizeof(delay_req.message));
-    assert(result >= 0, "failed sending to receiver %d", result);
+    const int result2 = Send(delay_req.head.receiver,
+                             delay_req.message, send_size,
+                             delay_req.message, sizeof(delay_req.message));
+    assert(result2 >= 0, "failed sending to receiver %d", result2);
 }
 
 void courier() {
