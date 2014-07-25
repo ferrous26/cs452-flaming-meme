@@ -9,54 +9,58 @@
 #include <char_buffer.h>
 #include <tasks/track_reservation.h>
 
-typedef void* vptr; //needed to handle the type_buffer properly
-
 #define RESERVE_DIST 
 #define HEAP_SIZE    (TRACK_MAX+1)
-TYPE_BUFFER(vptr, HEAP_SIZE);
+
+typedef struct dijkstra_data {
+    int dist;
+    int dir;
+    const track_node* prev;
+    const track_node* next;
+} data_t;
 
 
+inline static void prime_search(const path_requisition* const opts,
+                                const track_node* ptr,
+                                data_t data[HEAP_SIZE],
+                                priority_queue* const q) {
+
+    for (int i = 0; i < TRACK_MAX; i++, ptr++) {
+        if (ptr == opts->start) {
+            data[i].prev = opts->start;
+            data[i].dist = 0;
+            data[i].dir  = 0;
+            pq_add(q, 0, (int)ptr);
+        } else if (opts->allow_start_reverse && ptr == opts->start->reverse) {
+            data[i].prev = opts->start->reverse;
+            data[i].dist = 0;
+            data[i].dir  = 0;
+            pq_add(q, 0, (int)ptr);
+        } else {
+            data[i].prev = NULL;
+            data[i].dist = INT_MAX;
+            pq_add(q, INT_MAX, (int)ptr);
+        }
+    }
+}
 
 int dijkstra(const track_node* const track,
              const path_requisition* const opts,
              path_node* const path,
              int* const reserved_dist) {
 
-    struct {
-        int dist;
-        int dir;
-        const track_node* prev;
-        const track_node* next;
-    } data[TRACK_MAX];
-
-    pq_node        heap[HEAP_SIZE];
-    priority_queue q;
+    data_t            data[HEAP_SIZE];
+    pq_node           heap[HEAP_SIZE];
+    priority_queue    q;
+    const track_node* ptr;
+    const int         total_reserve = opts->reserve_dist;
+    int               reserve       = total_reserve;
+    int direction                   = 0;
+    
     pq_init(&q, heap, HEAP_SIZE);
-
-    const track_node* ptr = track;
-    for (int i = 0; i < TRACK_MAX; i++, ptr++) {
-        if (ptr == opts->start) {
-            data[i].prev = opts->start;
-            data[i].dist = 0;
-            data[i].dir  = 0;
-            pq_add(&q, 0, (int)ptr);
-        } else if (opts->allow_start_reverse && ptr == opts->start->reverse) {
-            data[i].prev = opts->start->reverse;
-            data[i].dist = 0;
-            data[i].dir  = 0;
-            pq_add(&q, 0, (int)ptr);
-        } else {
-            data[i].prev = NULL;
-            data[i].dist = INT_MAX;
-            pq_add(&q, INT_MAX, (int)ptr);
-        }
-    }
-
-    const int total_reserve = opts->reserve_dist;
-    int reserve             = total_reserve;
-    int direction           = 0;
-
-    while (1) {
+    prime_search(opts, track, data, &q);
+    
+    FOREVER {
         const int curr_dist = pq_peek_key(&q);
         if (INT_MAX == curr_dist) {
             log("NO PATH EXISTS!\n");
@@ -207,11 +211,9 @@ int dijkstra(const track_node* const track,
     }
 
     ptr = path_ptr;
-    
-    int dist = 0;
-    *reserved_dist = 0;
 
-    while (dist < total_reserve) {
+    *reserved_dist = 0;
+    while (*reserved_dist < total_reserve) {
         const int index = path_ptr - track;
 
         const int res_2 =
@@ -241,3 +243,4 @@ int dijkstra(const track_node* const track,
 
     return path_size;
 }
+

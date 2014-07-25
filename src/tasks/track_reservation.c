@@ -35,8 +35,9 @@ typedef enum {
 } tr_req_type;
 
 typedef enum {
-    RESERVE_SUCCESS,
     RESERVE_FAILURE,
+    RESERVE_SUCCESS,
+    RESERVE_ALREADY_OWN,
 } tr_reply_type;
 
 typedef struct { 
@@ -147,7 +148,7 @@ static void _handle_reserve_section(_context* const ctxt,
     CHECK_TRAIN(train);    
     const int index = get_node_index(ctxt, node);
     const int owner = ctxt->reserve[index];
-    int result, reply[] = {RESERVE_SUCCESS, 0};
+    int result;
     
     if (owner == -1) {
         log(LOG_HEAD "Reserving Section %s For %d", node->name, train);
@@ -159,22 +160,21 @@ static void _handle_reserve_section(_context* const ctxt,
             } 
         }
 
-        ctxt->reserve[index] = train;
-        reply[1]             = get_reserve_length(node);
         ctxt->reserved_nodes[train]++;
-        result = Reply(tid, (char*)reply, sizeof(reply));
+        ctxt->reserve[index] = train;
+        int reply[]          = {RESERVE_SUCCESS, get_reserve_length(node)};
+        result               = Reply(tid, (char*)reply, sizeof(reply));
     } else if(owner == train) {
-        log(LOG_HEAD "Already Reserved Section %s For %d",
-            node->name, train);
-        reply[1] = get_reserve_length(node);
-        result   = Reply(tid, (char*)reply, sizeof(reply));
-    } else {
-        reply[0] = RESERVE_FAILURE;
-        reply[1] = owner;
+        log(LOG_HEAD "Already Reserved Section %s For %d", node->name, train);
+        int reply[] = {RESERVE_ALREADY_OWN, get_reserve_length(node)};
+        result      = Reply(tid, (char*)reply, sizeof(reply));
 
+    } else {
         log(LOG_HEAD "train %d can't reserve %s, already owned by %d",
             train, node->name, owner);
-        result = Reply(tid, (char*)reply, sizeof(reply));
+
+        int reply[] = {RESERVE_FAILURE, owner};
+        result      = Reply(tid, (char*)reply, sizeof(reply));
     } 
     assert(result == 0, "Failed to repond to track query");
 }
