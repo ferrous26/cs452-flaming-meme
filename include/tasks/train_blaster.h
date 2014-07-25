@@ -26,10 +26,6 @@ typedef enum {
     BLASTER_DUMP_VELOCITY_TABLE,
     BLASTER_UPDATE_TWEAK,
 
-    // TODO: move these to train_master (need to share some physics)
-    BLASTER_SHORT_MOVE,
-    BLASTER_FINISH_SHORT_MOVE,
-
     // these are the event types we care about for position simulation
     BLASTER_ACCELERATION_COMPLETE,
     BLASTER_NEXT_NODE_ESTIMATE,

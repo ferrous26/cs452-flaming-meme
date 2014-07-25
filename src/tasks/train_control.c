@@ -38,7 +38,6 @@ typedef struct {
         int  speed;              // next speed to send to the train
         bool reverse;            // should send a reverse command
         bool dump_velocity;      // should send a dump command
-        int  short_move;
         int  tweaks_mask;
         int  tweak[TWEAK_COUNT];
         int  horn;               // horn state
@@ -49,6 +48,7 @@ typedef struct {
         track_location location;
         int            stop_sensor; // sensor to stop after hitting
         int            whereis;     // should send send whereis command
+        int            short_move;
         int            tweaks_mask;
         int            tweak[TWEAK_COUNT];
     } master[NUM_TRAINS];
@@ -132,11 +132,6 @@ control_try_send_blaster(control_context* const ctxt, const int index) {
         req.type                     = BLASTER_REVERSE;
         ctxt->blaster[index].reverse = false;
 
-    } else if (ctxt->blaster[index].short_move) {
-        req.type = BLASTER_SHORT_MOVE;
-        req.arg1 = ctxt->blaster[index].short_move;
-        ctxt->blaster[index].short_move = 0;
-
     } else if (ctxt->blaster[index].dump_velocity) {
         req.type                           = BLASTER_DUMP_VELOCITY_TABLE;
         ctxt->blaster[index].dump_velocity = false;
@@ -181,6 +176,11 @@ control_try_send_master(control_context* const ctxt, const int index) {
         req.type = MASTER_STOP_AT_SENSOR;
         req.arg1 = ctxt->master[index].stop_sensor;
         ctxt->master[index].stop_sensor = -1;
+
+    } else if (ctxt->master[index].short_move) {
+        req.type = MASTER_SHORT_MOVE;
+        req.arg1 = ctxt->master[index].short_move;
+        ctxt->master[index].short_move = 0;
 
     } else if (ctxt->master[index].tweaks_mask) {
         req.type = MASTER_UPDATE_TWEAK;
@@ -318,7 +318,7 @@ void train_control() {
             context.master[index].stop_sensor = req.arg2;
             break;
         case CONTROL_SHORT_MOVE:
-            context.blaster[index].short_move = req.arg2;
+            context.master[index].short_move = req.arg2;
             break;
         case CONTROL_DUMP_VELOCITY_TABLE:
             context.blaster[index].dump_velocity = true;
@@ -456,7 +456,7 @@ int train_short_move(const int train, const int off) {
     control_req req = {
         .type = CONTROL_SHORT_MOVE,
         .arg1 = train_index,
-        .arg2 = off
+        .arg2 = off * 1000  // convert to um
     };
 
     return Send(train_control_tid,

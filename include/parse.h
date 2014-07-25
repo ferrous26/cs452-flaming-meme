@@ -19,6 +19,7 @@ typedef enum {
     LOC_HORN,
 
     CALIBRATE_ACCELERATION,
+    THUNDERDOME,
 
     GO,
     SHORT_MOVE,

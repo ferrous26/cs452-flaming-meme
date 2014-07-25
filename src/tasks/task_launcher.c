@@ -19,6 +19,7 @@
 #include <tasks/mission_control.h>
 #include <tasks/sensor_farm.h>
 #include <tasks/track_reservation.h>
+#include <tasks/thunderdome.h>
 
 #include <tasks/courier.h>
 #include <tasks/path_admin.h>
@@ -325,6 +326,10 @@ static void action(command cmd, int args[]) {
         Send(tid, (char*)args, sizeof(int), NULL, 0);
         break;
     }
+
+    case THUNDERDOME:
+        Create(myPriority() + 1, thunderdome);
+        break;
 
     case ERROR:
         log("invalid command");

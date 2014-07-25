@@ -143,7 +143,9 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
         .arg2 = truth.location.sensor,
         .arg3 = truth.location.offset + offset,
         .arg4 = time,
-        .arg5 = truth.speed
+        .arg5 = truth.speed,
+        .arg6 = truth.direction,
+        .arg7 = truth.is_accelerating
     };
 
     const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));
@@ -773,9 +775,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
     // do not forget to update now that speed is actually finalized
     physics_update_velocity_ui(ctxt);
 
-    if (ctxt->short_moving_distance)
-        blaster_resume_short_moving(ctxt, timestamp);
-    else if (ctxt->reversing == 1)
+    if (ctxt->reversing == 1)
         blaster_reverse_step2(ctxt);
 }
 
@@ -821,6 +821,18 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     current_sensor.next_timestamp = current_sensor.timestamp +
         current_sensor.next_distance / v;
 
+    if (truth.next_distance < 0)
+
+        if (physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
+        log("[%s] Barreling towards an exit! Hitting emergency brakes!",
+            ctxt->name);
+        blaster_reverse_step1(ctxt, timestamp);
+
+        // TODO:
+        // in any case, we need to flip around our next expected sensor
+        // and our next expected; and this happens for expected sensors as well!
+    }
+
     // now we need to update the truth...except that a sensor hit is always the
     // considered to be the truth...
     truth = current_sensor;
@@ -829,13 +841,6 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
 
     // need to pass the service_time in case we do a reverse
     blaster_detect_train_direction(ctxt, sensor_hit, timestamp);
-
-    if (truth.next_distance < 0 &&
-        physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
-        log("[%s] Barreling towards an exit! Hitting emergency brakes!",
-            ctxt->name);
-        blaster_reverse_step1(ctxt, timestamp);
-    }
 
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, timestamp);
@@ -941,71 +946,6 @@ blaster_process_sensor_event(blaster* const ctxt,
     //blaster_wait_for_next_estimate(ctxt);
 }
 
-static void blaster_resume_short_moving(blaster* const ctxt,
-                                       const int timestamp) {
-
-    // calculate when to wake up and send off that guy
-    const int stop_dist = physics_current_stopping_distance(ctxt);
-
-    // how much further to travel before throwing the stop command
-    const int dist_remaining = ctxt->short_moving_distance - stop_dist;
-
-    const int stop_time = dist_remaining / physics_current_velocity(ctxt);
-
-    struct {
-        tnotify_header head;
-        blaster_req      req;
-    } msg = {
-        .head = {
-            .type  = DELAY_ABSOLUTE,
-            .ticks = timestamp + stop_time
-        },
-        .req = {
-            .type = BLASTER_FINISH_SHORT_MOVE
-        }
-    };
-
-    // TODO: this will probably crash because acceleration_courier == -1
-    const int result = Reply(ctxt->acceleration_courier,
-                             (char*)&msg, sizeof(msg));
-    if (result < 0)
-        ABORT("[%s] Failed to send delay for decceleration (%d) to %d",
-              ctxt->name, result, ctxt->acceleration_courier);
-
-    ctxt->short_moving_distance = 0;
-}
-
-static void blaster_short_move(blaster* const ctxt, const int offset) {
-
-    // offset was given in mm, so convert it to um
-    const int offset_um = offset * 1000;
-    const int  max_dist = offset_um;
-
-    // TODO: what we want to do is use sensor feedback to update
-    //       short move feedback
-
-    for (int speed = 120; speed > 10; speed -= 10) {
-
-        const int  stop_dist = physics_stopping_distance(ctxt, speed);
-        const int start_dist = physics_starting_distance(ctxt, speed);
-        const int   min_dist = stop_dist + start_dist;
-
-        //        log("Min dist for %d is %d (%d + %d). Looking for %d",
-        //            speed, min_dist, stop_dist, start_dist, max_dist);
-
-        if (min_dist < max_dist) {
-            log("[%s] Short move at speed %d", ctxt->name, speed / 10);
-
-            ctxt->short_moving_distance = offset_um - start_dist;
-            blaster_set_speed(ctxt, speed, Time());
-            return; // done
-        }
-    }
-
-    log("[%s] Distance %d mm too short to start and stop!",
-        ctxt->name, offset);
-}
-
 static inline void blaster_wait(blaster* const ctxt,
                                 const control_req* const callin) {
 
@@ -1035,12 +975,10 @@ static inline void blaster_wait(blaster* const ctxt,
             // We should not get any of these as the first event
             // so we abort if we get them
         case BLASTER_MASTER_CHANGE_SPEED:
-        case BLASTER_SHORT_MOVE:
         case BLASTER_MASTER_REVERSE:
         case BLASTER_REVERSE2:
         case BLASTER_REVERSE3:
         case BLASTER_REVERSE4:
-        case BLASTER_FINISH_SHORT_MOVE:
         case BLASTER_DUMP_VELOCITY_TABLE:
         case BLASTER_ACCELERATION_COMPLETE:
         case BLASTER_NEXT_NODE_ESTIMATE:
@@ -1200,13 +1138,6 @@ void train_blaster() {
                    context.name, result);
             continue;
         }
-
-        case BLASTER_SHORT_MOVE:
-            blaster_short_move(&context, req.arg1);
-            break;
-        case BLASTER_FINISH_SHORT_MOVE:
-            blaster_set_speed(&context, 0, time);
-            continue;
 
         case BLASTER_DUMP_VELOCITY_TABLE:
             blaster_dump_velocity_table(&context);
