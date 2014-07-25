@@ -27,6 +27,7 @@ typedef enum {
     CONTROL_REVERSE,
     CONTROL_WHERE_ARE_YOU,
     CONTROL_STOP_AT_SENSOR,
+    CONTROL_BLOCK_CALLER,
     CONTROL_GOTO_LOCATION,
     CONTROL_SHORT_MOVE,
 
@@ -35,6 +36,11 @@ typedef enum {
 
     CONTROL_TOGGLE_HORN
 } control_req_type;
+
+typedef struct block_until_sensor {
+    int tid;
+    int sensor;
+} sensor_block;
 
 typedef struct {
     control_req_type type;
@@ -54,6 +60,7 @@ int train_reverse(const int train); // this is effectively a macro command
 
 track_location train_where_are_you(const int train);
 int train_stop_at_sensor(const int train, const int bank, const int num);
+int train_block_until(const int train, const int bank, const int num);
 
 int train_goto_location(const int train,
                         const int bank,

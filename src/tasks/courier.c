@@ -126,6 +126,7 @@ void delayed_one_way_courier() {
 
     const int result = Reply(tid, NULL, 0);
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
+    UNUSED(result);
 
     if (delay_req.head.ticks)
         switch (delay_req.head.type) {
@@ -142,6 +143,7 @@ void delayed_one_way_courier() {
                              delay_req.message, send_size,
                              delay_req.message, sizeof(delay_req.message));
     assert(result2 >= 0, "failed sending to receiver %d", result2);
+    UNUSED(result2);
 }
 
 void courier() {

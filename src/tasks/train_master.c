@@ -26,7 +26,6 @@
 #define CHECK_WHOIS(tid, msg) \
 if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
 
-
 typedef struct master_context {
     int              train_id;
     int              train_gid;
@@ -52,6 +51,7 @@ typedef struct master_context {
     int              destination;        // destination sensor
     int              destination_offset; // in centimeters
     int              sensor_to_stop_at;  // special case for handling ss command
+    sensor_block     sensor_block;
 
     int              short_moving_distance;
     int              short_moving_timestamp;
@@ -137,6 +137,21 @@ master_stop_at_sensor(master* const ctxt,
     master_release_control_courier(ctxt, pkg, tid);
 }
 
+static void
+master_block_until_sensor(master* const ctxt,
+                          const control_req* const pkg,
+                          const master_req* const req,
+                          const int tid) {
+
+    ctxt->sensor_block.tid    = req->arg1;
+    ctxt->sensor_block.sensor = req->arg2;
+
+    const sensor s = pos_to_sensor(req->arg2);
+    log("[%s] Blocking %d until we hit sensor %c%d",
+        ctxt->name, req->arg2, s.bank, s.num);
+
+    master_release_control_courier(ctxt, pkg, tid);
+}
 
 static void master_update_tweak(master* const ctxt,
                                 const control_req* const pkg,
@@ -520,6 +535,22 @@ master_check_sensor_to_stop_at(master* const ctxt) {
         ctxt->name, s.bank, s.num, ctxt->checkpoint_timestamp);
 }
 
+static inline void
+master_check_sensor_to_block_until(master* const ctxt) {
+
+    if (!(ctxt->sensor_block.sensor == ctxt->checkpoint &&
+          ctxt->checkpoint_type == EVENT_SENSOR)) return;
+
+    const int result = Reply(ctxt->sensor_block.tid, NULL, 0);
+    assert(result == 0,
+           "[%s] Fuuuuu at %d (%d)",
+           ctxt->name, ctxt->sensor_block.tid, result);
+
+    log("[%s] Waking up %d", ctxt->name, ctxt->sensor_block.tid);
+
+    ctxt->sensor_block.sensor = -1;
+}
+
 static inline void master_location_update(master* const ctxt,
                                           const master_req* const req,
                                           const blaster_req* const pkg,
@@ -541,6 +572,7 @@ static inline void master_location_update(master* const ctxt,
            ctxt->name, result);
 
     master_check_sensor_to_stop_at(ctxt);
+    master_check_sensor_to_block_until(ctxt);
 
     if (ctxt->short_moving_distance &&
         // no longer accelerating
@@ -628,11 +660,12 @@ static TEXT_COLD void master_init(master* const ctxt) {
     ctxt->mission_control_tid = WhoIs((char*)MISSION_CONTROL_NAME);
     CHECK_WHOIS(ctxt->mission_control_tid, "Failed, Mission Control Tid");
 
-    ctxt->turnout_padding   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
-    ctxt->path_worker       = -1;
-    ctxt->destination       = -1;
-    ctxt->path_steps        = -1;
-    ctxt->sensor_to_stop_at = -1;
+    ctxt->turnout_padding     = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
+    ctxt->path_worker         = -1;
+    ctxt->destination         = -1;
+    ctxt->path_steps          = -1;
+    ctxt->sensor_to_stop_at   = -1;
+    ctxt->sensor_block.sensor = -1;
 }
 
 static TEXT_COLD void master_init_couriers(master* const ctxt,
@@ -723,6 +756,10 @@ void train_master() {
 
         case MASTER_STOP_AT_SENSOR:
             master_stop_at_sensor(&context, &control_callin, req.arg1, tid);
+            break;
+
+        case MASTER_BLOCK_UNTIL_SENSOR:
+            master_block_until_sensor(&context, &control_callin, &req, tid);
             break;
 
         case MASTER_WHERE_ARE_YOU:

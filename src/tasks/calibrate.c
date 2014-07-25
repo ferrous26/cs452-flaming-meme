@@ -43,7 +43,7 @@ void velocitate() {
     log("Please get train %d to sensor C9", train_num);
 
     // wait for train to get to right spot
-    delay_sensor('C', 9);
+    train_block_until(train_num, 'C', 9);
     // get it into the proper starting position
     train_reverse(train_num);
     train_set_speed(train_num, 14);
@@ -61,16 +61,16 @@ void velocitate() {
         train_set_speed(train_num, speed);
 
         for (int count = 0; count < 2; count++) {
-            delay_sensor('C', 9);
+            train_block_until(train_num, 'C', 9);
             start = Time();
 
-            delay_sensor('B', 15);
+            train_block_until(train_num, 'B', 15);
             curved = Time() - start;
 
-            delay_sensor('C', 13);
+            train_block_until(train_num, 'C', 13);
             start = Time();
 
-            delay_sensor('E', 7);
+            train_block_until(train_num, 'E', 7);
             straight = Time() - start;
 
             log("%d,%d,%d,%d", train_num, speed, curved, straight);
@@ -82,16 +82,16 @@ void velocitate() {
         train_set_speed(train_num, speed);
 
         for (int count = 0; count < 2; count++) {
-            delay_sensor('C', 9);
+            train_block_until(train_num, 'C', 9);
             start = Time();
 
-            delay_sensor('B', 15);
+            train_block_until(train_num, 'B', 15);
             curved = Time() - start;
 
-            delay_sensor('C', 13);
+            train_block_until(train_num, 'C', 13);
             start = Time();
 
-            delay_sensor('E', 7);
+            train_block_until(train_num, 'E', 7);
             straight = Time() - start;
 
             log("%d,%d,%d,%d", train_num, speed, curved, straight);
@@ -118,19 +118,13 @@ void accelerate() {
     update_turnout(17, 'S');
 
     log("Please get train %d to sensor E9", train_num);
-    delay_sensor('E', 9);
-
-    for (int speed = 10; speed; speed--) {
-        train_set_speed(train_num, speed);
-        Delay(50);
-    }
-
-    train_set_speed(train_num, adjust_speed);
+    train_block_until(train_num, 'E', 9);
+    train_set_speed(train_num, 2);
 
     int speed = 2;
     for (; speed < 5; speed += 2) {
         // in position, so stop!
-        delay_sensor('E', 8);
+        train_block_until(train_num, 'E', 8);
         train_set_speed(train_num, 0);
         Delay(400); // wait for full stop (estimate)
 
@@ -141,7 +135,7 @@ void accelerate() {
         // done, so reset
         train_reverse(train_num);
         train_set_speed(train_num, 10);
-        delay_sensor('E', 7);
+        train_block_until(train_num, 'E', 7);
         train_set_speed(train_num, 4);
         train_reverse(train_num);
         train_set_speed(train_num, adjust_speed);
@@ -149,18 +143,18 @@ void accelerate() {
 
     for (; speed < 13; speed += 2) {
         // in position, so stop!
-        delay_sensor('E', 8);
+        train_block_until(train_num, 'E', 8);
         train_set_speed(train_num, 0);
         Delay(400); // wait for full stop (estimate)
 
         // start the test
         train_set_speed(train_num, speed);
-        delay_sensor('C', 14);
+        train_block_until(train_num, 'C', 14);
 
         // done, so reset
         train_reverse(train_num);
         train_set_speed(train_num, 10);
-        delay_sensor('E', 7);
+        train_block_until(train_num, 'E', 7);
         train_set_speed(train_num, 4);
         train_reverse(train_num);
         train_set_speed(train_num, adjust_speed);
@@ -168,12 +162,12 @@ void accelerate() {
 
     train_reverse(train_num);
     train_set_speed(train_num, 8);
-    delay_sensor('D', 9);
+    train_block_until(train_num, 'D', 9);
     train_reverse(train_num);
 
     for (speed = 12; speed > 1; speed -= 2) {
         train_set_speed(train_num, speed);
-        delay_sensor('E', 8);
+        train_block_until(train_num, 'E', 8);
 
         train_set_speed(train_num, 0);
         Delay(600);
@@ -181,7 +175,7 @@ void accelerate() {
         train_set_speed(train_num, 1);
         train_reverse(train_num);
         train_set_speed(train_num, 10);
-        delay_sensor('D', 9);
+        train_block_until(train_num, 'D', 9);
 
         train_reverse(train_num);
     }
@@ -212,18 +206,18 @@ void calibrate() {
     for (int speed = 14; speed > 0; speed--) {
         train_set_speed(train_num, speed);
 
-        delay_sensor('E', 8);
+        train_block_until(train_num, 'E', 8);
         int time1 = Time();
 
-        delay_sensor('C', 14);
+        train_block_until(train_num, 'C', 14);
         time1 = Time() - time1;
 
         train_reverse(train_num);
 
-        delay_sensor('C', 13);
+        train_block_until(train_num, 'C', 13);
         int time2 = Time();
 
-        delay_sensor('E', 7);
+        train_block_until(train_num, 'E', 7);
         time2 = Time() - time2;
 
         train_reverse(train_num);
