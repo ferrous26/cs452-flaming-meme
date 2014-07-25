@@ -178,6 +178,8 @@ void sensor_farm() {
     int tid,  result;
     sf_context context;
 
+    sensor_farm_tid = myTid();
+
     _init_farm(&context);
     sf_req req;
 
@@ -252,13 +254,13 @@ int delay_sensor(int sensor_bank, int sensor_num) {
         .sensor = sensor_to_pos(sensor_bank, sensor_num)
     };
 
-    int time;
+    int result[2];
     int res = Send(sensor_farm_tid,
                    (char*)&req, sizeof(req),
-                   (char*)&time, sizeof(time));
+                   (char*)result, sizeof(result));
 
     if (res < 0) return res;
-    return time;
+    return result[0];
 }
 
 int delay_sensor_any() {

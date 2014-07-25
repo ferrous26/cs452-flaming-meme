@@ -122,7 +122,7 @@ void accelerate() {
 
     for (int speed = 10; speed; speed--) {
         train_set_speed(train_num, speed);
-        Delay(30);
+        Delay(50);
     }
 
     train_set_speed(train_num, adjust_speed);
