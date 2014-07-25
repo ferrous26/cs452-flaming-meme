@@ -103,6 +103,8 @@ static command parse_s(const char* const cmd, int* buffer) {
 static command parse_t(const char* const cmd, int* const buffer) {
     int index = 1;
     switch(cmd[index++]) {
+    case 'd':
+        return THUNDERDOME;
     case 'r':
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;

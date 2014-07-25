@@ -326,6 +326,10 @@ static void action(command cmd, int args[]) {
         break;
     }
 
+    case THUNDERDOME:
+        Create(myPriority() + 1, thunderdome);
+        break;
+
     case ERROR:
         log("invalid command");
 	print_help();
