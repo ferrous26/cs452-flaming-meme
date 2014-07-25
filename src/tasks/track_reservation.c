@@ -154,10 +154,11 @@ static void _handle_reserve_section(_context* const ctxt,
                                     const int train,
                                     const track_node** node,
                                     const int lst_size) {
-    CHECK_TRAIN(train);    
-    
-    ctxt->train_iter[train]++;
+    CHECK_TRAIN(train);
+
     int result;
+    int reply[] = {RESERVE_SUCCESS};
+    ctxt->train_iter[train]++;
     
     for (int i = 0; i < lst_size; i++, node++) { 
         const int index = _get_node_index(ctxt, *node);
@@ -165,12 +166,15 @@ static void _handle_reserve_section(_context* const ctxt,
 
         if (owner == -1) {
             log(LOG_HEAD "Reserving Section %s For %d", (*node)->name, train);
+            ctxt->reserve[index].owner = train;
+            ctxt->reserve[index].iter  = ctxt->train_iter[train];
         } else {
             log(LOG_HEAD "Failed reserving Section %s For %d", (*node)->name, train);
+            reply[0] = RESERVE_FAILURE;
+            break; 
         }
     }
 
-    int reply[] = {RESERVE_SUCCESS, get_reserve_length(*node)};
     result      = Reply(tid, (char*)reply, sizeof(reply));
     assert(result == 0, "Failed to repond to track query");
 
@@ -292,7 +296,8 @@ int reserve_section(const int train,
     size = Send(track_reservation_tid,
                 (char*)&req,   sizeof(req),
                 (char*)result, sizeof(result));
-    assert(size == (int)sizeof(result), "Bad send to track reservation");
+    
+    assert(size == (int)sizeof(int), "Bad send to track reservation");
     
     return result[0] == RESERVE_SUCCESS;
 }
