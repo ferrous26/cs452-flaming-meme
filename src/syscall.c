@@ -61,6 +61,9 @@ void Exit() {
 }
 
 int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
+    assert(msglen   >= 0, "NEGITIVE MESSAGE %d", msglen);
+    assert(replylen >= 0, "REPLY MESSAGE %d", replylen);
+    
     volatile kreq_send req = {
         .tid      = tid,
         .msg      = msg,
@@ -72,6 +75,7 @@ int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
 }
 
 int Receive(int* tid, char* msg, int msglen) {
+    assert(msglen   >= 0, "NEGITIVE MESSAGE %d", msglen);
     volatile kreq_recv req = {
         .tid    = tid,
         .msg    = msg,
@@ -81,6 +85,8 @@ int Receive(int* tid, char* msg, int msglen) {
 }
 
 int Reply(int tid, char* reply, int replylen) {
+    assert(replylen >= 0, "REPLY MESSAGE %d", replylen);
+
     volatile kreq_reply req = {
         .tid      = tid,
         .reply    = reply,

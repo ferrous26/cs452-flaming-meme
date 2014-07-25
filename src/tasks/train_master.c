@@ -221,7 +221,6 @@ static inline bool master_try_fast_forward(master* const ctxt) {
 #ifdef DEBUG
             if (start == -1) start = i;
 #endif
-
             if (ctxt->path[i].data.sensor == ctxt->checkpoint) {
 #ifdef DEBUG
                 if (start != i) {
@@ -229,8 +228,7 @@ static inline bool master_try_fast_forward(master* const ctxt) {
                         pos_to_sensor(ctxt->path[start].data.sensor);
                     const sensor tail =
                         pos_to_sensor(ctxt->path[i].data.sensor);
-
-
+                    
                     log("[%s] %c%d >> %c%d",
                         ctxt->name, head.bank, head.num, tail.bank, tail.num);
 

@@ -113,7 +113,6 @@ void time_notifier() {
 }
 
 void delayed_one_way_courier() {
-
     struct {
         tdelay_header head;
         char          message[244];
@@ -137,7 +136,7 @@ void delayed_one_way_courier() {
         break;
     }
 
-    const int send_size = size - (int)sizeof(delay_req);
+    const int send_size = size - (int)sizeof(tdelay_header);
     const int result2 = Send(delay_req.head.receiver,
                              delay_req.message, send_size,
                              delay_req.message, sizeof(delay_req.message));
