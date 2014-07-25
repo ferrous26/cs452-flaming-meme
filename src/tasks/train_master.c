@@ -42,24 +42,31 @@ typedef struct train_checkpoint {
 } train_checkpoint;
 
 typedef struct master_context {
-    int              train_id;
-    int              train_gid;
-    char             name[32];
+    // identifying variables 
+    int  train_id;
+    int  train_gid;
+    char name[32];
 
-    int              my_tid;              // tid of self
-    int              blaster;             // tid of control task
-    int              control;             // tid of control task
-    int              path_admin;          // tid of the path admin
-    int              path_worker;         // tid of the path worker
-    int              mission_control_tid; // tid of mission control
+    // the tids that are used by this 
+    int my_tid;              // tid of self
+    int blaster;             // tid of control task
+    int control;             // tid of control task
+    int path_admin;          // tid of the path admin
+    int path_worker;         // tid of the path worker
+    int mission_control_tid; // tid of mission control
+
+
 
     int              turnout_padding;
     train_checkpoint checkpoint;
 
-    int              destination;        // destination sensor
-    int              destination_offset; // in centimeters
-    int              sensor_to_stop_at;  // special case for handling ss command
+    int active;
+    int destination;        // destination sensor
+    int destination_offset; // in centimeters
+    int sensor_to_stop_at;  // special case for handling ss command
+
     int              short_moving_distance;
+    int              short_moving_timestamp;
 
     int              path_steps;
     const path_node* path;
@@ -224,7 +231,7 @@ static inline bool master_try_fast_forward(master* const ctxt) {
                         pos_to_sensor(ctxt->path[start].data.sensor);
                     const sensor tail =
                         pos_to_sensor(ctxt->path[i].data.sensor);
-                    
+
                     log("[%s] %c%d >> %c%d",
                         ctxt->name, head.bank, head.num, tail.bank, tail.num);
 
@@ -383,7 +390,7 @@ static void master_delay_flip_turnout(master* const ctxt,
         } body;
     } msg = {
         .head = {
-            .receiver = ctxt->mission_control_tid, 
+            .receiver = ctxt->mission_control_tid,
             .type     = DELAY_ABSOLUTE,
             .ticks    = action_time
         },
@@ -456,6 +463,64 @@ static inline void master_simulate_pathing(master* const ctxt) {
     }
 }
 
+static inline int
+master_short_move(master* const ctxt, const int offset) {
+
+    // NOTE: we only consider speeds 2-12
+    for (int speed = 120; speed > 10; speed -= 10) {
+
+        const int  stop_dist = physics_stopping_distance(ctxt->blaster_ctxt,
+                                                         speed);
+        const int start_dist = physics_starting_distance(ctxt->blaster_ctxt,
+                                                         speed);
+        const int   min_dist = stop_dist + start_dist;
+
+        if (offset > min_dist) {
+            master_set_speed(ctxt, speed, 0);
+            ctxt->short_moving_distance  = offset - start_dist;
+            ctxt->short_moving_timestamp = Time();
+            return speed;
+        }
+    }
+
+    return 0;
+}
+
+static void master_short_move2(master* const ctxt) {
+
+    const int time = Time();
+
+    const track_location current_location =
+        master_current_location(ctxt, time);
+
+    const int       velocity = master_current_velocity(ctxt);
+    const int      stop_dist = master_current_stopping_distance(ctxt);
+    const int dist_remaining = ctxt->short_moving_distance -
+        (stop_dist + (current_location.offset - ctxt->checkpoint.offset));
+    const int      stop_time = dist_remaining / velocity;
+
+    master_set_speed(ctxt, 0, time + stop_time);
+
+    ctxt->short_moving_distance = 0;
+}
+
+static inline void
+master_short_move_command(master* const ctxt,
+                          const int offset,
+                          const control_req* const pkg,
+                          const int tid) {
+
+    const int speed = master_short_move(ctxt, offset);
+    if (speed)
+        log("[%s] Short move %d mm at speed %d",
+            ctxt->name, offset / 1000, speed / 10);
+    else
+        log("[%s] Distance %d mm too short to start and stop!",
+            ctxt->name, offset / 1000);
+
+    master_release_control_courier(ctxt, pkg, tid);
+}
+
 static inline void
 master_check_sensor_to_stop_at(master* const ctxt) {
 
@@ -476,7 +541,7 @@ int reserve_stop_dist(master* const ctxt,
                       const track_node* const node) {
     if (dist <= 0) return true;
 
-    const track_node* const used_node = dir ? node : node->reverse;
+    const track_node* const used_node = dir ? node->reverse : node;
     const int index                   = used_node - ctxt->track;
     assert(XBETWEEN(index, -1, TRACK_MAX+1), "bad track index %d", index);
 
@@ -531,17 +596,30 @@ static inline void master_location_update(master* const ctxt,
     ctxt->checkpoint.direction = req->arg6;
     ctxt->checkpoint.is_accel  = req->arg7;
 
+    if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
+
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
            "[%s] Failed to send courier back to blaster (%d)",
            ctxt->name, result);
     UNUSED(result);
 
-    const int dist         = master_current_stopping_distance(ctxt);
-    const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
-    reserve_stop_dist(ctxt, dist, 0, node);
+    if (ctxt->active) {
+        const int dist         = master_current_stopping_distance(ctxt);
+        const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
+        reserve_stop_dist(ctxt, dist, 0, node);
+        master_check_sensor_to_stop_at(ctxt);
+    }
 
-    master_check_sensor_to_stop_at(ctxt);
+    if (ctxt->short_moving_distance &&
+        // no longer accelerating
+        !ctxt->checkpoint.is_accel &&
+        // and enough time has passed
+        ctxt->checkpoint.timestamp > (ctxt->short_moving_timestamp + 10)) {
+
+        master_short_move2(ctxt);
+    }
+
     if (ctxt->path_steps >= 0) {
         if (master_try_fast_forward(ctxt)) {
             master_simulate_pathing(ctxt);
@@ -708,6 +786,10 @@ void train_master() {
             break;
 
         case MASTER_SHORT_MOVE:
+            master_short_move_command(&context,
+                                      req.arg1,
+                                      &control_callin,
+                                      tid);
             break;
 
         case MASTER_STOP_AT_SENSOR:

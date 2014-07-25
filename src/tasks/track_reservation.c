@@ -78,33 +78,66 @@ int get_reserve_length(const track_node* const node) {
     return result >> 1;
 }
 
-static inline int __attribute__((pure))
-is_node_adjacent(const track_node* const n1,
-                 const track_node* const n2) {
-    switch (n1->type) {
-    case NODE_NONE:
-    case NODE_MERGE:
-    case NODE_SENSOR:
-        return n2 == n1->edge[DIR_AHEAD].dest->reverse
-            || n2 == n1->reverse;
-    case NODE_ENTER:
-        return n2 == n1->edge[DIR_AHEAD].dest->reverse;
-    case NODE_EXIT:
-        return n2 == n1->reverse;
-    case NODE_BRANCH:
-        return n2 == n1->edge[DIR_STRAIGHT].dest->reverse
-            || n2 == n1->edge[DIR_CURVED].dest->reverse
-            || n2 == n1->reverse;
-    }
-    return 0;
-}
-
-static inline int __attribute__((pure))
-get_node_index(_context* const ctxt, const track_node* const node) {
+static inline int // __attribute__((pure))
+get_node_index(const _context* const ctxt, const track_node* const node) {
     const int index = node - ctxt->track;
     assert(XBETWEEN(index, -1, TRACK_MAX+1),
            "Bad Track Node Index %d %p", index, node);
     return index;
+}
+
+static int __attribute__((pure))
+_who_owns(const _context* const ctxt,
+          const track_node* const node){
+    
+    const int index = get_node_index(ctxt, node);
+    const int owner = ctxt->reserve[index]; 
+
+    return owner;
+}
+
+static inline int __attribute__((pure))
+is_node_adjacent(const _context* const ctxt,
+                 const track_node* const n1,
+                 const int train) {
+    switch (n1->type) {
+    case NODE_NONE:
+    case NODE_MERGE:
+    case NODE_SENSOR:
+        return train == _who_owns(ctxt, n1->edge[DIR_AHEAD].dest->reverse)
+            || train == _who_owns(ctxt, n1->reverse);
+    case NODE_ENTER:
+        return train == _who_owns(ctxt, n1->edge[DIR_AHEAD].dest->reverse);
+    case NODE_EXIT:
+        return train == _who_owns(ctxt, n1->reverse);
+    case NODE_BRANCH:
+        return train == _who_owns(ctxt, n1->edge[DIR_STRAIGHT].dest->reverse)
+            || train == _who_owns(ctxt, n1->edge[DIR_CURVED].dest->reverse)
+            || train == _who_owns(ctxt, n1->reverse);
+    }
+    return false;
+}
+
+static inline int __attribute__((pure))
+is_node_edge(const _context* const ctxt,
+             const track_node* const n1,
+             const int train) {
+    switch (n1->type) {
+    case NODE_NONE:
+    case NODE_MERGE:
+    case NODE_SENSOR:
+        return train != _who_owns(ctxt, n1->edge[DIR_AHEAD].dest->reverse)
+            || train != _who_owns(ctxt, n1->reverse);
+    case NODE_ENTER:
+        return train != _who_owns(ctxt, n1->edge[DIR_AHEAD].dest->reverse);
+    case NODE_EXIT:
+        return train != _who_owns(ctxt, n1->reverse);
+    case NODE_BRANCH:
+        return train != _who_owns(ctxt, n1->edge[DIR_STRAIGHT].dest->reverse)
+            || train != _who_owns(ctxt, n1->edge[DIR_CURVED].dest->reverse)
+            || train != _who_owns(ctxt, n1->reverse);
+    }
+    return false;
 }
 
 static void _handle_reserve_section(_context* const ctxt,
@@ -120,21 +153,21 @@ static void _handle_reserve_section(_context* const ctxt,
         log(LOG_HEAD "Reserving Section %s For %d", node->name, train);
 
         if (ctxt->reserved_nodes[train]) {
-            //TODO: check for adj
-            // if its not adjacent we should maybe reject?
+            if (!is_node_adjacent(ctxt, node, train)) {
+                assert(false, "train %d tried to get unadjacent node %s",
+                       train, node->name);
+            } 
         }
 
         ctxt->reserve[index] = train;
         reply[1]             = get_reserve_length(node);
         ctxt->reserved_nodes[train]++;
-
         result = Reply(tid, (char*)reply, sizeof(reply));
-
     } else if(owner == train) {
         log(LOG_HEAD "Already Reserved Section %s For %d",
             node->name, train);
-        result = Reply(tid, (char*)reply, sizeof(reply));
-
+        reply[1] = get_reserve_length(node);
+        result   = Reply(tid, (char*)reply, sizeof(reply));
     } else {
         reply[0] = RESERVE_FAILURE;
         reply[1] = owner;
@@ -167,7 +200,7 @@ static void _handle_release_section(_context* const ctxt,
         ctxt->reserve[index] = -1;
         ctxt->reserved_nodes[train]--;
 
-        const int reply[]    = {RESERVE_SUCCESS};
+        const int reply[] = {RESERVE_SUCCESS};
         result = Reply(tid, (char*)reply, sizeof(reply));
     } else {
         const int reply[] = {RESERVE_FAILURE, owner};
@@ -175,12 +208,6 @@ static void _handle_release_section(_context* const ctxt,
     }
 
     assert(result == 0, "Failed to repond to track query");
-}
-
-static int _who_owns(_context* const ctxt,
-                     const track_node* const node){
-    const int index = get_node_index(ctxt, node);
-    return ctxt->reserve[index]; 
 }
 
 void track_reservation() {

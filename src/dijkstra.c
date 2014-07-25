@@ -26,6 +26,7 @@ int dijkstra(const track_node* const track,
         int dist;
         int dir;
         const track_node* prev;
+        const track_node* next;
     } data[TRACK_MAX];
 
     pq_node        heap[HEAP_SIZE];
@@ -152,7 +153,8 @@ int dijkstra(const track_node* const track,
 
     int path_size = 0;
     const track_node* path_ptr = ptr; 
-    *reserved_dist = 0;
+    data[path_ptr-track].next = path_ptr;
+    
 
     FOREVER {
         path_node* const node  = &path[path_size];
@@ -161,27 +163,6 @@ int dijkstra(const track_node* const track,
         const int node_dist    = data[offset].dist;
         const track_node* next = data[offset].prev;
         const int next_offset  = next - track;
-
-        if (total_reserve - data[next_offset].dist > 0) {
-            const int res_1 = 
-                reserve_section(path_ptr, DIR_FORWARD, opts->train_offset);
-            *reserved_dist += res_1;
-            
-            const int res_2 =
-                reserve_section(path_ptr, DIR_REVERSE, opts->train_offset);
-            *reserved_dist += res_2;
-
-            if (res_1 < 0 || res_2 < 0) {
-                FOREVER {
-                    reserve_release(ptr, DIR_FORWARD, opts->train_offset);
-                    reserve_release(ptr, DIR_REVERSE, opts->train_offset);
-                    if (ptr == path_ptr) return -100;
-                    ptr = data[ptr - track].prev;
-                }
-
-                return -100;
-            }
-        }
 
         switch(path_ptr->type) {
         case NODE_NONE:
@@ -220,8 +201,35 @@ int dijkstra(const track_node* const track,
         }
 
         if (next == path_ptr) break;
-        path_ptr  = next;
-        direction = data[offset].dir;
+        data[next_offset].next = path_ptr;
+        path_ptr               = next;
+        direction              = data[offset].dir;
+    }
+
+    ptr = path_ptr;
+    
+    int dist = 0;
+    *reserved_dist = 0;
+
+    while (dist < total_reserve) {
+        const int index = path_ptr - track;
+
+        const int res_2 =
+            reserve_section(path_ptr, DIR_REVERSE, opts->train_offset);
+        const int res_1 = 
+            reserve_section(path_ptr, DIR_FORWARD, opts->train_offset);
+
+        while (res_1 < 0 || res_2 < 0) {
+            reserve_release(ptr, DIR_FORWARD, opts->train_offset);
+            reserve_release(ptr, DIR_REVERSE, opts->train_offset);
+            if (ptr == path_ptr) return -100;
+            ptr = data[ptr - track].next;
+        }
+        *reserved_dist += res_1;
+        *reserved_dist += res_2;
+
+        if (data[index].next == path_ptr) break;
+        path_ptr = data[index].next;
     }
 
     if (path_ptr != opts->start) {
