@@ -9,7 +9,10 @@
 #include <tasks/priority.h>
 #include <tasks/courier.h>
 #include <tasks/clock_server.h>
+
 #include <tasks/mission_control.h>
+#include <tasks/mission_control_types.h>
+
 #include <tasks/train_blaster_types.h>
 #include <tasks/train_blaster_physics.h>
 
@@ -20,17 +23,21 @@
 // we want to flip a turnout when we are
 #define TURNOUT_DISTANCE 300000
 
+#define CHECK_WHOIS(tid, msg) \
+if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
+
+
 typedef struct master_context {
     int              train_id;
     int              train_gid;
     char             name[32];
 
-    int              my_tid;             // tid of self
-    int              blaster;            // tid of control task
-    int              control;            // tid of control task
-
-    int              path_admin;         // tid of the path admin
-    int              path_worker;        // tid of the path worker
+    int              my_tid;              // tid of self
+    int              blaster;             // tid of control task
+    int              control;             // tid of control task
+    int              path_admin;          // tid of the path admin
+    int              path_worker;         // tid of the path worker
+    int              mission_control_tid; // tid of mission control
 
     int              turnout_padding;
 
@@ -55,7 +62,7 @@ typedef struct master_context {
     struct blaster_context* const blaster_ctxt;
 } master;
 
-
+/*
 static int master_new_delay_courier(master* const ctxt) {
     const int tid = Create(TIMER_COURIER_PRIORITY, time_notifier);
 
@@ -66,6 +73,8 @@ static int master_new_delay_courier(master* const ctxt) {
 
     return tid;
 }
+*/
+
 
 static int master_current_velocity(master* const ctxt) {
     return physics_velocity(ctxt->blaster_ctxt,
@@ -368,22 +377,30 @@ static void master_delay_flip_turnout(master* const ctxt,
                                       const int turn,
                                       const int direction,
                                       const int action_time) {
-    const int c = master_new_delay_courier(ctxt);
+
+    const int c = Create(MASTER_TURNOUT_PRIORITY, delayed_one_way_courier);
+    assert(c >= 0, "failed to make one way courier %d", c);
 
     struct {
-        tnotify_header head;
-        master_req     req;
+        tdelay_header head;
+        struct {
+            mc_type type;
+            turnout turn;
+        } body;
     } msg = {
         .head = {
-            .type  = DELAY_ABSOLUTE,
-            .ticks = action_time
+            .receiver = ctxt->mission_control_tid, 
+            .type     = DELAY_ABSOLUTE,
+            .ticks    = action_time
         },
-        .req = {
-            .type = MASTER_FLIP_TURNOUT,
-            .arg1 = turn,
-            .arg2 = direction
+        .body = {
+            .type = MC_U_TURNOUT,
+            .turn = {
+                .num   = turn,
+                .state = direction
+            }
         }
-    };
+   };
 
     const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
     log("[%s] Sent Switch: \t%d\tDir: %d\tTime: %d", ctxt->name,
@@ -571,9 +588,10 @@ static TEXT_COLD void master_init(master* const ctxt) {
            ctxt->name, result);
 
     ctxt->path_admin = WhoIs((char*)PATH_ADMIN_NAME);
-    assert(ctxt->path_admin >= 0,
-           "[%s] I started up before the path admin! (%d)",
-           ctxt->name, ctxt->path_admin);
+    CHECK_WHOIS(ctxt->path_admin, "I started before path admin!");
+
+    ctxt->mission_control_tid = WhoIs((char*)MISSION_CONTROL_NAME);
+    CHECK_WHOIS(ctxt->mission_control_tid, "Failed, Mission Control Tid");
 
     ctxt->turnout_padding   = TURNOUT_CLEARANCE_OFFSET_DEFAULT;
     ctxt->path_worker       = -1;

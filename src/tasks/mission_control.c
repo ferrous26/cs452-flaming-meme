@@ -21,7 +21,7 @@
 #include <tasks/mission_control.h>
 #include <tasks/mission_control_types.h>
 
-#define LOG_HEAD               "[MISSION CONTROL] "
+#define LOG_HEAD               "[MISSION CONTROL]\t"
 #define CHECK_CREATE(tid, msg) if (tid < 0) ABORT(msg " (%d)", tid)
 
 
@@ -175,22 +175,22 @@ static inline void mc_update_turnout(mc_context* const ctxt,
     Puts(buffer, ptr - buffer);
 }
 
-static void mc_reset_track_state(mc_context* const context) {
-    mc_update_turnout(context, 1, 'S');
-    mc_update_turnout(context, 2, 'S');
-    mc_update_turnout(context, 3, 'C');
-    mc_update_turnout(context, 4, 'S');
-    mc_update_turnout(context, 5, 'C');
+static void mc_reset_track_state(mc_context* const ctxt) {
+    mc_update_turnout(ctxt, 1, 'S');
+    mc_update_turnout(ctxt, 2, 'S');
+    mc_update_turnout(ctxt, 3, 'C');
+    mc_update_turnout(ctxt, 4, 'S');
+    mc_update_turnout(ctxt, 5, 'C');
 
     for (int i = 6; i < 19; i++)
-        mc_update_turnout(context, i, 'C');
+        mc_update_turnout(ctxt, i, 'C');
 
     // we want to keep this default configuration because it
     // optimizes fun
-    mc_update_turnout(context, 153, 'S');
-    mc_update_turnout(context, 154, 'C');
-    mc_update_turnout(context, 155, 'S');
-    mc_update_turnout(context, 156, 'C');
+    mc_update_turnout(ctxt, 153, 'S');
+    mc_update_turnout(ctxt, 154, 'C');
+    mc_update_turnout(ctxt, 155, 'S');
+    mc_update_turnout(ctxt, 156, 'C');
 }
 
 static void mc_load_track(mc_context* const ctxt, int track_num) {
@@ -284,6 +284,7 @@ void mission_control() {
         assert(result >= (int)sizeof(req.type),
                 "Invalid amount of data %d", result);
         assert(req.type < MC_TYPE_COUNT,  "Invalid MC Request %d", req.type);
+        log(LOG_HEAD "Mission Control %d", req.type);
 
         switch (req.type) {
         case MC_U_TURNOUT:

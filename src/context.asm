@@ -18,6 +18,7 @@ hwi_enter:
 
 	mov	lr, #0
 	mov	r0, #0
+
 	.global	kernel_enter
 	.type	kernel_enter, %function
 kernel_enter:
