@@ -526,7 +526,6 @@ static inline void master_location_update(master* const ctxt,
                                           const int tid) {
 
     // log("[%s] Got position update", ctxt->name);
-
     ctxt->checkpoint_type            = req->arg1;
     ctxt->checkpoint                 = req->arg2;
     ctxt->checkpoint_offset          = req->arg3;
@@ -561,23 +560,6 @@ static inline void master_location_update(master* const ctxt,
             master_goto(ctxt, ctxt->destination, ctxt->destination_offset);
         }
     }
-}
-
-static inline void
-master_flip_turnout(master* const ctxt,
-                    const int turn,
-                    const int direction,
-                    const int tid) {
-
-    update_turnout(turn, direction);
-    log("[%s] Threw Turnout %d %c", ctxt->name, turn, direction);
-
-    const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
-    assert(result == 0,
-           "[%s] Failed to kill delay notifier (%d)",
-           ctxt->name, result);
-    UNUSED(result);
-    UNUSED(ctxt);
 }
 
 static inline void
@@ -753,10 +735,6 @@ void train_master() {
 
         case MASTER_BLASTER_LOCATION:
             master_location_update(&context, &req, &blaster_callin, tid);
-            break;
-
-        case MASTER_FLIP_TURNOUT:
-            master_flip_turnout(&context, req.arg1, req.arg2, tid);
             break;
 
         case MASTER_STOP_TRAIN:
