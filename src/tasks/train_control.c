@@ -49,6 +49,7 @@ typedef struct {
         int            stop_sensor; // sensor to stop after hitting
         int            whereis;     // should send send whereis command
         int            short_move;
+        sensor_block   block_until;
         int            tweaks_mask;
         int            tweak[TWEAK_COUNT];
     } master[NUM_TRAINS];
@@ -67,6 +68,7 @@ control_init_context(control_context* const ctxt) {
         ctxt->master[i].courier             = -1;
         ctxt->master[i].location.sensor     = -1;
         ctxt->master[i].stop_sensor         = -1;
+        ctxt->master[i].block_until.sensor  = -1;
         ctxt->master[i].whereis             = -1;
     }
 
@@ -181,6 +183,12 @@ control_try_send_master(control_context* const ctxt, const int index) {
         req.type = MASTER_SHORT_MOVE;
         req.arg1 = ctxt->master[index].short_move;
         ctxt->master[index].short_move = 0;
+
+    } else if (ctxt->master[index].block_until.sensor != -1) {
+        req.type = MASTER_BLOCK_UNTIL_SENSOR;
+        req.arg1 = ctxt->master[index].block_until.tid;
+        req.arg2 = ctxt->master[index].block_until.sensor;
+        ctxt->master[index].block_until.sensor = -1;
 
     } else if (ctxt->master[index].tweaks_mask) {
         req.type = MASTER_UPDATE_TWEAK;
@@ -330,6 +338,11 @@ void train_control() {
             context.master[index].location.sensor = req.arg2;
             context.master[index].location.offset = req.arg3;
             break;
+        case CONTROL_BLOCK_CALLER:
+            context.master[index].block_until.tid    = tid;
+            context.master[index].block_until.sensor = req.arg2;
+            control_try_send_master(&context, index);
+            continue;
 
         case CONTROL_TOGGLE_HORN:
             control_toggle_horn(&context, tid, index);
@@ -516,6 +529,21 @@ int train_update_tweak(const int train,
 
     return Send(train_control_tid,
                 (char*)&req, sizeof(req),
+                NULL, 0);
+}
+
+int train_block_until(const int train, const int bank, const int num) {
+    NORMALIZE_TRAIN(train_index, train);
+    NORMALIZE_SENSOR(sensor_index, bank, num);
+
+    control_req req = {
+        .type = CONTROL_BLOCK_CALLER,
+        .arg1 = train_index,
+        .arg2 = sensor_index
+    };
+
+    return Send(train_control_tid,
+                (char*)&req, sizeof(req) - sizeof(int),
                 NULL, 0);
 }
 

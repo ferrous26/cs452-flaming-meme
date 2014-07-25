@@ -1049,6 +1049,9 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
 
 static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
                                             const courier_package* const package) {
+
+    UNUSED(ctxt);
+
     int result;
 
     #ifndef NO_TRAIN_CONSOLE
