@@ -99,9 +99,6 @@ typedef struct blaster_context {
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates
 
-    int timeouts;
-
-
 #define last_checkpoint      ctxt->last_checkpoint_event
 #define last_sensor          ctxt->last_sensor_event
 #define last_acceleration    ctxt->last_acceleration_event
