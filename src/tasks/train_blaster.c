@@ -51,7 +51,7 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-#if 1
+#ifndef MARK
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
@@ -651,7 +651,6 @@ blaster_process_acceleration_event(blaster* const ctxt,
                                    blaster_req* const req,
                                    const int courier_tid,
                                    const int timestamp) {
-    UNUSED(timestamp);
 
     // do not process the event if it has been overridden by a future event
     if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid))
@@ -710,11 +709,26 @@ blaster_process_acceleration_event(blaster* const ctxt,
 
     // we were late
     if (last_sensor.location.sensor == current_accel.location.sensor) {
-        // TODO: this might also be caused by a dead sensor
-        // because the sensor is not tripped... that makes no sense
-        // but I had an issue with this when I passed over D8 on track B
-        // while stopping just after hitting E8
-        log("[%s] Late acceleration event!", ctxt->name);
+        mark_log("[%s] Late acceleration event!", ctxt->name);
+
+        // we will try and estimate some shit here
+        // assume we travelled at 80 of the previous speed for
+        // for the time delta between states
+
+        truth.timestamp = timestamp;
+        const int time_delta = timestamp - truth.timestamp;
+
+        // choose a pseudo-magic value for speed to use in the calculation
+        const int estimated_speed =
+            ((last_accel.speed > current_accel.speed ?
+              last_accel.speed : truth.speed) * 8) / 10;
+
+        const int velocity =
+            physics_velocity(ctxt,
+                             estimated_speed,
+                             velocity_type(truth.location.sensor));
+
+        truth.location.offset += velocity * time_delta;
     }
     // we are (somewhat) on time
     else if (current_sensor.location.sensor == current_accel.location.sensor) {
@@ -775,7 +789,10 @@ blaster_process_acceleration_event(blaster* const ctxt,
     else {
         log("[%s] Teleported since train started accelerating!",
             ctxt->name);
-        // TODO: set state to be lost?
+        // TODO: this will happen at startup because we will often
+        // start from the wrong position on the track
+
+        // TODO: what other cases will cause this?
     }
 
     blaster_debug_state(ctxt, &truth);
