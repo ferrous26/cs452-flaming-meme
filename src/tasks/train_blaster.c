@@ -51,7 +51,7 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-#ifndef MARK
+#ifndef NIK
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
@@ -822,6 +822,9 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     const int      sensor_hit = req->arg1;
     const int sensor_hit_time = req->arg2;
 
+    assert(XBETWEEN(sensor_hit, -1, NUM_SENSORS),
+           "processed bad unexpected sensor %d", sensor_hit);
+    
     // TODO: is it really unexpected, or is just further down the track;
     //       the result of a dead sensor?
 
@@ -910,12 +913,14 @@ blaster_process_console_timeout(blaster* const ctxt,
 
     } else if (0 == truth.next_speed) {
         if (truth.location.sensor == truth.next_location.sensor) {
-            log("[%s] blocking console 1 %d", ctxt->name, tid);
+            log("[%s] blocking console slowdown %d", ctxt->name, tid);
             ctxt->console_courier = tid;
         } else {
             const int current_s = truth.location.sensor;
             const int next_s    = truth.next_location.sensor;
             const int timeout   = truth.next_timestamp;
+
+            blaster_debug_state(ctxt, &truth);
 
             const int notify_pack[] = {current_s, next_s, timeout};
             result = Reply(tid, (char*)notify_pack, sizeof(notify_pack));
@@ -947,6 +952,9 @@ blaster_process_sensor_event(blaster* const ctxt,
     const int  sensor_hit = req->arg1;
     const int sensor_time = req->arg2;
 
+    assert(XBETWEEN(sensor_hit, -1, NUM_SENSORS),
+           "processed bad sensor %d", sensor_hit);
+
     // just need to update state here and move on to next stuffs
     // this is essentially a state reset, we cannot really use previous state
 
@@ -965,7 +973,7 @@ blaster_process_sensor_event(blaster* const ctxt,
     const int result = get_sensor_from(current_sensor.location.sensor,
                                        &current_sensor.next_distance,
                                        &current_sensor.next_location.sensor);
-    assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+    assert(result == 0, "[%s] Fuuuuu %d", ctxt->name, result);
     UNUSED(result);
 
     // calculate expected next time
