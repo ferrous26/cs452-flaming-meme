@@ -133,7 +133,7 @@ void kernel_init() {
 
     _print_train();
     klog("Welcome to %sOS build %u", TO_STRING(__CODE_NAME__), __BUILD__);
-    klog("Built %s %s for %s", __DATE__, __TIME__);
+    klog("Built %s %s", __DATE__, __TIME__);
 }
 
 void kernel_deinit() {
