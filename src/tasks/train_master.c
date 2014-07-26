@@ -103,6 +103,18 @@ master_turnout_stopping_distance(master* const ctxt) {
         ctxt->turnout_padding;
 }
 
+static inline int master_head_distance(master* const ctxt) {
+    return  (ctxt->checkpoint.direction == DIRECTION_FORWARD ?
+             ctxt->blaster_ctxt->measurements.front :
+             ctxt->blaster_ctxt->measurements.back);
+}
+
+static inline int master_rear_distance(master* const ctxt) {
+    return  (ctxt->checkpoint.direction == DIRECTION_FORWARD ?
+             ctxt->blaster_ctxt->measurements.back :
+             ctxt->blaster_ctxt->measurements.front);
+}
+
 static void master_release_control_courier(master* const ctxt,
                                            const control_req* const pkg,
                                            const int tid) {
