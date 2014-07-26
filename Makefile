@@ -68,7 +68,8 @@ ifdef NO_TRAIN_CONSOLE
 CFLAGS += -D NO_TRAIN_CONSOLE
 endif
 
-CFLAGS += -D __BUILD__=$(shell cat VERSION) -std=gnu99 -fomit-frame-pointer
+CFLAGS += -D __BUILD__=$(shell cat VERSION) -D __CODE_NAME__=$(shell whoami)
+CFLAGS += -std=gnu99 -fomit-frame-pointer
 CFLAGS += -c -Isrc -I. -Iinclude -mcpu=arm920t
 
 LDFLAGS = -init main -Map kernel.map -N -T orex.ld --warn-unresolved-symbols

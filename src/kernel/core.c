@@ -18,6 +18,8 @@
 #include <tasks/task_launcher.h>
 #include <tasks/mission_control.h>
 
+#define STRINGIFY(name) #name
+#define TO_STRING(name) STRINGIFY(name)
 
 #define SWI_HANDLER ((volatile uint*)0x08)
 
@@ -131,7 +133,7 @@ void kernel_init() {
 
     _print_train();
     klog("Welcome to ferOS build %u", __BUILD__);
-    klog("Built %s %s", __DATE__, __TIME__);
+    klog("Built %s %s for %s", __DATE__, __TIME__, TO_STRING(__CODE_NAME__));
 }
 
 void kernel_deinit() {
