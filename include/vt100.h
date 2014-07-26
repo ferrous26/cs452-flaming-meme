@@ -149,4 +149,16 @@ void  log(const char* fmt, ...);
 void  clog(const char* fmt, ...); // non-timestamped log
 void  klog(const char* fmt, ...);
 
+#ifdef NIK
+#define nik_log( fmt, ... ) log(fmt, ##__VA_ARGS__ )
+#else
+#define nik_log( ... )
+#endif
+
+#ifdef MARK
+#define mark_log(fmt, ... ) log(fmt, ##__VA_ARG__ )
+#else
+#define mark_log( ... )
+#endif
+
 #endif

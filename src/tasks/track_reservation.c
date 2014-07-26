@@ -159,7 +159,7 @@ static void _handle_reserve_section(_context* const ctxt,
     int result;
     int reply[] = {RESERVE_SUCCESS};
     ctxt->train_iter[train]++;
-    log("Train %d on count %d", train, ctxt->train_iter[train]);
+    nik_log("Train %d on count %d", train, ctxt->train_iter[train]);
 
     for (int i = 0; i < lst_size; i++, node++) {
         const int index = _get_node_index(ctxt, *node);
@@ -169,7 +169,8 @@ static void _handle_reserve_section(_context* const ctxt,
             ctxt->reserve[index].owner = train;
             ctxt->reserve[index].iter  = ctxt->train_iter[train];
         } else {
-            log(LOG_HEAD "Failed reserving Section %s For %d", (*node)->name, train);
+            nik_log(LOG_HEAD "Failed reserving Section %s For %d",
+                    (*node)->name, train);
             reply[0] = RESERVE_FAILURE;
             break;
         }
@@ -211,7 +212,7 @@ void track_reservation() {
 
         case RESERVE_WHO: {
             const int owner = _who_owns(&context, req.node);
-            log(LOG_HEAD "LOOKUP %d on %s", owner, req.node->name);
+            nik_log(LOG_HEAD "LOOKUP %d on %s", owner, req.node->name);
             result = Reply(tid, (char*)&owner, sizeof(owner));
             assert(result == 0, "Failed to repond to track query");
         }   break;
@@ -224,8 +225,8 @@ void track_reservation() {
                 reply          = (own2 == -1 || own2 == req.train_num);
             }
 
-            log(LOG_HEAD "LOOKUP %d - %d on %s",
-                req.train_num, reply, req.node->name);
+            nik_log(LOG_HEAD "LOOKUP %d - %d on %s",
+                    req.train_num, reply, req.node->name);
             result = Reply(tid, (char*)&reply, sizeof(reply));
             assert(result == 0, "Failed to repond to track query");
         }   break;

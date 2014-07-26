@@ -47,8 +47,16 @@ desc 'Build ferOS in the CS environment'
 task :build, :params do |_, args|
   params = args[:params] || 'psad'
 
-  # individual flags
   env  = []
+
+  name = `whoami`
+  if name.match 'marada'
+    env << 'MARK=yes'
+  else
+    env << 'NIK=yes'
+  end
+
+  # individual flags
   env << 'STRICT=yes'           if params.include? 's'
   env << 'BENCHMARK=yes'        if params.include? 'b'
   env << 'NO_TRAIN_CONSOLE=yes' if params.include? 'c'

@@ -64,8 +64,12 @@ ifdef STRICT
 CFLAGS += -Werror
 endif
 
-ifdef NO_TRAIN_CONSOLE
-CFLAGS += -D NO_TRAIN_CONSOLE
+ifdef NIK
+CFLAGS += -D NIK
+endif
+
+ifdef MARK
+CFLAGS += -D MARK
 endif
 
 CFLAGS += -D __BUILD__=$(shell cat VERSION)
