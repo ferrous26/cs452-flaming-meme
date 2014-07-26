@@ -641,7 +641,7 @@ static inline void master_location_update(master* const ctxt,
     UNUSED(result);
 
     if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
-    if (ctxt->active && ctxt->checkpoint.type != EVENT_ACCELERATION) {
+    if (ctxt->active) {
         int   insert = 1;
         const track_node* path_way[40];
 
@@ -649,7 +649,7 @@ static inline void master_location_update(master* const ctxt,
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
         path_way[0]            = node->reverse;
 
-        reserve_stop_dist(ctxt, dist + ctxt->checkpoint.offset + 20000,
+        reserve_stop_dist(ctxt, dist + ctxt->checkpoint.offset + 50000,
                           0, node, path_way, &insert);
         assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
 
