@@ -229,7 +229,7 @@ static void action(command cmd, int args[]) {
             }
             case PATH_TURNOUT:
                 log("%d  \tT\t%d %c\t%d",
-                    j, res.path[i].data.turnout.num, res.path[i].data.turnout.dir,
+                    j, res.path[i].data.turnout.num, res.path[i].data.turnout.state,
                     res.path[i].dist);
                 break;
             case PATH_REVERSE:

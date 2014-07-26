@@ -2,21 +2,18 @@
 #ifndef __PATH_H__
 #define __PATH_H__
 
+#include <normalize.h>
+
 typedef enum {
     PATH_SENSOR,
     PATH_TURNOUT,
     PATH_REVERSE,
 } path_type;
 
-typedef struct {
-    int num;
-    int dir;
-} path_turn;
-
 typedef union {
-    path_turn turnout;
-    int       sensor;
-    int       int_value;
+    turnout turnout;
+    int     sensor;
+    int     int_value;
 } path_data;
 
 typedef struct {
@@ -27,4 +24,3 @@ typedef struct {
 } path_node;
 
 #endif
-
