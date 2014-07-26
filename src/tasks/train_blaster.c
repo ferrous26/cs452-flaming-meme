@@ -889,9 +889,9 @@ blaster_process_console_timeout(blaster* const ctxt,
         ctxt->console_courier = tid;
 
     } else if (0 == truth.next_speed) {
-        if (truth.location.sensor == truth.next_location.sensor) { 
+        if (truth.location.sensor == truth.next_location.sensor) {
             log("[%s] blocking console 1 %d", ctxt->name, tid);
-            ctxt->console_courier = tid; 
+            ctxt->console_courier = tid;
         } else {
             const int current_s = truth.location.sensor;
             const int next_s    = truth.next_location.sensor;
@@ -901,7 +901,7 @@ blaster_process_console_timeout(blaster* const ctxt,
             result = Reply(tid, (char*)notify_pack, sizeof(notify_pack));
             assert(0 == result, "failed to courier %d", result);
         }
-    
+
     } else if (ctxt->console_timeout) {
         int lost = 80;
         result = Reply(tid, (char*)&lost, sizeof(lost));
@@ -913,7 +913,7 @@ blaster_process_console_timeout(blaster* const ctxt,
         int lost = 80;
         result = Reply(tid, (char*)&lost, sizeof(lost));
         assert(0 == result, "failed to courier %d", result);
-        // lost code is place holder until something real can be put in 
+        // lost code is place holder until something real can be put in
     }
 
 }
@@ -1060,7 +1060,7 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
-    
+
     ctxt->console_courier = -1;
     ctxt->console_timeout = 0;
 
@@ -1109,7 +1109,6 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
 
     int result;
 
-    #ifndef NO_TRAIN_CONSOLE
     // Setup the sensor courier */
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
     assert(tid >= 0, "[%s] Failed creating train console (%d)",
@@ -1118,8 +1117,6 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
     int c_init[2] = {ctxt->train_id, (int)ctxt->track};
     result        = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
     assert(result == 0, "Failed to setup train console! (%d)", result);
-    #endif
-
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,

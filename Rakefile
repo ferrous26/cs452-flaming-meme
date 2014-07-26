@@ -59,7 +59,6 @@ task :build, :params do |_, args|
   # individual flags
   env << 'STRICT=yes'           if params.include? 's'
   env << 'BENCHMARK=yes'        if params.include? 'b'
-  env << 'NO_TRAIN_CONSOLE=yes' if params.include? 'c'
   env << 'ASSERT=yes'           if params.include? 'a'
   env << 'DEBUG=yes'            if params.include? 'd'
   env << 'RELEASE=1'            if params.include? '1'
