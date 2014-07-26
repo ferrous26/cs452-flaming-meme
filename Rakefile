@@ -4,8 +4,19 @@ ELF_NAME = 'm2'
 UW_HOME  = ENV['UW_HOME']
 UW_USER  = ENV['UW_USER']
 
+def check_code_name
+  return if File.exists?('CODE_NAME')
+  File.open('CODE_NAME', 'w') do |fd|
+    fd.puts `whoami`.chomp
+  end
+end
+
 def increment_version
-  version = File.read('VERSION').to_i + 1
+  version = if File.exists?('VERSION')
+              File.read('VERSION').to_i + 1
+            else
+              0
+            end
   File.open('VERSION', 'w') do |fd|
     fd.puts version
   end
@@ -36,11 +47,18 @@ desc 'Build ferOS in the CS environment'
 task :build, :params do |_, args|
   params = args[:params] || 'psad'
 
-  # individual flags
   env  = []
+
+  name = `whoami`
+  if name.match 'marada'
+    env << 'MARK=yes'
+  else
+    env << 'NIK=yes'
+  end
+
+  # individual flags
   env << 'STRICT=yes'           if params.include? 's'
   env << 'BENCHMARK=yes'        if params.include? 'b'
-  env << 'NO_TRAIN_CONSOLE=yes' if params.include? 'c'
   env << 'ASSERT=yes'           if params.include? 'a'
   env << 'DEBUG=yes'            if params.include? 'd'
   env << 'RELEASE=1'            if params.include? '1'
@@ -79,6 +97,7 @@ task :build, :params do |_, args|
     cmds << " && cp kernel.elf /u/cs452/tftp/ARM/#{UW_USER}/#{ELF_NAME}.elf"
 
     increment_version
+    check_code_name
     sh rsync_command
     sh "ssh uw '#{cmds}'"
   end

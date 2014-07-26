@@ -51,7 +51,7 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-#if 1
+#ifndef MARK
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
@@ -651,7 +651,6 @@ blaster_process_acceleration_event(blaster* const ctxt,
                                    blaster_req* const req,
                                    const int courier_tid,
                                    const int timestamp) {
-    UNUSED(timestamp);
 
     // do not process the event if it has been overridden by a future event
     if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid))
@@ -710,11 +709,26 @@ blaster_process_acceleration_event(blaster* const ctxt,
 
     // we were late
     if (last_sensor.location.sensor == current_accel.location.sensor) {
-        // TODO: this might also be caused by a dead sensor
-        // because the sensor is not tripped... that makes no sense
-        // but I had an issue with this when I passed over D8 on track B
-        // while stopping just after hitting E8
-        log("[%s] Late acceleration event!", ctxt->name);
+        mark_log("[%s] Late acceleration event!", ctxt->name);
+
+        // we will try and estimate some shit here
+        // assume we travelled at 80 of the previous speed for
+        // for the time delta between states
+
+        truth.timestamp = timestamp;
+        const int time_delta = timestamp - truth.timestamp;
+
+        // choose a pseudo-magic value for speed to use in the calculation
+        const int estimated_speed =
+            ((last_accel.speed > current_accel.speed ?
+              last_accel.speed : truth.speed) * 8) / 10;
+
+        const int velocity =
+            physics_velocity(ctxt,
+                             estimated_speed,
+                             velocity_type(truth.location.sensor));
+
+        truth.location.offset += velocity * time_delta;
     }
     // we are (somewhat) on time
     else if (current_sensor.location.sensor == current_accel.location.sensor) {
@@ -775,7 +789,10 @@ blaster_process_acceleration_event(blaster* const ctxt,
     else {
         log("[%s] Teleported since train started accelerating!",
             ctxt->name);
-        // TODO: set state to be lost?
+        // TODO: this will happen at startup because we will often
+        // start from the wrong position on the track
+
+        // TODO: what other cases will cause this?
     }
 
     blaster_debug_state(ctxt, &truth);
@@ -889,9 +906,9 @@ blaster_process_console_timeout(blaster* const ctxt,
         ctxt->console_courier = tid;
 
     } else if (0 == truth.next_speed) {
-        if (truth.location.sensor == truth.next_location.sensor) { 
+        if (truth.location.sensor == truth.next_location.sensor) {
             log("[%s] blocking console 1 %d", ctxt->name, tid);
-            ctxt->console_courier = tid; 
+            ctxt->console_courier = tid;
         } else {
             const int current_s = truth.location.sensor;
             const int next_s    = truth.next_location.sensor;
@@ -901,7 +918,7 @@ blaster_process_console_timeout(blaster* const ctxt,
             result = Reply(tid, (char*)notify_pack, sizeof(notify_pack));
             assert(0 == result, "failed to courier %d", result);
         }
-    
+
     } else if (ctxt->console_timeout) {
         int lost = 80;
         result = Reply(tid, (char*)&lost, sizeof(lost));
@@ -913,7 +930,7 @@ blaster_process_console_timeout(blaster* const ctxt,
         int lost = 80;
         result = Reply(tid, (char*)&lost, sizeof(lost));
         assert(0 == result, "failed to courier %d", result);
-        // lost code is place holder until something real can be put in 
+        // lost code is place holder until something real can be put in
     }
 
 }
@@ -1060,7 +1077,7 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
-    
+
     ctxt->console_courier = -1;
     ctxt->console_timeout = 0;
 
@@ -1109,7 +1126,6 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
 
     int result;
 
-    #ifndef NO_TRAIN_CONSOLE
     // Setup the sensor courier */
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
     assert(tid >= 0, "[%s] Failed creating train console (%d)",
@@ -1118,8 +1134,6 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
     int c_init[2] = {ctxt->train_id, (int)ctxt->track};
     result        = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
     assert(result == 0, "Failed to setup train console! (%d)", result);
-    #endif
-
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,

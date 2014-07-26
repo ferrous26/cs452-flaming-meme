@@ -9,7 +9,7 @@
 #include <char_buffer.h>
 #include <tasks/track_reservation.h>
 
-#define RESERVE_DIST 
+#define RESERVE_DIST
 #define HEAP_SIZE    (TRACK_MAX+1)
 
 typedef struct dijkstra_data {
@@ -56,17 +56,17 @@ int dijkstra(const track_node* const track,
     const int         total_reserve = opts->reserve_dist;
     int               reserve       = total_reserve;
     int direction                   = 0;
-    
+
     pq_init(&q, heap, HEAP_SIZE);
     prime_search(opts, track, data, &q);
-    
+
     FOREVER {
         const int curr_dist = pq_peek_key(&q);
         if (INT_MAX == curr_dist) {
             log("NO PATH EXISTS!\n");
             return -1;
         }
-        
+
         ptr = (track_node*) pq_delete(&q);
         if (reserve > 0) {
             reserve = total_reserve - curr_dist;
@@ -156,14 +156,14 @@ int dijkstra(const track_node* const track,
     }
 
     int path_size = 0;
-    const track_node* path_ptr = ptr; 
+    const track_node* path_ptr = ptr;
     data[path_ptr-track].next = path_ptr;
-    
+
 
     FOREVER {
         path_node* const node  = &path[path_size];
         const int offset       = path_ptr - track;
-        
+
         const int node_dist    = data[offset].dist;
         const track_node* next = data[offset].prev;
         const int next_offset  = next - track;
@@ -171,9 +171,9 @@ int dijkstra(const track_node* const track,
         switch(path_ptr->type) {
         case NODE_NONE:
         case NODE_EXIT:
-        case NODE_ENTER: 
+        case NODE_ENTER:
             break;
-        
+
         case NODE_SENSOR:
             node->type           = PATH_SENSOR;
             node->dist           = node_dist;
@@ -188,10 +188,10 @@ int dijkstra(const track_node* const track,
             break;
 
         case NODE_BRANCH:
-            node->type             = PATH_TURNOUT;
-            node->dist             = node_dist;
-            node->data.turnout.num = path_ptr->num;
-            node->data.turnout.dir = direction ? 'C' : 'S';
+            node->type               = PATH_TURNOUT;
+            node->dist               = node_dist;
+            node->data.turnout.num   = path_ptr->num;
+            node->data.turnout.state = direction ? 'C' : 'S';
             path_size++;
             break;
 
@@ -211,11 +211,11 @@ int dijkstra(const track_node* const track,
     }
 
     ptr = path_ptr;
-    
+
     int i = 0;
     *reserved_dist = 0;
     const track_node* reservation[TRACK_MAX];
-    
+
     while (*reserved_dist < total_reserve) {
         log("%s", path_ptr->name);
         const int index = path_ptr - track;
@@ -238,11 +238,10 @@ int dijkstra(const track_node* const track,
         path[path_size].dist = 0;
         path_size++;
     }
-    
+
     if (i && !reserve_section(opts->train_offset, reservation, i)) {
         return -1;
     }
 
     return path_size;
 }
-

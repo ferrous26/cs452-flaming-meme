@@ -26,7 +26,7 @@
 #define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
 
 // we want to flip a turnout when we are
-#define TURNOUT_DISTANCE 300000
+#define TURNOUT_DISTANCE 200000
 
 #define CHECK_WHOIS(tid, msg) \
 if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
@@ -40,6 +40,11 @@ typedef struct train_checkpoint {
     train_dir   direction;
     bool        is_accel;
 } train_checkpoint;
+
+typedef struct train_action_point {
+    int step;
+    int offset;
+} action_point;
 
 typedef struct master_context {
     // identifying variables
@@ -70,10 +75,10 @@ typedef struct master_context {
     int              path_steps;
     const path_node* path;
 
-    track_location   next_turnout;
+    action_point     next_turnout;
     int              next_turnout_step;
-    track_location   next_reverse;       // LOL?
-    track_location   next_stop;
+    action_point     next_reverse;
+    action_point     next_stop;
 
     struct blaster_context* const blaster_ctxt;
 
@@ -229,7 +234,7 @@ master_where_you_at(master* const ctxt,
     master_release_control_courier(ctxt, pkg, courier_tid);
 }
 
-static track_location
+static action_point
 master_find_action_location(master* const ctxt,
                             const int start_index,
                             const int offset) {
@@ -244,8 +249,8 @@ master_find_action_location(master* const ctxt,
             // if the distance from the start point
             const int dist = start->dist - ctxt->path[i].dist;
             if (dist > offset) {
-                const track_location l = {
-                    .sensor = ctxt->path[i].data.sensor,
+                const action_point l = {
+                    .step   = i,
                     .offset = abs(dist - offset)
                 };
                 return l;
@@ -253,9 +258,8 @@ master_find_action_location(master* const ctxt,
         }
     }
 
-    const track_location l = {
-        .sensor = NUM_SENSORS,
-        .offset = 0
+    const action_point l = {
+        .step = -1
     };
 
     return l;
@@ -369,63 +373,48 @@ master_goto_command(master* const ctxt,
 }
 
 static inline void master_calculate_turnout_point(master* const ctxt) {
-    for (int i = ctxt->next_turnout_step - 1; i >= 0; i--) {
-        log("[%s] Trying out %d", ctxt->name, i);
-        if (ctxt->path[i].type == PATH_TURNOUT) {
-            ctxt->next_turnout =
-                master_find_action_location(ctxt, i, TURNOUT_DISTANCE);
-            ctxt->next_turnout_step = i;
 
-            const sensor s = pos_to_sensor(ctxt->next_turnout.sensor);
-            log("[%s] Want to flip at %c%d + %d mm (step %d)",
-                ctxt->name, s.bank, s.num, ctxt->next_turnout.offset, i);
+    // this handles the case where we need to fast forward the route
+    const int start_index = MIN(ctxt->next_turnout_step, ctxt->path_steps);
+
+    for (int i = start_index - 1; i >= 0; i--) {
+        if (ctxt->path[i].type == PATH_TURNOUT) {
+
+            const int direction_offset = TURNOUT_DISTANCE +
+                (ctxt->checkpoint.direction == DIRECTION_FORWARD ?
+                 ctxt->blaster_ctxt->measurements.front :
+                 ctxt->blaster_ctxt->measurements.back);
+
+            // the actual turnout metadata
+            ctxt->next_turnout_step = i;
+            // find out at which step we need to act...
+            ctxt->next_turnout =
+                master_find_action_location(ctxt, i, direction_offset);
+
+            const sensor s =
+                pos_to_sensor(ctxt->path[ctxt->next_turnout.step].data.sensor);
+            log("[%s] Want to flip %d to %c at step %d + %d mm (step %d)",
+                ctxt->name,
+                ctxt->path[i].data.turnout.num,
+                ctxt->path[i].data.turnout.state,
+                s.bank, s.num,
+                ctxt->next_turnout.offset / 1000, i);
 
             return;
         }
     }
 
-    ctxt->next_turnout.sensor = NUM_SENSORS;
+    ctxt->next_turnout.step = -1;
 }
 
 static inline void master_calculate_stopping_point(master* const ctxt) {
     const int stop_dist = master_current_stopping_distance(ctxt);
     ctxt->next_stop = master_find_action_location(ctxt, 0, stop_dist);
 
-    const sensor s = pos_to_sensor(ctxt->next_stop.sensor);
+    const sensor s =
+        pos_to_sensor(ctxt->path[ctxt->next_stop.step].data.sensor);
     log("[%s] Want to stop at %c%d + %d mm (%d mm)",
         ctxt->name, s.bank, s.num, ctxt->next_stop.offset, stop_dist);
-}
-
-static inline void master_path_update(master* const ctxt,
-                                      const int size,
-                                      const path_node* path,
-                                      const int tid) {
-
-    const sensor to = pos_to_sensor(ctxt->destination);
-
-    sensor from = { 'F', 1 };
-    for (int i = size - 1; i >= 0; i--) {
-        if (path[i].type == PATH_SENSOR) {
-            from = pos_to_sensor(path[i].data.sensor);
-            break;
-        }
-    }
-
-    log("[%s] Got path %c%d -> %c%d in %d steps",
-        ctxt->name, from.bank, from.num, to.bank, to.num, size);
-
-    ctxt->path_worker  = tid;
-    ctxt->path_steps   = size - 1;
-    ctxt->path         = path;
-
-    // Get us up to date on where we are
-    master_try_fast_forward(ctxt);
-
-    ctxt->next_turnout_step = ctxt->path_steps;
-
-    // wait until we know where we are starting from
-    master_calculate_turnout_point(ctxt);
-    master_calculate_stopping_point(ctxt);
 }
 
 static void master_delay_flip_turnout(master* const ctxt,
@@ -462,29 +451,129 @@ static void master_delay_flip_turnout(master* const ctxt,
         ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
 }
 
-static inline void master_simulate_pathing(master* const ctxt) {
+static void master_check_turnout_throwing(master* const ctxt,
+                                          const int velocity,
+                                          const int offset,
+                                          const int time) {
 
-    const int  velocity = master_current_velocity(ctxt);
-
-    while (ctxt->checkpoint.sensor == ctxt->next_turnout.sensor) {
-        const int delay = ctxt->next_turnout.offset / velocity;
-
-        const path_node* const node = &ctxt->path[ctxt->next_turnout_step];
-        master_delay_flip_turnout(ctxt,
-                                  node->data.turnout.num,
-                                  node->data.turnout.dir,
-                                  ctxt->checkpoint.timestamp + delay);
-
+    // check if we need to fast forward the turnout handling, this is separate
+    // from regular fast forwarding because it may need to happen more
+    // frequently since multiple turnouts can exist between sensors
+    while (ctxt->path_steps < ctxt->next_turnout_step)
         master_calculate_turnout_point(ctxt);
 
-        log("[%s] Sending turnout %d command to %c",
-            ctxt->name, node->data.turnout.num, node->data.turnout.dir);
+    while (ctxt->checkpoint.sensor ==
+           ctxt->path[ctxt->next_turnout.step].data.sensor) {
+
+        // how much longer we have to wait until we reach the danger zone
+        const int delay =
+            (ctxt->next_turnout.offset - offset) / velocity;
+
+        const path_node* const node = &ctxt->path[ctxt->next_turnout_step];
+
+        if (delay < 0 ) {
+            log("[%s] Not enough time to throw turnout %d!",
+                ctxt->name, node->data.turnout.num);
+        }
+        else {
+            master_delay_flip_turnout(ctxt,
+                                      node->data.turnout.num,
+                                      node->data.turnout.state,
+                                      time + delay);
+            log("[%s] Sending turnout %d command to %c",
+                ctxt->name, node->data.turnout.num, node->data.turnout.state);
+        }
+
+        // start the process again!
+        master_calculate_turnout_point(ctxt);
+    }
+}
+
+static void master_check_throw_stop_command(master* const ctxt,
+                                            const int velocity,
+                                            const int offset,
+                                            const int time) {
+
+    // figure out where we need to be stopping
+    master_calculate_stopping_point(ctxt);
+
+    if (ctxt->checkpoint.sensor ==
+        ctxt->path[ctxt->next_stop.step].data.sensor) {
+
+        const int delay = (ctxt->next_stop.offset - offset) / velocity;
+        master_set_speed(ctxt, 0, time + delay);
+
+        // if we still have turnouts to throw, then throw them all right now!
+        for (int i = ctxt->path_steps; i >= 0; i--) {
+            const path_node* const node = &ctxt->path[i];
+            if (node->type == PATH_TURNOUT) {
+                master_delay_flip_turnout(ctxt,
+                                          node->data.turnout.num,
+                                          node->data.turnout.state,
+                                          time + 2); // the magic 2!
+            }
+        }
+
+        ctxt->path_steps = -1;
+    }
+}
+
+static inline void master_path_update(master* const ctxt,
+                                      const int size,
+                                      const path_node* path,
+                                      const int tid) {
+
+    const sensor to = pos_to_sensor(ctxt->destination);
+
+    sensor from = { 'F', 1 };
+    for (int i = size - 1; i >= 0; i--) {
+        if (path[i].type == PATH_SENSOR) {
+            from = pos_to_sensor(path[i].data.sensor);
+            break;
+        }
     }
 
-    if (ctxt->checkpoint.sensor == ctxt->next_stop.sensor) {
-        const int delay = ctxt->next_stop.offset / velocity;
-        master_set_speed(ctxt, 0, ctxt->checkpoint.timestamp + delay);
-        ctxt->path_steps = -1;
+    log("[%s] Got path %c%d -> %c%d in %d steps",
+        ctxt->name, from.bank, from.num, to.bank, to.num, size);
+
+    ctxt->path_worker  = tid;
+    ctxt->path_steps   = size - 1;
+    ctxt->path         = path;
+
+    // Get us up to date on where we are
+    master_try_fast_forward(ctxt);
+
+    // wait until we know where we are starting from
+    ctxt->next_turnout_step = ctxt->path_steps;
+
+    // now, the million dollar question is: are we too late to throw
+    // the turnout; we determine this by looking at the
+    const int velocity = master_current_velocity(ctxt);
+    const int     time = Time();
+    // how far we have travelled from the sensor since the checkpoint
+    const int   offset = ctxt->checkpoint.offset +
+        (velocity * (time - ctxt->checkpoint.timestamp));
+
+    master_calculate_turnout_point(ctxt);
+    master_check_turnout_throwing(ctxt, velocity, offset, time);
+    master_check_throw_stop_command(ctxt, velocity, offset, time);
+
+    for (int i = ctxt->path_steps; i >= 0; i--) {
+        switch(ctxt->path[i].type) {
+        case PATH_SENSOR: {
+            const sensor print = pos_to_sensor(ctxt->path[i].data.int_value);
+            log("%d  \tS\t%c%d\t%d", i, print.bank, print.num, ctxt->path[i].dist);
+            break;
+        }
+        case PATH_TURNOUT:
+            log("%d  \tT\t%d %c\t%d",
+                i, ctxt->path[i].data.turnout.num, ctxt->path[i].data.turnout.state,
+                ctxt->path[i].dist);
+            break;
+        case PATH_REVERSE:
+            log("%d  \tR\t\t%d", i, ctxt->path[i].dist);
+            break;
+        }
     }
 }
 
@@ -672,11 +761,20 @@ static inline void master_location_update(master* const ctxt,
     }
 
     if (ctxt->path_steps >= 0) {
-        // we need to recalculate this if the speed changes
-        master_calculate_stopping_point(ctxt);
-
         if (master_try_fast_forward(ctxt)) {
-            master_simulate_pathing(ctxt);
+            // now, the million dollar question is: are we too late to throw
+            // the turnout; we determine this by looking at the
+            const int velocity = master_current_velocity(ctxt);
+            const int     time = Time();
+            // how far we have travelled from the sensor since the checkpoint
+            const int   offset = ctxt->checkpoint.offset +
+                (velocity * (time - ctxt->checkpoint.timestamp));
+
+            // now, check if we need to handle a turnout
+            master_check_turnout_throwing(ctxt, velocity, offset, time);
+
+            // and if it is stopping time
+            master_check_throw_stop_command(ctxt, velocity, offset, time);
         }
         else { // shit, we need a new path...
             log("[%s] Finding a new route!", ctxt->name);
