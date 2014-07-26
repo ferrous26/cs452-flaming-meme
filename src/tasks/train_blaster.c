@@ -69,6 +69,9 @@ blaster_debug_state(blaster* const ctxt,
     case EVENT_SENSOR:
         event = "Sensor Checkpoint Event";
         break;
+    case EVENT_UNEXPECTED_SENSOR:
+        event = "Unexpected Sensor Checkpoint Event";
+        break;
     }
 
     const sensor current_loc = pos_to_sensor(state->location.sensor);
@@ -826,7 +829,7 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     // this is essentially a state reset, we cannot really use previous state
 
     last_sensor = current_sensor;
-    current_sensor.event                = EVENT_SENSOR;
+    current_sensor.event                = EVENT_UNEXPECTED_SENSOR;
     current_sensor.timestamp            = sensor_hit_time;
     current_sensor.is_accelerating      = truth.is_accelerating;
     current_sensor.location.sensor      = sensor_hit;

@@ -7,7 +7,8 @@ void __attribute__ ((noreturn)) train_blaster(void);
 typedef enum {
     EVENT_ACCELERATION,
     EVENT_VIRTUAL,
-    EVENT_SENSOR
+    EVENT_SENSOR,
+    EVENT_UNEXPECTED_SENSOR
 } train_event;
 
 typedef enum {
