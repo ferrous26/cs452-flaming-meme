@@ -271,7 +271,12 @@ static inline void _driver_lost(tc_context* const ctxt) {
     reject_remaining_sensors(ctxt);
     ctxt->sensor_iter++;
     
-    log(LOG_HEAD "TRAIN %d LOST %x", ctxt->train_pos, ctxt->docked);
+    const char* sen_name = XBETWEEN(ctxt->sensor_expect, -1, NUM_SENSORS) ?
+                               ctxt->track[ctxt->sensor_expect].name : "[!]";
+
+    log(LOG_HEAD "TRAIN %d LOST EXPECTING %s ~ %x",
+        ctxt->train_pos, sen_name, ctxt->docked);
+
     ctxt->sensor_expect  = 80;
     ctxt->sensor_timeout = 0;
     try_send_sensor(ctxt, 80);
@@ -315,6 +320,15 @@ static inline void _driver_setup_sensors(tc_context* const ctxt,
 
     _get_next_sensors(ctxt->track[last_sensor].edge[DIR_AHEAD].dest,
                       &ctxt->next_sensors);
+
+    if (0 == intb_count(&ctxt->next_sensors)) {
+        log("no sensors exist in the future, exit?");
+
+        ctxt->sensor_expect = ctxt->track[last_sensor].reverse->num;
+        try_send_sensor(ctxt, ctxt->sensor_expect);
+
+        return;
+    }
 
     while (intb_count(&ctxt->next_sensors) > 0) {
         const int sensor_num = intb_consume(&ctxt->next_sensors);
@@ -422,21 +436,29 @@ void train_console() {
             else if (REQUEST_REJECTED == args[1]) continue;
             // TODO: someone stole this sensor,
             // need to come up with system - possibly involving the reservations
+            // 
+            // This should actually probably done by misson control, there might
+            // be code here such that i can give the other guy control later
+            // maybe, this might not be an issue though
             //
             // dont resend since were on the same iteration, just will cause
             // for trains to fight over the bloody sensor, just give up for now
             else if (context.docked & DRIVER_MASK) {
-                blaster_req callin = {
-                    .type = context.sensor_expect == args[2] ?
-                                        BLASTER_SENSOR_FEEDBACK :
-                                        BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
-                    .arg1 = args[2],
-                    .arg2 = args[1]
+                struct blaster_pack {
+                    blaster_req_type type;
+                    int              time;
+                    int              sensor;
+                } pack = {
+                    .type   = context.sensor_expect == args[2] ?
+                                          BLASTER_SENSOR_FEEDBACK :
+                                          BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
+                    .time   = args[2],
+                    .sensor = args[1]
                 };
 
                 // sensor s = pos_to_sensor(args[2]);
                 // log("Sending Sensor %c%d", s.bank, s.num);
-                result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
+                result = Reply(context.driver_tid, (char*)&pack, sizeof(pack));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;
             }
