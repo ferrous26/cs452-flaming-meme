@@ -112,7 +112,6 @@ static void master_release_control_courier(master* const ctxt,
 
 static void
 master_set_speed(master* const ctxt, const int speed, const int delay) {
-
     struct {
         tdelay_header head;
         blaster_req   req;
@@ -643,17 +642,19 @@ static inline void master_location_update(master* const ctxt,
 
     if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
     if (ctxt->active && ctxt->checkpoint.type != EVENT_ACCELERATION) {
-        int   insert = 0;
+        int   insert = 1;
         const track_node* path_way[40];
 
         const int dist         = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
+        path_way[0]            = node->reverse;
 
-        reserve_stop_dist(ctxt, dist + 100000, 1, node, path_way, &insert);
+        reserve_stop_dist(ctxt, dist + ctxt->checkpoint.offset + 20000,
+                          0, node, path_way, &insert);
         assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
 
         if (!reserve_section(ctxt->train_id, path_way, insert)) {
-            log ("TRAIN Encrouching");
+            log ("TRAIN %d Encrouching", ctxt->train_id);
             master_set_speed(ctxt, 0, 0);
         }
     }

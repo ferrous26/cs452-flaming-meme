@@ -79,6 +79,9 @@ typedef struct blaster_context {
     int       reverse_courier;      // reverse step delay courier
     int       checkpoint_courier;   // courier used to wake at checkpoints
 
+    int       console_courier;
+    int       console_timeout;
+
     ratio     feedback_ratio;
     int       feedback_threshold;
     int       stopping_distance_offset;
@@ -95,6 +98,9 @@ typedef struct blaster_context {
 
     // these will usually be based on actual track feedback, unless we have to
     // go a while without track feedback, in which case this will be estimates
+
+    int timeouts;
+
 
 #define last_checkpoint      ctxt->last_checkpoint_event
 #define last_sensor          ctxt->last_sensor_event

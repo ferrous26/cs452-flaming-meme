@@ -246,9 +246,9 @@ static void blaster_start_accelerate(blaster* const ctxt,
     };
 
     ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
-    const int result = Send(ctxt->acceleration_courier,
-                            (char*)&msg, sizeof(msg),
-                            NULL, 0);
+    int result = Send(ctxt->acceleration_courier,
+                      (char*)&msg, sizeof(msg),
+                      NULL, 0);
     if (result < 0)
         ABORT("[%s] Failed to setup new delay courier (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
@@ -273,8 +273,18 @@ static void blaster_start_accelerate(blaster* const ctxt,
 
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, time);
-
     physics_update_velocity_ui(ctxt);
+
+
+    if (ctxt->console_courier > 0) {
+        int package[] = {truth.location.sensor,
+                         truth.next_location.sensor,
+                         0};
+        result = Reply(ctxt->console_courier, (char*)package, sizeof(package));
+
+        ctxt->console_timeout = 0;
+        ctxt->console_courier = -1;
+    }
 }
 
 static void blaster_start_deccelerate(blaster* const ctxt,
@@ -867,6 +877,48 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
 }
 
 static inline void
+blaster_process_console_timeout(blaster* const ctxt,
+                                const int tid) {
+    int result; UNUSED(result);
+    log("[%s] timeout %d", ctxt->name, tid);
+
+    if (0 == truth.speed) {
+        // train stopped, keep the courier
+        // for when we are going
+        log("[%s] blocking console %d", ctxt->name, tid);
+        ctxt->console_courier = tid;
+
+    } else if (0 == truth.next_speed) {
+        if (truth.location.sensor == truth.next_location.sensor) { 
+            log("[%s] blocking console 1 %d", ctxt->name, tid);
+            ctxt->console_courier = tid; 
+        } else {
+            const int current_s = truth.location.sensor;
+            const int next_s    = truth.next_location.sensor;
+            const int timeout   = truth.next_timestamp;
+
+            const int notify_pack[] = {current_s, next_s, timeout};
+            result = Reply(tid, (char*)notify_pack, sizeof(notify_pack));
+            assert(0 == result, "failed to courier %d", result);
+        }
+    
+    } else if (ctxt->console_timeout) {
+        int lost = 80;
+        result = Reply(tid, (char*)&lost, sizeof(lost));
+        assert(0 == result, "failed to courier %d", result);
+
+    } else {
+        //TODO: need to get the next node since the sensor may now
+        // be dead
+        int lost = 80;
+        result = Reply(tid, (char*)&lost, sizeof(lost));
+        assert(0 == result, "failed to courier %d", result);
+        // lost code is place holder until something real can be put in 
+    }
+
+}
+
+static inline void
 blaster_process_sensor_event(blaster* const ctxt,
                              blaster_req* const req,
                              const int courier_tid,
@@ -1008,6 +1060,9 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
 
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
+    
+    ctxt->console_courier = -1;
+    ctxt->console_timeout = 0;
 
     put_train_speed((char)ctxt->train_gid, 0);
 
@@ -1170,10 +1225,9 @@ void train_blaster() {
             blaster_process_unexpected_sensor_event(&context, &req, tid, time);
             continue;
 
-        case BLASTER_SENSOR_TIMEOUT: {
-            int lost = 80;
-            Reply(tid, (char*)&lost, sizeof(lost));
-        }   continue;
+        case BLASTER_SENSOR_TIMEOUT:
+            blaster_process_console_timeout(&context, tid);
+            continue;
 
         case BLASTER_REQ_TYPE_COUNT:
             ABORT("[%s] Illegal type for a train blaster %d from %d",

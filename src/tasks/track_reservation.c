@@ -159,13 +159,13 @@ static void _handle_reserve_section(_context* const ctxt,
     int result;
     int reply[] = {RESERVE_SUCCESS};
     ctxt->train_iter[train]++;
+    log("Train %d on count %d", train, ctxt->train_iter[train]);
 
     for (int i = 0; i < lst_size; i++, node++) {
         const int index = _get_node_index(ctxt, *node);
         const int owner = _who_owns_index(ctxt, index);
 
         if (owner == -1) {
-            log(LOG_HEAD "Reserving Section %s For %d", (*node)->name, train);
             ctxt->reserve[index].owner = train;
             ctxt->reserve[index].iter  = ctxt->train_iter[train];
         } else {
@@ -175,32 +175,8 @@ static void _handle_reserve_section(_context* const ctxt,
         }
     }
 
-    result      = Reply(tid, (char*)reply, sizeof(reply));
+    result  = Reply(tid, (char*)reply, sizeof(reply));
     assert(result == 0, "Failed to repond to track query");
-
-/*
-        if (ctxt->reserved_nodes[train]) {
-            if (!is_node_adjacent(ctxt, node, train)) {
-                assert(false, "train %d tried to get unadjacent node %s",
-                       train, node->name);
-            }
-        }
-
-        ctxt->reserved_nodes[train]++;
-        ctxt->reserve[index] = train;
-    } else if(owner == train) {
-        log(LOG_HEAD "Already Reserved Section %s For %d", node->name, train);
-        int reply[] = {RESERVE_ALREADY_OWN, get_reserve_length(node)};
-        result      = Reply(tid, (char*)reply, sizeof(reply));
-
-    } else {
-        log(LOG_HEAD "train %d can't reserve %s, already owned by %d",
-            train, node->name, owner);
-
-        int reply[] = {RESERVE_FAILURE, owner};
-        result      = Reply(tid, (char*)reply, sizeof(reply));
-    }
-*/
 }
 
 void track_reservation() {
