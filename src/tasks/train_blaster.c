@@ -824,7 +824,7 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
 
     assert(XBETWEEN(sensor_hit, -1, NUM_SENSORS),
            "processed bad unexpected sensor %d", sensor_hit);
-    
+
     // TODO: is it really unexpected, or is just further down the track;
     //       the result of a dead sensor?
 
@@ -903,7 +903,7 @@ static inline void
 blaster_process_console_timeout(blaster* const ctxt,
                                 const int tid) {
     int result; UNUSED(result);
-    log("[%s] timeout %d", ctxt->name, tid);
+    nik_log("[%s] timeout %d", ctxt->name, tid);
 
     if (0 == truth.speed) {
         // train stopped, keep the courier
