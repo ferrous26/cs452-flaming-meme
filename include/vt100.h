@@ -156,7 +156,7 @@ void  klog(const char* fmt, ...);
 #endif
 
 #ifdef MARK
-#define mark_log(fmt, ... ) log(fmt, ##__VA_ARG__ )
+#define mark_log(fmt, ... ) log(fmt, ##__VA_ARGS__ )
 #else
 #define mark_log( ... )
 #endif
