@@ -4,8 +4,19 @@ ELF_NAME = 'm2'
 UW_HOME  = ENV['UW_HOME']
 UW_USER  = ENV['UW_USER']
 
+def check_code_name
+  return if File.exists?('CODE_NAME')
+  File.open('CODE_NAME', 'w') do |fd|
+    fd.puts `whoami`.chomp
+  end
+end
+
 def increment_version
-  version = File.read('VERSION').to_i + 1
+  version = if File.exists?('VERSION')
+              File.read('VERSION').to_i + 1
+            else
+              0
+            end
   File.open('VERSION', 'w') do |fd|
     fd.puts version
   end
@@ -79,6 +90,7 @@ task :build, :params do |_, args|
     cmds << " && cp kernel.elf /u/cs452/tftp/ARM/#{UW_USER}/#{ELF_NAME}.elf"
 
     increment_version
+    check_code_name
     sh rsync_command
     sh "ssh uw '#{cmds}'"
   end

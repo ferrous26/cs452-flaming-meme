@@ -132,8 +132,8 @@ void kernel_init() {
     *SWI_HANDLER = (0xea000000 | (((uint)kernel_enter >> 2) - 4));
 
     _print_train();
-    klog("Welcome to ferOS build %u", __BUILD__);
-    klog("Built %s %s for %s", __DATE__, __TIME__, TO_STRING(__CODE_NAME__));
+    klog("Welcome to %sOS build %u", TO_STRING(__CODE_NAME__), __BUILD__);
+    klog("Built %s %s for %s", __DATE__, __TIME__);
 }
 
 void kernel_deinit() {
