@@ -306,7 +306,6 @@ master_try_fast_forward(master* const ctxt) {
         }
     }
 
-    log("Cancelled");
     // cancel path, we need something else!
     return (ctxt->path_step = NULL);
 }
@@ -403,16 +402,6 @@ static inline void master_calculate_turnout_point(master* const ctxt) {
             ctxt->next_turnout =
                 master_find_action_location(ctxt, step, direction_offset);
 
-            const sensor s =
-                pos_to_sensor(ctxt->next_turnout.step->data.sensor);
-            log("[%s] Want to flip %d to %c at %c%d + %d mm (step %d)",
-                ctxt->name,
-                step->data.turnout.num,
-                step->data.turnout.state,
-                s.bank, s.num,
-                ctxt->next_turnout.offset / 1000,
-                (step - ctxt->path) / sizeof(path_node));
-
             return;
         }
     }
@@ -424,11 +413,6 @@ static inline void master_calculate_turnout_point(master* const ctxt) {
 static inline void master_calculate_stopping_point(master* const ctxt) {
     const int stop_dist = master_current_stopping_distance(ctxt);
     ctxt->next_stop = master_find_action_location(ctxt, ctxt->path, stop_dist);
-
-    const sensor s =
-        pos_to_sensor(ctxt->next_stop.step->data.sensor);
-    log("[%s] Want to stop at %c%d + %d mm (%d mm)",
-        ctxt->name, s.bank, s.num, ctxt->next_stop.offset, stop_dist);
 }
 
 static void master_delay_flip_turnout(master* const ctxt,
@@ -635,8 +619,8 @@ master_short_move_command(master* const ctxt,
 
     const int speed = master_short_move(ctxt, offset);
     if (speed)
-        log("[%s] Short move %d mm at speed %d",
-            ctxt->name, offset / 1000, speed / 10);
+        mark_log("[%s] Short move %d mm at speed %d",
+                 ctxt->name, offset / 1000, speed / 10);
     else
         log("[%s] Distance %d mm too short to start and stop!",
             ctxt->name, offset / 1000);
@@ -766,7 +750,7 @@ static inline void master_location_update(master* const ctxt,
         assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
 
         if (!reserve_section(ctxt->train_id, reserve, insert)) {
-            log ("TRAIN %d Encrouching", ctxt->train_id);
+            log("[%s] Encrouching (%d)", ctxt->name, ctxt->train_id);
             master_set_speed(ctxt, 0, 0);
         }
     }
@@ -800,7 +784,9 @@ static inline void master_location_update(master* const ctxt,
             master_check_throw_stop_command(ctxt, velocity, offset, time);
 
             // if the current step sensor is also the last, then we are done!
-            if (ctxt->path_step->data.sensor == ctxt->destination) {
+            if (ctxt->path_step->data.sensor == ctxt->destination ||
+                (ctxt->path_completed && ctxt->checkpoint.speed == 0)) {
+
                 const sensor s = pos_to_sensor(ctxt->destination);
                 log("[%s] Arrived at %c%d", ctxt->name, s.bank, s.num);
                 ctxt->path_step = NULL;
@@ -813,20 +799,6 @@ static inline void master_location_update(master* const ctxt,
             master_goto(ctxt, ctxt->destination, ctxt->destination_offset);
         }
     }
-}
-
-static inline void
-master_stop_train(master* const ctxt, const int tid) {
-
-    log("Stopping!");
-    // TODO: courier this directly to the train?
-    master_set_speed(ctxt, 0, 0);
-
-    const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
-    assert(result == 0,
-           "[%s] Failed to kill delay notifier (%d)",
-           ctxt->name, result);
-    UNUSED(result);
 }
 
 static TEXT_COLD void master_init(master* const ctxt) {
@@ -994,10 +966,6 @@ void train_master() {
 
         case MASTER_BLASTER_LOCATION:
             master_location_update(&context, &req, &blaster_callin, tid);
-            break;
-
-        case MASTER_STOP_TRAIN:
-            master_stop_train(&context, tid);
             break;
 
         case MASTER_UPDATE_TWEAK:
