@@ -27,9 +27,9 @@ typedef struct {
 struct term_state;
 struct term_puts;
 
-#define INPUT_BUFFER_SIZE   2048
+#define INPUT_BUFFER_SIZE   1024
 #define OUTPUT_BUFFER_SIZE  256
-#define OUTPUT_BUFFER_COUNT 8
+#define OUTPUT_BUFFER_COUNT 4
 
 BULK_CHAR_BUFFER(INPUT_BUFFER_SIZE)
 
@@ -52,8 +52,9 @@ typedef struct {
 // State for the terminal server
 struct term_state {
     char* out_head;   // pointer where to insert data for output
-    char* obuffer;
     uint  obuffer_idx;
+    uint  carrier_idx;
+    char* obuffer;
     char  obuffers[OUTPUT_BUFFER_COUNT][OUTPUT_BUFFER_SIZE];
 
     puts_buffer output_q;
@@ -65,6 +66,8 @@ struct term_state {
     int   carrier;    // tid for the carrier when it gets blocked
     int   notifier;   // tid for the notifier when it makes a request
 };
+
+static inline void _term_try_send(struct term_state* const state);
 
 /* Global data */
 static int term_server_tid;
@@ -233,13 +236,9 @@ static inline void _term_obuffer(struct term_state* const state) {
     state->carrier = -1;
 }
 
-static inline void _term_try_send(struct term_state* const state) {
+static inline void _term_try_fill(struct term_state* const state) {
 
-    // at this point the carrier is ready, so we want to copy
-    // as much crap into the buffer as we can, and then reply to
-    // the carrier
-
-    // how much space we have in the buffer
+    // how much space we have in the outptut buffer
     uint space = OUTPUT_BUFFER_SIZE - (uint)(state->out_head - state->obuffer);
 
     // if we have nothing to send to the carrier
@@ -272,31 +271,73 @@ static inline void _term_try_send(struct term_state* const state) {
 	    int result = Reply(puts->tid, NULL, 0);
 	    TERM_ASSERT(result == 0, result);
 	}
+
+        // ran out of space in the current buffer
+        if (space == 0) {
+            // move up to the next buffer
+            state->obuffer_idx =
+                mod2(state->obuffer_idx + 1, OUTPUT_BUFFER_COUNT);
+            state->obuffer     = state->obuffers[state->obuffer_idx];
+            state->out_head    = state->obuffer;
+
+            // if the next buffer is being emptied by the carrier
+            if (state->obuffer_idx == state->carrier_idx)
+                break; // bail!
+            else // otherwise, keep consuming :)
+                space = OUTPUT_BUFFER_SIZE;
+        }
     }
 
+    // now that something is ready to go, try and send it out
+    if (state->carrier >= 0)
+        _term_try_send(state);
+}
+
+static inline void _term_try_send(struct term_state* const state) {
+
     // then do carrier-send dance
-    space = OUTPUT_BUFFER_SIZE - space;
-    int result = Reply(state->carrier, (char*)&space, sizeof(uint));
+    state->carrier_idx = mod2(state->carrier_idx + 1, OUTPUT_BUFFER_COUNT);
+
+    int buffer_size = OUTPUT_BUFFER_SIZE;
+
+    // if we are sending out the current buffer
+    if (state->carrier_idx == state->obuffer_idx) {
+        // actual output size is how much ever we have filled
+        buffer_size        = state->out_head - state->obuffer;
+
+        // if we actually have nothing to send, then abort!
+        if (buffer_size == 0) {
+            state->carrier_idx =
+                mod2(state->carrier_idx - 1, OUTPUT_BUFFER_COUNT);
+            return;
+        }
+
+        // then do the buffer-swap dance
+        state->obuffer_idx =
+            mod2(state->obuffer_idx + 1, OUTPUT_BUFFER_COUNT);
+        state->obuffer     = state->obuffers[state->obuffer_idx];
+        state->out_head    = state->obuffer;
+    }
+
+    int result = Reply(state->carrier, (char*)&buffer_size, sizeof(int));
     TERM_ASSERT(result == 0, result);
 
-    // then do the buffer-swap dance
-    state->obuffer_idx = mod2(state->obuffer_idx + 1, OUTPUT_BUFFER_COUNT);
-    state->obuffer     = state->obuffers[state->obuffer_idx];
-    state->out_head    = state->obuffer;
-
     // reset this now (before calling _term_try_puts)
-    state->carrier     = -1;
+    state->carrier = -1;
+
+    // now we can try filling a buffer again
+    _term_try_fill(state);
 }
 
 static inline void _term_try_puts(struct term_state* const state,
 				  const term_req* const req,
 				  const int tid) {
+
     pbuf_produce(&state->output_q, req, tid);
 
-    // if the carrier happened to be waiting
-    if (state->carrier >= 0)
-	// then we can wake him up and send some stuff
-	_term_try_send(state);
+    // if we have not run out of buffer space, then try filling the buffer
+    if (state->obuffer_idx != state->carrier_idx)
+        _term_try_fill(state);
 }
 
 static inline void _term_try_getc(struct term_state* const state) {
@@ -364,6 +405,7 @@ void term_server() {
     // initialize this mofo
     memset(&state, 0, sizeof(state));
     state.out_head = state.obuffer = state.obuffers[0];
+    state.carrier_idx = OUTPUT_BUFFER_COUNT - 1; // start at the end
     pbuf_init(&state.output_q);
     cbuf_init(&state.input_q);
     state.in_tid = state.carrier = state.notifier = -1;
