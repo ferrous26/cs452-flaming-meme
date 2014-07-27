@@ -32,6 +32,12 @@ typedef struct {
 } turnout;
 
 
+static inline int reverse_sensor(const int s) {
+    if (mod2_int(s, 2) == 1) // if it is odd (remember, 0 indexing)
+        return s - 1; // then the reverse sensor is + 1
+    return s + 1; // otherwise it is - 1
+}
+
 static inline int __attribute__ ((const))
 sensor_to_pos(const int bank, const int num) {
     return ((bank - 'A') << 4) + (num - 1);

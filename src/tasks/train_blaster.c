@@ -459,13 +459,6 @@ blaster_master_set_speed(blaster* const ctxt,
     UNUSED(result);
 }
 
-// mad h4x
-static inline int blaster_reverse_sensor(const int s) {
-    if (mod2_int(s, 2) == 1) // if it is odd (remember, 0 indexing)
-        return s - 1; // then the reverse sensor is + 1
-    return s + 1; // otherwise it is - 1
-}
-
 static void blaster_reverse_direction(blaster* const ctxt,
                                       const int time) {
 
@@ -475,7 +468,7 @@ static void blaster_reverse_direction(blaster* const ctxt,
 
     // need to flip around our next expected place
     truth.event           = EVENT_ACCELERATION;
-    truth.location.sensor = blaster_reverse_sensor(truth.next_location.sensor);
+    truth.location.sensor = reverse_sensor(truth.next_location.sensor);
     truth.location.offset = truth.next_distance - truth.location.offset;
 
     // the next sensor _would_ be the reverse of the current next
