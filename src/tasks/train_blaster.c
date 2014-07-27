@@ -181,7 +181,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
             ctxt->name);
 
     // calculate when to wake up and send off that guy
-    const int speed_delta = to_speed - truth.speed;
+    const int speed_delta = truth.speed ? to_speed - truth.speed : 0;
     const int start_dist  = physics_starting_distance(ctxt, speed_delta);
     const int start_time  = physics_starting_time(ctxt, start_dist);
     const int velocity    = physics_current_velocity(ctxt);
