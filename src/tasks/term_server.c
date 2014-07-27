@@ -27,9 +27,9 @@ typedef struct {
 struct term_state;
 struct term_puts;
 
-#define INPUT_BUFFER_SIZE  1024
-#define OUTPUT_BUFFER_SIZE 512
-#define OUTPUT_Q_SIZE      TASK_MAX
+#define INPUT_BUFFER_SIZE   2048
+#define OUTPUT_BUFFER_SIZE  256
+#define OUTPUT_BUFFER_COUNT 8
 
 BULK_CHAR_BUFFER(INPUT_BUFFER_SIZE)
 
@@ -46,14 +46,15 @@ typedef struct {
     term_puts* tail;
     term_puts* end;
     uint       count;
-    term_puts  buffer[OUTPUT_Q_SIZE];
+    term_puts  buffer[TASK_MAX];
 } puts_buffer;
 
 // State for the terminal server
 struct term_state {
     char* out_head;   // pointer where to insert data for output
     char* obuffer;
-    char  obuffers[2][OUTPUT_BUFFER_SIZE];
+    uint  obuffer_idx;
+    char  obuffers[OUTPUT_BUFFER_COUNT][OUTPUT_BUFFER_SIZE];
 
     puts_buffer output_q;
 
@@ -71,7 +72,7 @@ static int term_server_tid;
 /* Circular buffer implementations */
 static inline void pbuf_init(puts_buffer* const cb) {
     cb->head  = cb->tail = cb->buffer;
-    cb->end   = cb->buffer + OUTPUT_Q_SIZE; // first address past the end
+    cb->end   = cb->buffer + TASK_MAX; // first address past the end
     cb->count = 0;
     memset(cb->buffer, 0, sizeof(cb->buffer));
 }
@@ -94,7 +95,7 @@ static inline void pbuf_produce(puts_buffer* const cb,
     if (cb->head == cb->end) {
 	cb->head = cb->buffer;
     }
-    assert(cb->count < OUTPUT_Q_SIZE, "Overfilled buffer!")
+    assert(cb->count < TASK_MAX, "Overfilled buffer!")
 }
 
 static inline term_puts* pbuf_peek(puts_buffer* const cb) {
@@ -168,10 +169,7 @@ static inline void _term_ibuffer(struct term_state* const state,
 static void __attribute__ ((noreturn)) send_carrier() {
     int ptid = myParentTid(); // the term server
 
-    struct {
-	char* one;
-	char* two;
-    } buffers;
+    char* buffers[OUTPUT_BUFFER_COUNT];
 
     term_req msg = {
         .type = OBUFFER
@@ -182,15 +180,17 @@ static void __attribute__ ((noreturn)) send_carrier() {
     // first, ask the server for the buffer locations so that we can avoid
     // having to send the buffer pointers over and over again
     result = Send(ptid,
-	          (char*)&msg,     sizeof(term_req_type),
-		  (char*)&buffers, sizeof(buffers));
+	          (char*)&msg,    sizeof(term_req_type),
+		  (char*)buffers, sizeof(buffers));
     TERM_ASSERT(result == sizeof(buffers), result);
 
     // now, we can just keep swapping between buffers every time that we
     // send data, thus avoiding one copy of the buffer and the need to
     // send the buffer pointers, all we need is the size
     msg.type = CARRIER;
-    char* buffer = buffers.two;
+
+    uint buffer_idx = OUTPUT_BUFFER_COUNT - 1;
+    char*    buffer = buffers[buffer_idx];
 
     FOREVER {
 	// blocked until a buffer is ready to go
@@ -203,10 +203,8 @@ static void __attribute__ ((noreturn)) send_carrier() {
 	       "BAD CARRIER SIZE (%d)", msg.length);
 
 	// switch to next buffer
-	if (buffer == buffers.two)
-	    buffer = buffers.one;
-	else
-	    buffer = buffers.two;
+        buffer_idx = mod2(buffer_idx + 1, OUTPUT_BUFFER_COUNT);
+        buffer = buffers[buffer_idx];
 
 	// now, pump the buffer through to the kernel
 	uint chunk = 0;
@@ -224,15 +222,12 @@ static void __attribute__ ((noreturn)) send_carrier() {
 static inline void _term_obuffer(struct term_state* const state) {
 
     // need to send back the pointers to the obuffers
-    struct {
-	char* one;
-	char* two;
-    } buffers = {
-	.one = state->obuffers[0],
-	.two = state->obuffers[1]
-    };
+    char* buffers[OUTPUT_BUFFER_COUNT];
 
-    int result = Reply(state->carrier, (char*)&buffers, sizeof(buffers));
+    for (uint i = 0; i < OUTPUT_BUFFER_COUNT; i++)
+        buffers[i] = state->obuffers[i];
+
+    int result = Reply(state->carrier, (char*)buffers, sizeof(buffers));
     TERM_ASSERT(result == 0, result);
 
     state->carrier = -1;
@@ -285,14 +280,12 @@ static inline void _term_try_send(struct term_state* const state) {
     TERM_ASSERT(result == 0, result);
 
     // then do the buffer-swap dance
-    if (state->obuffer == state->obuffers[0])
-	state->obuffer  = state->obuffers[1];
-    else
-	state->obuffer  = state->obuffers[0];
-    state->out_head     = state->obuffer;
+    state->obuffer_idx = mod2(state->obuffer_idx + 1, OUTPUT_BUFFER_COUNT);
+    state->obuffer     = state->obuffers[state->obuffer_idx];
+    state->out_head    = state->obuffer;
 
     // reset this now (before calling _term_try_puts)
-    state->carrier = -1;
+    state->carrier     = -1;
 }
 
 static inline void _term_try_puts(struct term_state* const state,
