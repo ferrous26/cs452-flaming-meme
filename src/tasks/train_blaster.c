@@ -51,7 +51,7 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
-#ifndef NIK
+#ifndef MARK
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
