@@ -477,6 +477,7 @@ static void blaster_reverse_direction(blaster* const ctxt,
     // merge (now a branch) which is pointed in the opposite direction
     // from which we came, so we need to ask mission control wazzup
 
+    assert(truth.location.sensor < NUM_SENSORS, "HERE");
     const int result = get_sensor_from(truth.location.sensor,
                                        &truth.next_distance,
                                        &truth.next_location.sensor);
@@ -680,6 +681,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
     // move that thing up to the actual next sensor
 
     if (req->arg1 == truth.location.sensor) {
+        assert(current_accel.location.sensor < NUM_SENSORS, "HERE");
         const int result = get_sensor_from(current_accel.location.sensor,
                                            &current_accel.next_distance,
                                            &current_accel.next_location.sensor);
@@ -748,6 +750,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
             truth.distance        = current_accel.distance;
 
             if (current_accel.timestamp == truth.next_timestamp) {
+                assert(truth.location.sensor < NUM_SENSORS, "HERE");
                 const int result = get_sensor_from(truth.location.sensor,
                                                    &truth.next_distance,
                                                    &truth.next_location.sensor);
@@ -778,6 +781,9 @@ blaster_process_acceleration_event(blaster* const ctxt,
         truth.distance  = current_accel.distance;
 
         // but that means the values for next_* are not correct
+        assert(truth.location.sensor != 145, "Told ya so bro %d %d %d",
+               req->arg1, last_accel.next_location.sensor,
+               last_accel.location.sensor);
         const int result = get_sensor_from(truth.location.sensor,
                                            &truth.next_distance,
                                            &truth.next_location.sensor);
@@ -847,6 +853,7 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     current_sensor.next_location.offset = 0;
     current_sensor.next_speed           = truth.next_speed;
 
+    assert(current_sensor.location.sensor < NUM_SENSORS, "HERE");
     const int result = get_sensor_from(current_sensor.location.sensor,
                                        &current_sensor.next_distance,
                                        &current_sensor.next_location.sensor);
@@ -905,7 +912,8 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
 
 static inline void
 blaster_process_console_timeout(blaster* const ctxt,
-                                const int tid) {
+                                const int tid,
+                                const int time) {
     int result; UNUSED(result);
     nik_log("[%s] timeout %d", ctxt->name, tid);
 
@@ -922,7 +930,7 @@ blaster_process_console_timeout(blaster* const ctxt,
         } else {
             const int current_s = truth.location.sensor;
             const int next_s    = truth.next_location.sensor;
-            const int timeout   = truth.next_timestamp;
+            const int timeout   = time + blaster_distance_remaining(&truth) / 1000;
 
             blaster_debug_state(ctxt, &truth);
 
@@ -974,6 +982,7 @@ blaster_process_sensor_event(blaster* const ctxt,
     current_sensor.next_location.offset = 0;
     current_sensor.next_speed           = truth.next_speed;
 
+    assert(current_sensor.location.sensor < NUM_SENSORS, "HERE");
     const int result = get_sensor_from(current_sensor.location.sensor,
                                        &current_sensor.next_distance,
                                        &current_sensor.next_location.sensor);
@@ -1255,7 +1264,7 @@ void train_blaster() {
             continue;
 
         case BLASTER_SENSOR_TIMEOUT:
-            blaster_process_console_timeout(&context, tid);
+            blaster_process_console_timeout(&context, tid, time);
             continue;
 
         case BLASTER_REQ_TYPE_COUNT:

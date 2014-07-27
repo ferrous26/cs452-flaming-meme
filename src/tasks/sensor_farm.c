@@ -105,13 +105,13 @@ static inline void _sensor_delay(sf_context* const ctxt,
     assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
            LOG_HEAD "can't delay on invalid sensor %d", sensor_num);
 
-    const int task_waiter = ctxt->sensor_delay[sensor_num];
-    if (-1 != task_waiter) {
-        log(LOG_HEAD " %d kicked out task %d from sensor %d",
-            tid, task_waiter, sensor_num);
+    if (-1 != ctxt->sensor_delay[sensor_num]) {
+        log(LOG_HEAD "%d rejected from sensor %d", tid, sensor_num);
 
         int reply[2] = {REQUEST_REJECTED, sensor_num};
-        Reply(task_waiter, (char*)&reply, sizeof(reply));
+        int result   = Reply(tid, (char*)&reply, sizeof(reply));
+        assert(result == 0, "Failed notifing task %d on sensor", tid);
+        return;
     }
 
     ctxt->sensor_delay[sensor_num] = tid;

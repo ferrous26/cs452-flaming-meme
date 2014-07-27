@@ -17,7 +17,7 @@
 
 
 #define NUM_RES_ENTRIES (NUM_TRAINS + 1)
-#define CHECK_TRAIN(train) assert(XBETWEEN(train, -1, NUM_RES_ENTRIES + 1), \
+#define CHECK_TRAIN(train) assert(XBETWEEN(train, -1, NUM_RES_ENTRIES), \
                                   "Bad Register Train Num %d", train)
 
 static int track_reservation_tid;
@@ -83,7 +83,7 @@ int get_reserve_length(const track_node* const node) {
 static inline int // __attribute__((pure))
 _get_node_index(const _context* const ctxt, const track_node* const node) {
     const int index = node - ctxt->track;
-    assert(XBETWEEN(index, -1, TRACK_MAX+1),
+    assert(XBETWEEN(index, -1, TRACK_MAX),
            "Bad Track Node Index %d %p", index, node);
     return index;
 }
@@ -92,9 +92,10 @@ static int _who_owns_index(_context* const ctxt,
                            const int index) {
 
     reserve_node* const res = &ctxt->reserve[index];
-    if (res->iter != ctxt->train_iter[res->owner]) {
-        res->owner = -1;
-    }
+    
+    if (-1 == res->owner)                               return -1;
+    else if (res->iter != ctxt->train_iter[res->owner]) res->owner = -1;
+
     return res->owner;
 }
 
@@ -159,7 +160,7 @@ static void _handle_reserve_section(_context* const ctxt,
     int result;
     int reply[] = {RESERVE_SUCCESS};
     ctxt->train_iter[train]++;
-    nik_log("Train %d on count %d", train, ctxt->train_iter[train]);
+    // nik_log("Train %d on count %d", train, ctxt->train_iter[train]);
 
     for (int i = 0; i < lst_size; i++, node++) {
         const int index = _get_node_index(ctxt, *node);
@@ -168,9 +169,12 @@ static void _handle_reserve_section(_context* const ctxt,
         if (owner == -1) {
             ctxt->reserve[index].owner = train;
             ctxt->reserve[index].iter  = ctxt->train_iter[train];
+        } else if (owner == train) {
+            nik_log(LOG_HEAD "%s double reserved by %d",
+                    ctxt->track[index].name, train);
         } else {
-            nik_log(LOG_HEAD "Failed reserving Section %s For %d",
-                    (*node)->name, train);
+            nik_log(LOG_HEAD "Failed reserving Section %s For %d, owned by %d",
+                    (*node)->name, train, owner);
             reply[0] = RESERVE_FAILURE;
             break;
         }

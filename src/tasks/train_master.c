@@ -727,27 +727,30 @@ static inline void master_location_update(master* const ctxt,
     if (ctxt->active) {
         const int offset = ctxt->checkpoint.offset;
         const int head   = master_head_distance(ctxt);
-        const int tail   = master_head_distance(ctxt);
+        const int tail   = master_rear_distance(ctxt);
 
         assert(XBETWEEN(ctxt->checkpoint.sensor, -1, NUM_SENSORS),
                "Can't Reserve From not sensor %d",
                ctxt->checkpoint.sensor);
         
-        const int dist         = master_current_stopping_distance(ctxt);
+        const int stop_dist    = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
-        const int head_dist    = head + offset + dist + 100000;
+        const int head_dist    = head + offset + stop_dist + node->edge[0].dist
+                                      + 10000;
         const int tail_dist    = tail - offset;
 
-        const track_node* reserve[80];
-        int insert = 0;
+        const track_node* reserve[60];
+        int               insert = 0;
 
-        assert(offset <  2000000, "offset is really big %d", offset);
-        assert(offset > -2000000, "offset is really big %d", offset);
+        nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d", ctxt->name,
+                node->name, head_dist / 1000, tail_dist / 1000, offset / 1000);
+        assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
+        assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
 
         get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
         get_reserve_list(ctxt, head_dist, 0, node, reserve, &insert);
         
-        assert(XBETWEEN(insert, 0, 80), "bad insert length %d", insert); 
+        assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert); 
 
         if (!reserve_section(ctxt->train_id, reserve, insert)) {
             log("[%s] Encrouching", ctxt->name);
