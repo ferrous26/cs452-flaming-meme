@@ -144,7 +144,9 @@ void delayed_one_way_courier() {
                   delay_req.message, send_size,
                   delay_req.message, sizeof(delay_req.message));
 
-    assert(result >= 0, "failed sending to receiver %d", result);
+    assert(result >= 0,
+           "failed sending to receiver %d (%d)",
+           delay_req.head.receiver, result);
 }
 
 void courier() {

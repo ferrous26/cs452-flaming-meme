@@ -83,7 +83,7 @@ static void mc_get_next_sensor(mc_context* const ctxt,
 
     int               response[2];
     response[0] = get_next_sensor(node_curr, ctxt->turnouts, &node_next);
-    response[1] = node_next->num; 
+    response[1] = node_next->num;
 
     int result = Reply(tid, (char*)&response, sizeof(response));
     if (result) ABORT("Train driver died! (%d)", result);
