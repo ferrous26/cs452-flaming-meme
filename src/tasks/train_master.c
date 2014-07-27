@@ -420,7 +420,7 @@ static void master_delay_flip_turnout(master* const ctxt,
                                       const int direction,
                                       const int action_time) {
 
-    const int c = Create(MASTER_TURNOUT_PRIORITY, delayed_one_way_courier);
+    const int c = Create(TRAIN_COURIER_PRIORITY, delayed_one_way_courier);
     assert(c >= 0, "failed to make one way courier %d", c);
 
     struct {

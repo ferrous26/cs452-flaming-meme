@@ -139,7 +139,7 @@ static inline void mc_update_turnout(mc_context* const ctxt,
     char buffer[32];
     const int pos = turnout_to_pos(turn_num);
 
-    assert(pos >= 0, "%d", turn_num)
+    assert(pos >= 0, "Invalid Turnout %d", turn_num)
 
     if (pos < 18) {
         ptr = vt_goto(buffer,
