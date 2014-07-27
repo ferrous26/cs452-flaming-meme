@@ -34,6 +34,7 @@ typedef enum {
     BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
 
     BLASTER_SENSOR_TIMEOUT, // lol wut?
+    BLASTER_CONSOLE_LOST,
 
     BLASTER_REQ_TYPE_COUNT
 } blaster_req_type;

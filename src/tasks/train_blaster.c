@@ -1094,6 +1094,7 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_MASTER_WHERE_ARE_YOU:
         case BLASTER_MASTER_CONTEXT:
         case BLASTER_REQ_TYPE_COUNT:
+        case BLASTER_CONSOLE_LOST:
             ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
         }
     }
@@ -1274,6 +1275,12 @@ void train_blaster() {
 
         case BLASTER_SENSOR_TIMEOUT:
             blaster_process_console_timeout(&context, tid, time);
+            continue;
+
+        case BLASTER_CONSOLE_LOST:
+            blaster_set_speed(&context, 0, 0);
+            log("[%s] console has be rejected, stop", context.name);
+            context.console_courier = tid;
             continue;
 
         case BLASTER_REQ_TYPE_COUNT:
