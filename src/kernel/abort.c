@@ -130,6 +130,7 @@ void abort(const kreq_abort* const req) {
 
         // skip descriptors that have never been allocated
         if (t->p_tid == -1) continue;
+        if (!t->sp) continue; // TODO: remove this when not wanted...
 
         ptr = _abort_tid(ptr, t);
         ptr = _abort_ptid(ptr, t);
