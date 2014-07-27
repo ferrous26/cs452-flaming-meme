@@ -241,6 +241,9 @@ static void action(command cmd, int args[]) {
     case PATH_FIND: {
         int time = Time();
 
+        const int train_id = NUM_TRAINS;
+        // args[4] > NUM_TRAINS ? NUM_TRAINS : args[4];
+
         pa_request req = {
             .type = PA_GET_PATH,
             .req  = {
@@ -248,7 +251,9 @@ static void action(command cmd, int args[]) {
                 .header      = 0,
                 .sensor_to   = (short)sensor_to_pos(args[2], args[3]),
                 .sensor_from = (short)sensor_to_pos(args[0], args[1]),
-                .opts        = (short)PATH_NO_REVERSE_MASK | NUM_TRAINS,
+                .opts        = PATH_BACK_APPROACH_OFF_MASK |
+                               PATH_START_REVERSE_OFF_MASK |
+                               train_id,
                 .reserve     = 100
             }
         };
