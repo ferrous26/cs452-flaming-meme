@@ -915,7 +915,7 @@ blaster_process_console_timeout(blaster* const ctxt,
                                 const int tid,
                                 const int time) {
     int result; UNUSED(result);
-    nik_log("[%s] timeout %d", ctxt->name, tid);
+    log("[%s] timeout %d", ctxt->name, tid);
 
     if (0 == truth.speed) {
         // train stopped, keep the courier
