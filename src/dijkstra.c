@@ -237,7 +237,7 @@ int dijkstra(const track_node* const track,
     }
 
     if (i && !reserve_section(opts->train_offset, reservation, i)) {
-        return -1;
+        return -100;
     }
 
     return path_size;
