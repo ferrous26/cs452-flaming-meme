@@ -111,6 +111,7 @@ static inline void _sensor_delay(sf_context* const ctxt,
         int reply[2] = {REQUEST_REJECTED, sensor_num};
         int result   = Reply(tid, (char*)&reply, sizeof(reply));
         assert(result == 0, "Failed notifing task %d on sensor", tid);
+        UNUSED(result);
         return;
     }
 
