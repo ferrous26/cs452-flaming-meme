@@ -210,10 +210,17 @@ int dijkstra(const track_node* const track,
         direction              = data[offset].dir;
     }
 
-    ptr = path_ptr;
+    if (path_ptr != opts->start) {
+        // since this is the first command in the path, must be 0
+        path[path_size].type = PATH_REVERSE;
+        path[path_size].dist = 0;
+        path_size++;
+    }
+
 
     int i = 0;
     *reserved_dist = 0;
+    ptr            = path_ptr;
     const track_node* reservation[TRACK_MAX];
 
     while (*reserved_dist < total_reserve) {
@@ -227,13 +234,6 @@ int dijkstra(const track_node* const track,
 
         if (data[index].next == path_ptr) break;
         path_ptr = data[index].next;
-    }
-
-    if (path_ptr != opts->start) {
-        // since this is the first command in the path, must be 0
-        path[path_size].type = PATH_REVERSE;
-        path[path_size].dist = 0;
-        path_size++;
     }
 
     if (i && !reserve_section(opts->train_offset, reservation, i)) {
