@@ -33,11 +33,14 @@ if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
 
 typedef struct train_checkpoint {
     train_event type;
+    train_dir   direction;
+    
     int         sensor;
     int         offset;
     int         timestamp;
+   
     int         speed;
-    train_dir   direction;
+    int         next_speed;
     bool        is_accel;
 } train_checkpoint;
 
@@ -702,6 +705,12 @@ master_check_sensor_to_block_until(master* const ctxt) {
     ctxt->sensor_block.sensor = -1;
 }
 
+static bool is_perform_reservation(const train_checkpoint* check) {
+    return 0 != check->next_speed
+        || !check->is_accel 
+        || EVENT_ACCELERATION != check->type;
+}
+
 static inline void master_location_update(master* const ctxt,
                                           const master_req* const req,
                                           const blaster_req* const pkg,
@@ -709,13 +718,15 @@ static inline void master_location_update(master* const ctxt,
 
     //    log("[%s] Got position update", ctxt->name);
 
-    ctxt->checkpoint.type      = req->arg1;
-    ctxt->checkpoint.sensor    = req->arg2;
-    ctxt->checkpoint.offset    = req->arg3;
-    ctxt->checkpoint.timestamp = req->arg4;
-    ctxt->checkpoint.speed     = req->arg5;
-    ctxt->checkpoint.direction = req->arg6;
-    ctxt->checkpoint.is_accel  = req->arg7;
+    ctxt->checkpoint.type       = req->arg1;
+    ctxt->checkpoint.sensor     = req->arg2;
+    ctxt->checkpoint.offset     = req->arg3;
+    ctxt->checkpoint.timestamp  = req->arg4;
+    ctxt->checkpoint.speed      = req->arg5;
+    ctxt->checkpoint.next_speed = req->arg8;
+    ctxt->checkpoint.direction  = req->arg6;
+    ctxt->checkpoint.is_accel   = req->arg7;
+
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
@@ -733,11 +744,16 @@ static inline void master_location_update(master* const ctxt,
                "Can't Reserve From not sensor %d",
                ctxt->checkpoint.sensor);
         
-        const int stop_dist    = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
-        const int head_dist    = head + offset + stop_dist + node->edge[0].dist
-                                      + 10000;
-        const int tail_dist    = tail - offset;
+        
+        int moving_dist = 0;
+        if (0 != ctxt->checkpoint.speed) {
+            const int stop_dist = master_current_stopping_distance(ctxt);
+            moving_dist = stop_dist + node->edge[0].dist;
+        }
+
+        const int head_dist    = head + offset + moving_dist + 50000;  
+        const int tail_dist    = tail - offset + 50000;
 
         const track_node* reserve[60];
         int               insert = 0;
@@ -752,8 +768,12 @@ static inline void master_location_update(master* const ctxt,
         
         assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert); 
 
-        if (!reserve_section(ctxt->train_id, reserve, insert)) {
-            log("[%s] Encrouching", ctxt->name);
+
+                    
+        if (is_perform_reservation(&ctxt->checkpoint) && 
+            !reserve_section(ctxt->train_id, reserve, insert)) {
+
+            log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);
             master_set_speed(ctxt, 0, 0);
         }
     }

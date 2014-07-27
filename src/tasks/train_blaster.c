@@ -149,7 +149,8 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
         .arg4 = time,
         .arg5 = truth.speed,
         .arg6 = truth.direction,
-        .arg7 = truth.is_accelerating
+        .arg7 = truth.is_accelerating,
+        .arg8 = truth.next_speed,
     };
 
     const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));
