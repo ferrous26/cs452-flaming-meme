@@ -181,14 +181,15 @@ static void blaster_start_accelerate(blaster* const ctxt,
             ctxt->name);
 
     // calculate when to wake up and send off that guy
-    const int speed_delta = truth.speed ? to_speed - truth.speed : 0;
+    const int time_delta  = truth.speed ? time - truth.timestamp : 0;
+    const int speed_delta = to_speed - truth.speed;
     const int start_dist  = physics_starting_distance(ctxt, speed_delta);
     const int start_time  = physics_starting_time(ctxt, start_dist);
     const int velocity    = physics_current_velocity(ctxt);
 
     const track_location current_location = {
         .sensor = truth.location.sensor,
-        .offset = truth.location.offset + ((time - truth.timestamp) * velocity)
+        .offset = truth.location.offset + (time_delta * velocity)
     };
 
     track_location locs[4];
@@ -280,9 +281,11 @@ static void blaster_start_accelerate(blaster* const ctxt,
 
 
     if (ctxt->console_courier > 0) {
-        int package[] = {truth.location.sensor,
-                         truth.next_location.sensor,
-                         0};
+        int package[] = {
+            truth.location.sensor,
+            truth.next_location.sensor,
+            0
+        };
         result = Reply(ctxt->console_courier, (char*)package, sizeof(package));
 
         ctxt->console_timeout = 0;
@@ -299,6 +302,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
             ctxt->name);
 
     // calculate when to wake up and send off that guy
+    const int time_delta  = truth.speed ? time - truth.timestamp : 0;
     const int speed_delta = truth.speed - to_speed;
     const int stop_dist   = physics_stopping_distance(ctxt, speed_delta);
     const int stop_time   = physics_stopping_time(ctxt, stop_dist);
@@ -306,7 +310,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
 
     const track_location current_location = {
         .sensor = truth.location.sensor,
-        .offset = truth.location.offset + ((time - truth.timestamp) * velocity)
+        .offset = truth.location.offset + (time_delta * velocity)
     };
 
     track_location locs[4];
