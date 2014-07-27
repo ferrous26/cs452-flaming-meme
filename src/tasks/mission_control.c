@@ -75,15 +75,15 @@ static int get_next_sensor(const track_node* node,
 static void mc_get_next_sensor(mc_context* const ctxt,
                                const int sensor_num,
                                const int tid) {
-    assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
+    assert(XBETWEEN(sensor_num, -1, NUM_SENSORS),
            "can't get next from invalid sensor %d", sensor_num);
 
     const track_node* const node_curr = &ctxt->track[sensor_num];
     const track_node* node_next;
-    int               response[2];
 
+    int               response[2];
     response[0] = get_next_sensor(node_curr, ctxt->turnouts, &node_next);
-    response[1] = node_next->num;
+    response[1] = node_next->num; 
 
     int result = Reply(tid, (char*)&response, sizeof(response));
     if (result) ABORT("Train driver died! (%d)", result);

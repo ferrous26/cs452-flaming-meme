@@ -738,19 +738,19 @@ static inline void master_location_update(master* const ctxt,
         const int head_dist    = head + offset + dist + 100000;
         const int tail_dist    = tail - offset;
 
+        const track_node* reserve[80];
         int insert = 0;
-        const track_node* reserve[40];
 
-        assert(offset <  200000, "offset is really big %d", offset);
-        assert(offset > -200000, "offset is really big %d", offset);
+        assert(offset <  2000000, "offset is really big %d", offset);
+        assert(offset > -2000000, "offset is really big %d", offset);
 
         get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
         get_reserve_list(ctxt, head_dist, 0, node, reserve, &insert);
         
-        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
+        assert(XBETWEEN(insert, 0, 80), "bad insert length %d", insert); 
 
         if (!reserve_section(ctxt->train_id, reserve, insert)) {
-            log("[%s] Encrouching (%d)", ctxt->name, ctxt->train_id);
+            log("[%s] Encrouching", ctxt->name);
             master_set_speed(ctxt, 0, 0);
         }
     }
