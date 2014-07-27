@@ -217,16 +217,13 @@ int dijkstra(const track_node* const track,
     const track_node* reservation[TRACK_MAX];
 
     while (*reserved_dist < total_reserve) {
-        log("%s", path_ptr->name);
         const int index = path_ptr - track;
 
         reservation[i++] = path_ptr->reverse;
         *reserved_dist += get_reserve_length(path_ptr->reverse);
-        log("%d %d %d", i, *reserved_dist, total_reserve);
 
         reservation[i++] = path_ptr;
         *reserved_dist += get_reserve_length(path_ptr);
-        log("%d %d", i, *reserved_dist);
 
         if (data[index].next == path_ptr) break;
         path_ptr = data[index].next;
