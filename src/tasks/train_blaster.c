@@ -473,14 +473,10 @@ static void blaster_reverse_direction(blaster* const ctxt,
     put_train_speed((char)ctxt->train_gid, (char)TRAIN_REVERSE);
     truth.direction = -truth.direction;
 
-    // now we need to update the train state
-    const int velocity = physics_current_velocity(ctxt);
-    const int   offset = (time - truth.timestamp) * velocity;
-
     // need to flip around our next expected place
+    truth.event           = EVENT_ACCELERATION;
     truth.location.sensor = blaster_reverse_sensor(truth.next_location.sensor);
-    truth.location.offset = truth.next_distance -
-        (truth.location.offset + offset);
+    truth.location.offset = truth.next_distance - truth.location.offset;
 
     // the next sensor _would_ be the reverse of the current next
     // in most cases, but that is not true if we just went over a
@@ -494,6 +490,9 @@ static void blaster_reverse_direction(blaster* const ctxt,
     assert(result == 0, "[%s] Fuuuuu", ctxt->name);
     UNUSED(result);
 
+    // this probably does not matter, if we hit an acceleration event next
+    // then it will be updated correctly...and we have to hit an acceleration
+    // event next...
     truth.next_location.offset = 0; // TODO: is this right?
     // truth.next_timestamp    = I don't fucking know; // I don't need to know
 
