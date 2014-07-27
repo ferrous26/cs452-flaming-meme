@@ -70,6 +70,91 @@ static void __attribute__((noreturn)) echo_test() {
     }
 }
 
+static void print_section_sizes() {
+
+    char buffer[1024];
+    char* ptr = log_start(buffer);
+    ptr = sprintf(ptr,
+                  "\n"
+                  "Data:\n"
+                  "    Kernel Hot: %u bytes\n"
+                  "   Kernel Warm: %u bytes\n"
+                  "          Task: %u bytes\n"
+                  "         Total: %u bytes\n"
+                  "Text:\r\n"
+                  "    Kernel Hot: %u bytes\n"
+                  "     Task Reg.: %u bytes\n"
+                  "     Task Cold: %u bytes\n"
+                  "         Total: %u bytes\n"
+                  "BSS:            %u bytes\n"
+                  "ROData:         %u bytes\n",
+                  &_DataKernEnd     - &_DataStart,
+                  &_DataKernWarmEnd - &_DataKernEnd,
+                  &_DataEnd         - &_DataKernWarmEnd,
+                  &_DataEnd         - &_DataStart,
+                  &_TextKernEnd     - &_TextStart,
+                  &_TextColdStart   - &_TextKernEnd,
+                  &_TextEnd         - &_TextColdStart,
+                  &_TextEnd         - &_TextStart,
+                  &_BssEnd          - &_BssStart,
+                  &_RODataEnd       - &_RODataStart);
+    ptr = log_end(ptr);
+    Puts(buffer, ptr - buffer);
+}
+
+static void where_is_train(int* args) {
+
+    const track_location l = train_where_are_you(args[0]);
+
+    if (l.sensor == INVALID_TRAIN) {
+        log("Train %d does not exist", args[0]);
+    }
+    else if (l.sensor < 0) {
+        log("Failed to send message to train %d (%d)",
+            args[0], l.sensor);
+    }
+    else if (l.sensor == 80) {
+        log("Train %d does not know where it is", args[0]);
+    }
+    else {
+        const sensor s = pos_to_sensor(l.sensor);
+        log("Train %d is at %c%d %c %d cm",
+            args[0], s.bank, s.num,
+            l.offset >= 0 ? '+' : '-',
+            abs(l.offset) / 10000);
+    }
+}
+
+static void path_steps(int* args) {
+
+    const int start_sensor = sensor_to_pos(args[0], args[1]);
+
+    const track_location start_location = {
+        .sensor = start_sensor,
+        .offset = args[2] * 1000
+    };
+
+    track_location locs[NUM_SENSORS];
+
+    // now find out our end position
+    const int result = get_position_from(start_location,
+                                         locs,
+                                         args[3] * 1000);
+    assert(result == 0, "Failed to scan ahead on the track (%d)", result);
+    UNUSED(result);
+
+    log("Trip distance %d mm", args[3]);
+
+    // we need to walk the list and see what we have
+    for (int i = 0; i < NUM_SENSORS; i++) {
+        const sensor loc = pos_to_sensor(locs[i].sensor);
+        log("At checkpoint %c%d there are %d mm left",
+            loc.bank, loc.num, locs[i].offset / 1000);
+
+        if (locs[i].offset <= 0 || locs[i].sensor == AN_EXIT) break;
+    }
+}
+
 static void action(command cmd, int args[]) {
     switch(cmd) {
     case NONE:
@@ -80,28 +165,9 @@ static void action(command cmd, int args[]) {
         break;
     case QUIT:
         Shutdown();
-    case WHEREIS: {
-        const track_location l = train_where_are_you(args[0]);
-
-        if (l.sensor == INVALID_TRAIN) {
-            log("Train %d does not exist", args[0]);
-        }
-        else if (l.sensor < 0) {
-            log("Failed to send message to train %d (%d)",
-                args[0], l.sensor);
-        }
-        else if (l.sensor == 80) {
-            log("Train %d does not know where it is", args[0]);
-        }
-        else {
-            const sensor s = pos_to_sensor(l.sensor);
-            log("Train %d is at %c%d %c %d cm",
-                args[0], s.bank, s.num,
-                l.offset >= 0 ? '+' : '-',
-                abs(l.offset) / 10000);
-        }
+    case WHEREIS:
+        where_is_train(args);
         break;
-    }
     case LOC_SPEED:
         train_set_speed(args[0], args[1]);
         break;
@@ -154,37 +220,10 @@ static void action(command cmd, int args[]) {
         Create(TASK_PRIORITY_EMERGENCY, seppuku);
         break;
 
-    case SIZES: {
-        char buffer[512];
-        char* ptr = log_start(buffer);
-        ptr = sprintf(ptr,
-                      "\n"
-                      "Data:\n"
-                      "    Kernel Hot: %u bytes\n"
-                      "   Kernel Warm: %u bytes\n"
-                      "          Task: %u bytes\n"
-                      "         Total: %u bytes\n"
-                      "Text:\r\n"
-                      "    Kernel Hot: %u bytes\n"
-                      "     Task Reg.: %u bytes\n"
-                      "     Task Cold: %u bytes\n"
-                      "         Total: %u bytes\n"
-                      "BSS:            %u bytes\n"
-                      "ROData:         %u bytes\n",
-                      &_DataKernEnd     - &_DataStart,
-                      &_DataKernWarmEnd - &_DataKernEnd,
-                      &_DataEnd         - &_DataKernWarmEnd,
-                      &_DataEnd         - &_DataStart,
-                      &_TextKernEnd     - &_TextStart,
-                      &_TextColdStart   - &_TextKernEnd,
-                      &_TextEnd         - &_TextColdStart,
-                      &_TextEnd         - &_TextStart,
-                      &_BssEnd          - &_BssStart,
-                      &_RODataEnd       - &_RODataStart);
-        ptr = log_end(ptr);
-        Puts(buffer, ptr - buffer);
+    case SIZES:
+        print_section_sizes();
         break;
-    }
+
     case UPDATE_TWEAK:
         train_update_tweak(args[0], args[1], args[2]);
         break;
@@ -244,36 +283,9 @@ static void action(command cmd, int args[]) {
         break;
     }
 
-    case PATH_STEPS: {
-        const int start_sensor = sensor_to_pos(args[0], args[1]);
-
-        const track_location start_location = {
-            .sensor = start_sensor,
-            .offset = args[2] * 1000
-        };
-
-        track_location locs[NUM_SENSORS];
-
-        // now find out our end position
-        const int result = get_position_from(start_location,
-                                             locs,
-                                             args[3] * 1000);
-        assert(result == 0, "Failed to scan ahead on the track (%d)", result);
-        UNUSED(result);
-
-        log("Trip distance %d mm", args[3]);
-
-        // we need to walk the list and see what we have
-        for (int i = 0; i < NUM_SENSORS; i++) {
-            const sensor loc = pos_to_sensor(locs[i].sensor);
-            log("At checkpoint %c%d there are %d mm left",
-                loc.bank, loc.num, locs[i].offset / 1000);
-
-            if (locs[i].offset <= 0 || locs[i].sensor == AN_EXIT) break;
-        }
-
+    case PATH_STEPS:
+        path_steps(args);
         break;
-    }
 
     case TEST_TIME: {
         struct {
