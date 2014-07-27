@@ -84,16 +84,25 @@ blaster_debug_state(blaster* const ctxt,
     char* ptr = log_start(buffer);
     ptr = sprintf(ptr,
                   "[%s]\n"
-                  "%s @ %d ticks (travelling at %c%d%s)\n"
+                  "%s @ %d ticks (travelling at %c%d.%d%s)\n"
                   "       Location: %c%d + %d mm (travelled %d mm from last)\n"
                   "  Next Location: %c%d + %d mm in %d mm @ %d ticks\n",
-                  ctxt->name, event, state->timestamp,
-                  state->direction ? '+' : '-', state->speed,
+                  ctxt->name,
+                  event,
+                  state->timestamp,
+                  state->direction ? '+' : '-',
+                  state->speed / 10,
+                  state->speed % 10,
                   state->is_accelerating ? " accelerating" : "",
-                  current_loc.bank, current_loc.num, current_offset,
+                  current_loc.bank,
+                  current_loc.num,
+                  current_offset,
                   state->distance / 1000,
-                  next_loc.bank, next_loc.num, next_offset,
-                  state->next_distance / 1000, state->next_timestamp);
+                  next_loc.bank,
+                  next_loc.num,
+                  next_offset,
+                  state->next_distance / 1000,
+                  state->next_timestamp);
 
     ptr = log_end(ptr);
     Puts(buffer, ptr - buffer);
