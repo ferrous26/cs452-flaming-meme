@@ -802,20 +802,6 @@ static inline void master_location_update(master* const ctxt,
     }
 }
 
-static inline void
-master_stop_train(master* const ctxt, const int tid) {
-
-    log("Stopping!");
-    // TODO: courier this directly to the train?
-    master_set_speed(ctxt, 0, 0);
-
-    const int result = Reply(tid, NULL, 0); // kill it with fire (prejudice)
-    assert(result == 0,
-           "[%s] Failed to kill delay notifier (%d)",
-           ctxt->name, result);
-    UNUSED(result);
-}
-
 static TEXT_COLD void master_init(master* const ctxt) {
     memset(ctxt, 0, sizeof(master));
 
@@ -981,10 +967,6 @@ void train_master() {
 
         case MASTER_BLASTER_LOCATION:
             master_location_update(&context, &req, &blaster_callin, tid);
-            break;
-
-        case MASTER_STOP_TRAIN:
-            master_stop_train(&context, tid);
             break;
 
         case MASTER_UPDATE_TWEAK:

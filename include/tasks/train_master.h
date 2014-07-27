@@ -13,7 +13,6 @@ typedef enum {
 
     MASTER_PATH_DATA,         // track route from path worker
     MASTER_BLASTER_LOCATION,  // current location from blaster
-    MASTER_STOP_TRAIN,
 
     MASTER_UPDATE_TWEAK
 
