@@ -658,7 +658,7 @@ master_check_sensor_to_stop_at(master* const ctxt) {
         ctxt->name, s.bank, s.num, ctxt->checkpoint.timestamp);
 }
 
-void reserve_stop_dist(master* const ctxt,
+void get_reserve_list(master* const ctxt,
                        const int dist,
                        const int dir,
                        const track_node* const node,
@@ -677,7 +677,7 @@ void reserve_stop_dist(master* const ctxt,
     // next reserve the forward direction;
 
     if (dir == 1) {
-        reserve_stop_dist(ctxt, dist-res, 0, node, lst, insert);
+        get_reserve_list(ctxt, dist-res, 0, node, lst, insert);
         return;
     }
 
@@ -685,14 +685,14 @@ void reserve_stop_dist(master* const ctxt,
     case NODE_NONE:
     case NODE_SENSOR:
     case NODE_MERGE:
-        reserve_stop_dist(ctxt, dist-res, 1, node->edge[DIR_AHEAD].dest,
-                          lst, insert);
+        get_reserve_list(ctxt, dist-res, 1, node->edge[DIR_AHEAD].dest,
+                         lst, insert);
         break;
     case NODE_BRANCH:
-        reserve_stop_dist(ctxt, dist-res, 1, node->edge[DIR_STRAIGHT].dest,
-                          lst, insert);
-        reserve_stop_dist(ctxt, dist-res, 1, node->edge[DIR_CURVED].dest,
-                          lst, insert);
+        get_reserve_list(ctxt, dist-res, 1, node->edge[DIR_STRAIGHT].dest,
+                         lst, insert);
+        get_reserve_list(ctxt, dist-res, 1, node->edge[DIR_CURVED].dest,
+                         lst, insert);
         break;
     case NODE_EXIT:
         break;
@@ -741,18 +741,31 @@ static inline void master_location_update(master* const ctxt,
 
     if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
     if (ctxt->active) {
-        int   insert = 1;
-        const track_node* path_way[40];
+        const int offset = ctxt->checkpoint.offset;
+        const int head   = master_head_distance(ctxt);
+        const int tail   = master_head_distance(ctxt);
 
+        assert(XBETWEEN(ctxt->checkpoint.sensor, -1, NUM_SENSORS),
+               "Can't Reserve From not sensor %d",
+               ctxt->checkpoint.sensor);
+        
         const int dist         = master_current_stopping_distance(ctxt);
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
-        path_way[0]            = node->reverse;
+        const int head_dist    = head + offset + dist + 100000;
+        const int tail_dist    = tail - offset;
 
-        reserve_stop_dist(ctxt, dist + ctxt->checkpoint.offset + 100000,
-                          0, node, path_way, &insert);
-        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert);
+        int insert = 0;
+        const track_node* reserve[40];
 
-        if (!reserve_section(ctxt->train_id, path_way, insert)) {
+        assert(offset <  200000, "offset is really big %d", offset);
+        assert(offset > -200000, "offset is really big %d", offset);
+
+        get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
+        get_reserve_list(ctxt, head_dist, 0, node, reserve, &insert);
+        
+        assert(XBETWEEN(insert, 0, 40), "bad insert length %d", insert); 
+
+        if (!reserve_section(ctxt->train_id, reserve, insert)) {
             log ("TRAIN %d Encrouching", ctxt->train_id);
             master_set_speed(ctxt, 0, 0);
         }
