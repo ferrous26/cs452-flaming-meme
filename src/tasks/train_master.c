@@ -725,7 +725,7 @@ static inline void master_path_update(master* const ctxt,
     ctxt->path_worker    = tid;
     ctxt->path_step      = path + size - 1;
     ctxt->path           = path;
-    ctxt->allowed_sensor = -1;
+    ctxt->allowed_sensor = NUM_SENSORS;
     ctxt->path_stopping  = false;
     ctxt->path_completed = false;
 
