@@ -645,28 +645,33 @@ master_check_sensor_to_stop_at(master* const ctxt) {
         ctxt->name, s.bank, s.num, ctxt->checkpoint.timestamp);
 }
 
-void get_reserve_list(master* const ctxt,
-                       const int dist,
-                       const int dir,
-                       const track_node* const node,
-                       const track_node** lst,
-                       int* const insert) {
+static int add_reserve_node(const track_node* const node,
+                            const track_node* lst[],
+                            int*  const insert) {
 
-    if (dist <= 0) return;
-
-    const track_node* const used_node = dir ? node->reverse : node;
-    assert(XBETWEEN(used_node - ctxt->track, -1, TRACK_MAX+1),
-           "bad track index %d", used_node - ctxt->track);
-
-    const int res = get_reserve_length(used_node);
-    lst[*insert]  = used_node;
+    lst[*insert]  = node;
     *insert      += 1;
-    // next reserve the forward direction;
 
-    if (dir == 1) {
-        get_reserve_list(ctxt, dist-res, 0, node, lst, insert);
-        return;
+    return get_reserve_length(node);
+}
+
+static void get_reserve_list(const master* const ctxt,
+                             const int dist,
+                             const int dir,
+                             const track_node* const node,
+                             const track_node* lst[],
+                             int* const insert) {
+
+    int res = 0; 
+    assert(XBETWEEN(node - ctxt->track, -1, TRACK_MAX+1),
+           "bad track index %d", node - ctxt->track);
+    
+    if (dist <=  0) return;
+    if (1 == dir) {
+        res = add_reserve_node(node->reverse, lst, insert);
+        if (res >= dist) return;
     }
+    res += add_reserve_node(node, lst, insert);
 
     switch (node->type) {
     case NODE_NONE:
@@ -684,7 +689,7 @@ void get_reserve_list(master* const ctxt,
     case NODE_EXIT:
         break;
     case NODE_ENTER:
-        assert(false, "I'm legit curious if this can happen TROLOLO");
+        assert(false, "I'm legit curious if this can happen");
     }
 }
 
@@ -705,8 +710,8 @@ master_check_sensor_to_block_until(master* const ctxt) {
     ctxt->sensor_block.sensor = -1;
 }
 
-static bool is_perform_reservation(const train_checkpoint* check) {
-    return 0 != check->next_speed
+static inline bool should_perform_reservation(const train_checkpoint* check) {
+    return 0 > check->next_speed
         || !check->is_accel 
         || EVENT_ACCELERATION != check->type;
 }
@@ -746,31 +751,32 @@ static inline void master_location_update(master* const ctxt,
         
         const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
         
-        int moving_dist = 0;
+        int moving_dist = 0; 
         if (0 != ctxt->checkpoint.speed) {
             const int stop_dist = master_current_stopping_distance(ctxt);
             moving_dist = stop_dist + node->edge[0].dist;
         }
 
-        const int head_dist    = head + offset + moving_dist + 50000;  
-        const int tail_dist    = tail - offset + 50000;
-
-        const track_node* reserve[60];
-        int               insert = 0;
+        const int head_dist = head + offset + moving_dist + 20000;  
+        const int tail_dist = MAX(tail - offset + 20000, tail);
 
         nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d", ctxt->name,
                 node->name, head_dist / 1000, tail_dist / 1000, offset / 1000);
         assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
         assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
-
-        get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
-        get_reserve_list(ctxt, head_dist, 0, node, reserve, &insert);
+        assert(head_dist < 2000000, "WTF HEAD H:%d\tO:%d\tM:%d\ts:%d",
+               head / 1000, offset / 1000, moving_dist / 1000,
+               ctxt->checkpoint.speed);
+        assert(tail_dist < 2000000, "WTF TAIL T:%d\tO:%d\t",
+               tail / 1000, offset / 1000);
         
+        int               insert = 0;
+        const track_node* reserve[100];
+        get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
+        get_reserve_list(ctxt, head_dist, 0, node,          reserve, &insert);
         assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert); 
-
-
-                    
-        if (is_perform_reservation(&ctxt->checkpoint) && 
+        
+        if (should_perform_reservation(&ctxt->checkpoint) && 
             !reserve_section(ctxt->train_id, reserve, insert)) {
 
             log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);

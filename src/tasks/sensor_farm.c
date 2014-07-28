@@ -33,7 +33,11 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
     int       sensor_state[NUM_SENSOR_BANKS];
     const int ptid = myParentTid();
-    sf_req    req = {
+    struct {
+        sf_type type;  
+        int     sensor;
+        int     time;
+    } req = {
         .type = SF_U_SENSOR
     };
 
@@ -45,26 +49,34 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
     FOREVER {
         Putc(TRAIN, SENSOR_POLL);
-        for (int bank = 0; bank < NUM_SENSOR_BANKS; bank++) {
-            int c = get_train_bank();
+        int c    = get_train_bank();
+        req.time = Time();
+        int bank = 0;
+
+        FOREVER {
             assert(c >= 0, "sensor_poll got bad return (%d)", c);
 
             for (int mask = 0x8000, i = 0; mask > 0; mask = mask >> 1, i++) {
                 if ((c & mask) > (sensor_state[bank] & mask)) {
-                    req.body.sensor = (bank<<4) + i;
+                    req.sensor = (bank<<4) + i; 
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }
-            sensor_state[bank] = c;
+
+            sensor_state[bank++] = c;
+            if (bank < NUM_SENSOR_BANKS) {
+                c = get_train_bank();
+            } else break;
         }
     }
 
 }
 
 inline static void _update_sensors(sf_context* const ctxt,
-                                   const int sensor_num) {
+                                   const int sensor_num,
+                                   const int time) {
 
-    assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
+    assert(XBETWEEN(sensor_num, -1, NUM_SENSORS), 
            "Can't update invalid sensor num %d", sensor_num);
 
     sensor* next     = ctxt->sensor_insert++;
@@ -76,7 +88,7 @@ inline static void _update_sensors(sf_context* const ctxt,
     }
     memset(ctxt->sensor_insert, 0, sizeof(sensor));
 
-    const int reply[2] = {Time(), sensor_num};
+    const int reply[2] = {time, sensor_num};
     if (-1 != waiter) {
         ctxt->sensor_delay[sensor_num] = -1;
         Reply(waiter, (char*)&reply, sizeof(reply));
@@ -89,7 +101,6 @@ inline static void _update_sensors(sf_context* const ctxt,
     for(int i =0; next->bank != 0; i++) {
         const char* const output = next->num < 10 ? "%c 0%d": "%c %d";
         char*                pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
-
         pos = sprintf(pos, output, next->bank, next->num);
         Puts(buffer, pos-buffer);
 
@@ -193,13 +204,17 @@ void sensor_farm() {
 
         switch(req.type) {
         case SF_U_SENSOR:
-            _update_sensors(&context, req.body.sensor);
+            _update_sensors(&context,
+                            req.body.update.sensor,
+                            req.body.update.time);
             result = Reply(tid, NULL, 0);
             assert(result == 0, "failed replying to poller %d", result);
             break;
+
         case SF_D_SENSOR:
             _sensor_delay(&context, tid, req.body.sensor);
             break;
+
         case SF_D_SENSOR_ANY:
             _sensor_delay_any(&context, tid);
             break;

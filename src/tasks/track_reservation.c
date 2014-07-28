@@ -91,9 +91,9 @@ _get_node_index(const _context* const ctxt, const track_node* const node) {
 static int _who_owns_index(_context* const ctxt,
                            const int index) {
 
-    reserve_node* const res = &ctxt->reserve[index];
-    
-    if (-1 == res->owner)                               return -1;
+    reserve_node* const res = &ctxt->reserve[index];    
+
+    if (-1 == res->owner) return -1;
     else if (res->iter != ctxt->train_iter[res->owner]) res->owner = -1;
 
     return res->owner;
@@ -167,21 +167,28 @@ static void _handle_reserve_section(_context* const ctxt,
         const int owner = _who_owns_index(ctxt, index);
 
         if (owner == -1) {
-            ctxt->reserve[index].owner = train;
-            ctxt->reserve[index].iter  = ctxt->train_iter[train];
+            if (i > 0 && !is_node_adjacent(ctxt, *node, train)) {
+                nik_log("%s is not adjacent on train %d",
+                        ctxt->track[index], train);
+            } else {
+                ctxt->reserve[index].owner = train;
+                ctxt->reserve[index].iter  = ctxt->train_iter[train];
+            }
+
         } else if (owner == train) {
             nik_log(LOG_HEAD "%s double reserved by %d",
                     ctxt->track[index].name, train);
+
         } else {
             nik_log(LOG_HEAD "Failed reserving Section %s For %d, owned by %d",
                     (*node)->name, train, owner);
             reply[0] = RESERVE_FAILURE;
-            break;
+
         }
     }
 
-    result  = Reply(tid, (char*)reply, sizeof(reply));
-    assert(result == 0, "Failed to repond to track query");
+    result = Reply(tid, (char*)reply, sizeof(reply));
+    assert(0 == result, "Failed to repond to track query");
 }
 
 void track_reservation() {

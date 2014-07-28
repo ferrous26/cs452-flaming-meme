@@ -628,6 +628,7 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
                                                  const int sensor_hit,
                                                  const int time) {
     const sensor s = pos_to_sensor(sensor_hit);
+    UNUSED(time);
 
     if (truth.direction != DIRECTION_UNKNOWN) {
         // TODO: proper lost logic
@@ -637,7 +638,7 @@ static inline void blaster_detect_train_direction(blaster* const ctxt,
 
     if (s.bank == 'B') {
         truth.direction = DIRECTION_FORWARD;
-        blaster_reverse_step1(ctxt, time);
+        // blaster_reverse_step1(ctxt, time);
     } else {
         truth.direction = DIRECTION_BACKWARD;
     }

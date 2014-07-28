@@ -113,6 +113,7 @@ static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
 
 static TEXT_COLD void _init_context(tc_context* const ctxt) {
     int tid, result, init_data[2], sensor_data[2];
+
     memset(ctxt, -1, sizeof(*ctxt));
 
     ctxt->docked             = 0;
@@ -127,18 +128,23 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     result = Receive(&tid, (char*)init_data, sizeof(init_data));
     assert(tid == myParentTid(), "sent startup from invalid tid %d", tid);
     assert(sizeof(init_data) == result, "Invalid init data %d", result);
+
     result = Reply(tid, NULL, 0);
-    assert(result == 0, "%d", result);
+    assert(result == 0, LOG_HEAD "Failed responding to parent %d", result);
 
     *(int*)&ctxt->train_pos     = init_data[0];
     *(track_node**)&ctxt->track = (track_node*)init_data[1];
+
+    assert(XBETWEEN(ctxt->train_pos, -1, NUM_TRAINS),
+           "%d is invalid train identifier", ctxt->train_pos);
+
 
     // Create the first trask required for sensors
     const int sensor_tid = Create(TC_CHILDREN_PRIORITY, sensor_notifier);
     CHECK_CREATE(tid, "Failed to create first sensor notifier");
 
     // set up the courier to send data to the driver
-    *(int*)&ctxt->driver_tid = Create(TC_CHILDREN_PRIORITY, courier);
+    *(int*)&ctxt->driver_tid = Create(TC_DRIVER_COURIER_PRIORITY, courier);
     CHECK_CREATE(ctxt->driver_tid, "Failed to create driver courier");
 
     *(int*)&ctxt->timer_tid  = Create(TC_CHILDREN_PRIORITY, time_notifier);
@@ -171,6 +177,7 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
 
     struct {
         tnotify_header head;
+
         int body;
     } time_return = {
         .head = {

@@ -18,6 +18,12 @@ typedef struct sf_req {
     sf_type type;
     union {
         int sensor;
+        
+        struct update {
+            int sensor;
+            int time;
+        } update;
+        
         struct rev_list {
             int size;
             struct rev_list_ele {
@@ -25,6 +31,7 @@ typedef struct sf_req {
                 int tid;
             } ele[8];
         } rev_list;
+
     } body;
 } sf_req;
 

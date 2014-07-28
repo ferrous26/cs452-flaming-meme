@@ -414,6 +414,7 @@ void syscall_handle(const syscall_num code,
 #ifdef DEBUG
     assert((uint)sp > TASK_HEAP_BOT && (uint)sp <= TASK_HEAP_TOP,
 	   "Reply: task %d has invalid heap %p", task_active->tid, sp);
+
     assert(!is_valid_pc(sp), "Task %d has invalid return %p for call %d",
            task_active->tid, is_valid_pc(sp), code);
 #endif
