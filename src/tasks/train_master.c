@@ -96,9 +96,10 @@ static inline int master_head_distance(master* const ctxt) {
 }
 
 static inline int master_tail_distance(master* const ctxt) {
-    return  (ctxt->checkpoint.direction == DIRECTION_FORWARD ?
-             ctxt->blaster_ctxt->measurements.back :
-             ctxt->blaster_ctxt->measurements.front);
+    return ctxt->blaster_ctxt->measurements.pickup +
+        (ctxt->checkpoint.direction == DIRECTION_FORWARD ?
+         ctxt->blaster_ctxt->measurements.back :
+         ctxt->blaster_ctxt->measurements.front);
 }
 
 static void master_release_control_courier(master* const ctxt,
@@ -485,7 +486,7 @@ static inline void master_recalculate_stopping_point(master* const ctxt,
     const int stop_point = stop_dist -
         (ctxt->next_stop.action->type == PATH_SENSOR ?
          ctxt->destination_offset :
-         master_head_distance(ctxt) + ctxt->turnout_padding);
+         master_tail_distance(ctxt) + ctxt->turnout_padding);
 
     // find out at which step we need to act...
     ctxt->next_stop = master_find_action_location(ctxt,
