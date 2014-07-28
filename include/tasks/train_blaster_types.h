@@ -116,6 +116,7 @@ typedef struct blaster_context {
     train_state last_checkpoint_event;
     train_state current_checkpoint_event;
     train_state truth_event;
+    train_state master_state; // state synchronized with the master
 
     // TODO: maybe these should be encoded into train_state?
     //       or maybe not, they are h4x

@@ -150,16 +150,12 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     const int velocity = physics_current_velocity(ctxt);
     const int   offset = velocity * (time - truth.timestamp);
 
+    ctxt->master_state = truth;
+    ctxt->master_state.location.offset += offset;
+
     master_req req = {
         .type = MASTER_BLASTER_LOCATION,
-        .arg1 = truth.event,
-        .arg2 = truth.location.sensor,
-        .arg3 = truth.location.offset + offset,
-        .arg4 = time,
-        .arg5 = truth.speed,
-        .arg6 = truth.direction,
-        .arg7 = truth.is_accelerating,
-        .arg8 = truth.next_speed,
+        .arg1 = (int)&ctxt->master_state
     };
 
     const int result = Reply(ctxt->master_courier, (char*)&req, sizeof(req));

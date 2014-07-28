@@ -31,19 +31,6 @@
 #define CHECK_WHOIS(tid, msg) \
 if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
 
-typedef struct train_checkpoint {
-    train_event type;
-    train_dir   direction;
-
-    int         sensor;
-    int         offset;
-    int         timestamp;
-
-    int         speed;
-    int         next_speed;
-    bool        is_accel;
-} train_checkpoint;
-
 typedef struct action_point {
     const path_node* step;
     int offset;
@@ -64,8 +51,8 @@ typedef struct master_context {
     int path_worker;         // tid of the path worker
     int mission_control_tid; // tid of mission control
 
-    int              turnout_padding;
-    train_checkpoint checkpoint;
+    int          turnout_padding;
+    train_state  checkpoint;
 
     int          active;
     int          destination;        // destination sensor
@@ -94,7 +81,7 @@ typedef struct master_context {
 static int master_current_velocity(master* const ctxt) {
     return physics_velocity(ctxt->blaster_ctxt,
                             ctxt->checkpoint.speed,
-                            velocity_type(ctxt->checkpoint.sensor));
+                            velocity_type(ctxt->checkpoint.location.sensor));
 }
 
 static int master_current_stopping_distance(master* const ctxt) {
@@ -165,6 +152,7 @@ master_set_speed(master* const ctxt, const int speed, const int delay) {
 
     master_send_blaster(ctxt, &message, sizeof(message));
 }
+
 static void
 master_set_reverse(master* const ctxt, const int delay) {
 
@@ -248,10 +236,11 @@ master_current_location(master* const ctxt, const int time) {
 
     const int     time_delta = time - ctxt->checkpoint.timestamp;
     const int distance_delta =
-        ctxt->checkpoint.offset + (master_current_velocity(ctxt) * time_delta);
+        ctxt->checkpoint.location.offset +
+        (master_current_velocity(ctxt) * time_delta);
 
     const track_location l = {
-        .sensor = ctxt->checkpoint.sensor,
+        .sensor = ctxt->checkpoint.location.sensor,
         .offset = distance_delta
     };
 
@@ -318,7 +307,7 @@ master_try_fast_forward(master* const ctxt) {
 #ifdef DEBUG
             if (!start) start = step;
 #endif
-            if (step->data.sensor == ctxt->checkpoint.sensor) {
+            if (step->data.sensor == ctxt->checkpoint.location.sensor) {
 #ifdef DEBUG
                 if (start != step) {
                     const sensor head =
@@ -561,7 +550,8 @@ static void master_check_turnout_throwing(master* const ctxt,
     while (ctxt->path_step < ctxt->next_turnout.action)
         master_calculate_turnout_point(ctxt);
 
-    while (ctxt->checkpoint.sensor == ctxt->next_turnout.step->data.sensor) {
+    while (ctxt->checkpoint.location.sensor ==
+           ctxt->next_turnout.step->data.sensor) {
 
         // how much longer we have to wait until we reach the danger zone
         const int delay = (ctxt->next_turnout.offset - offset) / velocity;
@@ -620,7 +610,9 @@ static void master_check_throw_stop_command(master* const ctxt,
     master_recalculate_stopping_point(ctxt, offset);
     // should we be stopping now?
 
-    if (ctxt->checkpoint.sensor == ctxt->next_stop.step->data.sensor) {
+    if (ctxt->checkpoint.location.sensor ==
+        ctxt->next_stop.step->data.sensor) {
+
         log("[%s] Scheduling stop", ctxt->name);
         const int delay = (ctxt->next_stop.offset - offset) / velocity;
 
@@ -675,7 +667,8 @@ static void master_short_move2(master* const ctxt) {
     const int       velocity = master_current_velocity(ctxt);
     const int      stop_dist = master_current_stopping_distance(ctxt);
     const int dist_remaining = ctxt->short_moving_distance -
-        (stop_dist + (current_location.offset - ctxt->checkpoint.offset));
+        (stop_dist +
+         (current_location.offset - ctxt->checkpoint.location.offset));
     const int      stop_time = dist_remaining / velocity;
 
     master_set_speed(ctxt, 0, time + stop_time);
@@ -737,6 +730,13 @@ static inline void master_path_update(master* const ctxt,
 
     master_debug_path(ctxt);
 
+    // some stuff we need to know before we kick off the path finding
+    const int velocity = master_current_velocity(ctxt);
+    const int     time = Time();
+    // how far we have travelled from the sensor since the checkpoint
+    const int   offset = ctxt->checkpoint.location.offset +
+        (velocity * (time - ctxt->checkpoint.timestamp));
+
     // Get us up to date on where we are
     ctxt->path_step = master_try_fast_forward(ctxt);
 
@@ -745,14 +745,6 @@ static inline void master_path_update(master* const ctxt,
     ctxt->next_turnout.action = ctxt->path_step;
     ctxt->next_stop.step      = ctxt->path_step;
     ctxt->next_stop.action    = ctxt->path_step;
-
-    // now, the million dollar question is: are we too late to throw
-    // the turnout; we determine this by looking at the
-    const int velocity = master_current_velocity(ctxt);
-    const int     time = Time();
-    // how far we have travelled from the sensor since the checkpoint
-    const int   offset = ctxt->checkpoint.offset +
-        (velocity * (time - ctxt->checkpoint.timestamp));
 
     master_calculate_turnout_point(ctxt);
 
@@ -787,13 +779,13 @@ master_short_move_command(master* const ctxt,
 static inline void
 master_check_sensor_to_stop_at(master* const ctxt) {
 
-    if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint.sensor &&
-          ctxt->checkpoint.type == EVENT_SENSOR)) return;
+    if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint.location.sensor &&
+          ctxt->checkpoint.event == EVENT_SENSOR)) return;
 
     master_set_speed(ctxt, 0, 0);
 
     ctxt->sensor_to_stop_at = -1;
-    const sensor s = pos_to_sensor(ctxt->checkpoint.sensor);
+    const sensor s = pos_to_sensor(ctxt->checkpoint.location.sensor);
     log("[%s] Hit sensor %c%d at %d. Stopping!",
         ctxt->name, s.bank, s.num, ctxt->checkpoint.timestamp);
 }
@@ -849,8 +841,8 @@ static void get_reserve_list(const master* const ctxt,
 static inline void
 master_check_sensor_to_block_until(master* const ctxt) {
 
-    if (!(ctxt->sensor_block.sensor == ctxt->checkpoint.sensor &&
-          ctxt->checkpoint.type == EVENT_SENSOR)) return;
+    if (!(ctxt->sensor_block.sensor == ctxt->checkpoint.location.sensor &&
+          ctxt->checkpoint.event == EVENT_SENSOR)) return;
 
     const int result = Reply(ctxt->sensor_block.tid, NULL, 0);
     assert(result == 0,
@@ -863,27 +855,19 @@ master_check_sensor_to_block_until(master* const ctxt) {
     ctxt->sensor_block.sensor = -1;
 }
 
-static inline bool should_perform_reservation(const train_checkpoint* check) {
+static inline bool should_perform_reservation(const train_state* check) {
     return 0 > check->next_speed
-        || !check->is_accel
-        || EVENT_ACCELERATION != check->type;
+        || !check->is_accelerating
+        || EVENT_ACCELERATION != check->event;
 }
 
 static inline void master_location_update(master* const ctxt,
-                                          const master_req* const req,
+                                          const train_state* const state,
                                           const blaster_req* const pkg,
                                           const int tid) {
 
-    //    log("[%s] Got position update", ctxt->name);
-
-    ctxt->checkpoint.type       = req->arg1;
-    ctxt->checkpoint.sensor     = req->arg2;
-    ctxt->checkpoint.offset     = req->arg3;
-    ctxt->checkpoint.timestamp  = req->arg4;
-    ctxt->checkpoint.speed      = req->arg5;
-    ctxt->checkpoint.next_speed = req->arg8;
-    ctxt->checkpoint.direction  = req->arg6;
-    ctxt->checkpoint.is_accel   = req->arg7;
+    // log("[%s] Got position update %p", ctxt->name, state);
+    memcpy(&ctxt->checkpoint, state, sizeof(train_state));
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
@@ -891,17 +875,18 @@ static inline void master_location_update(master* const ctxt,
            ctxt->name, result);
     UNUSED(result);
 
-    if (ctxt->checkpoint.type == EVENT_SENSOR) ctxt->active = 1;
+    if (ctxt->checkpoint.event == EVENT_SENSOR) ctxt->active = 1;
     if (ctxt->active) {
-        const int offset = ctxt->checkpoint.offset;
+        const int offset = ctxt->checkpoint.location.offset;
         const int head   = master_head_distance(ctxt);
         const int tail   = master_tail_distance(ctxt);
 
-        assert(XBETWEEN(ctxt->checkpoint.sensor, -1, NUM_SENSORS),
+        assert(XBETWEEN(ctxt->checkpoint.location.sensor, -1, NUM_SENSORS),
                "Can't Reserve From not sensor %d",
-               ctxt->checkpoint.sensor);
+               ctxt->checkpoint.location.sensor);
 
-        const track_node* node = &ctxt->track[ctxt->checkpoint.sensor];
+        const track_node* node =
+            &ctxt->track[ctxt->checkpoint.location.sensor];
 
         int moving_dist = 0;
         if (0 != ctxt->checkpoint.speed) {
@@ -941,7 +926,7 @@ static inline void master_location_update(master* const ctxt,
 
     if (ctxt->short_moving_distance &&
         // no longer accelerating
-        !ctxt->checkpoint.is_accel &&
+        !ctxt->checkpoint.is_accelerating &&
         // and enough time has passed
         ctxt->checkpoint.timestamp > (ctxt->short_moving_timestamp + 10)) {
 
@@ -962,8 +947,8 @@ static inline void master_location_update(master* const ctxt,
         //     on the path
         // 2 - it is the reverse sensor which is allowed to be hit, this should
         //     get caught here, too, but maybe not if positioning is off by much
-        if (ctxt->path_stopping && ctxt->checkpoint.type == EVENT_SENSOR)
-            ctxt->allowed_sensor = ctxt->checkpoint.sensor;
+        if (ctxt->path_stopping && ctxt->checkpoint.event == EVENT_SENSOR)
+            ctxt->allowed_sensor = ctxt->checkpoint.location.sensor;
 
         // check fast forwarding
         const path_node* const still_on_path = master_try_fast_forward(ctxt);
@@ -972,8 +957,8 @@ static inline void master_location_update(master* const ctxt,
         if (!still_on_path) {
             // check if we are really off path
             const int reverse = reverse_sensor(ctxt->allowed_sensor);
-            if (!(ctxt->allowed_sensor == ctxt->checkpoint.sensor||
-                  reverse == ctxt->checkpoint.sensor)) {
+            if (!(ctxt->allowed_sensor == ctxt->checkpoint.location.sensor||
+                  reverse == ctxt->checkpoint.location.sensor)) {
 
                 ctxt->path_step = NULL;
 
@@ -993,7 +978,7 @@ static inline void master_location_update(master* const ctxt,
         const int velocity = master_current_velocity(ctxt);
         const int     time = Time();
         // how far we have travelled from the sensor since the checkpoint
-        const int   offset = ctxt->checkpoint.offset +
+        const int   offset = ctxt->checkpoint.location.offset +
             (velocity * (time - ctxt->checkpoint.timestamp));
 
         // always check if we need to handle a turnout if still on path
@@ -1011,22 +996,24 @@ static inline void master_location_update(master* const ctxt,
         //     we are not path_completed
         if (ctxt->checkpoint.speed == 0 && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
-            master_set_reverse(ctxt, time + 2); // TROLOLO magic number
-            master_setup_next_short_move(ctxt, offset, time + 2);
+            master_set_reverse(ctxt, time); // TROLOLO magic number
+            master_setup_next_short_move(ctxt, offset, time + 10);
             ctxt->path_stopping = false;
         }
 
         // 4 - we hit our desired speed, so if we are short moving, we need
         //     need to check the stop point and turnout point using the
         //     estimated location
-        else if (ctxt->checkpoint.type == EVENT_ACCELERATION &&
+        else if (ctxt->checkpoint.event == EVENT_ACCELERATION &&
                  ctxt->checkpoint.speed == ctxt->checkpoint.next_speed) {
 
             log("[%s] Hit desired speed, need to check on short move...",
                 ctxt->name);
             // will we hit another sensor before we need to stop?
             // if so, then calculate stop point and return early?
-            // return;
+
+            // TODO: replace with what is really needed
+            master_check_throw_stop_command(ctxt, velocity, offset, time);
         }
 
         // 5 - regular deal
@@ -1202,7 +1189,10 @@ void train_master() {
             break;
 
         case MASTER_BLASTER_LOCATION:
-            master_location_update(&context, &req, &blaster_callin, tid);
+            master_location_update(&context,
+                                   (train_state*)req.arg1,
+                                   &blaster_callin,
+                                   tid);
             break;
 
         case MASTER_UPDATE_TWEAK:
