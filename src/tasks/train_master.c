@@ -952,10 +952,9 @@ static inline void master_location_update(master* const ctxt,
         // we have a few cases here
 
         // 1 - we just hit a sensor while reversing legitimately
-        //     so we need to recognize that it is the sensor after the last
-        //     sensor and allow it, then mark the reverse sensor as being
-        //     allowed this is detected as being an expected sensor, but not
-        //     on the path
+        //     so we need to recognize that it is the sensor after the previous
+        //     sensor in the path and allow it, then mark the reverse sensor as
+        //     being allowed as well
         // 2 - it is the reverse sensor which is allowed to be hit, this should
         //     get caught here, too, but maybe not if positioning is off by much
         if (ctxt->path_stopping && ctxt->checkpoint.event == EVENT_SENSOR)
@@ -968,8 +967,11 @@ static inline void master_location_update(master* const ctxt,
         if (!still_on_path) {
             // check if we are really off path
             const int reverse = reverse_sensor(ctxt->allowed_sensor);
-            if (!(ctxt->allowed_sensor == ctxt->checkpoint.location.sensor||
-                  reverse == ctxt->checkpoint.location.sensor)) {
+            if (!(ctxt->allowed_sensor == ctxt->checkpoint.location.sensor ||
+                  reverse == ctxt->checkpoint.location.sensor              ||
+                  reverse == ctxt->checkpoint.next_location.sensor         ||
+                  ctxt->allowed_sensor ==
+                  ctxt->checkpoint.next_location.sensor)) {
 
                 ctxt->path_step = NULL;
 
