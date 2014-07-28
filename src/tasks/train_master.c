@@ -240,9 +240,14 @@ master_current_location(master* const ctxt, const int time) {
         ctxt->checkpoint.location.offset +
         (master_current_velocity(ctxt) * time_delta);
 
+    // offset is not allowed to grow beyond reasonable limits
+    // this somewhat compensates for trains stalling on the track
+    const int new_offset = MIN(distance_delta,
+                               ctxt->checkpoint.next_distance);
+
     const track_location l = {
         .sensor = ctxt->checkpoint.location.sensor,
-        .offset = distance_delta
+        .offset = new_offset
     };
 
     return l;
