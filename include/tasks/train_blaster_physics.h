@@ -106,14 +106,18 @@ physics_velocity(const blaster* const ctxt,
 
 static inline int
 physics_stopping_distance(const blaster* const ctxt, const int speed) {
-    return
-        (ctxt->stop_dist_map.slope * speed) +
-        ctxt->stop_dist_map.offset +
-        ctxt->stopping_distance_offset;
+    if (speed)
+        return
+            (ctxt->stop_dist_map.slope * speed) +
+            ctxt->stop_dist_map.offset +
+            ctxt->stopping_distance_offset;
+    return 0;
 }
 
 static inline int
 physics_stopping_time(const blaster* const ctxt, const int stop_dist) {
+
+    if (stop_dist == 0) return 0;
 
     const int dist = stop_dist / 1000;
 
@@ -136,6 +140,8 @@ physics_stopping_time(const blaster* const ctxt, const int stop_dist) {
 static inline int
 physics_starting_distance(const blaster* const ctxt, const int speed) {
 
+    if (speed == 0) return 0;
+
     const cubic* const map = &ctxt->start_dist_map;
 
     int sum =
@@ -153,6 +159,8 @@ physics_starting_distance(const blaster* const ctxt, const int speed) {
 
 static inline int
 physics_starting_time(const blaster* const ctxt, const int start_dist) {
+
+    if (start_dist == 0) return 0;
 
     const int dist = start_dist / 1000;
     const cubic* const map = &ctxt->amap;
