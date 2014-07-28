@@ -383,10 +383,10 @@ master_goto(master* const ctxt, const int destination, const int offset) {
             .requestor   = ctxt->my_tid,
             .header      = MASTER_PATH_DATA,
             .sensor_to   = destination,
-            .sensor_from = ctxt->checkpoint.sensor, // hmmm
             .opts        = PATH_BACK_APPROACH_OFF_MASK |
                            PATH_START_REVERSE_OFF_MASK |
                            ctxt->train_id,
+            .sensor_from = ctxt->checkpoint.location.sensor, // hmmm
             .reserve     = 600,
         }
     };
