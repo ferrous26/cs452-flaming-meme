@@ -660,7 +660,7 @@ static void master_check_throw_stop_command(master* const ctxt,
 
             log("[%s] Done path", ctxt->name);
             ctxt->path_completed = true;
-            ctxt->path_step = ctxt->path; // force it
+            ctxt->path_step = NULL; // force it
 
             // and we do not need to start back up again
         }
