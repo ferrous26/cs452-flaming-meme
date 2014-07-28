@@ -1016,7 +1016,12 @@ static inline void master_location_update(master* const ctxt,
                 ctxt->path_step = NULL;
 
                 // try to find a new path
-                log("[%s] Finding a new route!", ctxt->name);
+                const sensor s = pos_to_sensor(ctxt->allowed_sensor);
+                const sensor a = pos_to_sensor(ctxt->checkpoint.location.sensor);
+                log("[%s] Finding a new route! Allowed: %c%d, Actual: %c%d",
+                    ctxt->name,
+                    s.bank, s.num,
+                    a.bank, a.num);
                 master_goto(ctxt, ctxt->destination, ctxt->destination_offset);
                 return;
             }
