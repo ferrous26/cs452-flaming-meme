@@ -115,13 +115,14 @@ typedef struct {
 } cs_context;
 
 static inline void _reply_with_time(cs_context* const ctxt,
-                                    const int tid) {
+                                    const int tid,
+                                    const char* caller) {
 
     const int result = Reply(tid,
                              (char*)&ctxt->time,
                              sizeof(ctxt->time));
 
-    assert(result == 0, "CLOCK TIME, %d", result);
+    assert(result == 0, caller, result);
 }
 
 static void _startup(cs_context* const ctxt) {
@@ -171,7 +172,7 @@ void clock_server() {
             context.time++;
             while (pq_peek_key(&context.q) <= context.time) {
                 tid = pq_delete(&context.q);
-                _reply_with_time(&context, tid);
+                _reply_with_time(&context, tid, "Delay %d");
             }
             break;
 
@@ -181,7 +182,7 @@ void clock_server() {
             break;
 
         case CLOCK_TIME:
-            _reply_with_time(&context, tid);
+            _reply_with_time(&context, tid, "Time %d");
             break;
 
         case CLOCK_DELAY_UNTIL:
@@ -195,7 +196,7 @@ void clock_server() {
             }
             // we treat deadlines happening right away as being on time
             else if (req.ticks == context.time) {
-                _reply_with_time(&context, tid);
+                _reply_with_time(&context, tid, "DelayUntil %d");
             }
             else {
                 pq_add(&context.q, req.ticks, tid);
