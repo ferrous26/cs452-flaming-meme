@@ -114,6 +114,16 @@ typedef struct {
     pq_node        pq_heap[TASK_MAX];
 } cs_context;
 
+static inline void _reply_with_time(cs_context* const ctxt,
+                                    const int tid) {
+
+    const int result = Reply(tid,
+                             (char*)&ctxt->time,
+                             sizeof(ctxt->time));
+
+    assert(result == 0, "CLOCK TIME, %d", result);
+}
+
 static void _startup(cs_context* const ctxt) {
     // allow tasks to send messages to the clock server
     clock_server_tid = myTid();
@@ -161,8 +171,7 @@ void clock_server() {
             context.time++;
             while (pq_peek_key(&context.q) <= context.time) {
                 tid = pq_delete(&context.q);
-                result = Reply(tid, (char*)&context.time, sizeof(int));
-                assert(result == 0, "NOTIFY %d (%d)", tid, result);
+                _reply_with_time(&context, tid);
             }
             break;
 
@@ -172,25 +181,26 @@ void clock_server() {
             break;
 
         case CLOCK_TIME:
-            result = Reply(tid, (char*)&context.time, sizeof(context.time));
-            assert(result == 0, "CLOCK TIME, %d", result);
+            _reply_with_time(&context, tid);
             break;
 
         case CLOCK_DELAY_UNTIL:
             // if we missed the deadline, wake task up right away, but
             // also log something if in debug mode
-            if (req.ticks <= context.time) {
-                clog("[Clock] %d missed deadline with DelayUntil(%d)."
-                     " Actual time is %d.",
+            if (req.ticks < context.time) {
+                clog("[Clock] %d missed DelayUntil(%d). Actual time is %d.",
                      tid, req.ticks, context.time);
                 result = Reply(tid, (char*)&missed_deadline, sizeof(int));
                 assert(result == 0, "MISSED DEADLINE, %d", result);
+            }
+            // we treat deadlines happening right away as being on time
+            else if (req.ticks == context.time) {
+                _reply_with_time(&context, tid);
             }
             else {
                 pq_add(&context.q, req.ticks, tid);
             }
             break;
-
         }
     }
 }
