@@ -114,6 +114,40 @@ static void master_release_control_courier(master* const ctxt,
     UNUSED(ctxt);
 }
 
+static void master_delay_flip_turnout(master* const ctxt,
+                                      const int turn,
+                                      const int direction,
+                                      const int action_time) {
+
+    const int c = Create(TRAIN_COURIER_PRIORITY, delayed_one_way_courier);
+    assert(c >= 0, "failed to make one way courier %d", c);
+
+    struct {
+        tdelay_header head;
+        struct {
+            mc_type type;
+            turnout turn;
+        } body;
+    } msg = {
+        .head = {
+            .receiver = ctxt->mission_control_tid,
+            .type     = DELAY_ABSOLUTE,
+            .ticks    = action_time
+        },
+        .body = {
+            .type = MC_U_TURNOUT,
+            .turn = {
+                .num   = turn,
+                .state = direction
+            }
+        }
+   };
+
+    const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
+    if (result < 0)
+        ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
+}
+
 static inline void
 master_send_blaster(master* const ctxt,
                     const void* const msg,
@@ -384,7 +418,7 @@ master_goto(master* const ctxt, const int destination, const int offset) {
 
     // Do not allow path start reverse if train is in motion
     const int opts = ctxt->train_id |
-        (ctxt->checkpoint.speed == 0 ? 0 : PATH_START_REVERSE_OFF_MASK);
+        (ctxt->checkpoint.speed ? PATH_START_REVERSE_OFF_MASK : 0);
 
     pa_request request = {
         .type = PA_GET_PATH,
@@ -434,13 +468,15 @@ master_goto_command(master* const ctxt,
     master_release_control_courier(ctxt, pkg, tid);
 }
 
-static inline void master_calculate_turnout_point(master* const ctxt) {
+static inline void master_calculate_turnout_point(master* const ctxt,
+                                                  const int time) {
 
     // this handles the case where we need to fast forward the route
     const path_node* const start_step =
         MIN(ctxt->next_turnout.action, ctxt->path_step);
 
     for (const path_node* step = start_step - 1; step >= ctxt->path; step--) {
+
         if (step->type == PATH_TURNOUT) {
 
             const int direction_offset =
@@ -450,10 +486,28 @@ static inline void master_calculate_turnout_point(master* const ctxt) {
             ctxt->next_turnout =
                 master_find_action_location(ctxt, step, direction_offset);
 
-            log("[%s] Next turnout is %d to %c",
+            // if we do not have enough distance
+            if (ctxt->next_turnout.step == NULL) {
+                // TODO: should actually check the offset from the sensor
+                //       because the train might be sitting on the turnout
+                //       and flipping it willl cause multi-track drifting
+                if (ctxt->checkpoint.speed == 0) {
+                    log("[%s] Risky turnout flipping!", ctxt->name);
+                    master_delay_flip_turnout(ctxt,
+                                              step->data.turnout.num,
+                                              step->data.turnout.state,
+                                              time + 2);
+                    continue;
+                }
+            }
+
+            log("[%s] Next turnout is %d to %c (%d) at %d (%d)",
                 ctxt->name,
                 ctxt->next_turnout.action->data.turnout.num,
-                ctxt->next_turnout.action->data.turnout.state);
+                ctxt->next_turnout.action->data.turnout.state,
+                ctxt->next_turnout.action - ctxt->path,
+                ctxt->next_turnout.step - ctxt->path,
+                ctxt->path_step - ctxt->path);
 
             return;
         }
@@ -513,40 +567,6 @@ static inline void master_recalculate_stopping_point(master* const ctxt,
         s.bank, s.num, ctxt->next_stop.offset / 1000);
 }
 
-static void master_delay_flip_turnout(master* const ctxt,
-                                      const int turn,
-                                      const int direction,
-                                      const int action_time) {
-
-    const int c = Create(TRAIN_COURIER_PRIORITY, delayed_one_way_courier);
-    assert(c >= 0, "failed to make one way courier %d", c);
-
-    struct {
-        tdelay_header head;
-        struct {
-            mc_type type;
-            turnout turn;
-        } body;
-    } msg = {
-        .head = {
-            .receiver = ctxt->mission_control_tid,
-            .type     = DELAY_ABSOLUTE,
-            .ticks    = action_time
-        },
-        .body = {
-            .type = MC_U_TURNOUT,
-            .turn = {
-                .num   = turn,
-                .state = direction
-            }
-        }
-   };
-
-    const int result = Send(c, (char*)&msg, sizeof(msg), NULL, 0);
-    if (result < 0)
-        ABORT("[%s] Failed to send turnout delay (%d)", ctxt->name, result);
-}
-
 static void master_check_turnout_throwing(master* const ctxt,
                                           const int velocity, // current
                                           const int offset,   // from checkpoint
@@ -556,7 +576,7 @@ static void master_check_turnout_throwing(master* const ctxt,
     // from regular fast forwarding because it may need to happen more
     // frequently since multiple turnouts can exist between sensors
     while (ctxt->path_step < ctxt->next_turnout.action)
-        master_calculate_turnout_point(ctxt);
+        master_calculate_turnout_point(ctxt, time);
 
     while (ctxt->checkpoint.location.sensor ==
            ctxt->next_turnout.step->data.sensor) {
@@ -583,7 +603,7 @@ static void master_check_turnout_throwing(master* const ctxt,
         }
 
         // start the process again!
-        master_calculate_turnout_point(ctxt);
+        master_calculate_turnout_point(ctxt, time);
     }
 }
 
@@ -749,6 +769,8 @@ static inline void master_path_update(master* const ctxt,
     if (path[size - 1].type == PATH_REVERSE) {
         log("[%s] Started with a reverse", ctxt->name);
         master_set_reverse(ctxt, time + 2);
+
+        // manually fast forward this step
         ctxt->path_step--;
     }
     else {
@@ -762,7 +784,7 @@ static inline void master_path_update(master* const ctxt,
     ctxt->next_stop.step      = ctxt->path_step;
     ctxt->next_stop.action    = ctxt->path_step;
 
-    master_calculate_turnout_point(ctxt);
+    master_calculate_turnout_point(ctxt, time);
 
     master_find_next_stopping_point(ctxt);
     master_recalculate_stopping_point(ctxt, offset);
@@ -1018,26 +1040,12 @@ static inline void master_location_update(master* const ctxt,
             master_setup_next_short_move(ctxt, offset, time + 10);
             ctxt->path_stopping = false;
         }
-
-        // 4 - we hit our desired speed, so if we are short moving, we need
-        //     need to check the stop point and turnout point using the
-        //     estimated location
-        else if (ctxt->checkpoint.event == EVENT_ACCELERATION &&
-                 ctxt->checkpoint.speed == ctxt->checkpoint.next_speed) {
-
-            log("[%s] Hit desired speed, need to check on short move...",
-                ctxt->name);
-            // will we hit another sensor before we need to stop?
-            // if so, then calculate stop point and return early?
-
-            // TODO: replace with what is really needed
-            master_check_throw_stop_command(ctxt, velocity, offset, time);
-        }
-
-        // 5 - regular deal
         else {
+            // 4 - we hit our desired speed, so if we are short moving, we need
+            //     need to check the stop point and turnout point using the
+            //     estimated location
+            // 5 - regular deal
             log("[%s] Check if we need to throw stop", ctxt->name);
-            // is it stopping time?
             master_check_throw_stop_command(ctxt, velocity, offset, time);
         }
     }
