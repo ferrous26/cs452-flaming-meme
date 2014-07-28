@@ -382,15 +382,17 @@ master_goto(master* const ctxt, const int destination, const int offset) {
     log("[%s] Finding a route to %c%d + %d cm",
         ctxt->name, s.bank, s.num, offset);
 
+    // Do not allow path start reverse if train is in motion
+    const int opts = ctxt->train_id |
+        (ctxt->checkpoint.speed == 0 ? 0 : PATH_START_REVERSE_OFF_MASK);
+
     pa_request request = {
         .type = PA_GET_PATH,
         .req  = {
             .requestor   = ctxt->my_tid,
             .header      = MASTER_PATH_DATA,
             .sensor_to   = destination,
-            .opts        = PATH_BACK_APPROACH_OFF_MASK |
-                           PATH_START_REVERSE_OFF_MASK |
-                           ctxt->train_id,
+            .opts        = opts,
             .sensor_from = ctxt->checkpoint.location.sensor, // hmmm
             .reserve     = 600,
         }
@@ -743,13 +745,16 @@ static inline void master_path_update(master* const ctxt,
     const int   offset = ctxt->checkpoint.location.offset +
         (velocity * (time - ctxt->checkpoint.timestamp));
 
-    if (ctxt->path_step->type == PATH_REVERSE) {
+
+    if (path[size - 1].type == PATH_REVERSE) {
         log("[%s] Started with a reverse", ctxt->name);
         master_set_reverse(ctxt, time + 2);
+        ctxt->path_step--;
     }
-
-    // Get us up to date on where we are
-    ctxt->path_step = master_try_fast_forward(ctxt);
+    else {
+        // Get us up to date on where we are
+        ctxt->path_step = master_try_fast_forward(ctxt);
+    }
 
     // wait until we know where we are starting from
     ctxt->next_turnout.step   = ctxt->path_step;
