@@ -743,6 +743,11 @@ static inline void master_path_update(master* const ctxt,
     const int   offset = ctxt->checkpoint.location.offset +
         (velocity * (time - ctxt->checkpoint.timestamp));
 
+    if (ctxt->path_step->type == PATH_REVERSE) {
+        log("[%s] Started with a reverse", ctxt->name);
+        master_set_reverse(ctxt, time + 2);
+    }
+
     // Get us up to date on where we are
     ctxt->path_step = master_try_fast_forward(ctxt);
 
