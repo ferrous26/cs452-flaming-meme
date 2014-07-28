@@ -164,20 +164,21 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
             "Received invalid sensor data %d/%d", result, sizeof(sensor_data));
     intb_produce(&ctxt->waiters, tid);
 
-    blaster_req callin = {
+    blaster_req_type failure = BLASTER_CONSOLE_LOST;
+    blaster_req      callin  = {
         .type = BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
         .arg1 = sensor_data[1],
         .arg2 = sensor_data[0]
     };
+    
     courier_package package = {
         .receiver = myParentTid(),
         .message  = (char*)&callin,
-        .size     = sizeof(callin)
+        .size     =  sizeof(callin)
     };
 
     struct {
         tnotify_header head;
-
         int body;
     } time_return = {
         .head = {
@@ -187,11 +188,20 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
         .body = ctxt->sensor_iter - 1
     };
 
-    result = Send(ctxt->driver_tid, (char*)&package, sizeof(package), NULL, 0);
-    assert(callin.arg1 >= 0 && callin.arg1 < 80,
-          "failed initalizing train %d", callin.arg1);
-    assert(result == 0, "Failed handing off package to courier");
+    if (sensor_data[0] == REQUEST_REJECTED) {
+        result = Send(ctxt->driver_tid,
+                      (char*)&failure, sizeof(failure),
+                      NULL, 0);
+    } else {
+        assert(XBETWEEN(callin.arg1, 0, NUM_SENSORS),
+               "failed initalizing train %d", callin.arg1);
+        result = Send(ctxt->driver_tid,
+                      (char*)&package, sizeof(package),
+                      NULL, 0);
+    }
 
+
+    assert(result == 0, "Failed handing off package to courier");
     result = Send(ctxt->timer_tid,
                   (char*)&time_return, sizeof(time_return),
                   NULL, 0);
