@@ -49,8 +49,8 @@ task :build, :params do |_, args|
 
   env  = []
 
-  name = ENV['UW_USER']
-  if name.match 'marada'
+  name = `whoami`.chomp
+  if name.match 'rada'
     env << 'MARK=yes'
   else
     env << 'NIK=yes'
