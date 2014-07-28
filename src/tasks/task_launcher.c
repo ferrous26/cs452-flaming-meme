@@ -251,9 +251,7 @@ static void action(command cmd, int args[]) {
                 .header      = 0,
                 .sensor_to   = (short)sensor_to_pos(args[2], args[3]),
                 .sensor_from = (short)sensor_to_pos(args[0], args[1]),
-                .opts        = PATH_BACK_APPROACH_OFF_MASK |
-                               PATH_START_REVERSE_OFF_MASK |
-                               train_id,
+                .opts        = train_id,
                 .reserve     = 100
             }
         };
