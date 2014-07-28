@@ -26,7 +26,7 @@
 #define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
 
 // we want to flip a turnout when we are
-#define TURNOUT_DISTANCE 200000
+#define TURNOUT_DISTANCE 150000
 
 #define CHECK_WHOIS(tid, msg) \
 if (tid < 0) ABORT("[%s]\t"msg" (%d)", ctxt->name, tid)
