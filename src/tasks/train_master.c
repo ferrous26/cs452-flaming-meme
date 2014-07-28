@@ -495,7 +495,7 @@ static inline void master_recalculate_stopping_point(master* const ctxt,
     // we want to be sure that we clear the turnout, so add padding
     const int stop_point = stop_dist -
         (ctxt->next_stop.action->type == PATH_SENSOR ?
-         0 : // no futzing with the final destination
+         ctxt->destination_offset :
          master_head_distance(ctxt) + ctxt->turnout_padding);
 
     // find out at which step we need to act...
