@@ -528,13 +528,16 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
     for (const path_node* step = start_step - 1; step >= ctxt->path; step--) {
         // if we have found a reverse step
         if (step->type == PATH_REVERSE || step == ctxt->path) {
-            // then we have a stopping point
-            ctxt->next_stop.action = step;
+            // if the last step is a reverse
+            if (step->type == PATH_REVERSE && step == ctxt->path)
+                ctxt->next_stop.action = step + 1; // stop at non-reverse sensor
+            else // we have a stopping point
+                ctxt->next_stop.action = step;
             return;
         }
     }
 
-    ABORT("[%s] Hit unreachable code! %p %p %p",
+    ABORT("[%s] Hit unreachable code (burst of location updates?)! %p %p %p",
           ctxt->name, start_step, ctxt->path_step, ctxt->next_stop.step);
 }
 
@@ -648,9 +651,17 @@ static void master_check_throw_stop_command(master* const ctxt,
         ctxt->path_stopping = true;
 
         // if this is the last stop, then we are done
-        if (ctxt->next_stop.action->type == PATH_SENSOR) {
+        if (ctxt->next_stop.step == ctxt->path ||
+            ((ctxt->next_stop.step == (ctxt->path + 1)) &&
+             ctxt->path[0].type == PATH_REVERSE)) {
+
+            if (ctxt->path[0].type == PATH_REVERSE)
+                log("[%s] Pretend we just reversed", ctxt->name);
+
             log("[%s] Done path", ctxt->name);
             ctxt->path_completed = true;
+            ctxt->path_step = ctxt->path; // force it
+
             // and we do not need to start back up again
         }
         else {
@@ -793,7 +804,9 @@ static inline void master_path_update(master* const ctxt,
     master_check_throw_stop_command(ctxt, velocity, offset, time);
 
     // if the train is not moving, or it is slowing down, then kick it off
-    if (ctxt->checkpoint.speed == 0 || ctxt->checkpoint.next_speed == 0)
+    if ((ctxt->checkpoint.speed == 0 || ctxt->checkpoint.next_speed == 0) &&
+        // delay the short move until the path recalculation
+        path[size - 1].type != PATH_REVERSE)
         master_setup_next_short_move(ctxt, offset, time + 2);
 }
 
