@@ -150,7 +150,8 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     const int velocity = physics_current_velocity(ctxt);
     const int   offset = velocity * (time - truth.timestamp);
 
-    ctxt->master_state = truth;
+    ctxt->master_state                  = truth;
+    ctxt->master_state.timestamp        = time;
     ctxt->master_state.location.offset += offset;
 
     master_req req = {
