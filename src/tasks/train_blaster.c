@@ -1067,7 +1067,7 @@ static inline void blaster_wait(blaster* const ctxt,
             if (req.arg1 > 0) return;
             break;
         case BLASTER_REVERSE:
-            blaster_reverse_step1(ctxt, time);
+            put_train_speed(ctxt->train_gid, TRAIN_REVERSE);
             break;
         case BLASTER_UPDATE_TWEAK:
             blaster_update_tweak(ctxt, (train_tweakable)req.arg1, req.arg2);
