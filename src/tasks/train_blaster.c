@@ -51,6 +51,16 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
+const char* event_to_str(const train_event event) {
+    switch (event) {
+    case EVENT_ACCELERATION:      return "Acceleration Event";
+    case EVENT_VIRTUAL:           return "Virtual Checkpoint Event";
+    case EVENT_SENSOR:            return "Sensor Checkpoint Event";
+    case EVENT_UNEXPECTED_SENSOR: return "Unexpected Sensor Checkpoint Event";
+    }
+    return "Unknown Event";
+}
+
 #ifndef MARK
 #define blaster_debug_state( ... )
 #else
@@ -58,22 +68,7 @@ static void __attribute__ ((unused))
 blaster_debug_state(blaster* const ctxt,
                     const train_state* const state) {
 
-    const char* event = "Unknown Event";
-    switch (state->event) {
-    case EVENT_ACCELERATION:
-        event = "Acceleration Event";
-        break;
-    case EVENT_VIRTUAL:
-        event = "Virtual Checkpoint Event";
-        break;
-    case EVENT_SENSOR:
-        event = "Sensor Checkpoint Event";
-        break;
-    case EVENT_UNEXPECTED_SENSOR:
-        event = "Unexpected Sensor Checkpoint Event";
-        break;
-    }
-
+    const char*  event = event_to_str(state->event);
     const sensor current_loc = pos_to_sensor(state->location.sensor);
     const sensor    next_loc = pos_to_sensor(state->next_location.sensor);
 

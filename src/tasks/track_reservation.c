@@ -236,7 +236,7 @@ void track_reservation() {
                 reply          = (own2 == -1 || own2 == req.train_num);
             }
 
-            nik_log(LOG_HEAD "LOOKUP %d - %d on %s",
+            nik_log(LOG_HEAD "LOOKUP %d gets BOOL(%d) on %s",
                     req.train_num, reply, req.node->name);
             result = Reply(tid, (char*)&reply, sizeof(reply));
             assert(result == 0, "Failed to repond to track query");

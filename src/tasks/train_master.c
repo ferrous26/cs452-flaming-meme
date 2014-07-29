@@ -832,7 +832,6 @@ master_short_move_command(master* const ctxt,
 
 static inline void
 master_check_sensor_to_stop_at(master* const ctxt) {
-
     if (!(ctxt->sensor_to_stop_at == ctxt->checkpoint.location.sensor &&
           ctxt->checkpoint.event == EVENT_SENSOR)) return;
 
@@ -912,7 +911,7 @@ master_check_sensor_to_block_until(master* const ctxt) {
 static inline bool __attribute__((pure))
 should_perform_reservation(const master* const ctxt) {
     return ctxt->last_reservation_speed < ctxt->checkpoint.next_speed
-        || !ctxt->checkpoint.is_accelerating
+      //|| !ctxt->checkpoint.is_accelerating
         || EVENT_ACCELERATION != ctxt->checkpoint.event;
 }
 
@@ -939,8 +938,10 @@ static inline int perform_reservation(master* const ctxt) {
     const int head_dist = head + offset + moving_dist + 20000;
     const int tail_dist = MAX(tail - offset + 20000, tail);
 
-    nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d", ctxt->name,
-            node->name, head_dist / 1000, tail_dist / 1000, offset / 1000);
+    nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d\tE:%s", ctxt->name,
+            node->name, head_dist / 1000, tail_dist / 1000, offset / 1000,
+            event_to_str(ctxt->checkpoint.event));
+
     assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
     assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
     assert(head_dist < 3000000, "WTF HEAD H:%d\tO:%d\tM:%d\ts:%d",
@@ -989,7 +990,8 @@ static inline void master_location_update(master* const ctxt,
                                           const blaster_req* const pkg,
                                           const int tid) {
 
-    log("[%s] Got position update %p %d", ctxt->name, ctxt->checkpoint.event);
+    log("[%s] Got position update %p %s", ctxt->name, state,
+        event_to_str(ctxt->checkpoint.event));
     memcpy(&ctxt->checkpoint, state, sizeof(train_state));
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
@@ -1023,7 +1025,6 @@ static inline void master_location_update(master* const ctxt,
     }
 
     if (ctxt->path_step && ctxt->path_step >= ctxt->path) {
-
         if (ctxt->checkpoint.speed == 0)
             log("[%s] STOPPED! %d", ctxt->name, ctxt->path_step - ctxt->path);
 
@@ -1086,7 +1087,8 @@ static inline void master_location_update(master* const ctxt,
         }
         // 3 - we hit speed 0, so we should throw the reverse command if
         //     we are not path_completed
-        else if (ctxt->checkpoint.speed == 0 && !ctxt->path_completed) {
+        else if (ctxt->checkpoint.speed == 0 && ctxt->path_stopping
+                                             && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
             master_set_reverse(ctxt, time); // TROLOLO magic number
             master_set_allowed_sensor(ctxt);

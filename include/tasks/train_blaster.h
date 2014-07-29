@@ -48,4 +48,6 @@ typedef struct {
     int  arg3;
 } blaster_req;
 
+const char* __attribute__((const)) event_to_str(const train_event event);
+
 #endif
