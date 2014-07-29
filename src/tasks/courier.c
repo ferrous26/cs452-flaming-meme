@@ -163,7 +163,7 @@ void courier() {
     if (package.size > 0) {
         memcpy(buffer, package.message, (uint)package.size);
     } else if (package.size < 0) {
-        ABORT("%d tried to send negitive size message", tid);
+        memcpy(buffer, package.message, (uint)-package.size);
     }
 
     result = Reply(tid, NULL, 0);
@@ -177,14 +177,13 @@ void courier() {
             result = Send(package.receiver,
                           buffer, size,
                           buffer, sizeof(buffer));
+            assert(result >= 0,
+                   "problem sending %d bytes to %d from %d (%d)",
+                   size, package.receiver, tid, result);
         }
 
-        assert(result >= 0,
-               "problem sending %d bytes to %d from %d (%d)",
-               size, package.receiver, tid, result);
-
         result = Send(tid,
-                      buffer, result,
+                      buffer, abs(result),
                       buffer, sizeof(buffer));
         assert(result >= 0, "Error sending response to %d (%d)",
                tid, result);

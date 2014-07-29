@@ -1083,7 +1083,8 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_DUMP_VELOCITY_TABLE:
         case BLASTER_ACCELERATION_COMPLETE:
         case BLASTER_NEXT_NODE_ESTIMATE:
-        case BLASTER_SENSOR_TIMEOUT:
+        case BLASTER_CONSOLE_TIMEOUT:
+        case BLASTER_CONSOLE_CANCEL:
         case BLASTER_SENSOR_FEEDBACK:
         case BLASTER_UNEXPECTED_SENSOR_FEEDBACK:
         case BLASTER_MASTER_WHERE_ARE_YOU:
@@ -1146,6 +1147,7 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
     ctxt->master_courier     = -1;
     ctxt->reverse_courier    = -1;
     ctxt->checkpoint_courier = -1;
+    ctxt->console_cancel     = -1;
 }
 
 static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
@@ -1157,16 +1159,38 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
 
     // Setup the sensor courier */
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
-    assert(tid >= 0, "[%s] Failed creating train console (%d)",
-           ctxt->name, tid);
+    if (tid < 0) ABORT("[%s] Failed creating train console (%d)",
+                       ctxt->name, tid);
 
-    int c_init[2] = {ctxt->train_id, (int)ctxt->track};
-    result        = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
+    int c_init[] = {ctxt->train_id, (int)ctxt->track};
+    result       = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
     assert(result == 0, "Failed to setup train console! (%d)", result);
+
+    tid = Create(TRAIN_COURIER_PRIORITY, courier);
+    if (tid < 0) ABORT("[%s] Failed creating train console cancel (%d)",
+                       ctxt->name, tid);
+    int cancel = BLASTER_CONSOLE_CANCEL;
+    courier_package console_pack = {
+        .receiver = tid,
+        .size     = -(int)sizeof(cancel),
+        .message  = (char*)&cancel
+    };
+    result = Send(tid,
+                  (char*)&console_pack, sizeof(console_pack),
+                  NULL, 0);
+    assert(result == 0,
+           "[%s] Error sending package to cancel console courier %d",
+           ctxt->name, result);
+
+
+    tid = Create(TRAIN_COURIER_PRIORITY, courier); 
+    if (tid < 0) ABORT("[%s] Error setting up command courier (%d)",
+                       ctxt->name, tid);
+
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,
-           "[%s] Error setting up command courier (%d)",
+           "[%s] Error setting upcommand courier (%d)",
            ctxt->name, control_courier);
 
     result = Send(control_courier,
@@ -1268,7 +1292,7 @@ void train_blaster() {
             blaster_process_unexpected_sensor_event(&context, &req, tid, time);
             continue;
 
-        case BLASTER_SENSOR_TIMEOUT:
+        case BLASTER_CONSOLE_TIMEOUT:
             blaster_process_console_timeout(&context, tid, time);
             continue;
 
@@ -1276,6 +1300,11 @@ void train_blaster() {
             blaster_set_speed(&context, 0, 0);
             log("[%s] console has be rejected, stop", context.name);
             context.console_courier = tid;
+            continue;
+
+
+        case BLASTER_CONSOLE_CANCEL:
+            context.console_cancel = tid;
             continue;
 
         case BLASTER_REQ_TYPE_COUNT:

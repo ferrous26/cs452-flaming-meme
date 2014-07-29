@@ -138,7 +138,6 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     assert(XBETWEEN(ctxt->train_pos, -1, NUM_TRAINS),
            "%d is invalid train identifier", ctxt->train_pos);
 
-
     // Create the first trask required for sensors
     const int sensor_tid = Create(TC_CHILDREN_PRIORITY, sensor_notifier);
     CHECK_CREATE(tid, "Failed to create first sensor notifier");
@@ -370,8 +369,6 @@ static inline void _driver_setup_sensors(tc_context* const ctxt,
 
 static inline bool _try_return_waiter(tc_context* const ctxt, int tid) {
     int index = get_sensor_index(ctxt, tid);
-    assert(index >= 0, LOG_HEAD "%d got send from invalid task %d",
-           ctxt->train_pos, tid);
     if (index < 0) return false;
 
     ctxt->sent_waiters[index] = -1;
@@ -458,7 +455,7 @@ void train_console() {
             
             } else if (context.docked & DRIVER_MASK)  {
                 blaster_req callin = {
-                    .type = BLASTER_SENSOR_TIMEOUT
+                    .type = BLASTER_CONSOLE_TIMEOUT
                 };
 
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
@@ -498,9 +495,18 @@ void train_console() {
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;
             }
+        } else if (args[0] == BLASTER_CONSOLE_CANCEL) {
+            context.sensor_iter++;
+            context.sensor_timeout = 0;
+            reject_remaining_sensors(&context);
+
+            Reply(tid, (char*)&args[0], sizeof(BLASTER_CONSOLE_CANCEL));
+
         } else {
             log(LOG_HEAD, "Train %d got unexpected message from %d",
                 context.train_pos, tid);
+            assert(false, LOG_HEAD "%d got send from invalid task %d",
+                   context.train_pos, tid);
         }
 
         if (_is_console_dead(&context)) {

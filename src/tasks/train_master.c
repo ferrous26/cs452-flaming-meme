@@ -75,6 +75,8 @@ typedef struct master_context {
     struct blaster_context* const blaster_ctxt;
 
     int reserved[TRACK_MAX];
+
+    int last_reservation_speed;
     const track_node* const track;
 } master;
 
@@ -561,9 +563,8 @@ static inline void master_recalculate_stopping_point(master* const ctxt,
          master_tail_distance(ctxt) + ctxt->turnout_padding);
 
     // find out at which step we need to act...
-    ctxt->next_stop = master_find_action_location(ctxt,
-                                                  ctxt->next_stop.action,
-                                                  stop_point);
+    ctxt->next_stop =
+        master_find_action_location(ctxt, ctxt->next_stop.action, stop_point);
 
     // we do not have enough track space to stop properly,
     // so just schedule it to happen immediately...
@@ -574,8 +575,7 @@ static inline void master_recalculate_stopping_point(master* const ctxt,
 
     const sensor s = pos_to_sensor(ctxt->next_stop.step->data.sensor);
     log("[%s] Next stop at %c%d + %d mm",
-        ctxt->name,
-        s.bank, s.num, ctxt->next_stop.offset / 1000);
+        ctxt->name, s.bank, s.num, ctxt->next_stop.offset / 1000);
 }
 
 static void master_check_turnout_throwing(master* const ctxt,
@@ -911,10 +911,11 @@ master_check_sensor_to_block_until(master* const ctxt) {
     ctxt->sensor_block.sensor = -1;
 }
 
-static inline bool should_perform_reservation(const train_state* check) {
-    return 0 > check->next_speed
-        || !check->is_accelerating
-        || EVENT_ACCELERATION != check->event;
+static inline bool __attribute__((pure))
+should_perform_reservation(const master* const ctxt) {
+    return ctxt->last_reservation_speed < ctxt->checkpoint.next_speed
+        || !ctxt->checkpoint.is_accelerating
+        || EVENT_ACCELERATION != ctxt->checkpoint.event;
 }
 
 static inline int perform_reservation(master* const ctxt) {
@@ -934,7 +935,9 @@ static inline int perform_reservation(master* const ctxt) {
         const int stop_dist = master_current_stopping_distance(ctxt);
         moving_dist = stop_dist + node->edge[0].dist;
     }
-
+    
+    const track_node* reserve[60];
+    int               insert = 0;
     const int head_dist = head + offset + moving_dist + 20000;
     const int tail_dist = MAX(tail - offset + 20000, tail);
 
@@ -948,12 +951,12 @@ static inline int perform_reservation(master* const ctxt) {
     assert(tail_dist < 3000000, "WTF TAIL T:%d\tO:%d\t",
            tail / 1000, offset / 1000);
 
-    int               insert = 0;
-    const track_node* reserve[60];
+
     get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
     get_reserve_list(ctxt, head_dist, 0, node,          reserve, &insert);
     assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert);
 
+    ctxt->last_reservation_speed = ctxt->checkpoint.speed;
     return reserve_section(ctxt->train_id, reserve, insert);
 }
 
@@ -998,7 +1001,7 @@ static inline void master_location_update(master* const ctxt,
     UNUSED(result);
 
     if (ctxt->checkpoint.event == EVENT_SENSOR) ctxt->active = 1;
-    if (ctxt->active && should_perform_reservation(&ctxt->checkpoint)) {
+    if (ctxt->active && should_perform_reservation(ctxt)) {
         const bool got_reservation = perform_reservation(ctxt);
 
         if (!got_reservation) {

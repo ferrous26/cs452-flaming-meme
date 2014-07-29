@@ -79,6 +79,7 @@ typedef struct blaster_context {
     int       reverse_courier;      // reverse step delay courier
     int       checkpoint_courier;   // courier used to wake at checkpoints
 
+    int       console_cancel;
     int       console_courier;
     int       console_timeout;
 
