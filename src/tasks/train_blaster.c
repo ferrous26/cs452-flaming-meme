@@ -51,6 +51,20 @@ blaster_estimate_timeout(int time_current, int time_next) {
     return time_current + ((time_next * 5) >> 2);
 }
 
+static void send_console_cancel(blaster* const ctxt) {
+    log("[%s] has sent cancel", ctxt->name);
+    const int cancel = BLASTER_CONSOLE_CANCEL;
+
+    int result = Reply(ctxt->console_cancel, (char*)&cancel, sizeof(cancel));
+    assert(result == 0, "failed sending cancel command to console (%d)",
+           result);
+
+    ctxt->console_cancel        = -1;
+    ctxt->expected_lost_console = 1;
+}
+
+
+
 #ifndef MARK
 #define blaster_debug_state( ... )
 #else
@@ -535,7 +549,6 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
 }
 
 static void blaster_reverse_step2(blaster* const ctxt) {
-
     ctxt->reverse_courier = blaster_create_new_delay_courier(ctxt);
 
     struct {
@@ -559,6 +572,12 @@ static void blaster_reverse_step2(blaster* const ctxt) {
               ctxt->name, result);
 
     ctxt->reversing = 2; // all done as far as acceleration logic is concerned
+
+    if (-1 == ctxt->console_courier && -1 < ctxt->console_cancel) {
+        send_console_cancel(ctxt);
+    }
+
+
 }
 
 static void blaster_reverse_step3(blaster* const ctxt,
@@ -1152,41 +1171,32 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
 
 static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
                                             const courier_package* const package) {
-
-    UNUSED(ctxt);
-
     int result;
 
     // Setup the sensor courier */
     int tid = Create(TRAIN_CONSOLE_PRIORITY, train_console);
     if (tid < 0) ABORT("[%s] Failed creating train console (%d)",
                        ctxt->name, tid);
-
-    int c_init[] = {ctxt->train_id, (int)ctxt->track};
-    result       = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
-    assert(result == 0, "Failed to setup train console! (%d)", result);
-
-    tid = Create(TRAIN_COURIER_PRIORITY, courier);
-    if (tid < 0) ABORT("[%s] Failed creating train console cancel (%d)",
-                       ctxt->name, tid);
     int cancel = BLASTER_CONSOLE_CANCEL;
     courier_package console_pack = {
         .receiver = tid,
+        .message  = (char*)&cancel,
         .size     = -(int)sizeof(cancel),
-        .message  = (char*)&cancel
     };
+    int c_init[] = {ctxt->train_id, (int)ctxt->track};
+
+    result       = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
+    assert(result == 0, "Failed to setup train console! (%d)", result);
+    
+    tid = Create(TRAIN_COURIER_PRIORITY, courier);
+    if (tid < 0) ABORT("[%s] Failed creating train console cancel (%d)",
+                       ctxt->name, tid);
     result = Send(tid,
                   (char*)&console_pack, sizeof(console_pack),
                   NULL, 0);
     assert(result == 0,
            "[%s] Error sending package to cancel console courier %d",
            ctxt->name, result);
-
-
-    tid = Create(TRAIN_COURIER_PRIORITY, courier); 
-    if (tid < 0) ABORT("[%s] Error setting up command courier (%d)",
-                       ctxt->name, tid);
-
 
     const int control_courier = Create(TRAIN_COURIER_PRIORITY, courier);
     assert(control_courier >= 0,
@@ -1297,13 +1307,17 @@ void train_blaster() {
             continue;
 
         case BLASTER_CONSOLE_LOST:
-            blaster_set_speed(&context, 0, 0);
-            log("[%s] console has be rejected, stop", context.name);
+            if (!context.expected_lost_console) {
+                blaster_set_speed(&context, 0, 0);
+                log("[%s] console has emptied unexpectedly, stop", context.name);
+            } else {
+                context.expected_lost_console = 0;
+            }
             context.console_courier = tid;
             continue;
 
-
         case BLASTER_CONSOLE_CANCEL:
+            log("[%s] CANCEL HAS RETURNED!", context.name);
             context.console_cancel = tid;
             continue;
 

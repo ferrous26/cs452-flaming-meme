@@ -76,7 +76,10 @@ typedef struct master_context {
 
     int reserved[TRACK_MAX];
 
+
+    int last_reservation_sensor;
     int last_reservation_speed;
+
     const track_node* const track;
 } master;
 
@@ -921,10 +924,13 @@ should_perform_reservation(const master* const ctxt) {
 static inline int perform_reservation(master* const ctxt) {
     assert(XBETWEEN(ctxt->checkpoint.location.sensor, -1, NUM_SENSORS),
            "Can't Reserve From not sensor %d",
-           ctxt->checkpoint.location.sensor);
-
+           ctxt->checkpoint.location.sensor); 
     const track_node* node =
         &ctxt->track[ctxt->checkpoint.location.sensor];
+    
+    if (EVENT_SENSOR == ctxt->checkpoint.event) {
+        ctxt->last_reservation_sensor = node->num;
+    }
 
     const int offset = ctxt->checkpoint.location.offset;
     const int head   = master_head_distance(ctxt);

@@ -278,7 +278,7 @@ static TEXT_COLD void mc_initalize(mc_context* const ctxt) {
     result = Send(tr_tid, (char*)&track, sizeof(track), NULL, 0);
     if (result != 0) ABORT("Failed setting up TRACK RESERVE %d", result);
 
-    result = Send(sf_tid, NULL, 0, NULL, 0);
+    result = Send(sf_tid, (char*)&track, sizeof(track), NULL, 0);
     if (result != 0) ABORT("Failed setting up Server Farm %d", result);
 
     log(LOG_HEAD "Ready!");

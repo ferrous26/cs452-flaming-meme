@@ -9,6 +9,7 @@ typedef enum {
     SF_U_SENSOR,
     SF_D_SENSOR,
     SF_D_SENSOR_ANY,
+    SF_D_SENSOR_TRAIN,
     SF_W_SENSORS,
 
     SF_REQ_TYPE_COUNT
@@ -18,7 +19,8 @@ typedef struct sf_req {
     sf_type type;
     union {
         int sensor;
-        
+        int train_num;
+
         struct update {
             int sensor;
             int time;

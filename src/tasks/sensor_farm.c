@@ -11,9 +11,11 @@
 #include <tasks/clock_server.h>
 #include <tasks/train_server.h>
 
+
+#include <tasks/track_reservation.h>
 #include <tasks/sensor_farm.h>
 
-#define LOG_HEAD         "[SENSOR FARM] "
+#define LOG_HEAD         "[SENSOR FARM]\t"
 #define SENSOR_LIST_SIZE 9
 
 static int sensor_farm_tid;
@@ -23,8 +25,12 @@ typedef struct {
     sensor  recent_sensors[SENSOR_LIST_SIZE];
 
     int     wait_all;
+
+    int     wait_train [NUM_TRAINS];
     int     sensor_delay[NUM_SENSORS];
     int     sensor_error[NUM_SENSORS];
+    
+    const track_node* const track;
 } sf_context;
 
 static void __attribute__ ((noreturn)) sensor_poll() {
@@ -92,9 +98,17 @@ inline static void _update_sensors(sf_context* const ctxt,
     if (-1 != waiter) {
         ctxt->sensor_delay[sensor_num] = -1;
         Reply(waiter, (char*)&reply, sizeof(reply));
-    } else if (-1 != ctxt->wait_all) {
-        Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
-        ctxt->wait_all = -1;
+    } else { 
+        int train     = reserve_who_owns(ctxt->track[sensor_num].reverse);
+        const int train_tid = train == -1 ? -1 : ctxt->wait_train[train];
+
+        if (-1 != train_tid) {
+            Reply(train_tid, (char*)&reply, sizeof(reply));
+            ctxt->wait_train[train] = -1;
+        } else if (-1 != ctxt->wait_all) {
+            Reply(ctxt->wait_all, (char*)&reply, sizeof(reply));
+            ctxt->wait_all = -1;
+        }
     }
 
     char buffer[64];
@@ -159,6 +173,18 @@ static inline void _sensor_delay_any(sf_context* const ctxt, const int tid) {
     ctxt->wait_all = tid;
 }
 
+static inline void _sensor_delay_train(sf_context* const ctxt,
+                                       const int train,
+                                       const int tid) {
+    assert(XBETWEEN(train, -1, NUM_TRAINS), "invalid train num %d", train);
+    assert(-1 == ctxt->wait_train[train],
+           "train %d can't have %d since only 1 task can take it at a time %d",
+           train, tid, ctxt->wait_train[train]);
+
+    ctxt->wait_train[train] = tid;
+}
+
+
 static inline void __attribute__((always_inline)) _flush_sensors() {
     Putc(TRAIN, SENSOR_POLL);
     for(int i = 0; i < NUM_SENSOR_BANKS; i++) get_train_bank();
@@ -174,9 +200,9 @@ static TEXT_COLD void _init_farm(sf_context* const ctxt) {
     memset(ctxt->recent_sensors, 0, sizeof(ctxt->recent_sensors));
     ctxt->sensor_insert = ctxt->recent_sensors;
 
-    result = Receive(&tid, NULL, 0);
+    result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
+    assert(result == sizeof(ctxt->track), "Failed to get task track");
     _flush_sensors();
-    assert(result == 0, "Failed to get task");
 
     int poll_tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
     if (poll_tid < 0)
@@ -217,6 +243,10 @@ void sensor_farm() {
 
         case SF_D_SENSOR_ANY:
             _sensor_delay_any(&context, tid);
+            break;
+
+        case SF_D_SENSOR_TRAIN:
+            _sensor_delay_train(&context, req.body.train_num, tid);
             break;
 
         case SF_W_SENSORS:

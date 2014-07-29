@@ -82,6 +82,7 @@ typedef struct blaster_context {
     int       console_cancel;
     int       console_courier;
     int       console_timeout;
+    bool      expected_lost_console;
 
     ratio     feedback_ratio;
     int       feedback_threshold;

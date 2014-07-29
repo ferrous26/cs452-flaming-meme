@@ -20,6 +20,8 @@
 #define DRIVER_MASK     0x1
 #define SENSOR_MASK     0x2
 #define TIMER_MASK      0x4
+#define RESERV_MASK     0x10
+
 
 #define BUFFER_SIZE      8
 #define SENT_WAITER_SIZE 16
@@ -33,10 +35,11 @@ TYPE_BUFFER(int, 8)
 typedef struct {
     const int  train_pos;
     
+    int        docked;
     const int  driver_tid;
     const int  timer_tid;
     const int  sensor_tid;
-    int        docked;
+    const int  reserv_tid;
 
     int        sensor_last;
     int        sensor_expect;
@@ -49,6 +52,13 @@ typedef struct {
     int        sent_waiters_count;
     int        sent_waiters[SENT_WAITER_SIZE];
     int        sent_sensors[SENT_WAITER_SIZE];
+
+
+    struct train_wait_packet {
+       sf_type type;
+       int     train; 
+    } packet;
+
 
     const track_node* const track;
 } tc_context;
@@ -77,10 +87,18 @@ static void _get_next_sensors(const track_node* const track,
 static inline bool __attribute__((pure))
 _is_console_dead(const tc_context* const ctxt) {
     return 0 ==  ctxt->sent_waiters_count
-        && (DRIVER_MASK | TIMER_MASK) == (ctxt->docked & (DRIVER_MASK | TIMER_MASK));
+        && (DRIVER_MASK | TIMER_MASK) == (ctxt->docked & (DRIVER_MASK | TIMER_MASK))
+        && (ctxt->docked & RESERV_MASK);
 }
 
 static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
+    if (sensor_num < 80 && ctxt->docked & RESERV_MASK) {
+       Reply(ctxt->reserv_tid, (char*)&ctxt->packet, sizeof(ctxt->packet));
+       ctxt->docked &= ~RESERV_MASK;
+    } else if (sensor_num > 80) {
+        ABORT("stop_that");
+    }
+
     int tid, result; UNUSED(result);
     int data[2] = {sensor_num, ctxt->sensor_iter};
 
@@ -151,6 +169,10 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
 
     *(int*)&ctxt->sensor_tid = Create(TC_CHILDREN_PRIORITY, courier);
     CHECK_CREATE(ctxt->sensor_tid, "Failed to create farm courier");
+    
+    *(int*)&ctxt->reserv_tid = Create(TC_CHILDREN_PRIORITY, courier);
+    CHECK_CREATE(ctxt->sensor_tid, "Failed to create train resrv courier");
+
 
     result = Send(sensor_tid,
                   (char*)&ctxt->sensor_expect, sizeof(ctxt->sensor_expect),
@@ -213,6 +235,15 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
                             (char*)&package, sizeof(package),
                             NULL, 0);
     assert(result == 0, "Failed handing off package to courier");
+    
+    result           = Send(ctxt->reserv_tid,
+                            (char*)&package, sizeof(package),
+                            NULL, 0);
+    assert(result == 0, "Failed handing off package to res courier");
+
+    ctxt->packet.type  = SF_D_SENSOR_TRAIN;
+    ctxt->packet.train = ctxt->train_pos;
+
 }
 
 static int __attribute__((pure))
@@ -263,7 +294,10 @@ sizeof_cancel_req (const int ele_count) {
     return (int)sizeof(sf_type) + ((ele_count << 1) + 1) * (int)sizeof(int);
 }
 
+
 static void reject_remaining_sensors(const tc_context* const ctxt) {
+    if (true) return;
+
     struct cancel_list {
         sf_type type;
         int size;
@@ -465,6 +499,27 @@ void train_console() {
         } else if (tid == context.sensor_tid) {
             context.docked |= SENSOR_MASK;
 
+        } else if (tid == context.reserv_tid) {
+            context.docked |= RESERV_MASK;
+
+            if (context.docked & DRIVER_MASK) {
+                struct blaster_pack {
+                    blaster_req_type type;
+                    int              sensor;
+                    int              time;
+                } pack = {
+                    .type   = context.sensor_expect == args[1] ?
+                                          BLASTER_SENSOR_FEEDBACK :
+                                          BLASTER_UNEXPECTED_SENSOR_FEEDBACK,
+                    .time   = args[0],
+                    .sensor = args[1]
+                };
+
+                result = Reply(context.driver_tid, (char*)&pack, sizeof(pack));
+                assert(result == 0, "Failed reply to driver courier (%d)", result);
+                context.docked &= ~DRIVER_MASK;
+            }
+
         } else if (_try_return_waiter(&context, tid)) {
             if (context.sensor_iter != args[0]);
             // Everything we want to run has probably happened up top
@@ -477,7 +532,6 @@ void train_console() {
             // maybe, this might not be an issue though
             //
             // dont resend since were on the same iteration, just will cause
-            // for trains to fight over the bloody sensor, just give up for now
             else if (context.docked & DRIVER_MASK) {
                 struct blaster_pack {
                     blaster_req_type type;
@@ -494,7 +548,8 @@ void train_console() {
                 result = Reply(context.driver_tid, (char*)&pack, sizeof(pack));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
                 context.docked &= ~DRIVER_MASK;
-            }
+            }// for trains to fight over the bloody sensor, just give up for now
+            
         } else if (args[0] == BLASTER_CONSOLE_CANCEL) {
             context.sensor_iter++;
             context.sensor_timeout = 0;
