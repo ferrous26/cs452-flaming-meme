@@ -541,6 +541,14 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
           ctxt->name, start_step, ctxt->path_step, ctxt->next_stop.step);
 }
 
+static inline bool master_is_last_path_chunk(master* const ctxt) {
+    // if the next stopping point is the very last step in the route
+    // _or_ it is the second last step, but the second last step is a reverse
+    return (ctxt->next_stop.action == ctxt->path ||
+            ((ctxt->next_stop.action == (ctxt->path + 1)) &&
+             ctxt->next_stop.step->type == PATH_REVERSE));
+}
+
 static inline void master_recalculate_stopping_point(master* const ctxt,
                                                      const int offset) {
 
@@ -548,7 +556,7 @@ static inline void master_recalculate_stopping_point(master* const ctxt,
 
     // we want to be sure that we clear the turnout, so add padding
     const int stop_point = stop_dist -
-        (ctxt->next_stop.action == ctxt->path ?
+        (master_is_last_path_chunk(ctxt) ?
          ctxt->destination_offset :
          master_tail_distance(ctxt) + ctxt->turnout_padding);
 
@@ -651,16 +659,15 @@ static void master_check_throw_stop_command(master* const ctxt,
         ctxt->path_stopping = true;
 
         // if this is the last stop, then we are done
-        if (ctxt->next_stop.step == ctxt->path ||
-            ((ctxt->next_stop.step == (ctxt->path + 1)) &&
-             ctxt->path[0].type == PATH_REVERSE)) {
+        if (master_is_last_path_chunk(ctxt)) {
 
-            if (ctxt->path[0].type == PATH_REVERSE)
-                log("[%s] Pretend we just reversed", ctxt->name);
+            if (ctxt->path[1].type == PATH_REVERSE)
+                log("[%s] Pretend we just reversed at the end", ctxt->name);
 
             log("[%s] Done path", ctxt->name);
             ctxt->path_completed = true;
-            ctxt->path_step = NULL; // force it
+            // TODO: this might be breaking shit...need to think about it
+            ctxt->path_step      = NULL; // force it
 
             // and we do not need to start back up again
         }
