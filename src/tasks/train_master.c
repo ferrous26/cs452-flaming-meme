@@ -928,13 +928,13 @@ static inline int perform_reservation(master* const ctxt) {
     const int offset = ctxt->checkpoint.location.offset;
     const int head   = master_head_distance(ctxt);
     const int tail   = master_tail_distance(ctxt);
-    
+
     int moving_dist = 0;
     if (0 != ctxt->checkpoint.speed) {
         const int stop_dist = master_current_stopping_distance(ctxt);
         moving_dist = stop_dist + node->edge[0].dist;
     }
-    
+
     const int head_dist = head + offset + moving_dist + 20000;
     const int tail_dist = MAX(tail - offset + 20000, tail);
 
@@ -957,6 +957,32 @@ static inline int perform_reservation(master* const ctxt) {
     return reserve_section(ctxt->train_id, reserve, insert);
 }
 
+static void master_set_allowed_sensor(master* const ctxt) {
+
+    const path_node* target = ctxt->next_stop.action;
+    // setting the limit on the loop to be the current step might be too tight
+    // we just want to find the sensor right before the merge
+    for (; target <= ctxt->path_step; target++)
+        if (target->type == PATH_SENSOR) break;
+
+    assert(target->type == PATH_SENSOR,
+           "[%s] Failed to find the sensor before the stop",
+           ctxt->name);
+
+    int next_dist = 0;
+    const int result = get_sensor_from(target->data.sensor,
+                                       &next_dist,
+                                       &ctxt->allowed_sensor);
+    assert(result == 0,
+           "[%s] Failed to query Boris",
+           ctxt->name);
+
+    if (next_dist < 0) {
+        log("[%s] Reversing at an exit!", ctxt->name);
+        ctxt->allowed_sensor = target->data.sensor;
+    }
+}
+
 static inline void master_location_update(master* const ctxt,
                                           const train_state* const state,
                                           const blaster_req* const pkg,
@@ -974,7 +1000,7 @@ static inline void master_location_update(master* const ctxt,
     if (ctxt->checkpoint.event == EVENT_SENSOR) ctxt->active = 1;
     if (ctxt->active && should_perform_reservation(&ctxt->checkpoint)) {
         const bool got_reservation = perform_reservation(ctxt);
-        
+
         if (!got_reservation) {
             log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);
             master_set_speed(ctxt, 0, 0);
@@ -1008,8 +1034,6 @@ static inline void master_location_update(master* const ctxt,
         //     being allowed as well
         // 2 - it is the reverse sensor which is allowed to be hit, this should
         //     get caught here, too, but maybe not if positioning is off by much
-        if (ctxt->path_stopping && ctxt->checkpoint.event == EVENT_SENSOR)
-            ctxt->allowed_sensor = ctxt->checkpoint.location.sensor;
 
         // check fast forwarding
         const path_node* const still_on_path = master_try_fast_forward(ctxt);
@@ -1019,10 +1043,7 @@ static inline void master_location_update(master* const ctxt,
             // check if we are really off path
             const int reverse = reverse_sensor(ctxt->allowed_sensor);
             if (!(ctxt->allowed_sensor == ctxt->checkpoint.location.sensor ||
-                  reverse == ctxt->checkpoint.location.sensor              ||
-                  reverse == ctxt->checkpoint.next_location.sensor         ||
-                  ctxt->allowed_sensor ==
-                  ctxt->checkpoint.next_location.sensor)) {
+                  reverse == ctxt->checkpoint.location.sensor)) {
 
                 ctxt->path_step = NULL;
 
@@ -1066,6 +1087,7 @@ static inline void master_location_update(master* const ctxt,
         if (ctxt->checkpoint.speed == 0 && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
             master_set_reverse(ctxt, time); // TROLOLO magic number
+            master_set_allowed_sensor(ctxt);
             master_setup_next_short_move(ctxt, offset, time + 10);
             ctxt->path_stopping = false;
         }
