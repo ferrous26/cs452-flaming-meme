@@ -57,8 +57,10 @@ train_to_colour(const int train) {
     switch (train) {
     case 45: return MAGENTA;
     case 48: return LIGHT_MAGENTA;  // need a better colour?
-    case 54: return LIGHT_BLUE;
     case 56: return RED;
+    case 58: return LIGHT_BLUE;
+    case 59: return GREEN;
+    case 54: return BLACK;
     default: return WHITE;
     }
 }
@@ -68,8 +70,10 @@ train_to_pos(const int train) {
     switch (train) {
     case 45: return 0;
     case 48: return 1;
-    case 54: return 2;
-    case 56: return 3;
+    case 56: return 2;
+    case 58: return 3;
+    case 59: return 4;
+    case 54: return 5;
     default: return INVALID_TRAIN;
     }
 }
@@ -79,12 +83,13 @@ pos_to_train(const int pos) {
     switch (pos) {
     case 0: return 45;
     case 1: return 48;
-    case 2: return 54;
-    case 3: return 56;
+    case 2: return 56;
+    case 3: return 58;
+    case 4: return 59;
+    case 5: return 54;
     default: return INVALID_TRAIN;
     }
 }
-
 
 static inline int __attribute__ ((const))
 turnout_to_pos(const int turn) {
