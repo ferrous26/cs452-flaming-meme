@@ -1041,9 +1041,12 @@ static inline void master_location_update(master* const ctxt,
         // if we think we are off path
         if (!still_on_path) {
             // check if we are really off path
-            const int reverse = reverse_sensor(ctxt->allowed_sensor);
-            if (!(ctxt->allowed_sensor == ctxt->checkpoint.location.sensor ||
-                  reverse == ctxt->checkpoint.location.sensor)) {
+            const int reverse  = reverse_sensor(ctxt->allowed_sensor);
+            const int in_front = ctxt->allowed_sensor;
+            if (!(in_front == ctxt->checkpoint.location.sensor      ||
+                  reverse == ctxt->checkpoint.location.sensor       ||
+                  in_front == ctxt->checkpoint.next_location.sensor ||
+                  reverse == ctxt->checkpoint.next_location.sensor)) {
 
                 ctxt->path_step = NULL;
 
