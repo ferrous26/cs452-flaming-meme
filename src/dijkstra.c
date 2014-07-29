@@ -20,6 +20,8 @@ typedef struct dijkstra_data {
 } data_t;
 
 
+
+
 inline static void prime_search(const path_requisition* const opts,
                                 const track_node* ptr,
                                 data_t data[HEAP_SIZE],
@@ -44,6 +46,93 @@ inline static void prime_search(const path_requisition* const opts,
     }
 }
 
+int get_dist(const track_node* const track,
+             const track_node* const start,
+             const track_node* const end) {
+
+    data_t            data[HEAP_SIZE];
+    pq_node           heap[HEAP_SIZE];
+    priority_queue    q;
+    const track_node* ptr;
+
+    path_requisition req = {
+        .start = start,
+        .end   = end,
+
+        .allow_short_move    = 1,
+        .allow_start_reverse = 1,
+        .allow_approach_back = 1,
+    };
+
+    pq_init(&q, heap, HEAP_SIZE);
+    prime_search(&req, track, data, &q);
+
+    FOREVER {
+        const int curr_dist = pq_peek_key(&q);
+        if (INT_MAX == curr_dist) {
+            log("NO PATH EXISTS!\n");
+            return -1;
+        }
+
+        ptr = (track_node*) pq_delete(&q);
+        
+        if (end == ptr) return curr_dist;
+        else if (end == ptr->reverse) return curr_dist;
+
+        switch (ptr->type) {
+        case NODE_NONE:
+        case NODE_ENTER:
+        case NODE_SENSOR: {
+            track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
+            const int nxt_dist        = curr_dist + ptr->edge[DIR_AHEAD].dist;
+            const int nxt_off         = nxt_ptr - track;
+
+            if (data[nxt_off].dist > nxt_dist) {
+                data[nxt_off].dist = nxt_dist;
+                pq_raise(&q, (int)nxt_ptr, nxt_dist);
+            }
+        }   break;
+
+        case NODE_MERGE: {
+            const track_node* const nxt_ptr = ptr->edge[DIR_AHEAD].dest;
+            const int nxt_dist              = curr_dist + ptr->edge[DIR_AHEAD].dist;
+            const int nxt_off               = nxt_ptr - track;
+
+            if (data[nxt_off].dist > nxt_dist) {
+                data[nxt_off].dist = nxt_dist;
+                pq_raise(&q, (int)nxt_ptr, nxt_dist);
+            }
+
+            const track_node* const rev_ptr = ptr->reverse;
+            const int rev_off               = rev_ptr - track;
+
+            if (data[rev_off].dist > curr_dist) {
+                data[rev_off].dist = curr_dist;
+                pq_raise(&q, (int)rev_ptr, curr_dist);
+            }
+        }   break;
+
+        case NODE_BRANCH:
+            for (int i = 0; i < 2; i++) {
+                track_node* const nxt_ptr = ptr->edge[i].dest;
+                const int nxt_dist        = curr_dist + ptr->edge[i].dist;
+                const int nxt_off         = nxt_ptr - track;
+
+                if (data[nxt_off].dist > nxt_dist) {
+                    data[nxt_off].dist = nxt_dist;
+                    pq_raise(&q, (int)nxt_ptr, nxt_dist);
+                }
+            }
+            break;
+
+        case NODE_EXIT:
+            break;
+        }
+    }
+}
+
+
+
 int dijkstra(const track_node* const track,
              const path_requisition* const opts,
              path_node* const path,
@@ -53,6 +142,7 @@ int dijkstra(const track_node* const track,
     pq_node           heap[HEAP_SIZE];
     priority_queue    q;
     const track_node* ptr;
+ 
     const int         total_reserve = opts->reserve_dist;
     int               reserve       = total_reserve;
     int direction                   = 0;

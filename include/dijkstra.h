@@ -17,6 +17,10 @@ typedef struct {
     const int allow_approach_back;
 } path_requisition;
 
+int get_dist(const track_node* const track,
+             const track_node* const start,
+             const track_node* const end);
+
 int dijkstra(const track_node* const track,
              const path_requisition* const opts,
              path_node* const path,
