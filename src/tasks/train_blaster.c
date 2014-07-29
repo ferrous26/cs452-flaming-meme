@@ -212,12 +212,19 @@ static void blaster_start_accelerate(blaster* const ctxt,
         track_location* const l = &locs[i];
 
         // if we do not have the room, then give up
-        if (l->sensor == AN_EXIT && l->offset > 0) {
-            log("[%s] Cannot accelerate into a barrier! Reversing!", ctxt->name);
-            // TODO: do we want to do this?
-            blaster_reverse_step2(ctxt);
-            ctxt->reverse_speed = to_speed;
-            return;
+        if (l->sensor == AN_EXIT) {
+            if (l->offset > 0) {
+                log("[%s] Cannot accelerate into a barrier! Reversing!",
+                    ctxt->name);
+                // TODO: do we want to do this?
+                blaster_reverse_step2(ctxt);
+                ctxt->reverse_speed = to_speed;
+                return;
+            }
+            else {
+                l->sensor = reverse_sensor(l->sensor);
+                // l->offset = 0; // I dunno....
+            }
         }
         // but if we do have room, allow it?
         // maybe we should check stop distance as well...
@@ -341,7 +348,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
             // sensor before the exit, which is almost impossible
             // to determine from here...
             // this is a hack that will probably not work very well...
-            l->sensor = truth.location.sensor;
+            l->sensor = reverse_sensor(truth.location.sensor);
             break;
         }
         else if (l->offset == 0) { // boom, exactly on target
@@ -864,7 +871,6 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     assert(result == 0, "[%s] Fuuuuu", ctxt->name);
     UNUSED(result);
 
-
     // calculate expected next time
     const int v = physics_velocity(ctxt,
                                    current_sensor.speed,
@@ -873,16 +879,19 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     current_sensor.next_timestamp = current_sensor.timestamp +
         current_sensor.next_distance / v;
 
-    if (truth.next_distance < 0)
-
+    if (truth.next_distance < 0) {
         if (physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
-        log("[%s] Barreling towards an exit! Hitting emergency brakes!",
-            ctxt->name);
-        blaster_reverse_step1(ctxt, timestamp);
+            log("[%s] Barreling towards an exit! Hitting emergency brakes!",
+                ctxt->name);
+            blaster_reverse_step1(ctxt, timestamp);
 
         // TODO:
         // in any case, we need to flip around our next expected sensor
         // and our next expected; and this happens for expected sensors as well!
+        }
+        else {
+            current_sensor.next_location.sensor = current_sensor.location.sensor;
+        }
     }
 
     // now we need to update the truth...except that a sensor hit is always the
@@ -1022,11 +1031,17 @@ blaster_process_sensor_event(blaster* const ctxt,
 
     // has to be going too fast before we hit the emergency brakes
     // because otherwise it might have been intentional
-    if (truth.next_distance < 0 &&
-        physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
-        log("[%s] Barreling towards an exit! Hitting emergency brakes!",
-            ctxt->name);
-        blaster_reverse_step1(ctxt, timestamp);
+    if (truth.next_distance < 0) {
+        if (physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
+            log("[%s] Barreling towards an exit! Hitting emergency brakes!",
+                ctxt->name);
+            blaster_reverse_step1(ctxt, timestamp);
+        }
+        else {
+            // hacks
+            current_sensor.next_location.sensor =
+                current_sensor.location.sensor;
+        }
     }
 
     ctxt->master_message = true;
@@ -1183,7 +1198,7 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
            ctxt->name, result);
 
 
-    tid = Create(TRAIN_COURIER_PRIORITY, courier); 
+    tid = Create(TRAIN_COURIER_PRIORITY, courier);
     if (tid < 0) ABORT("[%s] Error setting up command courier (%d)",
                        ctxt->name, tid);
 
