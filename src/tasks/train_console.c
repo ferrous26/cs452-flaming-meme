@@ -192,7 +192,7 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
                       (char*)&failure, sizeof(failure),
                       NULL, 0);
     } else {
-        assert(XBETWEEN(callin.arg1, 0, NUM_SENSORS),
+        assert(XBETWEEN(callin.arg1, -1, NUM_SENSORS),
                "failed initalizing train %d", callin.arg1);
         result = Send(ctxt->driver_tid,
                       (char*)&package, sizeof(package),
