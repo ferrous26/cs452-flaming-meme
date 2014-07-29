@@ -645,10 +645,10 @@ static void master_check_throw_stop_command(master* const ctxt,
 
     if (ctxt->path_stopping || ctxt->path_completed) return;
 
-    // figure out where we need to be stopping
+    // figure out where we need to be stopping (speed might have changed)
     master_recalculate_stopping_point(ctxt, offset);
-    // should we be stopping now?
 
+    // should we be stopping now?
     if (ctxt->checkpoint.location.sensor ==
         ctxt->next_stop.step->data.sensor) {
 
@@ -666,8 +666,6 @@ static void master_check_throw_stop_command(master* const ctxt,
 
             log("[%s] Done path", ctxt->name);
             ctxt->path_completed = true;
-            // TODO: this might be breaking shit...need to think about it
-            ctxt->path_step      = NULL; // force it
 
             // and we do not need to start back up again
         }
@@ -935,7 +933,7 @@ static inline int perform_reservation(master* const ctxt) {
         const int stop_dist = master_current_stopping_distance(ctxt);
         moving_dist = stop_dist + node->edge[0].dist;
     }
-    
+
     const track_node* reserve[60];
     int               insert = 0;
     const int head_dist = head + offset + moving_dist + 20000;
@@ -1027,7 +1025,7 @@ static inline void master_location_update(master* const ctxt,
     if (ctxt->path_step && ctxt->path_step >= ctxt->path) {
 
         if (ctxt->checkpoint.speed == 0)
-            log("[%s] STOPPED! %p %p", ctxt->name, ctxt->path_step, ctxt->path);
+            log("[%s] STOPPED! %d", ctxt->name, ctxt->path_step - ctxt->path);
 
         // we have a few cases here
 
@@ -1085,12 +1083,10 @@ static inline void master_location_update(master* const ctxt,
             const sensor s = pos_to_sensor(ctxt->destination);
             log("[%s] Arriving at %c%d", ctxt->name, s.bank, s.num);
             ctxt->path_step = NULL;
-            return;
         }
-
         // 3 - we hit speed 0, so we should throw the reverse command if
         //     we are not path_completed
-        if (ctxt->checkpoint.speed == 0 && !ctxt->path_completed) {
+        else if (ctxt->checkpoint.speed == 0 && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
             master_set_reverse(ctxt, time); // TROLOLO magic number
             master_set_allowed_sensor(ctxt);
