@@ -175,6 +175,19 @@ static inline void mc_update_turnout(mc_context* const ctxt,
     Puts(buffer, ptr - buffer);
 }
 
+static inline void mc_query_turnout(mc_context* const ctxt,
+                                    const int turn_pos,
+                                    const int tid) {
+    assert(XBETWEEN(turn_pos, -1, NUM_TURNOUTS),
+           "%d from %d is not a valid turnout", turn_pos, tid);
+
+    const int* const turn_dir = &ctxt->turnouts[turn_pos];
+    int result = Reply(tid, (char*)turn_dir, sizeof(*turn_dir));
+    assert(0 == result, "failed replying to sensor querty to %d (%d)",
+           tid, result);
+    UNUSED(result);
+}
+
 static void mc_reset_track_state(mc_context* const ctxt) {
     mc_update_turnout(ctxt, 1, 'S');
     mc_update_turnout(ctxt, 2, 'S');
@@ -291,6 +304,9 @@ void mission_control() {
                               req.payload.turn.num,
                               req.payload.turn.state);
             break;
+        case MC_Q_TURNOUT:
+            mc_query_turnout(&context, req.payload.int_value, tid);
+            continue;
 
         case MC_R_TRACK:
             mc_reset_track_state(&context);
@@ -471,3 +487,26 @@ int revive_sensor_name(const int bank, const int num) {
     const int sensor_num = sensor_to_pos(bank, num);
     return revive_sensor_num(sensor_num);
 }
+
+int query_turnout_state(const int turnout_num) {
+    struct {
+        mc_type   type;
+        const int turnout;
+    } req = {
+        .type    = MC_Q_TURNOUT,
+        .turnout = turnout_to_pos(turnout_num),
+    };
+    if (turnout_to_pos(turnout_num) < 0) return INVALID_MESSAGE;
+    
+    int turn_state;
+    int result = Send(mission_control_tid,
+                      (char*)&req, sizeof(req),
+                      (char*)turn_state, sizeof(turn_state));
+
+    assert(result == sizeof(turn_state), "failed turnout query (%d)", result);
+    UNUSED(result);
+
+    return turn_state;
+}
+
+

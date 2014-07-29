@@ -137,7 +137,7 @@ static void _startup(cs_context* const ctxt) {
     if (result)
         ABORT("Failed to register clock server name (%d)", result);
 
-    result = Create(TASK_PRIORITY_MEDIUM_LOW, clock_ui);
+    result = Create(CLOCK_UI_PRIORITY, clock_ui);
     if (result < 0)
         ABORT("Failed to create clock_ui (%d)", result);
 
