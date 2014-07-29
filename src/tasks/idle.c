@@ -9,7 +9,7 @@
 #include <syscall.h>
 
 // best case number of Timer4 ticks for a context switch
-#define MINIMUM_NON_IDLE_TIME 2
+#define MINIMUM_NON_IDLE_TIME 1
 
 static uint non_idle_ticks = 0;
 
