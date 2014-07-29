@@ -224,12 +224,17 @@ get_sensor_index(const tc_context* const ctxt, const int tid) {
     return -1;
 }
 
+static inline bool can_send_timeout(tc_context* const ctxt) {
+    return (ctxt->docked & TIMER_MASK) 
+        &&  ctxt->sensor_timeout > Time();
+}
+
 static void try_send_timeout(tc_context* const ctxt) {
     assert(ctxt->sensor_timeout >= 0, "Invalid timeout time %d",
            ctxt->sensor_timeout);
+    if (!can_send_timeout(ctxt)) return;
     
     int result; UNUSED(result);
-    if (!((ctxt->docked & TIMER_MASK) && ctxt->sensor_timeout)) return;
 
     struct {
         tnotify_header head;

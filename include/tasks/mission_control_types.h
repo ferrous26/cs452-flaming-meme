@@ -10,6 +10,8 @@ typedef enum {
     MC_L_TRACK,
     // update
     MC_U_TURNOUT,
+    MC_Q_TURNOUT,
+
     MC_KILL_SENSOR,
     MC_REVIVE_SENSOR,
 

@@ -749,7 +749,6 @@ static void master_setup_next_short_move(master* const ctxt,
     }
 }
 static inline void master_path_update(master* const ctxt,
-
                                       const int size,
                                       const path_node* path,
                                       const int tid) {
@@ -790,8 +789,7 @@ static inline void master_path_update(master* const ctxt,
 
         // manually fast forward this step
         ctxt->path_step--;
-    }
-    else {
+    } else {
         // Get us up to date on where we are
         ctxt->path_step = master_try_fast_forward(ctxt);
     }
@@ -919,12 +917,52 @@ static inline bool should_perform_reservation(const train_state* check) {
         || EVENT_ACCELERATION != check->event;
 }
 
+static inline int perform_reservation(master* const ctxt) {
+    assert(XBETWEEN(ctxt->checkpoint.location.sensor, -1, NUM_SENSORS),
+           "Can't Reserve From not sensor %d",
+           ctxt->checkpoint.location.sensor);
+
+    const track_node* node =
+        &ctxt->track[ctxt->checkpoint.location.sensor];
+
+    const int offset = ctxt->checkpoint.location.offset;
+    const int head   = master_head_distance(ctxt);
+    const int tail   = master_tail_distance(ctxt);
+    
+    int moving_dist = 0;
+    if (0 != ctxt->checkpoint.speed) {
+        const int stop_dist = master_current_stopping_distance(ctxt);
+        moving_dist = stop_dist + node->edge[0].dist;
+    }
+    
+    const int head_dist = head + offset + moving_dist + 20000;
+    const int tail_dist = MAX(tail - offset + 20000, tail);
+
+    nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d", ctxt->name,
+            node->name, head_dist / 1000, tail_dist / 1000, offset / 1000);
+    assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
+    assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
+    assert(head_dist < 3000000, "WTF HEAD H:%d\tO:%d\tM:%d\ts:%d",
+           head / 1000, offset / 1000, moving_dist / 1000,
+           ctxt->checkpoint.speed);
+    assert(tail_dist < 3000000, "WTF TAIL T:%d\tO:%d\t",
+           tail / 1000, offset / 1000);
+
+    int               insert = 0;
+    const track_node* reserve[60];
+    get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
+    get_reserve_list(ctxt, head_dist, 0, node,          reserve, &insert);
+    assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert);
+
+    return reserve_section(ctxt->train_id, reserve, insert);
+}
+
 static inline void master_location_update(master* const ctxt,
                                           const train_state* const state,
                                           const blaster_req* const pkg,
                                           const int tid) {
 
-    // log("[%s] Got position update %p", ctxt->name, state);
+    log("[%s] Got position update %p %d", ctxt->name, ctxt->checkpoint.event);
     memcpy(&ctxt->checkpoint, state, sizeof(train_state));
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
@@ -934,49 +972,15 @@ static inline void master_location_update(master* const ctxt,
     UNUSED(result);
 
     if (ctxt->checkpoint.event == EVENT_SENSOR) ctxt->active = 1;
-    if (ctxt->active) {
-        const int offset = ctxt->checkpoint.location.offset;
-        const int head   = master_head_distance(ctxt);
-        const int tail   = master_tail_distance(ctxt);
-
-        assert(XBETWEEN(ctxt->checkpoint.location.sensor, -1, NUM_SENSORS),
-               "Can't Reserve From not sensor %d",
-               ctxt->checkpoint.location.sensor);
-
-        const track_node* node =
-            &ctxt->track[ctxt->checkpoint.location.sensor];
-
-        int moving_dist = 0;
-        if (0 != ctxt->checkpoint.speed) {
-            const int stop_dist = master_current_stopping_distance(ctxt);
-            moving_dist = stop_dist + node->edge[0].dist;
-        }
-
-        const int head_dist = head + offset + moving_dist + 20000;
-        const int tail_dist = MAX(tail - offset + 20000, tail);
-
-        nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d", ctxt->name,
-                node->name, head_dist / 1000, tail_dist / 1000, offset / 1000);
-        assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
-        assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
-        assert(head_dist < 2000000, "WTF HEAD H:%d\tO:%d\tM:%d\ts:%d",
-               head / 1000, offset / 1000, moving_dist / 1000,
-               ctxt->checkpoint.speed);
-        assert(tail_dist < 2000000, "WTF TAIL T:%d\tO:%d\t",
-               tail / 1000, offset / 1000);
-
-        int               insert = 0;
-        const track_node* reserve[100];
-        get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
-        get_reserve_list(ctxt, head_dist, 0, node,          reserve, &insert);
-        assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert);
-
-        if (should_perform_reservation(&ctxt->checkpoint) &&
-            !reserve_section(ctxt->train_id, reserve, insert)) {
-
+    if (ctxt->active && should_perform_reservation(&ctxt->checkpoint)) {
+        const bool got_reservation = perform_reservation(ctxt);
+        
+        if (!got_reservation) {
             log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);
             master_set_speed(ctxt, 0, 0);
         }
+    } else {
+        nik_log("[%s] NO NEW RESERVATION", ctxt->name);
     }
 
     master_check_sensor_to_stop_at(ctxt);
