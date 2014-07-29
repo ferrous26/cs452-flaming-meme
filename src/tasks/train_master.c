@@ -562,7 +562,6 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
             else // we have a stopping point
                 ctxt->next_stop.action = step;
 
-            master_set_allowed_sensor(ctxt);
             return;
         }
     }
@@ -684,6 +683,8 @@ static void master_check_throw_stop_command(master* const ctxt,
         const int delay = (ctxt->next_stop.offset - offset) / velocity;
 
         master_set_speed(ctxt, 0, time + delay);
+        master_set_allowed_sensor(ctxt);
+
         ctxt->path_stopping = true;
 
         // if this is the last stop, then we are done
@@ -1093,7 +1094,6 @@ static inline void master_location_update(master* const ctxt,
                                              && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
             master_set_reverse(ctxt, time); // TROLOLO magic number
-            master_set_allowed_sensor(ctxt);
             master_setup_next_short_move(ctxt, offset, time + 10);
             ctxt->path_stopping = false;
         }
