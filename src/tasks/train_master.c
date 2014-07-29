@@ -519,6 +519,32 @@ static inline void master_calculate_turnout_point(master* const ctxt,
     ctxt->next_turnout.action = NULL;
 }
 
+static void master_set_allowed_sensor(master* const ctxt) {
+
+    const path_node* target = ctxt->next_stop.action;
+    // setting the limit on the loop to be the current step might be too tight
+    // we just want to find the sensor right before the merge
+    for (; target <= ctxt->path_step; target++)
+        if (target->type == PATH_SENSOR) break;
+
+    assert(target->type == PATH_SENSOR,
+           "[%s] Failed to find the sensor before the stop",
+           ctxt->name);
+
+    int next_dist = 0;
+    const int result = get_sensor_from(target->data.sensor,
+                                       &next_dist,
+                                       &ctxt->allowed_sensor);
+    assert(result == 0,
+           "[%s] Failed to query Boris",
+           ctxt->name);
+
+    if (next_dist < 0) {
+        log("[%s] Reversing at an exit!", ctxt->name);
+        ctxt->allowed_sensor = target->data.sensor;
+    }
+}
+
 static inline void master_find_next_stopping_point(master* const ctxt) {
 
     if (ctxt->path_completed) return;
@@ -535,6 +561,8 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
                 ctxt->next_stop.action = step + 1; // stop at non-reverse sensor
             else // we have a stopping point
                 ctxt->next_stop.action = step;
+
+            master_set_allowed_sensor(ctxt);
             return;
         }
     }
@@ -957,32 +985,6 @@ static inline int perform_reservation(master* const ctxt) {
 
     ctxt->last_reservation_speed = ctxt->checkpoint.speed;
     return reserve_section(ctxt->train_id, reserve, insert);
-}
-
-static void master_set_allowed_sensor(master* const ctxt) {
-
-    const path_node* target = ctxt->next_stop.action;
-    // setting the limit on the loop to be the current step might be too tight
-    // we just want to find the sensor right before the merge
-    for (; target <= ctxt->path_step; target++)
-        if (target->type == PATH_SENSOR) break;
-
-    assert(target->type == PATH_SENSOR,
-           "[%s] Failed to find the sensor before the stop",
-           ctxt->name);
-
-    int next_dist = 0;
-    const int result = get_sensor_from(target->data.sensor,
-                                       &next_dist,
-                                       &ctxt->allowed_sensor);
-    assert(result == 0,
-           "[%s] Failed to query Boris",
-           ctxt->name);
-
-    if (next_dist < 0) {
-        log("[%s] Reversing at an exit!", ctxt->name);
-        ctxt->allowed_sensor = target->data.sensor;
-    }
 }
 
 static inline void master_location_update(master* const ctxt,
