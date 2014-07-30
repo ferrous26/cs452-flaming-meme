@@ -461,6 +461,9 @@ static void blaster_set_speed(blaster* const ctxt,
 
     put_train_speed((char)ctxt->train_gid, (char)(speed / 10));
 
+    if (speed == truth.speed)
+        log("[%s] Speed already set to %d", ctxt->name, speed);
+
     if (truth.speed > speed) {
         if (speed != 0)
             log("[%s] Unsupported decceleration %d -> %d",
