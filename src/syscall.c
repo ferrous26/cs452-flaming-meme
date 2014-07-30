@@ -71,7 +71,9 @@ int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
         .msglen   = msglen,
         .replylen = replylen
     };
-    return _syscall(SYS_SEND, &req);
+    const int result = _syscall(SYS_SEND, &req);
+    assert(result != NOT_ENUF_MEMORY, "Reply to %d failed NOT_ENUF_MEMORY");
+    return result;
 }
 
 int Receive(int* tid, char* msg, int msglen) {
@@ -92,7 +94,11 @@ int Reply(int tid, char* reply, int replylen) {
         .reply    = reply,
         .replylen = replylen
     };
-    return _syscall(SYS_REPLY, &req);
+
+
+    const int result = _syscall(SYS_REPLY, &req);
+    assert(result != NOT_ENUF_MEMORY, "Reply to %d failed NOT_ENUF_MEMORY");
+    return result;
 }
 
 int AwaitEvent(int eventid, char* event, int eventlen) {
