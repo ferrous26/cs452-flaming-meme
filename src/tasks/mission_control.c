@@ -497,15 +497,14 @@ int query_turnout_state(const int turnout_num) {
         .turnout = turnout_to_pos(turnout_num),
     };
     if (turnout_to_pos(turnout_num) < 0) return INVALID_MESSAGE;
-    
+
     int turn_state;
     int result = Send(mission_control_tid,
                       (char*)&req, sizeof(req),
-                      (char*)turn_state, sizeof(turn_state));
+                      (char*)&turn_state, sizeof(turn_state));
 
     assert(result == sizeof(turn_state), "failed turnout query (%d)", result);
     UNUSED(result);
-
     return turn_state;
 }
 

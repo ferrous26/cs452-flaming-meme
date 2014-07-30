@@ -172,7 +172,6 @@ master_send_blaster(master* const ctxt,
 
 static void
 master_set_speed(master* const ctxt, const int speed, const int delay) {
-
     struct {
         tdelay_header head;
         blaster_req   req;
@@ -544,9 +543,8 @@ static void master_set_allowed_sensor(master* const ctxt) {
     const int result = get_sensor_from(target->data.sensor,
                                        &next_dist,
                                        &ctxt->allowed_sensor);
-    assert(result == 0,
-           "[%s] Failed to query Boris",
-           ctxt->name);
+    assert(result == 0, "[%s] Failed to query Boris", ctxt->name);
+    UNUSED(result);
 
     if (next_dist < 0) {
         log("[%s] Reversing at an exit!", ctxt->name);
@@ -967,6 +965,8 @@ static void get_reserve_list(const master* const ctxt,
                              const track_node* lst[],
                              int* const insert) {
     if (dist <=  0) return;
+
+    UNUSED(ctxt);
     assert(XBETWEEN(node - ctxt->track, -1, TRACK_MAX),
            "bad track index %d", node - ctxt->track);
 
@@ -980,7 +980,7 @@ static void get_reserve_list(const master* const ctxt,
         case NODE_NONE:
         case NODE_SENSOR:
         case NODE_MERGE: {
-            int dist_to_next = next->edge[DIR_AHEAD].dist;
+             int dist_to_next = next->edge[DIR_AHEAD].dist;
             next             = next->edge[DIR_AHEAD].dest;
 
             if ((dist_to_next >> 1) >= left) return;
@@ -988,13 +988,16 @@ static void get_reserve_list(const master* const ctxt,
             if (dist_to_next >= left)        return;
             left -= dist_to_next;
 
-        }   break;
+       }   break;
 
         case NODE_BRANCH: {
+#define DIRECTION            
+#ifndef DIRECTION
             const int dist_to_str       = next->edge[DIR_STRAIGHT].dist;
             const track_node* const str = next->edge[DIR_STRAIGHT].dest;
             const int dist_to_cur       = next->edge[DIR_CURVED].dist;
             const track_node* const cur = next->edge[DIR_CURVED].dest;
+
 
             if ((dist_to_str >> 1) < left) {
                 add_reserve_node(str->reverse, lst, insert);
@@ -1008,6 +1011,19 @@ static void get_reserve_list(const master* const ctxt,
                     get_reserve_list(ctxt, left-dist_to_cur, cur, lst, insert);
             }
         }   return;
+#else
+            const int turn_dir  = query_turnout_state(next->num);
+            assert(0 == (turn_dir & (~1)), "bad turn direction %d", turn_dir);
+            
+            const int dist_to_next = next->edge[turn_dir].dist;
+            next                   = next->edge[turn_dir].dest;
+            
+            if ((dist_to_next >> 1) >= left) return;
+            add_reserve_node(next->reverse, lst, insert);
+            if (dist_to_next >= left)        return;
+            left -= dist_to_next;
+        }   break;
+#endif
 
         case NODE_EXIT:
             return;
@@ -1037,9 +1053,10 @@ master_check_sensor_to_block_until(master* const ctxt) {
 
 static inline bool __attribute__((pure))
 should_perform_reservation(const master* const ctxt) {
-    return ctxt->last_reservation_speed < ctxt->checkpoint.next_speed
-      //|| !ctxt->checkpoint.is_accelerating
-        || EVENT_ACCELERATION != ctxt->checkpoint.event;
+    return ctxt->last_reservation_speed != ctxt->checkpoint.next_speed
+      || !ctxt->checkpoint.is_accelerating
+      || EVENT_ACCELERATION != ctxt->checkpoint.event
+      ;
 }
 
 static inline int perform_reservation(master* const ctxt) {
@@ -1064,7 +1081,6 @@ static inline int perform_reservation(master* const ctxt) {
     int               insert = 0;
     const int head_dist = head + offset + moving_dist + 20000;
     const int tail_dist = MAX(tail - offset + 20000, tail);
-
 
     assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
     assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
@@ -1111,7 +1127,7 @@ static inline void master_location_update(master* const ctxt,
 
         if (!got_reservation) {
             log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);
-            master_set_speed(ctxt, 0, 0);
+            master_set_speed(ctxt, ctxt->checkpoint.speed >> 1, 0);
         }
     } else {
         nik_log("[%s] NO NEW RESERVATION", ctxt->name);

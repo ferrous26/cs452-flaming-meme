@@ -121,7 +121,7 @@ static inline void _reply_with_time(cs_context* const ctxt,
     const int result = Reply(tid,
                              (char*)&ctxt->time,
                              sizeof(ctxt->time));
-
+    UNUSED(result); UNUSED(caller);
     assert(result == 0, caller, result);
 }
 

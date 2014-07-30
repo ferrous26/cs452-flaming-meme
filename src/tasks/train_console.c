@@ -163,6 +163,8 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     assert(tid == sensor_tid, "received sensor from %d", tid);
     assert(result == sizeof(sensor_data),
             "Received invalid sensor data %d/%d", result, sizeof(sensor_data));
+
+
     intb_produce(&ctxt->waiters, tid);
 
     blaster_req_type failure = BLASTER_CONSOLE_LOST;
@@ -174,7 +176,7 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     
     courier_package package = {
         .receiver = myParentTid(),
-        .message  = (char*)&callin,
+        .message  =  (char*)&callin,
         .size     =  sizeof(callin)
     };
 
@@ -190,16 +192,15 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     };
 
     if (sensor_data[0] == REQUEST_REJECTED) {
-        result = Send(ctxt->driver_tid,
-                      (char*)&failure, sizeof(failure),
-                      NULL, 0);
+        package.message = (char*)&failure;
+        package.size    = sizeof(failure);
     } else {
         assert(XBETWEEN(callin.arg1, -1, NUM_SENSORS),
                "failed initalizing train %d", callin.arg1);
-        result = Send(ctxt->driver_tid,
-                      (char*)&package, sizeof(package),
-                      NULL, 0);
     }
+    result = Send(ctxt->driver_tid,
+                  (char*)&package, sizeof(package),
+                  NULL, 0);
 
 
     assert(result == 0, "Failed handing off package to courier");

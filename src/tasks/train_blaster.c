@@ -201,6 +201,7 @@ static void blaster_restart_console(blaster* const ctxt,
                                  sizeof(package));
         assert(result == 0,
                "[%s] Failed to restart console!", ctxt->name);
+        UNUSED(result);
 
         ctxt->console_timeout   = 0;
         ctxt->console_courier   = -1;
@@ -272,6 +273,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
     // have no state history
     if (i == -1) {
         i = 0;
+        locs[i].sensor = truth.location.sensor;
         locs[i].offset = start_dist;
     }
 
@@ -292,6 +294,9 @@ static void blaster_start_accelerate(blaster* const ctxt,
             .arg3 = locs[i].offset
         }
     };
+    assert(XBETWEEN(locs[i].sensor, -1, NUM_SENSORS),
+            "ACCEL %d %d %d %d", locs[i].sensor, locs[i].offset, start_dist, truth.location.sensor);
+
 
     ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
     int result = Send(ctxt->acceleration_courier,
@@ -342,6 +347,9 @@ static void blaster_start_deccelerate(blaster* const ctxt,
     const int stop_time   = physics_stopping_time(ctxt, stop_dist);
     const int velocity    = physics_current_velocity(ctxt);
 
+
+    assert(XBETWEEN(truth.location.sensor, -1, NUM_SENSORS),
+            "Invalid sensor num %d", truth.location.sensor);
     const track_location current_location = {
         .sensor = truth.location.sensor,
         .offset = truth.location.offset + (time_delta * velocity)
@@ -407,6 +415,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
         }
     };
 
+    assert(XBETWEEN(locs[i].sensor, -1, NUM_SENSORS), "ACCEL %d %d %d %d", locs[i].sensor, locs[i].offset, stop_dist, truth.location.sensor);
     ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
     const int result = Send(ctxt->acceleration_courier,
                             (char*)&msg, sizeof(msg),
@@ -518,9 +527,11 @@ static void blaster_reverse_direction(blaster* const ctxt,
     assert(ctxt->console_cancel >= 0,
            "[%s] Console cancel courier not ready to rock!",
            ctxt->name);
+    
     const blaster_req_type cancel = BLASTER_CONSOLE_CANCEL;
     const int cresult = Reply(ctxt->console_cancel,
                               (char*)&cancel, sizeof(blaster_req_type));
+    UNUSED(cresult);
     assert(cresult == 0,
            "[%s] Failed to send message to console cancel courier (%d)",
            ctxt->name, cresult);
@@ -826,7 +837,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
         truth.distance  = current_accel.distance;
 
         // but that means the values for next_* are not correct
-        assert(truth.location.sensor != 145, "Told ya so bro %d %d %d",
+        assert(truth.location.sensor != 144, "Told ya so bro %d %d %d",
                req->arg1, last_accel.next_location.sensor,
                last_accel.location.sensor);
         const int result = get_sensor_from(truth.location.sensor,

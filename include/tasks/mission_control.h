@@ -26,6 +26,5 @@ int disable_sensor_name(const int bank, const int num);
 int revive_sensor_node(const int sensor_num);
 int revive_sensor_name(const int bank, const int num);
 
-int query_sensor_state(const int sensor_num);
-
+int query_turnout_state(const int query_sensor_state);
 #endif
