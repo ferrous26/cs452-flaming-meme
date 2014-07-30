@@ -528,8 +528,8 @@ static void master_set_allowed_sensor(master* const ctxt) {
         if (target->type == PATH_SENSOR) break;
 
     assert(target->type == PATH_SENSOR,
-           "[%s] Failed to find the sensor before the stop",
-           ctxt->name);
+           "[%s] Failed to find the sensor before the stop (%d)",
+           ctxt->name, target->type);
 
     int next_dist = 0;
     const int result = get_sensor_from(target->data.sensor,
@@ -784,9 +784,11 @@ static void master_setup_next_short_move(master* const ctxt,
         (ctxt->next_stop.action->dist - ctxt->path_step->dist) +
         offset_from_path;
 
-    log("[%s] Next stop @ %d mm, current stop @ %d mm (%s %d %d %d %d)",
+    const sensor s = pos_to_sensor(ctxt->checkpoint.location.sensor);
+    log("[%s] Next stop @ %d mm, current stop @ %c%d <%d mm> (%s %d %d %d %d)",
         ctxt->name,
         ctxt->next_stop.action->dist / 1000,
+        s.bank, s.num,
         ctxt->path_step->dist / 1000,
         ctxt->checkpoint.location.sensor == ctxt->allowed_sensor ?
         "past allowed sensor" : "NOT past allowed sensor",
