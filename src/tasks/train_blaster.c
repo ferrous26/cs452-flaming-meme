@@ -992,7 +992,10 @@ blaster_process_sensor_event(blaster* const ctxt,
     current_sensor.next_location.offset = 0;
     current_sensor.next_speed           = truth.next_speed;
 
-    assert(current_sensor.location.sensor < NUM_SENSORS, "HERE");
+    assert(current_sensor.location.sensor < NUM_SENSORS,
+           "HERE %d should be less than %d (BLAME NIK)",
+           current_sensor.location.sensor, NUM_SENSORS);
+
     const int result = get_sensor_from(current_sensor.location.sensor,
                                        &current_sensor.next_distance,
                                        &current_sensor.next_location.sensor);
