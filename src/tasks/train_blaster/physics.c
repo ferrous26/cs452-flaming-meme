@@ -579,6 +579,8 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
 
     case 53:
     case 59:
+        ctxt->acceleration_time_fudge_factor = 0;
+
         ctxt->measurements.front  = 23000;
         ctxt->measurements.pickup = 51000;
         ctxt->measurements.back   = 142000;
