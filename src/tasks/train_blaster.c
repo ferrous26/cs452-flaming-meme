@@ -178,6 +178,37 @@ blaster_position_after_distance(const track_location start,
     UNUSED(result);
 }
 
+static void blaster_restart_console(blaster* const ctxt,
+                                    const int timestamp) {
+
+    if (ctxt->console_courier >= 0 && ctxt->console_restarted) {
+
+        const int distance = blaster_distance_remaining(&truth);
+        const int velocity =
+            physics_velocity(ctxt,
+                             (truth.speed * 4) / 5,
+                             velocity_type(truth.location.sensor));
+        const int next_timestamp = timestamp + (distance / velocity);
+
+        const int package[] = {
+            truth.location.sensor,
+            truth.next_location.sensor,
+            next_timestamp
+        };
+
+        const int result = Reply(ctxt->console_courier,
+                                 (char*)package,
+                                 sizeof(package));
+        assert(result == 0,
+               "[%s] Failed to restart console!", ctxt->name);
+
+        ctxt->console_timeout   = 0;
+        ctxt->console_courier   = -1;
+        ctxt->console_cancelled = false;
+        ctxt->console_restarted = false;
+    }
+}
+
 static void blaster_start_accelerate(blaster* const ctxt,
                                      const int to_speed,
                                      const int time) {
@@ -292,18 +323,8 @@ static void blaster_start_accelerate(blaster* const ctxt,
     blaster_master_where_am_i(ctxt, time);
     physics_update_velocity_ui(ctxt);
 
-
-    if (ctxt->console_courier > 0) {
-        int package[] = {
-            truth.location.sensor,
-            truth.next_location.sensor,
-            0
-        };
-        result = Reply(ctxt->console_courier, (char*)package, sizeof(package));
-
-        ctxt->console_timeout = 0;
-        ctxt->console_courier = -1;
-    }
+    ctxt->console_restarted = true;
+    blaster_restart_console(ctxt, time);
 }
 
 static void blaster_start_deccelerate(blaster* const ctxt,
@@ -503,8 +524,8 @@ static void blaster_reverse_direction(blaster* const ctxt,
     assert(cresult == 0,
            "[%s] Failed to send message to console cancel courier (%d)",
            ctxt->name, cresult);
-    ctxt->console_cancel = -1;
-
+    ctxt->console_cancel    = -1;
+    ctxt->console_cancelled = true;
 
     // now we can try and update the UI to flip the next expected sensor
     physics_update_tracking_ui(ctxt, 0);
@@ -679,13 +700,15 @@ blaster_process_acceleration_event(blaster* const ctxt,
                                    const int timestamp) {
 
     // do not process the event if it has been overridden by a future event
-    if (blaster_kill_courier(ctxt->acceleration_courier, courier_tid)) {
-        ctxt->acceleration_courier = -1;
+    if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid)) {
+        log("[%s] Killing overridden acceleration courier (%d %d)",
+            ctxt->name, ctxt->acceleration_courier, courier_tid);
+        return;
     }
     else {
-        log("[%s] Killing overridden acceleration courier", ctxt->name);
+        log("[%s] Hidy Ho!!!!!!!!!!!!!!!!!!!! %d",
+            ctxt->name, ctxt->acceleration_courier);
         ctxt->acceleration_courier = -1;
-        return;
     }
 
     last_accel                         = current_accel;
@@ -1327,9 +1350,11 @@ void train_blaster() {
             continue;
 
         case BLASTER_CONSOLE_LOST:
-            blaster_set_speed(&context, 0, 0);
+            if (!context.console_cancelled)
+                blaster_set_speed(&context, 0, 0);
             log("[%s] console has be rejected, stop", context.name);
             context.console_courier = tid;
+            blaster_restart_console(&context, time);
             continue;
 
         case BLASTER_CONSOLE_CANCEL:
