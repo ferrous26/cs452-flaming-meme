@@ -315,6 +315,9 @@ static void blaster_start_accelerate(blaster* const ctxt,
         ABORT("[%s] Failed to setup new delay courier (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
 
+    log("[%s] Acceleration courier %d doing %d -> %d",
+        ctxt->name, ctxt->acceleration_courier, truth.speed, to_speed);
+
     last_accel                    = current_accel;
     current_accel.event           = EVENT_ACCELERATION;
     current_accel.timestamp       = time;
@@ -436,6 +439,9 @@ static void blaster_start_deccelerate(blaster* const ctxt,
     if (result < 0)
         ABORT("[%s] Failed to setup new delay courier (%d) to %d",
               ctxt->name, result, ctxt->acceleration_courier);
+
+    log("[%s] Acceleration courier %d doing %d -> %d",
+        ctxt->name, ctxt->acceleration_courier, truth.speed, to_speed);
 
     last_accel                      = current_accel;
     current_accel.event             = EVENT_ACCELERATION;
