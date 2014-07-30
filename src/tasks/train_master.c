@@ -1060,9 +1060,13 @@ static inline void master_location_update(master* const ctxt,
                                           const blaster_req* const pkg,
                                           const int tid) {
 
-    log("[%s] Got position update %p %s", ctxt->name, state,
-        event_to_str(ctxt->checkpoint.event));
     memcpy(&ctxt->checkpoint, state, sizeof(train_state));
+    const sensor l = pos_to_sensor(state->location.sensor);
+    log("[%s] Got position update (%c%d) %p %s",
+        ctxt->name,
+        l.bank, l.num,
+        state,
+        event_to_str(ctxt->checkpoint.event));
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
