@@ -174,7 +174,6 @@ static void _handle_reserve_section(_context* const ctxt,
     for (int i = 0; i < lst_size; i++, node++) {
         const int index = _get_node_index(ctxt, *node);
         const int owner = _who_owns_index(ctxt, index);
-        log("reserve %s for %d", ctxt->track[index].name, train);
 
         if (owner == -1) {
             if (i > 0 && !is_node_adjacent(ctxt, *node, train)) { 
