@@ -62,7 +62,7 @@ const char* event_to_str(const train_event event) {
 }
 
 // choose a pseudo-magic value for speed to use in the calculation
-static int blaster_estimate_speed(blaster* const ctxt) {
+static int __attribute__ ((unused)) blaster_estimate_speed(blaster* const ctxt) {
     return (truth.speed + truth.next_speed) >> 2;
 }
 
