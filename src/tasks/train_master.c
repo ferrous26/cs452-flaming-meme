@@ -23,7 +23,7 @@
 
 // we want to clear a turnout by at least this much in order to compensate
 // for position error
-#define TURNOUT_CLEARANCE_OFFSET_DEFAULT  50000 // um
+#define TURNOUT_CLEARANCE_OFFSET_DEFAULT  100000 // um
 
 // we want to flip a turnout when we are
 #define TURNOUT_DISTANCE 200000
@@ -991,7 +991,7 @@ static void get_reserve_list(const master* const ctxt,
        }   break;
 
         case NODE_BRANCH: {
-#define DIRECTION            
+#define DIRECTION
 #ifndef DIRECTION
             const int dist_to_str       = next->edge[DIR_STRAIGHT].dist;
             const track_node* const str = next->edge[DIR_STRAIGHT].dest;
@@ -1014,10 +1014,10 @@ static void get_reserve_list(const master* const ctxt,
 #else
             const int turn_dir  = query_turnout_state(next->num);
             assert(0 == (turn_dir & (~1)), "bad turn direction %d", turn_dir);
-            
+
             const int dist_to_next = next->edge[turn_dir].dist;
             next                   = next->edge[turn_dir].dest;
-            
+
             if ((dist_to_next >> 1) >= left) return;
             add_reserve_node(next->reverse, lst, insert);
             if (dist_to_next >= left)        return;
