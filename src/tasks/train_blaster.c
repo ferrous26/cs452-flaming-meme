@@ -472,7 +472,8 @@ static void blaster_reverse_direction(blaster* const ctxt,
     // need to flip around our next expected place
     truth.event           = EVENT_ACCELERATION;
     truth.location.sensor = reverse_sensor(truth.next_location.sensor);
-    truth.location.offset = truth.next_distance - truth.location.offset;
+    truth.location.offset = truth.next_distance - truth.location.offset +
+        ctxt->measurements.pickup; // don't forget about the pickup...
 
     // the next sensor _would_ be the reverse of the current next
     // in most cases, but that is not true if we just went over a
