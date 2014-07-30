@@ -753,12 +753,40 @@ static void master_setup_next_short_move(master* const ctxt,
                                          const int offset,
                                          const int delay) {
 
+    // the extra distance past the branch that we have travelled needs
+    // to be appeneded to the expected distance
+
+    // we still want the offset, and we want to add it to the current
+    // offset, but we still need to determine if we have hit the allowed_sensor
+
+    // edge distance if we hit the allowed sensor
+    const int edge_dist_post =
+        ctxt->track[ctxt->checkpoint.location.sensor].reverse->edge[DIR_AHEAD].dist;
+
+    // edge distance if we did not hit the allowed sensor
+    const int edge_dist_pre  =
+        ctxt->track[ctxt->checkpoint.location.sensor].edge[DIR_AHEAD].dist;
+
+    const int offset_from_path =
+        ctxt->checkpoint.location.offset + offset +
+        (ctxt->checkpoint.location.sensor == ctxt->allowed_sensor ?
+         edge_dist_post : -edge_dist_pre);
+
     // distance to the first checkpoint (reverse point) in the path
     const int dist_to_path_checkpoint =
-        ctxt->next_stop.action->dist - ctxt->path_step->dist + offset;
+        (ctxt->next_stop.action->dist - ctxt->path_step->dist) +
+        offset_from_path;
 
-    log("[%s] next stop %d, current stop %d, offset %d",
-        ctxt->name, ctxt->next_stop.action->dist, ctxt->path_step->dist, offset);
+    log("[%s] Next stop @ %d mm, current stop @ %d mm (%s %d %d %d %d)",
+        ctxt->name,
+        ctxt->next_stop.action->dist / 1000,
+        ctxt->path_step->dist / 1000,
+        ctxt->checkpoint.location.sensor == ctxt->allowed_sensor ?
+        "past allowed sensor" : "NOT past allowed sensor",
+        edge_dist_post / 1000,
+        edge_dist_pre / 1000,
+        offset_from_path / 1000,
+        dist_to_path_checkpoint / 1000);
 
     const int speed =
         master_choose_short_move_speed(ctxt, dist_to_path_checkpoint);
@@ -775,6 +803,38 @@ static void master_setup_next_short_move(master* const ctxt,
         ctxt->path_step = NULL;
     }
 }
+
+static void master_setup_first_short_move(master* const ctxt,
+                                          const int offset,
+                                          const int delay) {
+
+    // technically, what we want is the offset from where the path begins
+
+    // the offset from the beggining of the path
+    const int distance_to_first_point =
+        ctxt->next_stop.action->dist -
+        (ctxt->checkpoint.location.offset + offset);
+
+    log("[%s] First stop @ %d mm, which is %d mm from the train",
+        ctxt->name,
+        ctxt->next_stop.action->dist / 1000,
+        distance_to_first_point / 1000);
+
+    const int speed =
+        master_choose_short_move_speed(ctxt, distance_to_first_point);
+
+    if (speed) {
+        log("[%s] Gonna short move at speed %d", ctxt->name, speed);
+        master_set_speed(ctxt, speed, delay);
+    }
+    // if there are no speeds, then abandon hope (find new route?)
+    else {
+        log("[%s] Distance %d mm is too short for a short move",
+            ctxt->name, distance_to_first_point / 1000);
+        ctxt->path_step = NULL;
+    }
+}
+
 static inline void master_path_update(master* const ctxt,
                                       const int size,
                                       const path_node* path,
@@ -839,7 +899,7 @@ static inline void master_path_update(master* const ctxt,
     if ((ctxt->checkpoint.speed == 0 || ctxt->checkpoint.next_speed == 0) &&
         // delay the short move until the path recalculation
         path[size - 1].type != PATH_REVERSE)
-        master_setup_next_short_move(ctxt, offset, time + 2);
+        master_setup_first_short_move(ctxt, offset, time + 2);
 }
 
 static inline void
