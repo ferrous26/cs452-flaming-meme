@@ -287,9 +287,9 @@ char* log_start(char* buffer) {
     return sprintf_string(buffer, ": ");
 }
 
-char* clog_start(char* buffer) {
+char* clog_start(const int time, char* buffer) {
     buffer = vt_restore_cursor(buffer);
-    return sprintf(buffer, "%u: ", ++log_count);
+    return sprintf(buffer, "%d: ", time);
 }
 
 char* klog_start(char* buffer) {
@@ -317,14 +317,14 @@ void log(const char* fmt, ...) {
     va_end(args);
 }
 
-void clog(const char* fmt, ...) {
+void clog(const int time, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
     char buffer[256];
     char* ptr = buffer;
 
-    ptr = clog_start(ptr);
+    ptr = clog_start(time, ptr);
     ptr = sprintf_va(ptr, fmt, args);
     ptr = log_end(ptr);
 

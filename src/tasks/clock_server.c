@@ -189,8 +189,9 @@ void clock_server() {
             // if we missed the deadline, wake task up right away, but
             // also log something if in debug mode
             if (req.ticks < context.time) {
-                clog("[Clock] %d missed DelayUntil(%d). Actual time is %d.",
-                     tid, req.ticks, context.time);
+                clog(context.time,
+                     "[Clock] %d missed DelayUntil(%d)",
+                     tid, req.ticks);
                 result = Reply(tid, (char*)&missed_deadline, sizeof(int));
                 assert(result == 0, "MISSED DEADLINE, %d", result);
             }

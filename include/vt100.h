@@ -141,12 +141,12 @@ char* vt_scroll_down(char* buffer);
  * logging as it is a wrapper around vt_log_start() and vt_log_end().
  */
 char* log_start(char* buffer);
-char* clog_start(char* buffer);
+char* clog_start(const int time, char* buffer);
 char* klog_start(char* buffer);
 char* log_end(char* buffer);
 #define klog_end log_end
 void  log(const char* fmt, ...);
-void  clog(const char* fmt, ...); // non-timestamped log
+void  clog(const int time, const char* fmt, ...); // manually-timestamped log
 void  klog(const char* fmt, ...);
 
 #ifdef NIK
