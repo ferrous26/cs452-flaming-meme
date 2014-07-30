@@ -9,7 +9,11 @@
 
 #include <tasks/priority.h>
 #include <tasks/name_server.h>
+#include <tasks/term_server.h>  // used to debug print out full paths
+
 #include <tasks/track_reservation.h>
+
+
 
 #define LOG_HEAD  "[TRACK RESERVATION]\t"
 // #define DIR_FRONT 0
@@ -109,7 +113,6 @@ static inline int
 is_node_adjacent(_context* const ctxt,
                  const track_node* const n1,
                  const int train) {
-
     switch (n1->type) {
     case NODE_NONE:
     case NODE_MERGE:
@@ -160,17 +163,30 @@ static void _handle_reserve_section(_context* const ctxt,
     int result;
     int reply[] = {RESERVE_SUCCESS};
     ctxt->train_iter[train]++;
-    // nik_log("Train %d on count %d", train, ctxt->train_iter[train]);
+    
+    #ifdef NIK
+    char* ptr;
+    char path_print[512];
+    ptr = log_start(path_print);
+    ptr = sprintf(ptr, "RESERVATION FOR TRAIN%d:", train);
+    #endif
 
     for (int i = 0; i < lst_size; i++, node++) {
         const int index = _get_node_index(ctxt, *node);
         const int owner = _who_owns_index(ctxt, index);
+        log("reserve %s for %d", ctxt->track[index].name, train);
 
         if (owner == -1) {
-            if (i > 0 && !is_node_adjacent(ctxt, *node, train)) {
-                nik_log("%s is not adjacent on train %d",
-                        ctxt->track[index], train);
+            if (i > 0 && !is_node_adjacent(ctxt, *node, train)) { 
+                nik_log("%s is not adjacent to train %d",
+                        ctxt->track[index].name, train);
             } else {
+                #ifdef NIK
+                if ((i & 7) == 0) ptr = sprintf(ptr, "\r\n\t");
+                ptr = sprintf_string(ptr, (*node)->name); 
+                ptr = sprintf_string(ptr, "\t");
+                #endif
+
                 ctxt->reserve[index].owner = train;
                 ctxt->reserve[index].iter  = ctxt->train_iter[train];
             }
@@ -183,9 +199,12 @@ static void _handle_reserve_section(_context* const ctxt,
             nik_log(LOG_HEAD "Failed reserving Section %s For %d, owned by %d",
                     (*node)->name, train, owner);
             reply[0] = RESERVE_FAILURE;
-
         }
     }
+
+    #ifdef NIK
+    Puts(path_print, ptr - path_print);
+    #endif
 
     result = Reply(tid, (char*)reply, sizeof(reply));
     assert(0 == result, "Failed to repond to track query");

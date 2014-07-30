@@ -939,52 +939,69 @@ master_check_sensor_to_stop_at(master* const ctxt) {
         ctxt->name, s.bank, s.num, ctxt->checkpoint.timestamp);
 }
 
-static int add_reserve_node(const track_node* const node,
+static void add_reserve_node(const track_node* const node,
                             const track_node* lst[],
                             int*  const insert) {
 
     lst[*insert]  = node;
     *insert      += 1;
-
-    return get_reserve_length(node);
 }
 
 static void get_reserve_list(const master* const ctxt,
                              const int dist,
-                             const int dir,
                              const track_node* const node,
                              const track_node* lst[],
                              int* const insert) {
-
-    int res = 0;
-    assert(XBETWEEN(node - ctxt->track, -1, TRACK_MAX+1),
+    if (dist <=  0) return;
+    assert(XBETWEEN(node - ctxt->track, -1, TRACK_MAX),
            "bad track index %d", node - ctxt->track);
 
-    if (dist <=  0) return;
-    if (1 == dir) {
-        res = add_reserve_node(node->reverse, lst, insert);
-        if (res >= dist) return;
-    }
-    res += add_reserve_node(node, lst, insert);
+    int left = dist;
+    const track_node* next = node;
+    
+    FOREVER {
+        add_reserve_node(next, lst, insert);
 
-    switch (node->type) {
-    case NODE_NONE:
-    case NODE_SENSOR:
-    case NODE_MERGE:
-        get_reserve_list(ctxt, dist-res, 1, node->edge[DIR_AHEAD].dest,
-                         lst, insert);
-        break;
-    case NODE_BRANCH:
-        get_reserve_list(ctxt, dist-res, 1, node->edge[DIR_STRAIGHT].dest,
-                         lst, insert);
-        get_reserve_list(ctxt, dist-res, 1, node->edge[DIR_CURVED].dest,
-                         lst, insert);
-        break;
-    case NODE_EXIT:
-        break;
-    case NODE_ENTER:
-        assert(false, "I'm legit curious if this can happen");
-    }
+        switch (next->type) {
+        case NODE_NONE:
+        case NODE_SENSOR:
+        case NODE_MERGE: {
+            int dist_to_next = next->edge[DIR_AHEAD].dist;
+            next             = next->edge[DIR_AHEAD].dest;
+            
+            if ((dist_to_next >> 1) >= left) return;
+            add_reserve_node(next->reverse, lst, insert);
+            if (dist_to_next >= left)        return;
+            left -= dist_to_next;
+
+        }   break;
+
+        case NODE_BRANCH: {
+            const int dist_to_str       = next->edge[DIR_STRAIGHT].dist;
+            const track_node* const str = next->edge[DIR_STRAIGHT].dest;
+            const int dist_to_cur       = next->edge[DIR_CURVED].dist;
+            const track_node* const cur = next->edge[DIR_CURVED].dest;
+
+            if ((dist_to_str >> 1) < left) {
+                add_reserve_node(str->reverse, lst, insert);
+                if (dist_to_str < left)
+                    get_reserve_list(ctxt, left-dist_to_str, str, lst, insert);
+            }
+
+            if ((dist_to_cur >> 1) < left) {
+                add_reserve_node(cur->reverse, lst, insert);
+                if (dist_to_cur < left)
+                    get_reserve_list(ctxt, left-dist_to_cur, cur, lst, insert);
+            }
+        }   return;
+        
+        case NODE_EXIT:
+            return;
+        
+        case NODE_ENTER:
+            assert(false, "I'm legit curious if this can happen");
+        }
+    }    
 }
 
 static inline void
@@ -1034,9 +1051,6 @@ static inline int perform_reservation(master* const ctxt) {
     const int head_dist = head + offset + moving_dist + 20000;
     const int tail_dist = MAX(tail - offset + 20000, tail);
 
-    nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d\tE:%s", ctxt->name,
-            node->name, head_dist / 1000, tail_dist / 1000, offset / 1000,
-            event_to_str(ctxt->checkpoint.event));
 
     assert(offset <  2000000, "offset is really big %dmm", offset / 1000);
     assert(offset > -2000000, "offset is really big %dmm", offset / 1000);
@@ -1047,10 +1061,13 @@ static inline int perform_reservation(master* const ctxt) {
            tail / 1000, offset / 1000);
 
 
-    get_reserve_list(ctxt, tail_dist, 0, node->reverse, reserve, &insert);
-    get_reserve_list(ctxt, head_dist, 0, node,          reserve, &insert);
+    get_reserve_list(ctxt, tail_dist, node->reverse, reserve, &insert);
+    get_reserve_list(ctxt, head_dist, node,          reserve, &insert);
     assert(XBETWEEN(insert, 0, 60), "bad insert length %d", insert);
 
+    nik_log("[%s] Reserving from %s\tH:%d\tT:%d\tO:%d\tSIZE:%d\tE:%s", ctxt->name,
+            node->name, head_dist / 1000, tail_dist / 1000, offset / 1000,
+            insert, event_to_str(ctxt->checkpoint.event));
     ctxt->last_reservation_speed = ctxt->checkpoint.speed;
     return reserve_section(ctxt->train_id, reserve, insert);
 }
