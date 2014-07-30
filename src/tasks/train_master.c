@@ -575,8 +575,10 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
         }
     }
 
-    ABORT("[%s] Hit unreachable code (burst of location updates?)! %p %p %p",
-          ctxt->name, start_step, ctxt->path_step, ctxt->next_stop.step);
+    log("[%s] Hit end of path non-cleanly (%d)",
+        ctxt->name, start_step - ctxt->path);
+    ctxt->path_step = NULL;
+    ctxt->path_completed = true;
 }
 
 static inline bool master_is_last_path_chunk(master* const ctxt) {
