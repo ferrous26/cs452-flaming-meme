@@ -65,6 +65,7 @@ typedef struct master_context {
 
     const path_node* path_step;      // the current step we are on
     const path_node* path;           // start of the path array (i.e. the last step)
+    const path_node* path_last;
     int              allowed_sensor;
     bool             path_stopping;  // state marker indicating we are stopping
     bool             path_completed; // true when stop command has been thrown during path
@@ -395,7 +396,10 @@ master_debug_path(master* const ctxt) {
 }
 
 static void
-master_goto(master* const ctxt, const int destination, const int offset) {
+master_goto(master* const ctxt,
+            const int destination,
+            const int source,
+            const int offset) {
 
     // we may need to release the worker
     if (ctxt->path_worker >= 0) {
@@ -429,7 +433,7 @@ master_goto(master* const ctxt, const int destination, const int offset) {
             .header      = MASTER_PATH_DATA,
             .sensor_to   = destination,
             .opts        = opts,
-            .sensor_from = ctxt->checkpoint.location.sensor, // hmmm
+            .sensor_from = source,
             .reserve     = 600,
         }
     };
@@ -466,7 +470,7 @@ master_goto_command(master* const ctxt,
         // TODO: handle the offset
     }
 
-    master_goto(ctxt, destination, offset);
+    master_goto(ctxt, destination, ctxt->checkpoint.location.sensor, offset);
     master_release_control_courier(ctxt, pkg, tid);
 }
 
@@ -521,10 +525,15 @@ static inline void master_calculate_turnout_point(master* const ctxt,
 
 static void master_set_allowed_sensor(master* const ctxt) {
 
+    // do not set an allowed sensor for the last and second last steps
+    if (ctxt->next_stop.action == ctxt->path ||
+        ctxt->next_stop.action == &ctxt->path[1])
+        return;
+
     const path_node* target = ctxt->next_stop.action;
     // setting the limit on the loop to be the current step might be too tight
     // we just want to find the sensor right before the merge
-    for (; target <= ctxt->path_step; target++)
+    for (; target <= ctxt->path_last; target++)
         if (target->type == PATH_SENSOR) break;
 
     assert(target->type == PATH_SENSOR,
@@ -863,6 +872,7 @@ static inline void master_path_update(master* const ctxt,
         ctxt->name, from.bank, from.num, to.bank, to.num, size);
 
     ctxt->path_worker    = tid;
+    ctxt->path_last      = path + size - 1;
     ctxt->path_step      = path + size - 1;
     ctxt->path           = path;
     ctxt->allowed_sensor = NUM_SENSORS;
@@ -882,9 +892,8 @@ static inline void master_path_update(master* const ctxt,
     if (path[size - 1].type == PATH_REVERSE) {
         log("[%s] Started with a reverse", ctxt->name);
         master_set_reverse(ctxt, time + 2);
+        return;
 
-        // manually fast forward this step
-        ctxt->path_step--;
     } else {
         // Get us up to date on where we are
         ctxt->path_step = master_try_fast_forward(ctxt);
@@ -907,8 +916,10 @@ static inline void master_path_update(master* const ctxt,
     // if the train is not moving, or it is slowing down, then kick it off
     if ((ctxt->checkpoint.speed == 0 || ctxt->checkpoint.next_speed == 0) &&
         // delay the short move until the path recalculation
-        path[size - 1].type != PATH_REVERSE)
+        path[size - 1].type != PATH_REVERSE) {
+
         master_setup_first_short_move(ctxt, offset, time + 2);
+    }
 }
 
 static inline void
@@ -960,7 +971,7 @@ static void get_reserve_list(const master* const ctxt,
 
     int left = dist;
     const track_node* next = node;
-    
+
     FOREVER {
         add_reserve_node(next, lst, insert);
 
@@ -970,7 +981,7 @@ static void get_reserve_list(const master* const ctxt,
         case NODE_MERGE: {
             int dist_to_next = next->edge[DIR_AHEAD].dist;
             next             = next->edge[DIR_AHEAD].dest;
-            
+
             if ((dist_to_next >> 1) >= left) return;
             add_reserve_node(next->reverse, lst, insert);
             if (dist_to_next >= left)        return;
@@ -996,14 +1007,14 @@ static void get_reserve_list(const master* const ctxt,
                     get_reserve_list(ctxt, left-dist_to_cur, cur, lst, insert);
             }
         }   return;
-        
+
         case NODE_EXIT:
             return;
-        
+
         case NODE_ENTER:
             assert(false, "I'm legit curious if this can happen");
         }
-    }    
+    }
 }
 
 static inline void
@@ -1080,12 +1091,12 @@ static inline void master_location_update(master* const ctxt,
                                           const int tid) {
 
     memcpy(&ctxt->checkpoint, state, sizeof(train_state));
-    const sensor l = pos_to_sensor(state->location.sensor);
-    log("[%s] Got position update (%c%d) %p %s",
-        ctxt->name,
-        l.bank, l.num,
-        state,
-        event_to_str(ctxt->checkpoint.event));
+    //const sensor l = pos_to_sensor(state->location.sensor);
+    //    log("[%s] Got position update (%c%d) %p %s",
+    //ctxt->name,
+    //l.bank, l.num,
+    //state,
+    //event_to_str(ctxt->checkpoint.event));
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
@@ -1152,7 +1163,10 @@ static inline void master_location_update(master* const ctxt,
                     ctxt->name,
                     s.bank, s.num,
                     a.bank, a.num);
-                master_goto(ctxt, ctxt->destination, ctxt->destination_offset);
+                master_goto(ctxt,
+                            ctxt->destination,
+                            ctxt->checkpoint.location.sensor,
+                            ctxt->destination_offset);
                 return;
             }
         }
