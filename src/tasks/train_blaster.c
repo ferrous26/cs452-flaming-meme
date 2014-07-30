@@ -1351,7 +1351,7 @@ void train_blaster() {
 
         case BLASTER_CONSOLE_LOST:
             if (!context.console_cancelled)
-                blaster_set_speed(&context, 0, 0);
+                blaster_set_speed(&context, 0, time);
             log("[%s] console has be rejected, stop", context.name);
             context.console_courier = tid;
             blaster_restart_console(&context, time);
