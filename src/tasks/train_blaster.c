@@ -497,6 +497,8 @@ static void blaster_reverse_direction(blaster* const ctxt,
     //       or just wait until we hit another sensor
     // NIK HALP!
 
+    physics_update_tracking_ui(ctxt, 0);
+
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, time);
 
