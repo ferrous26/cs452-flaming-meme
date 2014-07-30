@@ -6,7 +6,7 @@
 #include <track_node.h>
 
 #define FEEDBACK_THRESHOLD_DEFAULT        10000 // um/s
-#define STOPPING_DISTANCE_OFFSET_DEFAULT  0     // um
+#define STOPPING_DISTANCE_OFFSET_DEFAULT  (-100000)     // um
 #define REVERSE_TIME_FUDGE_FACTOR         10    // cs
 #define ACCELERATION_TIME_FUDGE_DEFAULT   20    // cs
 
