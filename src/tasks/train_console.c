@@ -1,4 +1,5 @@
 
+#include <ui.h>
 #include <std.h>
 #include <debug.h>
 #include <syscall.h>
@@ -8,6 +9,7 @@
 #include <char_buffer.h>
 
 #include <tasks/priority.h>
+#include <tasks/term_server.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 
@@ -16,10 +18,10 @@
 #include <tasks/train_blaster.h>
 #include <tasks/train_console.h>
 
-#define LOG_HEAD        "[TRAIN_CONSOLE]\t"
-#define DRIVER_MASK     0x1
-#define SENSOR_MASK     0x2
-#define TIMER_MASK      0x4
+#define LOG_HEAD    "[TRAIN_CONSOLE]\t"
+#define DRIVER_MASK 0x1
+#define SENSOR_MASK 0x2
+#define TIMER_MASK  0x4
 
 #define BUFFER_SIZE      8
 #define SENT_WAITER_SIZE 16
@@ -36,7 +38,7 @@ typedef struct {
     const int  driver_tid;
     const int  timer_tid;
     const int  sensor_tid;
-    int        docked;
+    int        state;
 
     int        sensor_last;
     int        sensor_expect;
@@ -77,7 +79,7 @@ static void _get_next_sensors(const track_node* const track,
 static inline bool __attribute__((pure))
 _is_console_dead(const tc_context* const ctxt) {
     return 0 ==  ctxt->sent_waiters_count
-        && (DRIVER_MASK | TIMER_MASK) == (ctxt->docked & (DRIVER_MASK | TIMER_MASK));
+        && (DRIVER_MASK | TIMER_MASK) == (ctxt->state & (DRIVER_MASK | TIMER_MASK));
 }
 
 static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
@@ -116,7 +118,7 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
 
     memset(ctxt, -1, sizeof(*ctxt));
 
-    ctxt->docked             = 0;
+    ctxt->state              = 0;
     ctxt->sensor_timeout     = 0;
     ctxt->sensor_expect      = 80;
     ctxt->sent_waiters_count = 0;
@@ -224,17 +226,17 @@ get_sensor_index(const tc_context* const ctxt, const int tid) {
 }
 
 static inline bool can_send_timeout(tc_context* const ctxt) {
-    return (ctxt->docked & TIMER_MASK) 
+    return (ctxt->state & TIMER_MASK) 
         &&  ctxt->sensor_timeout > Time();
 }
 
 static void try_send_timeout(tc_context* const ctxt) {
     assert(ctxt->sensor_timeout >= 0, "Invalid timeout time %d",
            ctxt->sensor_timeout);
-    if (!can_send_timeout(ctxt)) return;
-    
-    int result; UNUSED(result);
 
+    if (!can_send_timeout(ctxt)) return;
+    int   result; UNUSED(result);
+    
     struct {
         tnotify_header head;
         int body[2];
@@ -253,7 +255,7 @@ static void try_send_timeout(tc_context* const ctxt) {
     assert(result == 0, "failed sending for timer (%d)", result);
 
     ctxt->sensor_timeout  = 0;
-    ctxt->docked         &= ~TIMER_MASK;
+    ctxt->state          &= ~TIMER_MASK;
 }
 
 static inline int __attribute__ ((const))
@@ -304,7 +306,7 @@ static inline void _driver_lost(tc_context* const ctxt) {
                                ctxt->track[ctxt->sensor_expect].name : "[!]";
 
     log(LOG_HEAD "TRAIN %d LOST EXPECTING %s ~ %x",
-        ctxt->train_pos, sen_name, ctxt->docked);
+        ctxt->train_pos, sen_name, ctxt->state);
 
     ctxt->sensor_expect  = 80;
     ctxt->sensor_timeout = 0;
@@ -385,6 +387,35 @@ static inline bool _try_return_waiter(tc_context* const ctxt, int tid) {
     return true;
 }
 
+static inline void _perform_dead_check(tc_context* const ctxt) {
+    if (_is_console_dead(ctxt)) {
+        const blaster_req_type msg = BLASTER_CONSOLE_LOST;
+
+        int result = Reply(ctxt->driver_tid, (char*)&msg, sizeof(msg));
+        assert(result  == 0, "Failed reply to driver courier (%d)", result);
+        UNUSED(result);
+        
+        ctxt->state &= ~DRIVER_MASK;
+    }
+}
+
+static inline void _print_console_state(tc_context* const ctxt) {
+    char  buffer[32];
+    char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_pos,
+                        TRAIN_CONSOLE_COL);
+
+    if (0 == (ctxt->state & DRIVER_MASK)) {
+        *(ptr++)  = 'D';
+    } else if (80 == ctxt->sensor_expect) {
+        *(ptr++)  = 'L';
+    } else if (ctxt->state & TIMER_MASK) {
+        *(ptr++)  = 'X';
+    } else {
+        *(ptr++)  = ' ';
+    }
+
+    Puts(buffer, ptr-buffer); 
+}
 
 void train_console() {
     int tid, result, args[4];
@@ -399,7 +430,7 @@ void train_console() {
         result = Receive(&tid, (char*)args, sizeof(args));
 
         if (tid == context.driver_tid) {
-            context.docked |= DRIVER_MASK;
+            context.state |= DRIVER_MASK;
 
             switch (args[0]) {
             case 80:
@@ -449,21 +480,21 @@ void train_console() {
             try_send_timeout(&context);
 
         } else if (tid == context.timer_tid) {
-            context.docked |= TIMER_MASK;
+            context.state |= TIMER_MASK;
             if (result == 0 || context.sensor_iter != args[0]) {
                 try_send_timeout(&context);
             
-            } else if (context.docked & DRIVER_MASK)  {
+            } else if (context.state & DRIVER_MASK)  {
                 blaster_req callin = {
                     .type = BLASTER_CONSOLE_TIMEOUT
                 };
 
                 result = Reply(context.driver_tid, (char*)&callin, sizeof(callin));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
-                context.docked &= ~DRIVER_MASK;
+                context.state &= ~DRIVER_MASK;
             }
         } else if (tid == context.sensor_tid) {
-            context.docked |= SENSOR_MASK;
+            context.state |= SENSOR_MASK;
 
         } else if (_try_return_waiter(&context, tid)) {
             if (context.sensor_iter != args[0]);
@@ -478,7 +509,7 @@ void train_console() {
             //
             // dont resend since were on the same iteration, just will cause
             // for trains to fight over the bloody sensor, just give up for now
-            else if (context.docked & DRIVER_MASK) {
+            else if (context.state & DRIVER_MASK) {
                 struct blaster_pack {
                     blaster_req_type type;
                     int              time;
@@ -493,14 +524,14 @@ void train_console() {
 
                 result = Reply(context.driver_tid, (char*)&pack, sizeof(pack));
                 assert(result == 0, "Failed reply to driver courier (%d)", result);
-                context.docked &= ~DRIVER_MASK;
+                context.state &= ~DRIVER_MASK;
             }
         } else if (args[0] == BLASTER_CONSOLE_CANCEL) {
             context.sensor_iter++;
             context.sensor_timeout = 0;
             reject_remaining_sensors(&context);
-
-            Reply(tid, (char*)&args[0], sizeof(BLASTER_CONSOLE_CANCEL));
+            result = Reply(tid, (char*)&args[0], sizeof(args[0]));
+            assert(0 == result, "Failed returning cancel courier");
 
         } else {
             log(LOG_HEAD, "Train %d got unexpected message from %d",
@@ -509,12 +540,8 @@ void train_console() {
                    context.train_pos, tid);
         }
 
-        if (_is_console_dead(&context)) {
-            const blaster_req_type msg = BLASTER_CONSOLE_LOST;
-
-            result = Reply(context.driver_tid, (char*)&msg, sizeof(msg));
-            assert(result  == 0, "Failed reply to driver courier (%d)", result);
-            context.docked &= ~DRIVER_MASK;
-        }
+        _perform_dead_check(&context);
+        _print_console_state(&context);
     }
 }
+

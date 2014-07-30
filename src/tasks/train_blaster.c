@@ -1318,7 +1318,6 @@ void train_blaster() {
             context.console_courier = tid;
             continue;
 
-
         case BLASTER_CONSOLE_CANCEL:
             context.console_cancel = tid;
             continue;

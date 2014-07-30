@@ -9,11 +9,12 @@
 #define TRAIN_BANDWIDTH_UP    27
 #define TRAIN_BANDWIDTH_WIDTH 3
 
-#define TRAIN_ROW           6
-#define TRAIN_COL           1
-#define TRAIN_NUMBER_COL    (TRAIN_COL + 1)
-#define TRAIN_SPEED_COL     (TRAIN_NUMBER_COL + 6)
-#define TRAIN_SENSORS_COL   (TRAIN_SPEED_COL + 9)
+#define TRAIN_ROW          6
+#define TRAIN_COL          1
+#define TRAIN_NUMBER_COL  (TRAIN_COL + 1)
+#define TRAIN_SPEED_COL   (TRAIN_NUMBER_COL + 6)
+#define TRAIN_CONSOLE_COL (TRAIN_SPEED_COL  + 3)
+#define TRAIN_SENSORS_COL (TRAIN_SPEED_COL  + 9)
 
 #define TURNOUT_ROW TRAIN_ROW
 #define TURNOUT_COL 41
@@ -25,3 +26,4 @@ char* ui_pad(char* ptr, const int input_width, const int total_width);
 char  ui_twirler(const char prev);
 
 #endif
+
