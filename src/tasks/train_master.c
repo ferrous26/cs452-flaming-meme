@@ -628,6 +628,13 @@ static void master_check_turnout_throwing(master* const ctxt,
             // TODO: what if the turnout is already in the correct direction?
             //       right we auto-correct in this case because the only error
             //       handling is a log message...
+
+            if (velocity < 2000) // TROLOLO magic
+                master_delay_flip_turnout(ctxt,
+                                          step->data.turnout.num,
+                                          step->data.turnout.state,
+                                          time + 2); // TROLOLO magic
+
             log("[%s] Not enough time to throw turnout %d!",
                 ctxt->name, step->data.turnout.num);
         }
