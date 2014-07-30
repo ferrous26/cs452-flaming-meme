@@ -278,7 +278,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
     current_accel.distance        = truth.distance;  // does not change
     current_accel.speed           = truth.speed + (speed_delta / 2); // fudge
     current_accel.direction       = truth.direction; // hmmm
-    current_accel.next_location   = locs[i];
+    current_accel.next_location   = truth.next_location;
     current_accel.next_distance   = truth.next_distance;
     current_accel.next_timestamp  = time + start_time;
     current_accel.next_speed      = to_speed;
@@ -402,7 +402,7 @@ static void blaster_start_deccelerate(blaster* const ctxt,
     current_accel.distance          = truth.next_distance; // does not change
     current_accel.speed             = truth.speed - (speed_delta / 2); // fudge
     current_accel.direction         = truth.direction;     // hmmm
-    current_accel.next_location     = locs[i];
+    current_accel.next_location     = truth.next_location;
     current_accel.next_distance     = truth.next_distance;
     current_accel.next_timestamp    = time + stop_time;
     current_accel.next_speed        = to_speed;
@@ -493,11 +493,20 @@ static void blaster_reverse_direction(blaster* const ctxt,
     truth.next_location.offset = 0; // TODO: is this right?
     // truth.next_timestamp    = I don't fucking know; // I don't need to know
 
-    // TODO: maybe we need to setup the sensor polling guys here?
-    //       or maybe do it later in acceleration
-    //       or just wait until we hit another sensor
-    // NIK HALP!
+    // https://www.youtube.com/watch?v=gAYL5H46QnQ
+    assert(ctxt->console_cancel >= 0,
+           "[%s] Console cancel courier not ready to rock!",
+           ctxt->name);
+    const blaster_req_type cancel = BLASTER_CONSOLE_CANCEL;
+    const int cresult = Reply(ctxt->console_cancel,
+                              (char*)&cancel, sizeof(blaster_req_type));
+    assert(cresult == 0,
+           "[%s] Failed to send message to console cancel courier (%d)",
+           ctxt->name, cresult);
+    ctxt->console_cancel = -1;
 
+
+    // now we can try and update the UI to flip the next expected sensor
     physics_update_tracking_ui(ctxt, 0);
 
     ctxt->master_message = true;
@@ -670,10 +679,14 @@ blaster_process_acceleration_event(blaster* const ctxt,
                                    const int timestamp) {
 
     // do not process the event if it has been overridden by a future event
-    if (!blaster_kill_courier(ctxt->acceleration_courier, courier_tid))
-        return;
-    else
+    if (blaster_kill_courier(ctxt->acceleration_courier, courier_tid)) {
         ctxt->acceleration_courier = -1;
+    }
+    else {
+        log("[%s] Killing overridden acceleration courier", ctxt->name);
+        ctxt->acceleration_courier = -1;
+        return;
+    }
 
     last_accel                         = current_accel;
     current_accel.event                = EVENT_ACCELERATION;
@@ -1182,15 +1195,16 @@ static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,
     result       = Send(tid, (char*)c_init, sizeof(c_init), NULL, 0);
     assert(result == 0, "Failed to setup train console! (%d)", result);
 
-    tid = Create(TRAIN_COURIER_PRIORITY, courier);
-    if (tid < 0) ABORT("[%s] Failed creating train console cancel (%d)",
-                       ctxt->name, tid);
-    int cancel = BLASTER_CONSOLE_CANCEL;
+    const int cancel = BLASTER_CONSOLE_CANCEL;
     courier_package console_pack = {
         .receiver = tid,
         .size     = -(int)sizeof(cancel),
         .message  = (char*)&cancel
     };
+
+    tid = Create(TRAIN_COURIER_PRIORITY, courier);
+    if (tid < 0) ABORT("[%s] Failed creating train console cancel (%d)",
+                       ctxt->name, tid);
     result = Send(tid,
                   (char*)&console_pack, sizeof(console_pack),
                   NULL, 0);
