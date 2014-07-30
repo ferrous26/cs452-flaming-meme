@@ -23,7 +23,7 @@ struct track_edge {
     track_edge* reverse;
     track_node* src;
     track_node* dest;
-    int         dist;     /* in umillimetres */
+    int         dist;     /* in umeters */
 };
 
 struct track_node {
