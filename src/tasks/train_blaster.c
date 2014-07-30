@@ -61,7 +61,12 @@ const char* event_to_str(const train_event event) {
     return "Unknown Event";
 }
 
-#ifndef MARK
+// choose a pseudo-magic value for speed to use in the calculation
+static int blaster_estimate_speed(blaster* const ctxt) {
+    return (truth.speed + truth.next_speed) >> 2;
+}
+
+#ifndef NIK
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
@@ -223,7 +228,11 @@ static void blaster_start_accelerate(blaster* const ctxt,
     const int speed_delta = to_speed - truth.speed;
     const int start_dist  = physics_starting_distance(ctxt, speed_delta);
     const int start_time  = physics_starting_time(ctxt, start_dist);
-    const int velocity    = physics_current_velocity(ctxt);
+    const int velocity    = ctxt->acceleration_courier == -1 ?
+        physics_current_velocity(ctxt) :
+        physics_velocity(ctxt,
+                         (truth.speed + to_speed) >> 1,
+                         velocity_type(truth.location.sensor));
 
     const track_location current_location = {
         .sensor = truth.location.sensor,
@@ -345,7 +354,11 @@ static void blaster_start_deccelerate(blaster* const ctxt,
     const int speed_delta = truth.speed - to_speed;
     const int stop_dist   = physics_stopping_distance(ctxt, speed_delta);
     const int stop_time   = physics_stopping_time(ctxt, stop_dist);
-    const int velocity    = physics_current_velocity(ctxt);
+    const int velocity    = ctxt->acceleration_courier == -1 ?
+        physics_current_velocity(ctxt) :
+        physics_velocity(ctxt,
+                         (truth.speed + to_speed) >> 2,
+                         velocity_type(truth.location.sensor));
 
 
     assert(XBETWEEN(truth.location.sensor, -1, NUM_SENSORS),
@@ -530,7 +543,7 @@ static void blaster_reverse_direction(blaster* const ctxt,
     assert(ctxt->console_cancel >= 0,
            "[%s] Console cancel courier not ready to rock!",
            ctxt->name);
-    
+
     const blaster_req_type cancel = BLASTER_CONSOLE_CANCEL;
     const int cresult = Reply(ctxt->console_cancel,
                               (char*)&cancel, sizeof(blaster_req_type));
@@ -735,7 +748,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
     current_accel.speed                = last_accel.next_speed;
     current_accel.direction            = last_accel.direction;
 
-    // if the next location is the same sensor as the current location
+    // if the expected location is the same sensor as the current location
     // but with a different offset, then we need to do some magic to
     // move that thing up to the actual next sensor
 
