@@ -1093,7 +1093,7 @@ static inline void master_location_update(master* const ctxt,
         else if (ctxt->checkpoint.speed == 0 && ctxt->path_stopping
                                              && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
-            master_set_reverse(ctxt, time); // TROLOLO magic number
+            master_set_reverse(ctxt, time + 1); // TROLOLO magic number
             master_setup_next_short_move(ctxt, offset, time + 10);
             ctxt->path_stopping = false;
         }
