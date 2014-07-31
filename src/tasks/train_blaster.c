@@ -820,7 +820,7 @@ blaster_process_acceleration_event(blaster* const ctxt,
         const int result = get_sensor_from(truth.location.sensor,
                                            &truth.next_distance,
                                            &truth.next_location.sensor);
-        assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+        assert(result == 0, "[%s] Fuuuuu (%d)", ctxt->name, result);
         UNUSED(result);
 
         truth.next_location.offset = 0;
