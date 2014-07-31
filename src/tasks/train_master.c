@@ -375,7 +375,7 @@ master_update_pathing_ui(master* const ctxt) {
 
     int i = 0;
     for (const path_node* step = ctxt->path_step;
-         step >= ctxt->path && i < 6;
+         step >= ctxt->path && i < 3;
          step--, i++) {
 
         const uint index = step - ctxt->path;
@@ -662,12 +662,11 @@ static void master_check_turnout_throwing(master* const ctxt,
 
         // how much longer we have to wait until we reach the danger zone
         const int delay = velocity ?
-            (ctxt->next_turnout.offset - offset) / velocity :
-            10 ; // TROLOLO magic
+            (ctxt->next_turnout.offset - offset) / velocity : 0;
 
         const path_node* const step = ctxt->next_turnout.action;
 
-        if (delay < 0) {
+        if (delay <= 0) {
             // TODO: what if the turnout is already in the correct direction?
             //       right we auto-correct in this case because the only error
             //       handling is a log message...
@@ -675,7 +674,7 @@ static void master_check_turnout_throwing(master* const ctxt,
             master_delay_flip_turnout(ctxt,
                                       step->data.turnout.num,
                                       step->data.turnout.state,
-                                      time + 2); // TROLOLO magic
+                                      0); // no time, so no delay
 
             log("[%s] Not enough time to throw turnout %d! Danger ahead!",
                 ctxt->name, step->data.turnout.num);
@@ -1260,7 +1259,7 @@ static inline void master_location_update(master* const ctxt,
         else if (ctxt->checkpoint.speed == 0 && ctxt->path_stopping
                                              && !ctxt->path_completed) {
             log("[%s] Hit reversing point!", ctxt->name);
-            master_set_reverse(ctxt, time + 1); // TROLOLO magic number
+            master_set_reverse(ctxt, 0); // no delay required
             master_setup_next_short_move(ctxt, offset, time + 10);
             ctxt->path_stopping = false;
         }
