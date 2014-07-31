@@ -471,29 +471,37 @@ static void blaster_set_speed(blaster* const ctxt,
                              const int speed,
                              const int time) {
 
+
+    const int set_speed = speed ? (speed < 10 ? 0 : speed) : speed;
+
+    if (speed && speed < 10) {
+        log("[%s] Trying to set a non-zero speed less than 1 (%d)",
+            ctxt->name, speed);
+    }
+
     // if we are reversing, then store the speed such that the reverse
     // will choose that speed when it finishes
     if (ctxt->reversing) {
-        ctxt->reverse_speed = speed;
+        ctxt->reverse_speed = set_speed;
         return;
     }
 
-    put_train_speed((char)ctxt->train_gid, (char)(speed / 10));
+    put_train_speed((char)ctxt->train_gid, (char)(set_speed / 10));
 
-    if (speed == truth.speed)
-        log("[%s] Speed already set to %d", ctxt->name, speed);
+    if (set_speed == truth.speed)
+        log("[%s] Speed already set to %d", ctxt->name, set_speed);
 
-    if (truth.speed > speed) {
-        if (speed != 0)
+    if (truth.speed > set_speed) {
+        if (set_speed != 0)
             log("[%s] Unsupported decceleration %d -> %d",
-                ctxt->name, current_accel.speed / 10, speed / 10);
-        blaster_start_deccelerate(ctxt, speed, time);
+                ctxt->name, current_accel.speed / 10, set_speed / 10);
+        blaster_start_deccelerate(ctxt, set_speed, time);
     }
     else {
         if (truth.speed != 0)
             log("[%s] Unsupported acceleration %d -> %d",
-                ctxt->name, current_accel.speed / 10, speed / 10);
-        blaster_start_accelerate(ctxt, speed, time);
+                ctxt->name, current_accel.speed / 10, set_speed / 10);
+        blaster_start_accelerate(ctxt, set_speed, time);
     }
 }
 
