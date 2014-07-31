@@ -58,8 +58,8 @@ train_to_colour(const int train) {
     case 45: return MAGENTA;
     case 48: return LIGHT_MAGENTA;  // need a better colour?
     case 56: return RED;
-    case 58: return LIGHT_BLUE;
-    case 54: return BLUE;
+    case 54: return LIGHT_BLUE;
+    case 58: return BLUE;
     default: return WHITE;
     }
 }
@@ -70,8 +70,8 @@ train_to_pos(const int train) {
     case 45: return 0;
     case 48: return 1;
     case 56: return 2;
-    case 58: return 3;
-    case 54: return 4;
+    case 54: return 3;
+    case 58: return 4;
     default: return INVALID_TRAIN;
     }
 }
@@ -82,8 +82,8 @@ pos_to_train(const int pos) {
     case 0: return 45;
     case 1: return 48;
     case 2: return 56;
-    case 3: return 58;
-    case 4: return 54;
+    case 3: return 54;
+    case 4: return 58;
     default: return INVALID_TRAIN;
     }
 }
