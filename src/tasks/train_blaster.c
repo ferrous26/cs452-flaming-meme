@@ -813,10 +813,8 @@ blaster_process_acceleration_event(blaster* const ctxt,
     else if (current_sensor.next_location.sensor ==
              current_accel.location.sensor) {
 
-        // fudge it
-        truth.location        = current_accel.location;
-        truth.location.offset = 0;
-        truth.distance        = current_sensor.next_distance;
+        // fudge it (in a way that reservations like)
+        truth.location.offset = truth.next_distance;
 
         // but that means the values for next_* are not correct
         const int result = get_sensor_from(truth.location.sensor,
