@@ -98,7 +98,7 @@ static inline void
 physics_update_velocity_ui(const blaster* const ctxt) {
 
     // NOTE: we currently display in units of (integer) rounded off mm/s
-    char  buffer[32];
+    char  buffer[40];
     char* ptr = vt_goto(buffer,
                         TRAIN_SPEED_ROW,
                         TRAIN_SPEED_COL(ctxt->train_id));
