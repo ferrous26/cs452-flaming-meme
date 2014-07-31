@@ -158,9 +158,9 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     // do not allow the offset to be more than distance to next sensor
     const int new_offset = MIN(offset, truth.next_distance);
 
-    ctxt->master_state                  = truth;
-    ctxt->master_state.timestamp        = time;
-    ctxt->master_state.location.offset += new_offset;
+    ctxt->master_state                 = truth;
+    ctxt->master_state.timestamp       = time;
+    ctxt->master_state.location.offset = new_offset;
 
     master_req req = {
         .type = MASTER_BLASTER_LOCATION,
