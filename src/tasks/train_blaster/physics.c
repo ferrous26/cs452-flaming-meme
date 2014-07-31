@@ -141,7 +141,7 @@ physics_update_feedback_ui(const blaster* const ctxt,
 
     const sensor s = pos_to_sensor(truth.location.sensor);
     ptr = sprintf(ptr,
-                  "%c%d %d (%d)      ",
+                  "%d mm/s (%d)    ",
                   s.bank, s.num, delta_v / 10, delta_t);
 
     Puts(buffer, ptr - buffer);
@@ -158,7 +158,7 @@ physics_update_prediction_ui(const blaster* const ctxt,
 
     const sensor next = pos_to_sensor(truth.next_location.sensor);
     ptr = sprintf(ptr,
-                  "%c%d %d / %d     ",
+                  "%c%d %d (%d)     ",
                   next.bank, next.num,
                   (truth.next_distance - truth.location.offset) / 1000,
                   truth.next_timestamp - time);
