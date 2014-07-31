@@ -100,18 +100,18 @@ physics_velocity(const blaster* const ctxt,
                  const int speed,
                  const track_type type) {
 
-    if (speed == 0) return 0;
+    if (speed < 10) return 0;
     return ctxt->vmap[(speed / 10) - 1][type];
 }
 
 static inline int
 physics_stopping_distance(const blaster* const ctxt, const int speed) {
-    if (speed)
-        return
-            (ctxt->stop_dist_map.slope * speed) +
-            ctxt->stop_dist_map.offset +
-            ctxt->stopping_distance_offset;
-    return 0;
+
+    if (speed < 10) return 0;
+    return
+        (ctxt->stop_dist_map.slope * speed) +
+        ctxt->stop_dist_map.offset +
+        ctxt->stopping_distance_offset;
 }
 
 static inline int
@@ -140,7 +140,7 @@ physics_stopping_time(const blaster* const ctxt, const int stop_dist) {
 static inline int
 physics_starting_distance(const blaster* const ctxt, const int speed) {
 
-    if (speed == 0) return 0;
+    if (speed < 10) return 0;
 
     const cubic* const map = &ctxt->start_dist_map;
 
