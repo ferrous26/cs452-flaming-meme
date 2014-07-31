@@ -60,7 +60,6 @@ train_to_colour(const int train) {
     case 56: return RED;
     case 58: return LIGHT_BLUE;
     case 59: return GREEN;
-    case 54: return BLACK;
     default: return WHITE;
     }
 }
@@ -73,7 +72,6 @@ train_to_pos(const int train) {
     case 56: return 2;
     case 58: return 3;
     case 59: return 4;
-    case 54: return 5;
     default: return INVALID_TRAIN;
     }
 }
@@ -86,7 +84,6 @@ pos_to_train(const int pos) {
     case 2: return 56;
     case 3: return 58;
     case 4: return 59;
-    case 5: return 54;
     default: return INVALID_TRAIN;
     }
 }
@@ -108,12 +105,11 @@ pos_to_turnout(const int pos) {
     return INVALID_TURNOUT;
 }
 
-
 static inline int __attribute__ ((const))
 alpha_to_pos(const int alpha) {
     switch (alpha) {
-    case 0: return HALF_AND_HALF;
-    case 1: return NINTY_TEN;
+    case 0:  return HALF_AND_HALF;
+    case 1:  return NINTY_TEN;
     default: return INVALID_FEEDBACK_ALPHA;
     }
 }
