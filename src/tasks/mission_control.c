@@ -33,20 +33,37 @@ typedef struct {
 } mc_context;
 
 static void train_ui() {
-    char buffer[1024];
+    char buffer[4096];
     char* ptr = buffer;
 
-    ptr = vt_goto(ptr, TRAIN_ROW - 2, TRAIN_COL);
+    // I like printing out a bunch of white space...
+    ptr = vt_goto(ptr, TRAIN_ROW, 1);
     ptr = sprintf_string(ptr,
-"Train  Speed    Sensors              Turnouts/Gates/Switches     __Sensor__\n"
-"--------------------------------    +-----------------------+    |        | Newest\n"
-"                                    | 1   | 2   | 3   | 4   |    |        |\n"
-"                                    | 5   | 6   | 7   | 8   |    |        |\n"
-"                                    | 9   |10   |11   |12   |    |        |\n"
-"                                    |13   |14   |15   |16   |    |        |\n"
-"                                    |17   |18   |-----------|    |        |\n"
-"                                    |153   154  |155   156  |    |        |\n"
-"                                    +-----------------------+    |        | Oldest");
+" Train               Train               Train               Train               Train              \n"
+"----------------------------------------------------------------------------------------------------\n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+"                                                                                                    \n"
+" Turnouts/Gates/Switches                                   >>> Sensors >>>                          \n"
+"+-----------------------------------------------------+                                             \n"
+"| 1   | 2   | 3   | 4   | 5   | 6   | 7   | 8   | 9   |                                             \n"
+"|10   |11   |12   |13   |14   |15   |16   |17   |18   |                                             \n"
+"|153   154  |155   156  |-----------------------------|                                             \n"
+"+-----------------------------------------------------+                                             \n");
     Puts(buffer, ptr - buffer);
 }
 
@@ -143,12 +160,12 @@ static inline void mc_update_turnout(mc_context* const ctxt,
 
     if (pos < 18) {
         ptr = vt_goto(buffer,
-		      TURNOUT_ROW + (pos>>2),
-		      TURNOUT_COL + (mod2_int(pos, 4) * 6));
+		      TURNOUT_ROW + (pos / 9),
+		      TURNOUT_COL + ((pos % 9) * 6));
     } else {
         ptr = vt_goto(buffer,
-		      TURNOUT_ROW + 5,
-		      TURNOUT_COL + (mod2_int(pos - 18, 4) * 6));
+		      TURNOUT_ROW + 2,
+		      TURNOUT_COL + (((pos - 18) % 9) * 6));
     }
 
     switch(turn_state) {

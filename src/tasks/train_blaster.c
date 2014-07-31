@@ -143,6 +143,10 @@ static int blaster_create_new_delay_courier(blaster* const ctxt) {
 static inline void blaster_master_where_am_i(blaster* const ctxt,
                                              const int time) {
 
+    physics_update_velocity_ui(ctxt);
+    physics_update_prediction_ui(ctxt, time);
+    blaster_debug_state(ctxt, &truth);
+
     // master is not ready to receive the update :(
     // TODO: maybe we should assert on this? (to make sure we are not late)
     if (ctxt->master_courier == -1) return;
@@ -338,7 +342,6 @@ static void blaster_start_accelerate(blaster* const ctxt,
 
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, time);
-    physics_update_velocity_ui(ctxt);
 
     ctxt->console_restarted = true;
     blaster_restart_console(ctxt, time);
@@ -463,8 +466,6 @@ static void blaster_start_deccelerate(blaster* const ctxt,
 
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, time);
-
-    physics_update_velocity_ui(ctxt);
 }
 
 static void blaster_set_speed(blaster* const ctxt,
@@ -568,13 +569,8 @@ static void blaster_reverse_direction(blaster* const ctxt,
     ctxt->console_cancel    = -1;
     ctxt->console_cancelled = true;
 
-    // now we can try and update the UI to flip the next expected sensor
-    physics_update_tracking_ui(ctxt, 0);
-
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, time);
-
-    blaster_debug_state(ctxt, &truth);
 }
 
 static void blaster_master_reverse(blaster* const ctxt,
@@ -900,9 +896,6 @@ blaster_process_acceleration_event(blaster* const ctxt,
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, truth.timestamp);
 
-    // do not forget to update now that speed is actually finalized
-    physics_update_velocity_ui(ctxt);
-
     if (ctxt->reversing == 1)
         blaster_reverse_step2(ctxt);
 
@@ -973,17 +966,11 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     // considered to be the truth...
     truth = current_sensor;
 
-    blaster_debug_state(ctxt, &truth);
-
     // need to pass the service_time in case we do a reverse
     blaster_detect_train_direction(ctxt, sensor_hit, timestamp);
 
     ctxt->master_message = true;
     blaster_master_where_am_i(ctxt, timestamp);
-
-    // TODO: replace this with call that does not update the delta value
-    physics_update_tracking_ui(ctxt, 0);
-    physics_update_velocity_ui(ctxt);
 
     int reply[3];
     create_console_reply(ctxt, sensor_hit_time, reply);
@@ -1095,6 +1082,7 @@ blaster_process_sensor_event(blaster* const ctxt,
 
     blaster_debug_state(ctxt, &truth);
 
+    const int    delta_t = sensor_time - last_sensor.next_timestamp;
     const int expected_v =
         physics_velocity(ctxt,
                          truth.speed,
@@ -1123,10 +1111,9 @@ blaster_process_sensor_event(blaster* const ctxt,
     }
 
     ctxt->master_message = true;
-    blaster_master_where_am_i(ctxt, timestamp);
 
-    physics_update_tracking_ui(ctxt, delta_v);
-    physics_update_velocity_ui(ctxt);
+    blaster_master_where_am_i(ctxt, timestamp);
+    physics_update_feedback_ui(ctxt, delta_v, delta_t);
 
     int reply[3];
     create_console_reply(ctxt, sensor_time, reply);
@@ -1201,9 +1188,7 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
     ctxt->train_id  = init[0];
     ctxt->train_gid = pos_to_train(ctxt->train_id);
 
-    ctxt->console_courier = -1;
-    ctxt->console_timeout = 0;
-
+    // stop any running trains
     put_train_speed((char)ctxt->train_gid, 0);
 
     //I Want this to explicity never be changeable from here
@@ -1230,17 +1215,17 @@ static TEXT_COLD void blaster_init(blaster* const ctxt) {
                   colour, ctxt->train_gid);
     sprintf_char(ptr, '\0');
 
-    char buffer[32];
-    ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_id, TRAIN_NUMBER_COL);
 
+    char buffer[32];
+    ptr = vt_goto(buffer, TRAIN_ROW, TRAIN_NUMBER_COL(ctxt->train_id));
     ptr = sprintf(ptr, "%s%d" COLOUR_RESET, colour, ctxt->train_gid);
     Puts(buffer, ptr - buffer);
 
-    truth.location.sensor    =  0;
     ctxt->master_courier     = -1;
     ctxt->reverse_courier    = -1;
     ctxt->checkpoint_courier = -1;
     ctxt->console_cancel     = -1;
+    ctxt->console_courier    = -1;
 }
 
 static TEXT_COLD void blaster_init_couriers(blaster* const ctxt,

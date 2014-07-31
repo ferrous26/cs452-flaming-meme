@@ -100,61 +100,68 @@ physics_update_velocity_ui(const blaster* const ctxt) {
     // NOTE: we currently display in units of (integer) rounded off mm/s
     char  buffer[32];
     char* ptr = vt_goto(buffer,
-                        TRAIN_ROW + ctxt->train_id,
-                        TRAIN_SPEED_COL);
+                        TRAIN_SPEED_ROW,
+                        TRAIN_SPEED_COL(ctxt->train_id));
+    char direction = ' ';
 
     switch (truth.direction) {
     case DIRECTION_BACKWARD:
         ptr = sprintf_string(ptr, COLOUR(MAGENTA));
+        direction = '-';
         break;
     case DIRECTION_UNKNOWN:
         ptr = sprintf_string(ptr, COLOUR(RED));
         break;
     case DIRECTION_FORWARD:
         ptr = sprintf_string(ptr, COLOUR(CYAN));
+        direction = '+';
         break;
     }
 
     const char* const format = truth.speed && truth.speed < 150 ?
-        "%d "     COLOUR_RESET :
-        "-      " COLOUR_RESET;
+        "%d" COLOUR_RESET "(%c%d.%d)  " :
+        "-"  COLOUR_RESET "           " ;
 
     const int v = physics_current_velocity(ctxt);
-    ptr = sprintf(ptr, format, v / 10);
+    ptr = sprintf(ptr, format,
+                  v / 10, direction, truth.speed / 10, truth.speed % 10);
 
     Puts(buffer, ptr - buffer);
 }
 
-static char* sprintf_sensor(char* ptr, const sensor* const s) {
-    if (s->num < 10)
-        return sprintf(ptr, "%c0%d ", s->bank, s->num);
-    else
-        return sprintf(ptr, "%c%d ",  s->bank, s->num);
+static void
+physics_update_feedback_ui(const blaster* const ctxt,
+                           const int delta_v,
+                           const int delta_t) {
+
+    char  buffer[40];
+    char* ptr = vt_goto(buffer,
+                        TRAIN_SENSOR_ROW,
+                        TRAIN_SENSOR_COL(ctxt->train_id));
+
+    const sensor s = pos_to_sensor(truth.location.sensor);
+    ptr = sprintf(ptr,
+                  "%c%d %d (%d)      ",
+                  s.bank, s.num, delta_v / 10, delta_t);
+
+    Puts(buffer, ptr - buffer);
 }
 
 static void
-physics_update_tracking_ui(blaster* const ctxt, const int delta_v) {
+physics_update_prediction_ui(const blaster* const ctxt,
+                             const int time) {
 
     char  buffer[32];
     char* ptr = vt_goto(buffer,
-                        TRAIN_ROW + ctxt->train_id,
-                        TRAIN_SENSORS_COL);
+                        TRAIN_PREDICTION_ROW,
+                        TRAIN_PREDICTION_COL(ctxt->train_id));
 
-    const sensor last = pos_to_sensor(last_sensor.location.sensor);
-    const sensor curr = pos_to_sensor(current_sensor.location.sensor);
-    const sensor next = pos_to_sensor(current_sensor.next_location.sensor);
-
-    // TODO: separate delta printing to only show up when actually
-    //       calculating a delta (i.e. only on sensor updates)
-    ptr = sprintf_int(ptr, delta_v / 10);
-    ptr = ui_pad(ptr, log10(abs(delta_v)) + (delta_v < 0 ? 1 : 0), 5);
-
-    ptr = sprintf_sensor(ptr, &last);
-    ptr = sprintf_sensor(ptr, &curr);
-    ptr = sprintf_sensor(ptr, &next);
-
-    // if previous delta was an order of larger than it should have been
-    ptr = sprintf_char(ptr, ' ');
+    const sensor next = pos_to_sensor(truth.next_location.sensor);
+    ptr = sprintf(ptr,
+                  "%c%d %d / %d     ",
+                  next.bank, next.num,
+                  (truth.next_distance - truth.location.offset) / 1000,
+                  truth.next_timestamp - time);
 
     Puts(buffer, ptr - buffer);
 }
@@ -166,7 +173,7 @@ physics_feedback(blaster* const ctxt,
                  const int delta_v) {
 
     // do not feedback while accelerating
-    if (current_sensor.speed == 0) return;
+    if (truth.is_accelerating || truth.speed == 0) return;
 
     if (abs(delta_v) > ctxt->feedback_threshold) {
         const sensor from = pos_to_sensor(last_sensor.location.sensor);

@@ -403,8 +403,9 @@ static inline void _perform_dead_check(tc_context* const ctxt) {
 static inline void _print_console_state(tc_context* const ctxt) {
 
     char  buffer[32];
-    char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_pos,
-                        TRAIN_CONSOLE_COL);
+    char* ptr = vt_goto(buffer,
+                        TRAIN_CONSOLE_ROW,
+                        TRAIN_CONSOLE_COL(ctxt->train_pos));
 
     if (0 == (ctxt->state & DRIVER_MASK)) {
         *(ptr++)  = 'D';

@@ -1,4 +1,5 @@
 #include <std.h>
+#include <ui.h>
 #include <debug.h>
 #include <track_data.h>
 
@@ -8,6 +9,7 @@
 #include <tasks/clock_server.h>
 
 #include <tasks/mission_control.h>
+#include <tasks/term_server.h>
 #include <tasks/mission_control_types.h>
 #include <tasks/track_reservation.h>
 
@@ -306,6 +308,22 @@ master_where_you_at(master* const ctxt,
     master_release_control_courier(ctxt, pkg, courier_tid);
 }
 
+static void
+master_update_location_ui(master* const ctxt) {
+
+    char buffer[128];
+    char* ptr = vt_goto(buffer,
+                        TRAIN_LOCATION_ROW,
+                        TRAIN_LOCATION_COL(ctxt->train_id));
+
+    const sensor s = pos_to_sensor(ctxt->checkpoint.location.sensor);
+    ptr = sprintf(ptr,
+                  "%c%d + %d mm    ",
+                  s.bank, s.num, ctxt->checkpoint.location.offset / 1000);
+
+    Puts(buffer, ptr - buffer);
+}
+
 static action_point
 master_find_action_location(master* const ctxt,
                             const path_node* const start_step,
@@ -340,58 +358,61 @@ master_find_action_location(master* const ctxt,
 static inline const path_node*
 master_try_fast_forward(master* const ctxt) {
 
-#ifdef DEBUG
-    const path_node* start = ctxt->path_step;
-#endif
-    for (const path_node* step = ctxt->path_step; step >= ctxt->path; step--) {
-        if (step->type == PATH_SENSOR) {
-
-#ifdef DEBUG
-            if (!start) start = step;
-#endif
-            if (step->data.sensor == ctxt->checkpoint.location.sensor) {
-#ifdef DEBUG
-                if (start != step) {
-                    const sensor head =
-                        pos_to_sensor(start->data.sensor);
-                    const sensor tail =
-                        pos_to_sensor(step->data.sensor);
-
-                    log("[%s] %c%d >> %c%d",
-                        ctxt->name, head.bank, head.num, tail.bank, tail.num);
-                }
-#endif
-
+    for (const path_node* step = ctxt->path_step; step >= ctxt->path; step--)
+        if (step->type == PATH_SENSOR)
+            if (step->data.sensor == ctxt->checkpoint.location.sensor)
                 return step; // successfully fast forwarded
-            }
-        }
-    }
 
     // cancel path, we need something else!
     return NULL;
 }
 
-static void __attribute__ ((unused))
-master_debug_path(master* const ctxt) {
+static void
+master_update_pathing_ui(master* const ctxt) {
 
-    for (const path_node* step = ctxt->path_step; step >= ctxt->path; step--) {
-        const int i = step - ctxt->path;
+    char buffer[140];
+    char* ptr = buffer;
+
+    int i = 0;
+    for (const path_node* step = ctxt->path_step;
+         step >= ctxt->path && i < 6;
+         step--, i++) {
+
+        const uint index = step - ctxt->path;
+        ptr = vt_goto(ptr, TRAIN_PATH_ROW + i, TRAIN_PATH_COL(ctxt->train_id));
+        ptr = sprintf_uint(ptr, index);
+        ptr = ui_pad(ptr, log10(index), 4);
+
         switch(step->type) {
         case PATH_SENSOR: {
-            const sensor print = pos_to_sensor(step->data.int_value);
-            log("%d  \tS\t%c%d\t%d", i, print.bank, print.num, step->dist);
+            const sensor s = pos_to_sensor(step->data.sensor);
+            ptr = sprintf(ptr, "%c %d", s.bank, s.num);
+            ptr = ui_pad(ptr, log10(s.num), 4);
             break;
         }
-        case PATH_TURNOUT:
-            log("%d  \tT\t%d %c\t%d",
-                i, step->data.turnout.num, step->data.turnout.state,
-                step->dist);
+        case PATH_TURNOUT: {
+            const int turn = step->data.turnout.num;
+            ptr = ui_pad(ptr, log10(turn), 4);
+            ptr = sprintf(ptr,
+                          "%d %c",
+                          turn, step->data.turnout.state);
             break;
+        }
         case PATH_REVERSE:
-            log("%d  \tR\t\t%d", i, step->dist);
+            ptr = sprintf_string(ptr, "R     ");
             break;
         }
+
+        ptr = sprintf_uint(ptr, step->dist / 1000);
     }
+
+    // pad out the rest of the path finding space (lame CPU burning)
+    for (; i < 6; i++) {
+        ptr = vt_goto(ptr, TRAIN_PATH_ROW + i, TRAIN_PATH_COL(ctxt->train_id));
+        ptr = sprintf_string(ptr, "            ");
+    }
+
+    Puts(buffer, ptr - buffer);
 }
 
 static void
@@ -451,6 +472,11 @@ master_goto(master* const ctxt,
            "[%s] Invalid path worker tid (%d)",
            ctxt->name, worker_tid);
     UNUSED(result);
+
+    // do not forget to force current path to end
+    ctxt->path_last = 0;
+    ctxt->path_step = NULL;
+    master_update_pathing_ui(ctxt);
 }
 
 static inline void
@@ -464,7 +490,10 @@ master_goto_command(master* const ctxt,
 
     if (ctxt->destination == destination) {
         ctxt->path_step = master_try_fast_forward(ctxt);
-        if (ctxt->path_step) return;
+        if (ctxt->path_step) {
+            master_update_pathing_ui(ctxt);
+            return;
+        }
 
         // TODO: handle the offset
     }
@@ -560,6 +589,7 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
     const path_node* const start_step =
         MIN(ctxt->next_stop.step, ctxt->path_step);
 
+    // TODO: why do we end uncleanly?!?!?!
     for (const path_node* step = start_step - 1; step >= ctxt->path; step--) {
         // if we have found a reverse step
         if (step->type == PATH_REVERSE || step == ctxt->path) {
@@ -575,6 +605,8 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
 
     log("[%s] Hit end of path non-cleanly (%d)",
         ctxt->name, start_step - ctxt->path);
+
+    ctxt->path_last = NULL;
     ctxt->path_step = NULL;
     ctxt->path_completed = true;
 }
@@ -817,6 +849,7 @@ static void master_setup_next_short_move(master* const ctxt,
     else {
         log("[%s] Distance %d mm is too short for a short move",
             ctxt->name, dist_to_path_checkpoint / 1000);
+        ctxt->path_last = NULL;
         ctxt->path_step = NULL;
     }
 }
@@ -848,6 +881,7 @@ static void master_setup_first_short_move(master* const ctxt,
     else {
         log("[%s] Distance %d mm is too short for a short move",
             ctxt->name, distance_to_first_point / 1000);
+        ctxt->path_last = NULL;
         ctxt->path_step = NULL;
     }
 }
@@ -878,7 +912,7 @@ static inline void master_path_update(master* const ctxt,
     ctxt->path_stopping  = false;
     ctxt->path_completed = false;
 
-    master_debug_path(ctxt);
+    master_update_pathing_ui(ctxt);
 
     // some stuff we need to know before we kick off the path finding
     const int velocity = master_current_velocity(ctxt);
@@ -886,7 +920,6 @@ static inline void master_path_update(master* const ctxt,
     // how far we have travelled from the sensor since the checkpoint
     const int   offset = ctxt->checkpoint.location.offset +
         (velocity * (time - ctxt->checkpoint.timestamp));
-
 
     if (path[size - 1].type == PATH_REVERSE) {
         log("[%s] Started with a reverse", ctxt->name);
@@ -896,6 +929,7 @@ static inline void master_path_update(master* const ctxt,
     } else {
         // Get us up to date on where we are
         ctxt->path_step = master_try_fast_forward(ctxt);
+        master_update_pathing_ui(ctxt);
     }
 
     // wait until we know where we are starting from
@@ -1115,6 +1149,8 @@ static inline void master_location_update(master* const ctxt,
     //state,
     //event_to_str(ctxt->checkpoint.event));
 
+    master_update_location_ui(ctxt);
+
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
     assert(result == 0,
            "[%s] Failed to send courier back to blaster (%d)",
@@ -1172,6 +1208,7 @@ static inline void master_location_update(master* const ctxt,
                   reverse == ctxt->checkpoint.next_location.sensor)) {
 
                 ctxt->path_step = NULL;
+                master_update_pathing_ui(ctxt);
 
                 // try to find a new path
                 const sensor s = pos_to_sensor(ctxt->allowed_sensor);
@@ -1186,10 +1223,15 @@ static inline void master_location_update(master* const ctxt,
                             ctxt->destination_offset);
                 return;
             }
+            else {
+                // we just hit the allowed_sensor, so no need to update path
+                // UI or fast forward the route
+            }
         }
         else {
             // actually fast forward now
             ctxt->path_step = still_on_path;
+            master_update_pathing_ui(ctxt);
         }
 
         // now, the million dollar question is: are we too late to throw

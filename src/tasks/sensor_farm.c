@@ -97,17 +97,17 @@ inline static void _update_sensors(sf_context* const ctxt,
         ctxt->wait_all = -1;
     }
 
-    char buffer[64];
-    for(int i =0; next->bank != 0; i++) {
-        const char* const output = next->num < 10 ? "%c 0%d": "%c %d";
-        char*                pos = vt_goto(buffer, SENSOR_ROW+i, SENSOR_COL);
-        pos = sprintf(pos, output, next->bank, next->num);
-        Puts(buffer, pos-buffer);
+    char buffer[100];
+    char* ptr = vt_goto(buffer, SENSOR_ROW, SENSOR_COL);
+    for(int i = 0; next->bank != 0; i++) {
+        const char* const output = next->num < 10 ? "%c%d   ": "%c%d  ";
+        ptr = sprintf(ptr, output, next->bank, next->num);
 
-        if (next-- == ctxt->recent_sensors) {
-            next = ctxt->recent_sensors + SENSOR_LIST_SIZE-1;
-        }
+        if (next-- == ctxt->recent_sensors)
+            next = ctxt->recent_sensors + SENSOR_LIST_SIZE - 1;
     }
+
+    Puts(buffer, ptr - buffer);
 }
 
 static inline void _sensor_delay(sf_context* const ctxt,
