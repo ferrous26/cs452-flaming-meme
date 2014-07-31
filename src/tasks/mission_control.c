@@ -163,7 +163,7 @@ static inline void mc_update_turnout(mc_context* const ctxt,
         ctxt->turnouts[pos] = DIR_STRAIGHT;
         break;
     default:
-        log("Invalid Turnout State %d", turn_state);
+        log(LOG_HEAD "Invalid Turnout State %d", turn_state);
         return;
     }
 
@@ -507,5 +507,3 @@ int query_turnout_state(const int turnout_num) {
     UNUSED(result);
     return turn_state;
 }
-
-
