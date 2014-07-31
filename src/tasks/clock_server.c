@@ -122,7 +122,7 @@ static inline void _reply_with_time(cs_context* const ctxt,
                              (char*)&ctxt->time,
                              sizeof(ctxt->time));
     UNUSED(result); UNUSED(caller);
-    assert(result == 0, caller, result);
+    assert(result == 0, caller, result, tid);
 }
 
 static void _startup(cs_context* const ctxt) {
@@ -172,7 +172,7 @@ void clock_server() {
             context.time++;
             while (pq_peek_key(&context.q) <= context.time) {
                 tid = pq_delete(&context.q);
-                _reply_with_time(&context, tid, "Delay %d");
+                _reply_with_time(&context, tid, "Delay %d (%d)");
             }
             break;
 
@@ -182,7 +182,7 @@ void clock_server() {
             break;
 
         case CLOCK_TIME:
-            _reply_with_time(&context, tid, "Time %d");
+            _reply_with_time(&context, tid, "Time %d (%d)");
             break;
 
         case CLOCK_DELAY_UNTIL:
@@ -193,11 +193,11 @@ void clock_server() {
                      "[Clock] %d missed DelayUntil(%d)",
                      tid, req.ticks);
                 result = Reply(tid, (char*)&missed_deadline, sizeof(int));
-                assert(result == 0, "MISSED DEADLINE, %d", result);
+                assert(result == 0, "MISSED DEADLINE, %d (%d)", result, tid);
             }
             // we treat deadlines happening right away as being on time
             else if (req.ticks == context.time) {
-                _reply_with_time(&context, tid, "DelayUntil %d");
+                _reply_with_time(&context, tid, "DelayUntil %d (%d)");
             }
             else {
                 pq_add(&context.q, req.ticks, tid);
