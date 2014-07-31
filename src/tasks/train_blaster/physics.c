@@ -173,7 +173,7 @@ physics_feedback(blaster* const ctxt,
                  const int delta_v) {
 
     // do not feedback while accelerating
-    if (truth.is_accelerating || truth.speed == 0) return;
+    if (truth.speed < 10) return;
 
     if (abs(delta_v) > ctxt->feedback_threshold) {
         const sensor from = pos_to_sensor(last_sensor.location.sensor);
