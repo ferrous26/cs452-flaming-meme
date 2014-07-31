@@ -661,7 +661,9 @@ static void master_check_turnout_throwing(master* const ctxt,
            ctxt->next_turnout.step->data.sensor) {
 
         // how much longer we have to wait until we reach the danger zone
-        const int delay = (ctxt->next_turnout.offset - offset) / velocity;
+        const int delay = velocity ?
+            (ctxt->next_turnout.offset - offset) / velocity :
+            10 ; // TROLOLO magic
 
         const path_node* const step = ctxt->next_turnout.action;
 
@@ -727,7 +729,9 @@ static void master_check_throw_stop_command(master* const ctxt,
         ctxt->next_stop.step->data.sensor) {
 
         log("[%s] Scheduling stop", ctxt->name);
-        const int delay = (ctxt->next_stop.offset - offset) / velocity;
+        const int delay = velocity ?
+            (ctxt->next_stop.offset - offset) / velocity :
+            10 ;
 
         master_set_speed(ctxt, 0, time + delay);
         master_set_allowed_sensor(ctxt);
@@ -789,7 +793,7 @@ static void master_short_move2(master* const ctxt) {
     const int dist_remaining = ctxt->short_moving_distance -
         (stop_dist +
          (current_location.offset - ctxt->checkpoint.location.offset));
-    const int      stop_time = dist_remaining / velocity;
+    const int      stop_time = velocity ? dist_remaining / velocity : 0;
 
     master_set_speed(ctxt, 0, time + stop_time);
 

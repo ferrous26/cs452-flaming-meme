@@ -197,6 +197,13 @@ static void blaster_restart_console(blaster* const ctxt,
             physics_velocity(ctxt,
                              (truth.speed * 4) / 5,
                              velocity_type(truth.location.sensor));
+
+        if (velocity == 0) {
+            log("[%s] Tried to restart console when setting speed to 0",
+                ctxt->name);
+            return; // abort!
+        }
+
         const int next_timestamp = timestamp + (distance / velocity);
 
         const int package[] = {
@@ -742,50 +749,30 @@ blaster_process_acceleration_event(blaster* const ctxt,
             ctxt->name, ctxt->acceleration_courier, courier_tid);
         return;
     }
-    else {
-        log("[%s] Hidy Ho!!!!!!!!!!!!!!!!!!!! %d",
-            ctxt->name, ctxt->acceleration_courier);
-        ctxt->acceleration_courier = -1;
-    }
 
-    last_accel                         = current_accel;
-    current_accel.event                = EVENT_ACCELERATION;
-    current_accel.timestamp            = req->arg2;
-    current_accel.is_accelerating      = false;
-    current_accel.location.sensor      = req->arg1;
-    current_accel.location.offset      = req->arg3;
-    current_accel.distance             = last_accel.next_distance; // hmmm
-    current_accel.speed                = last_accel.next_speed;
-    current_accel.direction            = last_accel.direction;
+    // only unset this if we are accepting the acceleration courier
+    ctxt->acceleration_courier = -1;
 
-    // if the expected location is the same sensor as the current location
-    // but with a different offset, then we need to do some magic to
-    // move that thing up to the actual next sensor
+    const int velocity =
+        physics_velocity(ctxt,
+                         current_accel.next_speed,
+                         velocity_type(truth.location.sensor));
+    const int delta_t = timestamp - req->arg2;
+    const int delta_d = velocity * delta_t;
 
-    if (req->arg1 == truth.location.sensor) {
-        assert(current_accel.location.sensor < NUM_SENSORS, "HERE");
-        const int result = get_sensor_from(current_accel.location.sensor,
-                                           &current_accel.next_distance,
-                                           &current_accel.next_location.sensor);
-        assert(result == 0, "[%s] Fuuuuu", ctxt->name);
-        UNUSED(result);
+    last_accel                     = current_accel;
+    current_accel.event            = EVENT_ACCELERATION;
+    current_accel.timestamp        = timestamp;
+    current_accel.is_accelerating  = false;
+    current_accel.location.sensor  = req->arg1;
+    current_accel.location.offset  = req->arg3 + delta_d;
+    current_accel.speed            = last_accel.next_speed;
+    current_accel.direction        = last_accel.direction;
+    current_accel.next_location    = truth.next_location;
+    current_accel.next_distance    = truth.next_distance;
+    current_accel.next_timestamp   = truth.next_timestamp;
 
-        current_accel.next_location.offset = 0;
-
-        const int v =
-            physics_velocity(ctxt,
-                             current_accel.speed,
-                             velocity_type(req->arg1));
-        const int d =
-            current_accel.next_distance - current_accel.location.offset;
-
-        current_accel.next_timestamp = req->arg2 + (d / v);
-    }
-    else {
-        current_accel.next_location  = truth.next_location;
-        current_accel.next_distance  = truth.next_distance;
-        current_accel.next_timestamp = truth.next_timestamp;
-    }
+    // now the hard part: merging acceleration state into the truth...
 
     // at the very least, this subset of state has to become truth
     truth.event           = current_accel.event;
@@ -795,77 +782,39 @@ blaster_process_acceleration_event(blaster* const ctxt,
     // truth.direction       = current_accel.direction;
     truth.next_speed      = current_accel.next_speed;
 
-    // now, the question is, what other state do we need to merge?
-    // remember that if we update the master state we need to notify master
 
-    // we were late
+    // now, the question is, what other state do we need to merge?
+
+    // late, but unless our calibration is way off, we won't be very late
     if (last_sensor.location.sensor == current_accel.location.sensor) {
         mark_log("[%s] Late acceleration event!", ctxt->name);
 
-        // we will try and estimate some shit here
-        // assume we travelled at 80 of the previous speed for
-        // for the time delta between states
-
-        truth.timestamp = timestamp;
-        const int time_delta = timestamp - truth.timestamp;
-
         // choose a pseudo-magic value for speed to use in the calculation
-        const int estimated_speed =
-            ((last_accel.speed > current_accel.speed ?
-              last_accel.speed : truth.speed) * 8) / 10;
-
-        const int velocity =
+        const int    late_delta_t = timestamp - truth.timestamp;
+        const int estimated_speed = MAX(20, (truth.speed * 8) / 10);
+        const int   late_velocity =
             physics_velocity(ctxt,
                              estimated_speed,
                              velocity_type(truth.location.sensor));
 
-        truth.location.offset += velocity * time_delta;
+        // so just try and add a bit of fudge
+        truth.location.offset += late_velocity * late_delta_t;
     }
     // we are (somewhat) on time
     else if (current_sensor.location.sensor == current_accel.location.sensor) {
-        // so, just the location needs to be futzed with
-
-        // if truth is behind current, then we update
-        if (truth.location.offset < current_accel.location.offset) {
-            truth.timestamp       = current_accel.timestamp;
-            truth.location.offset = current_accel.location.offset;
-            truth.distance        = current_accel.distance;
-
-            if (current_accel.timestamp == truth.next_timestamp) {
-                assert(truth.location.sensor < NUM_SENSORS, "HERE");
-                const int result = get_sensor_from(truth.location.sensor,
-                                                   &truth.next_distance,
-                                                   &truth.next_location.sensor);
-                assert(result == 0, "[%s] Fuuuuu", ctxt->name);
-                UNUSED(result);
-
-                truth.next_location.offset = 0;
-                current_accel.next_location = truth.next_location;
-                current_accel.next_distance = truth.next_distance;
-
-                const int d = truth.next_distance - truth.location.offset;
-                const int v = physics_current_velocity(ctxt);
-                truth.next_timestamp = d / v;
-            }
-        }
+        // assume our estimates are correct
+        truth.location = current_accel.location;
     }
-    // we are early OR
-    // we have not hit a sensor since the last acceleration event
-    // started, so we need to just keep on trucking, and hope that we
-    // are correct in our calculations
+    // we are early (OR dead sensor)
     else if (current_sensor.next_location.sensor ==
-             current_accel.location.sensor ||
-             current_accel.timestamp == truth.next_timestamp) {
+             current_accel.location.sensor) {
 
-        // so we are now the truth
-        truth.timestamp = current_accel.timestamp;
-        truth.location  = current_accel.location;
-        truth.distance  = current_accel.distance;
+        // fudge it
+        truth.location        = current_accel.location;
+        truth.location.offset = 0;
+        truth.distance        = current_sensor.next_distance;
 
         // but that means the values for next_* are not correct
-        assert(truth.location.sensor != 144, "Told ya so bro %d %d %d",
-               req->arg1, last_accel.next_location.sensor,
-               last_accel.location.sensor);
         const int result = get_sensor_from(truth.location.sensor,
                                            &truth.next_distance,
                                            &truth.next_location.sensor);
@@ -875,10 +824,6 @@ blaster_process_acceleration_event(blaster* const ctxt,
         truth.next_location.offset = 0;
         current_accel.next_location = truth.next_location;
         current_accel.next_distance = truth.next_distance;
-
-        const int d = truth.next_distance - truth.location.offset;
-        const int v = physics_current_velocity(ctxt);
-        truth.next_timestamp = d / v;
     }
     // I don't fuckin' know what to do in this case
     else {
@@ -890,7 +835,21 @@ blaster_process_acceleration_event(blaster* const ctxt,
         // TODO: what other cases will cause this?
     }
 
-    blaster_debug_state(ctxt, &truth);
+    // now, we need to adjust our estimates a bit
+    truth.timestamp      = current_accel.timestamp;
+    truth.next_timestamp = velocity ?
+        timestamp + (blaster_distance_remaining(&truth) / velocity) :
+        timestamp;
+
+    // god damnit
+    assert(truth.location.sensor < TRACK_MAX,
+           "[%s] Told ya so bro %d (%d -> %d) [%d, %d, %d]",
+           ctxt->name,
+           truth.location.sensor,
+           last_accel.speed, last_accel.next_speed,
+           req->arg1,
+           last_accel.location.sensor,
+           last_sensor.location.sensor);
 
     // let the master know where we are
     ctxt->master_message = true;
@@ -898,8 +857,6 @@ blaster_process_acceleration_event(blaster* const ctxt,
 
     if (ctxt->reversing == 1)
         blaster_reverse_step2(ctxt);
-
-    UNUSED(timestamp);
 }
 
 static inline void
@@ -944,8 +901,9 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
                                    current_sensor.speed,
                                    velocity_type(current_sensor.location.sensor));
 
-    current_sensor.next_timestamp = current_sensor.timestamp +
-        current_sensor.next_distance / v;
+    current_sensor.next_timestamp = v ?
+        current_sensor.timestamp + (current_sensor.next_distance / v) :
+        truth.timestamp;
 
     if (truth.next_distance < 0) {
         if (physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
@@ -1068,12 +1026,14 @@ blaster_process_sensor_event(blaster* const ctxt,
     UNUSED(result);
 
     // calculate expected next time
-    const int v = physics_velocity(ctxt,
-                                   current_sensor.speed,
-                                   velocity_type(current_sensor.location.sensor));
+    const int v =
+        physics_velocity(ctxt,
+                         current_sensor.speed,
+                         velocity_type(current_sensor.location.sensor));
 
-    current_sensor.next_timestamp = current_sensor.timestamp +
-        current_sensor.next_distance / v;
+    current_sensor.next_timestamp = v ?
+        current_sensor.timestamp + (current_sensor.next_distance / v) :
+        truth.timestamp;
 
     // now we need to update the truth...except that a sensor hit is always the
     // considered to be the truth...
