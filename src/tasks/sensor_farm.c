@@ -34,7 +34,7 @@ static void __attribute__ ((noreturn)) sensor_poll() {
     int       sensor_state[NUM_SENSOR_BANKS];
     const int ptid = myParentTid();
     struct {
-        sf_type type;  
+        sf_type type;
         int     sensor;
         int     time;
     } req = {
@@ -58,7 +58,7 @@ static void __attribute__ ((noreturn)) sensor_poll() {
 
             for (int mask = 0x8000, i = 0; mask > 0; mask = mask >> 1, i++) {
                 if ((c & mask) > (sensor_state[bank] & mask)) {
-                    req.sensor = (bank<<4) + i; 
+                    req.sensor = (bank<<4) + i;
                     Send(ptid, (char*)&req, sizeof(req), NULL, 0);
                 }
             }
@@ -76,7 +76,7 @@ inline static void _update_sensors(sf_context* const ctxt,
                                    const int sensor_num,
                                    const int time) {
 
-    assert(XBETWEEN(sensor_num, -1, NUM_SENSORS), 
+    assert(XBETWEEN(sensor_num, -1, NUM_SENSORS),
            "Can't update invalid sensor num %d", sensor_num);
 
     sensor* next     = ctxt->sensor_insert++;
@@ -114,7 +114,8 @@ static inline void _sensor_delay(sf_context* const ctxt,
                                  const int tid,
                                  const int sensor_num) {
     assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
-           LOG_HEAD "can't delay on invalid sensor %d", sensor_num);
+           LOG_HEAD "can't delay on invalid sensor %d (from %d)",
+           tid, sensor_num);
 
     if (-1 != ctxt->sensor_delay[sensor_num]) {
         log(LOG_HEAD "%d rejected from sensor %d", tid, sensor_num);
