@@ -34,7 +34,7 @@ TYPE_BUFFER(int, 8)
 
 typedef struct {
     const int  train_pos;
-    
+
     const int  driver_tid;
     const int  timer_tid;
     const int  sensor_tid;
@@ -126,7 +126,7 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     intb_init(&ctxt->waiters);
     intb_init(&ctxt->next_sensors);
 
-    // Get the track data from the train driver for use later  
+    // Get the track data from the train driver for use later
     result = Receive(&tid, (char*)init_data, sizeof(init_data));
     assert(tid == myParentTid(), "sent startup from invalid tid %d", tid);
     assert(sizeof(init_data) == result, "Invalid init data %d", result);
@@ -173,7 +173,7 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
         .arg1 = sensor_data[1],
         .arg2 = sensor_data[0]
     };
-    
+
     courier_package package = {
         .receiver = myParentTid(),
         .message  =  (char*)&callin,
@@ -227,7 +227,7 @@ get_sensor_index(const tc_context* const ctxt, const int tid) {
 }
 
 static inline bool can_send_timeout(tc_context* const ctxt) {
-    return (ctxt->state & TIMER_MASK) 
+    return (ctxt->state & TIMER_MASK)
         &&  ctxt->sensor_timeout > Time();
 }
 
@@ -237,7 +237,7 @@ static void try_send_timeout(tc_context* const ctxt) {
 
     if (!can_send_timeout(ctxt)) return;
     int   result; UNUSED(result);
-    
+
     struct {
         tnotify_header head;
         int body[2];
@@ -302,7 +302,7 @@ static void reject_remaining_sensors(const tc_context* const ctxt) {
 static inline void _driver_lost(tc_context* const ctxt) {
     reject_remaining_sensors(ctxt);
     ctxt->sensor_iter++;
-    
+
     const char* sen_name = XBETWEEN(ctxt->sensor_expect, -1, NUM_SENSORS) ?
                                ctxt->track[ctxt->sensor_expect].name : "[!]";
 
@@ -318,7 +318,7 @@ static inline void _driver_reverse(tc_context* const ctxt,
                                    const int s_front,
                                    const int timeout) {
     log(LOG_HEAD "REVERSE!");
-    reject_remaining_sensors(ctxt); 
+    reject_remaining_sensors(ctxt);
     ctxt->sensor_timeout = timeout;
     ctxt->sensor_iter++;
 
@@ -326,12 +326,12 @@ static inline void _driver_reverse(tc_context* const ctxt,
     const track_node* const node = ctxt->track[s_front].reverse;
     assert(node - ctxt->track < TRACK_MAX,
            "Invalid track node pointer %p off %d",
-           node, node - ctxt->track); 
+           node, node - ctxt->track);
 
-    _get_next_sensors(node->edge[DIR_AHEAD].dest, &ctxt->next_sensors);     
+    _get_next_sensors(node->edge[DIR_AHEAD].dest, &ctxt->next_sensors);
     while (intb_count(&ctxt->next_sensors) > 0) {
         const int sensor_num = intb_consume(&ctxt->next_sensors);
-        assert(XBETWEEN(sensor_num, -1, NUM_SENSORS), 
+        assert(XBETWEEN(sensor_num, -1, NUM_SENSORS),
                "Bad sensor num %d", sensor_num);
         try_send_sensor(ctxt, sensor_num);
     }
@@ -347,7 +347,7 @@ static inline void _driver_setup_sensors(tc_context* const ctxt,
     ctxt->sensor_expect  = next_sensor;
     ctxt->sensor_last    = last_sensor;
     ctxt->sensor_iter++;
-    
+
     reject_remaining_sensors(ctxt);
 
     _get_next_sensors(ctxt->track[last_sensor].edge[DIR_AHEAD].dest,
@@ -376,7 +376,7 @@ static inline bool _try_return_waiter(tc_context* const ctxt, int tid) {
 
     ctxt->sent_waiters[index] = -1;
     ctxt->sent_waiters_count  -= 1;
-    
+
     if (intb_count(&ctxt->waiters) < BUFFER_SIZE) {
         intb_produce(&ctxt->waiters, tid);
     } else {
@@ -384,7 +384,7 @@ static inline bool _try_return_waiter(tc_context* const ctxt, int tid) {
         int result = Reply(tid, NULL, 0);
         assert(0 == result, LOG_HEAD "Failed killing waiter task %d", tid);
         UNUSED(result);
-    } 
+    }
     return true;
 }
 
@@ -395,12 +395,13 @@ static inline void _perform_dead_check(tc_context* const ctxt) {
         int result = Reply(ctxt->driver_tid, (char*)&msg, sizeof(msg));
         assert(result  == 0, "Failed reply to driver courier (%d)", result);
         UNUSED(result);
-        
+
         ctxt->state &= ~DRIVER_MASK;
     }
 }
 
 static inline void _print_console_state(tc_context* const ctxt) {
+
     char  buffer[32];
     char* ptr = vt_goto(buffer, TRAIN_ROW + ctxt->train_pos,
                         TRAIN_CONSOLE_COL);
@@ -415,7 +416,7 @@ static inline void _print_console_state(tc_context* const ctxt) {
         *(ptr++)  = ' ';
     }
 
-    Puts(buffer, ptr-buffer); 
+    Puts(buffer, ptr-buffer);
 }
 
 void train_console() {
@@ -484,7 +485,7 @@ void train_console() {
             context.state |= TIMER_MASK;
             if (result == 0 || context.sensor_iter != args[0]) {
                 try_send_timeout(&context);
-            
+
             } else if (context.state & DRIVER_MASK)  {
                 blaster_req callin = {
                     .type = BLASTER_CONSOLE_TIMEOUT
@@ -503,7 +504,7 @@ void train_console() {
             else if (REQUEST_REJECTED == args[1]);
             // TODO: someone stole this sensor,
             // need to come up with system - possibly involving the reservations
-            // 
+            //
             // This should actually probably done by misson control, there might
             // be code here such that i can give the other guy control later
             // maybe, this might not be an issue though
@@ -545,4 +546,3 @@ void train_console() {
         _print_console_state(&context);
     }
 }
-
