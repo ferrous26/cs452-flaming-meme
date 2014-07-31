@@ -119,7 +119,7 @@ physics_update_velocity_ui(const blaster* const ctxt) {
     }
 
     const char* const format = truth.speed && truth.speed < 150 ?
-        "%d" COLOUR_RESET "(%c%d.%d)  " :
+        "%d" COLOUR_RESET " mm/s (%c%d.%d)  " :
         "-"  COLOUR_RESET "           " ;
 
     const int v = physics_current_velocity(ctxt);
