@@ -152,15 +152,15 @@ static inline void blaster_master_where_am_i(blaster* const ctxt,
     if (ctxt->master_courier == -1) return;
 
     const int velocity = physics_current_velocity(ctxt);
-    const int   offset = ctxt->master_state.location.offset +
+    const int   offset = truth.location.offset +
         (velocity * (time - truth.timestamp));
 
     // do not allow the offset to be more than distance to next sensor
     const int new_offset = MIN(offset, truth.next_distance);
 
-    ctxt->master_state                 = truth;
-    ctxt->master_state.timestamp       = time;
-    ctxt->master_state.location.offset = new_offset;
+    ctxt->master_state                  = truth;
+    ctxt->master_state.timestamp        = time;
+    ctxt->master_state.location.offset += new_offset;
 
     master_req req = {
         .type = MASTER_BLASTER_LOCATION,
@@ -314,9 +314,10 @@ static void blaster_start_accelerate(blaster* const ctxt,
             .arg3 = locs[i].offset
         }
     };
-    assert(XBETWEEN(locs[i].sensor, -1, NUM_SENSORS),
-            "ACCEL %d %d %d %d", locs[i].sensor, locs[i].offset, start_dist, truth.location.sensor);
 
+    assert(XBETWEEN(locs[i].sensor, -1, NUM_SENSORS),
+            "ACCEL %d %d %d %d",
+           locs[i].sensor, locs[i].offset, start_dist, truth.location.sensor);
 
     ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
     int result = Send(ctxt->acceleration_courier,
@@ -441,7 +442,10 @@ static void blaster_start_deccelerate(blaster* const ctxt,
         }
     };
 
-    assert(XBETWEEN(locs[i].sensor, -1, NUM_SENSORS), "ACCEL %d %d %d %d", locs[i].sensor, locs[i].offset, stop_dist, truth.location.sensor);
+    assert(XBETWEEN(locs[i].sensor, -1, NUM_SENSORS),
+           "ACCEL %d %d %d %d",
+           locs[i].sensor, locs[i].offset, stop_dist, truth.location.sensor);
+
     ctxt->acceleration_courier = blaster_create_new_delay_courier(ctxt);
     const int result = Send(ctxt->acceleration_courier,
                             (char*)&msg, sizeof(msg),
