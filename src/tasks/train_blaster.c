@@ -293,8 +293,8 @@ static void blaster_start_accelerate(blaster* const ctxt,
     // have no state history
     if (i == -1) {
         i = 0;
-        locs[i].sensor = truth.location.sensor;
-        locs[i].offset = start_dist;
+        locs[i].sensor = current_location.sensor;
+        locs[i].offset = current_location.offset + start_dist;
     }
 
     // need to create a message that will restart the acceleration
