@@ -123,9 +123,9 @@ task(:local) { Rake::Task[:build].invoke('p2sbt') }
 
 namespace :md5 do
   def make_md5_for report
-    headers = ['Makefile', 'Rakefile', 'orex.ld'] +
-      FileList['include/**/*.h']
-    impls   = FileList['src/**/*.c'] +
+    headers = FileList['include/**/*.h']
+    impls   = ['Makefile', 'Rakefile', 'orex.ld'] +
+      FileList['src/**/*.c'] +
       FileList['src/**/*.asm']
 
     require 'digest/md5'
