@@ -505,8 +505,7 @@ master_goto_command(master* const ctxt,
     master_release_control_courier(ctxt, pkg, tid);
 }
 
-static inline void master_calculate_turnout_point(master* const ctxt,
-                                                  const int time) {
+static inline void master_calculate_turnout_point(master* const ctxt) {
 
     // this handles the case where we need to fast forward the route
     const path_node* const start_step =
@@ -525,6 +524,7 @@ static inline void master_calculate_turnout_point(master* const ctxt,
 
             // if we do not have enough distance
             if (ctxt->next_turnout.step == NULL) {
+
                 // TODO: should actually check the offset from the sensor
                 //       because the train might be sitting on the turnout
                 //       and flipping it willl cause multi-track drifting
@@ -533,7 +533,7 @@ static inline void master_calculate_turnout_point(master* const ctxt,
                     master_delay_flip_turnout(ctxt,
                                               step->data.turnout.num,
                                               step->data.turnout.state,
-                                              time + 2);
+                                              0); // flip it now!
                     continue;
                 }
             }
@@ -658,7 +658,7 @@ static void master_check_turnout_throwing(master* const ctxt,
     // from regular fast forwarding because it may need to happen more
     // frequently since multiple turnouts can exist between sensors
     while (ctxt->path_step < ctxt->next_turnout.action)
-        master_calculate_turnout_point(ctxt, time);
+        master_calculate_turnout_point(ctxt);
 
     while (ctxt->checkpoint.location.sensor ==
            ctxt->next_turnout.step->data.sensor) {
@@ -692,7 +692,7 @@ static void master_check_turnout_throwing(master* const ctxt,
         }
 
         // start the process again!
-        master_calculate_turnout_point(ctxt, time);
+        master_calculate_turnout_point(ctxt);
     }
 }
 
@@ -944,7 +944,7 @@ static inline void master_path_update(master* const ctxt,
     ctxt->next_stop.step      = ctxt->path_step;
     ctxt->next_stop.action    = ctxt->path_step;
 
-    master_calculate_turnout_point(ctxt, time);
+    master_calculate_turnout_point(ctxt);
 
     master_find_next_stopping_point(ctxt);
     master_recalculate_stopping_point(ctxt, offset);
