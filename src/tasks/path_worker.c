@@ -53,9 +53,6 @@ void path_worker() {
                                      path,
                                      &response.reserved);
 
-        assert(response.size > 0, "No path exists to sensor %d",
-               req.req.sensor_to);
-
         result = Send(req.req.requestor,
                       (char*)&response, sizeof(response),
                       NULL, 0);

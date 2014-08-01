@@ -906,6 +906,15 @@ static inline void master_path_update(master* const ctxt,
     log("[%s] Got path %c%d -> %c%d in %d steps",
         ctxt->name, from.bank, from.num, to.bank, to.num, size);
 
+    if (size < 0) {
+        log("[%s] Failed to find a path, gonna try negotiating",
+            ctxt->name);
+        // TODO: negotiate
+    }
+    else if (size == 1) {
+        log("[%s] Already arrived!", ctxt->name);
+    }
+
     ctxt->path_worker    = tid;
     ctxt->path_last      = path + size - 1;
     ctxt->path_step      = path + size - 1;
