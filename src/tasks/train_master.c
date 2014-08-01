@@ -25,7 +25,7 @@
 
 // we want to clear a turnout by at least this much in order to compensate
 // for position error
-#define TURNOUT_CLEARANCE_OFFSET_DEFAULT  100000 // um
+#define TURNOUT_CLEARANCE_OFFSET_DEFAULT  70000 // um
 
 // we want to flip a turnout when we are
 #define TURNOUT_DISTANCE 200000
