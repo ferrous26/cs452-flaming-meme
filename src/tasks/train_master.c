@@ -62,6 +62,7 @@ typedef struct master_context {
     int          sensor_to_stop_at;  // special case for handling ss command
     sensor_block sensor_block;
     int          chasee;
+    bool         toggled_horn;
 
     int              short_moving_distance;
     int              short_moving_timestamp;
@@ -91,8 +92,24 @@ static int master_current_velocity(master* const ctxt) {
 }
 
 static int master_current_stopping_distance(master* const ctxt) {
-    return physics_stopping_distance(ctxt->blaster_ctxt,
-                                     ctxt->checkpoint.speed);
+    const int base_dist = physics_stopping_distance(ctxt->blaster_ctxt,
+                                                    ctxt->checkpoint.speed);
+
+    switch (velocity_type(ctxt->checkpoint.location.sensor)) {
+    case TRACK_THREE_WAY:       return base_dist - 50000;
+    case TRACK_INNER_CURVE:     return base_dist - 50000;
+    case TRACK_INNER_STRAIGHT:  return base_dist + 50000;
+    case TRACK_OUTER_CURVE1:    return base_dist - 50000;
+    case TRACK_OUTER_CURVE2:    return base_dist - 50000;
+    case TRACK_STRAIGHT:        return base_dist + 50000;
+    case TRACK_LONG_STRAIGHT:   return base_dist + 80000;
+    case TRACK_BACK_CONNECT:    return base_dist - 50000;
+    case TRACK_OUTER_STRAIGHT:  return base_dist + 50000;
+    case TRACK_BUTT:            return base_dist - 40000;
+    case TRACK_TYPE_COUNT:
+    default:
+        return base_dist;
+    }
 }
 
 static inline int master_head_distance(master* const ctxt) {
@@ -669,7 +686,7 @@ static inline bool master_is_last_path_chunk(master* const ctxt) {
 static inline void master_recalculate_stopping_point(master* const ctxt,
                                                      const int offset) {
 
-    const int  stop_dist = master_current_stopping_distance(ctxt);
+    const int stop_dist = master_current_stopping_distance(ctxt);
 
     // we want to be sure that we clear the turnout, so add padding
     const int stop_point = stop_dist -
@@ -1218,16 +1235,19 @@ static inline void master_location_update(master* const ctxt,
         for (; speed > 0; speed = speed >> 1) {
             const bool got_reservation = perform_reservation(ctxt, speed);
             if (1 == got_reservation) break;
-
             log("[%s] Train %d is a prick", ctxt->name, -got_reservation);
         }
+
         if (speed < ctxt->checkpoint.speed) {
             if (speed) {
                 log("[%s] Encrouching SLOW %d", ctxt->name, speed);
                 master_set_speed(ctxt, speed, 0);
-            } else {
-                log("[%s] Encrouching %d", ctxt->name, speed);
-                master_set_reverse(ctxt, 0);
+            }
+
+            // aw yisss, hard coded values
+            if (ctxt->chasee >= 0) {
+                ctxt->toggled_horn = true;
+                train_toggle_horn(58);
             }
         }
     } else {
@@ -1348,12 +1368,22 @@ master_chase(master* const ctxt,
     sprintf(name, "MASTR%d", chasee);
     name[7] = '\0';
 
-    ctxt->chasee = WhoIs(name);
-    assert(ctxt->chasee >= 0,
+    const int chasee_tid = WhoIs(name);
+    assert(chasee_tid >= 0,
            "[%s] Failed to find legit train (%d)",
-           ctxt->name, ctxt->chasee);
+           ctxt->name, chasee_tid);
 
-    master_find_chasee(ctxt);
+    if (chasee_tid == ctxt->chasee) {
+        ctxt->chasee = -1;
+        if (ctxt->toggled_horn) {
+            train_toggle_horn(58);
+            ctxt->toggled_horn = false;
+        }
+    }
+    else {
+        ctxt->chasee = chasee_tid;
+        master_find_chasee(ctxt);
+    }
 
     master_release_control_courier(ctxt, pkg, courier_tid);
 }
