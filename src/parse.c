@@ -175,6 +175,18 @@ static command parse_b(const char* const cmd, int* const buffer) {
     return CMD_BENCHMARK;
 }
 
+static command parse_c(const char* const cmd, int* const buffer) {
+    int index = 1;
+    UNUSED(buffer);
+
+    if (cmd[index++] != 'h')    return ERROR;
+    if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+    if (parse_argument(cmd, 'i', &index, buffer + 1)) return ERROR;
+    if (!isspace(cmd[index++])) return ERROR;
+
+    return LOC_CHASE;
+}
+
 static command parse_a(const char* const cmd, int* const buffer) {
     int index = 1;
     UNUSED(buffer);
@@ -276,6 +288,7 @@ command parse_command(const char* const cmd, int* const buffer) {
     case '\r': return NONE;
     case 'a':  return parse_a(cmd, buffer);
     case 'b':  return parse_b(cmd, buffer);
+    case 'c':  return parse_c(cmd, buffer);
     case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);
     case 'g':  return parse_g(cmd, buffer);

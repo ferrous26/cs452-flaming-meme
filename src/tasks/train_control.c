@@ -49,6 +49,7 @@ typedef struct {
         int            stop_sensor; // sensor to stop after hitting
         int            whereis;     // should send send whereis command
         int            short_move;
+        int            chase;
         sensor_block   block_until;
         int            tweaks_mask;
         int            tweak[TWEAK_COUNT];
@@ -183,6 +184,11 @@ control_try_send_master(control_context* const ctxt, const int index) {
         req.type = MASTER_SHORT_MOVE;
         req.arg1 = ctxt->master[index].short_move;
         ctxt->master[index].short_move = 0;
+
+    } else if (ctxt->master[index].chase > 0) {
+        req.type = MASTER_CHASE;
+        req.arg1 = ctxt->master[index].chase;
+        ctxt->master[index].chase = 0;
 
     } else if (ctxt->master[index].block_until.sensor != -1) {
         req.type = MASTER_BLOCK_UNTIL_SENSOR;
@@ -333,6 +339,9 @@ void train_control() {
             break;
         case CONTROL_UPDATE_TWEAK:
             control_update_tweak(&context, &req);
+            break;
+        case CONTROL_CHASE:
+            context.master[index].chase = req.arg2;
             break;
         case CONTROL_GOTO_LOCATION:
             context.master[index].location.sensor = req.arg2;
@@ -557,5 +566,20 @@ int train_toggle_horn(const int train) {
 
     return Send(train_control_tid,
                 (char*)&req, sizeof(req) - (sizeof(int) * 2),
+                NULL, 0);
+}
+
+int train_chase(const int chaser, const int chasee) {
+    NORMALIZE_TRAIN(train_index1, chaser);
+    NORMALIZE_TRAIN(train_index2, chasee);
+
+    control_req req = {
+        .type = CONTROL_CHASE,
+        .arg1 = train_index1,
+        .arg2 = chasee
+    };
+
+    return Send(train_control_tid,
+                (char*)&req, sizeof(req) - sizeof(int),
                 NULL, 0);
 }

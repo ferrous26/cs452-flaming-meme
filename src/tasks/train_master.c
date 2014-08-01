@@ -61,6 +61,7 @@ typedef struct master_context {
     int          destination_offset; // in centimeters
     int          sensor_to_stop_at;  // special case for handling ss command
     sensor_block sensor_block;
+    int          chasee;
 
     int              short_moving_distance;
     int              short_moving_timestamp;
@@ -306,6 +307,51 @@ master_where_you_at(master* const ctxt,
     UNUSED(result);
 
     master_release_control_courier(ctxt, pkg, courier_tid);
+}
+
+static void
+master_where_might_you_be(master* const ctxt, const int request_tid) {
+
+    const track_location l = master_current_location(ctxt, Time());
+
+    master_req req = {
+        .type = MASTER_MASTER_HERE_I_AM,
+        .arg1 = l.sensor,
+        .arg2 = l.offset
+    };
+
+    const int result = Reply(request_tid, (char*)&req, sizeof(req));
+    assert(result == 0,
+           "[%s] Failed to respond to where might you be command (%d)",
+           result);
+    UNUSED(result);
+}
+
+static void
+master_find_chasee(master* const ctxt) {
+
+    struct {
+        int        head;
+        master_req req;
+    } msg = {
+        .head = ctxt->chasee,
+        .req  = {
+            .type = MASTER_MASTER_WHERE_ARE_YOU,
+        }
+    };
+
+    const int tid = Create(TRAIN_COURIER_PRIORITY, async_courier);
+    assert(tid >= 0,
+           "[%s] Failed to create one time courier (%d)",
+           ctxt->name, tid);
+
+    const int result = Send(tid, (char*)&msg, sizeof(msg), NULL, 0);
+    assert(result == 0,
+           "[%s] Failed to setup one time courier (%d)",
+           ctxt->name, result);
+
+    UNUSED(result);
+    UNUSED(ctxt);
 }
 
 static void
@@ -909,6 +955,7 @@ static inline void master_path_update(master* const ctxt,
     if (size < 0) {
         log("[%s] Failed to find a path, gonna try negotiating",
             ctxt->name);
+        return;
         // TODO: negotiate
     }
     else if (size == 1) {
@@ -1283,6 +1330,42 @@ static inline void master_location_update(master* const ctxt,
     }
 }
 
+static void
+master_chase(master* const ctxt,
+             const int chasee,
+             const control_req* const pkg,
+             const int courier_tid) {
+
+    log("[%s] Time to hunt down train %d", ctxt->name, chasee);
+
+    char name[8];
+    sprintf(name, "MASTR%d", chasee);
+    name[7] = '\0';
+
+    ctxt->chasee = WhoIs(name);
+    assert(ctxt->chasee >= 0,
+           "[%s] Failed to find legit train (%d)",
+           ctxt->name, ctxt->chasee);
+
+    master_find_chasee(ctxt);
+
+    master_release_control_courier(ctxt, pkg, courier_tid);
+}
+
+static void
+master_i_am_here(master* const ctxt,
+                 const int destination,
+                 const int offset,
+                 const int tid) {
+
+    master_goto(ctxt, destination, ctxt->checkpoint.location.sensor, offset);
+
+    const int result = Reply(tid, NULL, 0);
+    assert(result == 0,
+           "[%s] Failed to kill courier (%d)",
+           ctxt->name, result);
+}
+
 static TEXT_COLD void master_init(master* const ctxt) {
     memset(ctxt, 0, sizeof(master));
 
@@ -1441,6 +1524,12 @@ void train_master() {
         case MASTER_WHERE_ARE_YOU:
             master_where_you_at(&context, &control_callin, req.arg1, tid);
             break;
+        case MASTER_MASTER_WHERE_ARE_YOU:
+            master_where_might_you_be(&context, tid);
+            break;
+        case MASTER_MASTER_HERE_I_AM:
+            master_i_am_here(&context, req.arg1, req.arg2, tid);
+            break;
 
         case MASTER_PATH_DATA:
             master_path_update(&context, req.arg1, (path_node*)req.arg3, tid);
@@ -1455,6 +1544,10 @@ void train_master() {
 
         case MASTER_UPDATE_TWEAK:
             master_update_tweak(&context, &control_callin, &req, tid);
+            break;
+
+        case MASTER_CHASE:
+            master_chase(&context, req.arg1, &control_callin, tid);
             break;
         }
     }

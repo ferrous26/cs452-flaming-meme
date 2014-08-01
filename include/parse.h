@@ -17,6 +17,7 @@ typedef enum {
     LOC_SPEED,
     LOC_REVERSE,
     LOC_HORN,
+    LOC_CHASE,
 
     CALIBRATE_ACCELERATION,
     THUNDERDOME,

@@ -177,6 +177,9 @@ static void action(command cmd, int args[]) {
     case LOC_HORN:
 	train_toggle_horn(args[0]);
 	break;
+    case LOC_CHASE:
+        train_chase(args[0], args[1]);
+        break;
     case TRACK_RESET:
        reset_train_state();
        break;

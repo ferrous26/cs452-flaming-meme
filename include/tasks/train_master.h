@@ -8,6 +8,11 @@ typedef enum {
     MASTER_STOP_AT_SENSOR,
     MASTER_BLOCK_UNTIL_SENSOR,
     MASTER_WHERE_ARE_YOU,
+    MASTER_CHASE,
+
+    // master to master communication
+    MASTER_MASTER_WHERE_ARE_YOU,
+    MASTER_MASTER_HERE_I_AM,
 
     MASTER_SHORT_MOVE,
 
