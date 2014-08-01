@@ -221,7 +221,7 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
 
     switch (ctxt->train_gid) {
     case 45:
-        ctxt->stopping_distance_offset = 50000; // 5 cm
+        ctxt->stopping_distance_offset = 0; // 0 cm
 
         ctxt->measurements.front  = 19000;
         ctxt->measurements.pickup = 51000;
@@ -270,6 +270,7 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->vmap[0][6] = 209;
         ctxt->vmap[0][7] = 209;
         ctxt->vmap[0][8] = 209;
+        ctxt->vmap[0][9] = 0;
         ctxt->vmap[1][0] = 757;
         ctxt->vmap[1][1] = 757;
         ctxt->vmap[1][2] = 757;
@@ -300,9 +301,9 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->vmap[3][7] = 1726;
         ctxt->vmap[3][8] = 1726;
         ctxt->vmap[3][9] = 1726;
-        ctxt->vmap[4][0] = 2283;
-        ctxt->vmap[4][1] = 2283;
-        ctxt->vmap[4][2] = 2283;
+        ctxt->vmap[4][0] = 2276;
+        ctxt->vmap[4][1] = 2292;
+        ctxt->vmap[4][2] = 2278;
         ctxt->vmap[4][3] = 2283;
         ctxt->vmap[4][4] = 2283;
         ctxt->vmap[4][5] = 2283;
@@ -310,8 +311,8 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->vmap[4][7] = 2283;
         ctxt->vmap[4][8] = 2283;
         ctxt->vmap[4][9] = 2283;
-        ctxt->vmap[5][0] = 2826;
-        ctxt->vmap[5][1] = 2826;
+        ctxt->vmap[5][0] = 2827;
+        ctxt->vmap[5][1] = 2794;
         ctxt->vmap[5][2] = 2826;
         ctxt->vmap[5][3] = 2826;
         ctxt->vmap[5][4] = 2826;
@@ -330,9 +331,9 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->vmap[6][7] = 3441;
         ctxt->vmap[6][8] = 3441;
         ctxt->vmap[6][9] = 3441;
-        ctxt->vmap[7][0] = 3790;
-        ctxt->vmap[7][1] = 3790;
-        ctxt->vmap[7][2] = 3790;
+        ctxt->vmap[7][0] = 3722;
+        ctxt->vmap[7][1] = 3677;
+        ctxt->vmap[7][2] = 3720;
         ctxt->vmap[7][3] = 3790;
         ctxt->vmap[7][4] = 3790;
         ctxt->vmap[7][5] = 3790;
@@ -350,16 +351,16 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->vmap[8][7] = 4212;
         ctxt->vmap[8][8] = 4212;
         ctxt->vmap[8][9] = 4212;
-        ctxt->vmap[9][0] = 4570;
-        ctxt->vmap[9][1] = 4570;
-        ctxt->vmap[9][2] = 4570;
-        ctxt->vmap[9][3] = 4570;
-        ctxt->vmap[9][4] = 4570;
+        ctxt->vmap[9][0] = 4347;
+        ctxt->vmap[9][1] = 4194;
+        ctxt->vmap[9][2] = 4453;
+        ctxt->vmap[9][3] = 4451;
+        ctxt->vmap[9][4] = 4508;
         ctxt->vmap[9][5] = 4570;
-        ctxt->vmap[9][6] = 4570;
-        ctxt->vmap[9][7] = 4570;
-        ctxt->vmap[9][8] = 4570;
-        ctxt->vmap[9][9] = 4570;
+        ctxt->vmap[9][6] = 4555;
+        ctxt->vmap[9][7] = 4442;
+        ctxt->vmap[9][8] = 4502;
+        ctxt->vmap[9][9] = 4482;
         ctxt->vmap[10][0] = 4994;
         ctxt->vmap[10][1] = 4994;
         ctxt->vmap[10][2] = 4994;
@@ -370,16 +371,16 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->vmap[10][7] = 4994;
         ctxt->vmap[10][8] = 4994;
         ctxt->vmap[10][9] = 4994;
-        ctxt->vmap[11][0] = 4869;
-        ctxt->vmap[11][1] = 4869;
-        ctxt->vmap[11][2] = 4869;
-        ctxt->vmap[11][3] = 4869;
-        ctxt->vmap[11][4] = 4869;
+        ctxt->vmap[11][0] = 4283;
+        ctxt->vmap[11][1] = 4435;
+        ctxt->vmap[11][2] = 4170;
+        ctxt->vmap[11][3] = 4208;
+        ctxt->vmap[11][4] = 4368;
         ctxt->vmap[11][5] = 4869;
-        ctxt->vmap[11][6] = 4869;
-        ctxt->vmap[11][7] = 4869;
-        ctxt->vmap[11][8] = 4869;
-        ctxt->vmap[11][9] = 4869;
+        ctxt->vmap[11][6] = 4484;
+        ctxt->vmap[11][7] = 4199;
+        ctxt->vmap[11][8] = 4291;
+        ctxt->vmap[11][9] = 4241;
         ctxt->vmap[12][0] = 4747;
         ctxt->vmap[12][1] = 4747;
         ctxt->vmap[12][2] = 4747;
@@ -403,7 +404,7 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         break;
 
     case 48:
-        ctxt->stopping_distance_offset = 50000; // 5 cm
+        ctxt->stopping_distance_offset = 0; // 0 cm
 
         ctxt->measurements.front  = 22000;
         ctxt->measurements.pickup = 51000;
