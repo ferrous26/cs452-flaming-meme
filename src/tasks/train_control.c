@@ -39,6 +39,7 @@ typedef struct {
         bool reverse;            // should send a reverse command
         bool dump_velocity;      // should send a dump command
         int  tweaks_mask;
+        bool drop_console;
         int  tweak[TWEAK_COUNT];
         int  horn;               // horn state
     } blaster[NUM_TRAINS];
@@ -50,6 +51,7 @@ typedef struct {
         int            whereis;     // should send send whereis command
         int            short_move;
         int            chase;
+        bool           drop_reservation;
         sensor_block   block_until;
         int            tweaks_mask;
         int            tweak[TWEAK_COUNT];
@@ -195,6 +197,10 @@ control_try_send_master(control_context* const ctxt, const int index) {
         req.arg1 = ctxt->master[index].block_until.tid;
         req.arg2 = ctxt->master[index].block_until.sensor;
         ctxt->master[index].block_until.sensor = -1;
+
+    } else if (ctxt->master[index].drop_reservation) {
+        req.type = MASTER_DROP_RESERVATION;
+        ctxt->master[index].drop_reservation = false;
 
     } else if (ctxt->master[index].tweaks_mask) {
         req.type = MASTER_UPDATE_TWEAK;
@@ -343,6 +349,11 @@ void train_control() {
         case CONTROL_CHASE:
             context.master[index].chase = req.arg2;
             break;
+        case CONTROL_DROP_RESERVATION:
+            context.master[index].drop_reservation = true;
+            context.blaster[index].drop_console = true;
+            break;
+
         case CONTROL_GOTO_LOCATION:
             context.master[index].location.sensor = req.arg2;
             context.master[index].location.offset = req.arg3;
@@ -581,5 +592,18 @@ int train_chase(const int chaser, const int chasee) {
 
     return Send(train_control_tid,
                 (char*)&req, sizeof(req) - sizeof(int),
+                NULL, 0);
+}
+
+int train_drop_reservation(const int train) {
+    NORMALIZE_TRAIN(train_index, train);
+
+    control_req req = {
+        .type = CONTROL_DROP_RESERVATION,
+        .arg1 = train_index,
+    };
+
+    return Send(train_control_tid,
+                (char*)&req, sizeof(req) - (sizeof(int) * 2),
                 NULL, 0);
 }

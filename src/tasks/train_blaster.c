@@ -117,6 +117,10 @@ static void create_console_reply(const blaster* const ctxt,
     result[1] = truth.next_location.sensor;
     result[2] = blaster_estimate_timeout(truth.timestamp,
                                          truth.next_timestamp);
+
+    if (!result[2])
+        log("[%s] Time next was 0 (%d, %d)",
+            ctxt->name, result[0], result[1]);
 }
 
 static int blaster_create_new_delay_courier(blaster* const ctxt) {
@@ -811,12 +815,15 @@ blaster_process_acceleration_event(blaster* const ctxt,
     }
     // we are (somewhat) on time
     else if (current_sensor.location.sensor == current_accel.location.sensor) {
+        log("[%s] On time acceleration", ctxt->name);
         // assume our estimates are correct
         truth.location = current_accel.location;
     }
     // we are early (OR dead sensor)
     else if (current_sensor.next_location.sensor ==
              current_accel.location.sensor) {
+
+        log("[%s] Fudge it acceleration", ctxt->name);
 
         // fudge it (in a way that reservations like)
         truth.location.offset = truth.next_distance;
@@ -1154,6 +1161,7 @@ static inline void blaster_wait(blaster* const ctxt,
         case BLASTER_MASTER_CONTEXT:
         case BLASTER_REQ_TYPE_COUNT:
         case BLASTER_CONSOLE_LOST:
+        case BLASTER_DROP_CONSOLE:
             ABORT("[%s] Fucked up init somewhere (%d)", ctxt->name, req.type);
         }
     }
@@ -1370,6 +1378,21 @@ void train_blaster() {
             context.console_cancel = tid;
             continue;
 
+        case BLASTER_DROP_CONSOLE: {
+            if (context.console_cancel >= 0) {
+                const blaster_req_type cancel = BLASTER_CONSOLE_CANCEL;
+                const int cresult = Reply(context.console_cancel,
+                                          (char*)&cancel,
+                                          sizeof(blaster_req_type));
+                UNUSED(cresult);
+                assert(cresult == 0,
+                       "[%s] Failed to send message to console cancel courier (%d)",
+                       context.name, cresult);
+                context.console_cancel    = -1;
+                context.console_cancelled = true;
+            }
+            break;
+        }
         case BLASTER_REQ_TYPE_COUNT:
             ABORT("[%s] Illegal type for a train blaster %d from %d",
                       context.name, req.type, tid);

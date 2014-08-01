@@ -26,6 +26,7 @@ typedef enum {
 
     BLASTER_DUMP_VELOCITY_TABLE,
     BLASTER_UPDATE_TWEAK,
+    BLASTER_DROP_CONSOLE,
 
     // these are the event types we care about for position simulation
     BLASTER_ACCELERATION_COMPLETE,

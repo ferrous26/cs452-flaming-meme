@@ -21,6 +21,7 @@ typedef enum {
 
     CALIBRATE_ACCELERATION,
     THUNDERDOME,
+    DROP_RESERVATION,
 
     GO,
     SHORT_MOVE,

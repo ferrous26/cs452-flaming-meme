@@ -31,6 +31,7 @@ typedef enum {
     CONTROL_GOTO_LOCATION,
     CONTROL_SHORT_MOVE,
     CONTROL_CHASE,
+    CONTROL_DROP_RESERVATION,
 
     CONTROL_DUMP_VELOCITY_TABLE,
     CONTROL_UPDATE_TWEAK,
@@ -76,5 +77,6 @@ int train_update_tweak(const int train,
                        const int value);
 int train_toggle_horn(const int train);
 int train_chase(const int chaser, const int chasee);
+int train_drop_reservation(const int train);
 
 #endif

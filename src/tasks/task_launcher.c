@@ -202,6 +202,10 @@ static void action(command cmd, int args[]) {
         train_goto_location(args[0], args[1], args[2], args[3]);
         break;
 
+    case DROP_RESERVATION:
+        train_drop_reservation(args[0]);
+        break;
+
     case SHORT_MOVE:
         train_short_move(args[0], args[1]);
         break;

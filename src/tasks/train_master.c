@@ -1214,6 +1214,14 @@ static inline int perform_reservation(master* const ctxt, const int speed) {
     return reserve_section(ctxt->train_id, reserve, insert);
 }
 
+static void master_drop_reservation(master* const ctxt,
+                                    const control_req* const pkg,
+                                    const int courier_tid) {
+
+    reserve_section(ctxt->train_id, NULL, 0);
+    master_release_control_courier(ctxt, pkg, courier_tid);
+}
+
 static inline void master_location_update(master* const ctxt,
                                           const train_state* const state,
                                           const blaster_req* const pkg,
@@ -1603,6 +1611,10 @@ void train_master() {
 
         case MASTER_CHASE:
             master_chase(&context, req.arg1, &control_callin, tid);
+            break;
+
+        case MASTER_DROP_RESERVATION:
+            master_drop_reservation(&context, &control_callin, tid);
             break;
         }
     }

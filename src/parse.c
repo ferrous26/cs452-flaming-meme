@@ -239,6 +239,9 @@ static command parse_d(const char* const cmd, int* const buffer) {
     case 'p':
 	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
 	return DUMP;
+    case 'r':
+	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
+	return DROP_RESERVATION;
     }
     return ERROR;
 }

@@ -19,7 +19,8 @@ typedef enum {
     MASTER_PATH_DATA,         // track route from path worker
     MASTER_BLASTER_LOCATION,  // current location from blaster
 
-    MASTER_UPDATE_TWEAK
+    MASTER_UPDATE_TWEAK,
+    MASTER_DROP_RESERVATION
 
 } master_req_type;
 
