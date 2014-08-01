@@ -1409,6 +1409,7 @@ master_i_am_here(master* const ctxt,
     assert(result == 0,
            "[%s] Failed to kill courier (%d)",
            ctxt->name, result);
+    UNUSED(result);
 }
 
 static TEXT_COLD void master_init(master* const ctxt) {
