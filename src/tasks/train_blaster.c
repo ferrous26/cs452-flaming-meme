@@ -264,8 +264,10 @@ static void blaster_start_accelerate(blaster* const ctxt,
                 log("[%s] Cannot accelerate into a barrier! Reversing!",
                     ctxt->name);
                 // TODO: do we want to do this?
-                if (ctxt->reverse_courier != -2)
+                if (ctxt->reverse_courier != -2) {
+                    ctxt->reverse_courier = -2;
                     blaster_reverse_step2(ctxt);
+                }
                 else
                     log("[%s] Narrowly avoided race condition!", ctxt->name);
                 ctxt->reverse_speed = to_speed;
