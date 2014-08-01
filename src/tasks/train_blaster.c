@@ -48,7 +48,7 @@ blaster_distance_remaining(train_state* const state) {
 static inline int __attribute__((const, always_inline))
 blaster_estimate_timeout(int time_current, int time_next) {
     if (time_next <= 0) return 0;
-    return time_current + ((time_next * 5) >> 2);
+    return time_current + (((time_next - time_current) * 5) >> 2);
 }
 
 const char* event_to_str(const train_event event) {
@@ -62,7 +62,8 @@ const char* event_to_str(const train_event event) {
 }
 
 // choose a pseudo-magic value for speed to use in the calculation
-static int __attribute__ ((unused)) blaster_estimate_speed(blaster* const ctxt) {
+static int __attribute__ ((unused))
+blaster_estimate_speed(blaster* const ctxt) {
     return (truth.speed + truth.next_speed) >> 2;
 }
 
@@ -110,14 +111,12 @@ blaster_debug_state(blaster* const ctxt,
 #endif
 
 static void create_console_reply(const blaster* const ctxt,
-                                 const int s_time,
                                  int* result) {
 
     result[0] = truth.location.sensor;
     result[1] = truth.next_location.sensor;
-    result[2] = blaster_estimate_timeout(s_time,
-                                         truth.next_timestamp -
-                                         truth.timestamp);
+    result[2] = blaster_estimate_timeout(truth.timestamp,
+                                         truth.next_timestamp);
 }
 
 static int blaster_create_new_delay_courier(blaster* const ctxt) {
@@ -1013,7 +1012,7 @@ blaster_process_sensor_event(blaster* const ctxt,
     physics_update_feedback_ui(ctxt, delta_v, delta_t);
 
     int reply[3];
-    create_console_reply(ctxt, sensor_time, reply);
+    create_console_reply(ctxt, reply);
     const int reply_result = Reply(courier_tid, (char*)&reply, sizeof(reply));
     assert(reply_result == 0,
            "[%s] failed to get next sensor (%d)",
@@ -1099,7 +1098,7 @@ blaster_process_unexpected_sensor_event(blaster* const ctxt,
     blaster_master_where_am_i(ctxt, timestamp);
 
     int reply[3];
-    create_console_reply(ctxt, sensor_hit_time, reply);
+    create_console_reply(ctxt, reply);
 
     const int reply_result = Reply(courier_tid, (char*)&reply, sizeof(reply));
     assert(reply_result == 0,
