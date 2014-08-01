@@ -872,90 +872,6 @@ blaster_process_acceleration_event(blaster* const ctxt,
 }
 
 static inline void
-blaster_process_unexpected_sensor_event(blaster* const ctxt,
-                                        blaster_req* const req,
-                                        const int courier_tid,
-                                        const int timestamp) {
-
-    const int      sensor_hit = req->arg1;
-    const int sensor_hit_time = req->arg2;
-
-    assert(XBETWEEN(sensor_hit, -1, NUM_SENSORS),
-           "processed bad unexpected sensor %d", sensor_hit);
-
-    // TODO: is it really unexpected, or is just further down the track;
-    //       the result of a dead sensor?
-
-    // just need to update state here and move on to next stuffs
-    // this is essentially a state reset, we cannot really use previous state
-
-    last_sensor = current_sensor;
-    current_sensor.event                = EVENT_UNEXPECTED_SENSOR;
-    current_sensor.timestamp            = sensor_hit_time;
-    current_sensor.is_accelerating      = truth.is_accelerating;
-    current_sensor.location.sensor      = sensor_hit;
-    current_sensor.location.offset      = 0;
-    current_sensor.distance             = 0; // we do not know this (don't care)
-    current_sensor.speed                = truth.speed;
-    current_sensor.direction            = truth.direction;
-    current_sensor.next_location.offset = 0;
-    current_sensor.next_speed           = truth.next_speed;
-
-    assert(current_sensor.location.sensor < NUM_SENSORS, "HERE");
-    const int result = get_sensor_from(current_sensor.location.sensor,
-                                       &current_sensor.next_distance,
-                                       &current_sensor.next_location.sensor);
-    assert(result == 0, "[%s] Fuuuuu", ctxt->name);
-    UNUSED(result);
-
-    // calculate expected next time
-    const int v = physics_velocity(ctxt,
-                                   current_sensor.speed,
-                                   velocity_type(current_sensor.location.sensor));
-
-    current_sensor.next_timestamp = v ?
-        current_sensor.timestamp + (current_sensor.next_distance / v) :
-        truth.timestamp;
-
-    if (truth.next_distance < 0) {
-        if (physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
-            log("[%s] Barreling towards an exit! Hitting emergency brakes!",
-                ctxt->name);
-            blaster_reverse_step1(ctxt, timestamp);
-
-        // TODO:
-        // in any case, we need to flip around our next expected sensor
-        // and our next expected; and this happens for expected sensors as well!
-        }
-        else {
-            current_sensor.next_location.sensor = current_sensor.location.sensor;
-        }
-    }
-
-    // now we need to update the truth...except that a sensor hit is always the
-    // considered to be the truth...
-    truth = current_sensor;
-
-    // need to pass the service_time in case we do a reverse
-    blaster_detect_train_direction(ctxt, sensor_hit, timestamp);
-
-    ctxt->master_message = true;
-    blaster_master_where_am_i(ctxt, timestamp);
-
-    int reply[3];
-    create_console_reply(ctxt, sensor_hit_time, reply);
-
-    const int reply_result = Reply(courier_tid, (char*)&reply, sizeof(reply));
-    assert(reply_result == 0,
-           "failed to wait for next sensor (%d)",
-           reply_result);
-    UNUSED(reply_result);
-
-    // TODO: send off the estimate guy
-    //blaster_wait_for_next_estimate(ctxt);
-}
-
-static inline void
 blaster_process_console_timeout(blaster* const ctxt,
                                 const int tid,
                                 const int time) {
@@ -1093,6 +1009,93 @@ blaster_process_sensor_event(blaster* const ctxt,
     assert(reply_result == 0,
            "[%s] failed to get next sensor (%d)",
            ctxt->name, reply_result);
+    UNUSED(reply_result);
+
+    // TODO: send off the estimate guy
+    //blaster_wait_for_next_estimate(ctxt);
+}
+
+static inline void
+blaster_process_unexpected_sensor_event(blaster* const ctxt,
+                                        blaster_req* const req,
+                                        const int courier_tid,
+                                        const int timestamp) {
+
+    const int      sensor_hit = req->arg1;
+    const int sensor_hit_time = req->arg2;
+
+    // maybe it wasn't unexpected, just late
+    if (current_sensor.next_location.sensor == sensor_hit) {
+        blaster_process_sensor_event(ctxt, req, courier_tid, timestamp);
+        return;
+    }
+
+    assert(XBETWEEN(sensor_hit, -1, NUM_SENSORS),
+           "processed bad unexpected sensor %d", sensor_hit);
+
+    // just need to update state here and move on to next stuffs
+    // this is essentially a state reset, we cannot really use previous state
+
+    last_sensor = current_sensor;
+    current_sensor.event                = EVENT_UNEXPECTED_SENSOR;
+    current_sensor.timestamp            = sensor_hit_time;
+    current_sensor.is_accelerating      = truth.is_accelerating;
+    current_sensor.location.sensor      = sensor_hit;
+    current_sensor.location.offset      = 0;
+    current_sensor.distance             = 0; // we do not know this (don't care)
+    current_sensor.speed                = truth.speed;
+    current_sensor.direction            = truth.direction;
+    current_sensor.next_location.offset = 0;
+    current_sensor.next_speed           = truth.next_speed;
+
+    assert(current_sensor.location.sensor < NUM_SENSORS, "HERE");
+    const int result = get_sensor_from(current_sensor.location.sensor,
+                                       &current_sensor.next_distance,
+                                       &current_sensor.next_location.sensor);
+    assert(result == 0, "[%s] Fuuuuu", ctxt->name);
+    UNUSED(result);
+
+    // calculate expected next time
+    const int v = physics_velocity(ctxt,
+                                   current_sensor.speed,
+                                   velocity_type(current_sensor.location.sensor));
+
+    current_sensor.next_timestamp = v ?
+        current_sensor.timestamp + (current_sensor.next_distance / v) :
+        truth.timestamp;
+
+    if (truth.next_distance < 0) {
+        if (physics_current_stopping_distance(ctxt) >= -truth.next_distance) {
+            log("[%s] Barreling towards an exit! Hitting emergency brakes!",
+                ctxt->name);
+            blaster_reverse_step1(ctxt, timestamp);
+
+        // TODO:
+        // in any case, we need to flip around our next expected sensor
+        // and our next expected; and this happens for expected sensors as well!
+        }
+        else {
+            current_sensor.next_location.sensor = current_sensor.location.sensor;
+        }
+    }
+
+    // now we need to update the truth...except that a sensor hit is always the
+    // considered to be the truth...
+    truth = current_sensor;
+
+    // need to pass the service_time in case we do a reverse
+    blaster_detect_train_direction(ctxt, sensor_hit, timestamp);
+
+    ctxt->master_message = true;
+    blaster_master_where_am_i(ctxt, timestamp);
+
+    int reply[3];
+    create_console_reply(ctxt, sensor_hit_time, reply);
+
+    const int reply_result = Reply(courier_tid, (char*)&reply, sizeof(reply));
+    assert(reply_result == 0,
+           "failed to wait for next sensor (%d)",
+           reply_result);
     UNUSED(reply_result);
 
     // TODO: send off the estimate guy
