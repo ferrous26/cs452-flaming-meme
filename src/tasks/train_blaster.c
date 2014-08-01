@@ -113,19 +113,11 @@ static void create_console_reply(const blaster* const ctxt,
                                  const int s_time,
                                  int* result) {
 
-    if (ctxt->reversing) {
-        result[0] = 100;
-        result[1] = truth.next_location.sensor;
-        result[2] = blaster_estimate_timeout(s_time,
-                                             truth.next_timestamp -
-                                             truth.timestamp);
-    } else {
-        result[0] = truth.location.sensor;
-        result[1] = truth.next_location.sensor;
-        result[2] = blaster_estimate_timeout(s_time,
-                                             truth.next_timestamp -
-                                             truth.timestamp);
-    }
+    result[0] = truth.location.sensor;
+    result[1] = truth.next_location.sensor;
+    result[2] = blaster_estimate_timeout(s_time,
+                                         truth.next_timestamp -
+                                         truth.timestamp);
 }
 
 static int blaster_create_new_delay_courier(blaster* const ctxt) {
