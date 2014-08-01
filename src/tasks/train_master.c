@@ -292,13 +292,14 @@ master_current_location(master* const ctxt, const int time) {
     return l;
 }
 
-static void
+static inline void
 master_where_you_at(master* const ctxt,
                     const control_req* const pkg,
                     const int request_tid,
-                    const int courier_tid) {
+                    const int courier_tid,
+                    const int time) {
 
-    const track_location l = master_current_location(ctxt, Time());
+    const track_location l = master_current_location(ctxt, time);
 
     const int result = Reply(request_tid, (char*)&l, sizeof(l));
     assert(result == 0,
@@ -310,9 +311,11 @@ master_where_you_at(master* const ctxt,
 }
 
 static void
-master_where_might_you_be(master* const ctxt, const int request_tid) {
+master_where_might_you_be(master* const ctxt,
+                          const int request_tid,
+                          const int time) {
 
-    const track_location l = master_current_location(ctxt, Time());
+    const track_location l = master_current_location(ctxt, time);
 
     master_req req = {
         .type = MASTER_MASTER_HERE_I_AM,
@@ -804,7 +807,7 @@ static void master_check_throw_stop_command(master* const ctxt,
 }
 
 static inline int
-master_short_move(master* const ctxt, const int offset) {
+master_short_move(master* const ctxt, const int offset, const int time) {
 
     // NOTE: we only consider speeds 2-12
     for (int speed = 120; speed > 10; speed -= 10) {
@@ -818,7 +821,7 @@ master_short_move(master* const ctxt, const int offset) {
         if (offset > min_dist) {
             master_set_speed(ctxt, speed, 0);
             ctxt->short_moving_distance  = offset - start_dist;
-            ctxt->short_moving_timestamp = Time();
+            ctxt->short_moving_timestamp = time;
             return speed;
         }
     }
@@ -826,9 +829,8 @@ master_short_move(master* const ctxt, const int offset) {
     return 0;
 }
 
-static void master_short_move2(master* const ctxt) {
+static void master_short_move2(master* const ctxt, const int time) {
 
-    const int time = Time();
     const track_location current_location =
         master_current_location(ctxt, time);
 
@@ -937,7 +939,8 @@ static void master_setup_first_short_move(master* const ctxt,
 static inline void master_path_update(master* const ctxt,
                                       const int size,
                                       const path_node* path,
-                                      const int tid) {
+                                      const int tid,
+                                      const int time) {
 
     const sensor to = pos_to_sensor(ctxt->destination);
 
@@ -974,7 +977,6 @@ static inline void master_path_update(master* const ctxt,
 
     // some stuff we need to know before we kick off the path finding
     const int velocity = master_current_velocity(ctxt);
-    const int     time = Time();
     // how far we have travelled from the sensor since the checkpoint
     const int   offset = ctxt->checkpoint.location.offset +
         (velocity * (time - ctxt->checkpoint.timestamp));
@@ -1017,9 +1019,10 @@ static inline void
 master_short_move_command(master* const ctxt,
                           const int offset,
                           const control_req* const pkg,
-                          const int tid) {
+                          const int tid,
+                          const int time) {
 
-    const int speed = master_short_move(ctxt, offset);
+    const int speed = master_short_move(ctxt, offset, time);
     if (speed)
         mark_log("[%s] Short move %d mm at speed %d",
                  ctxt->name, offset / 1000, speed / 10);
@@ -1197,7 +1200,8 @@ static inline int perform_reservation(master* const ctxt) {
 static inline void master_location_update(master* const ctxt,
                                           const train_state* const state,
                                           const blaster_req* const pkg,
-                                          const int tid) {
+                                          const int tid,
+                                          const int time) {
 
     memcpy(&ctxt->checkpoint, state, sizeof(train_state));
     //const sensor l = pos_to_sensor(state->location.sensor);
@@ -1236,7 +1240,7 @@ static inline void master_location_update(master* const ctxt,
         // and enough time has passed
         ctxt->checkpoint.timestamp > (ctxt->short_moving_timestamp + 10)) {
 
-        master_short_move2(ctxt);
+        master_short_move2(ctxt, time);
     }
 
     if (ctxt->path_step && ctxt->path_step >= ctxt->path) {
@@ -1295,7 +1299,6 @@ static inline void master_location_update(master* const ctxt,
         // now, the million dollar question is: are we too late to throw
         // the turnout and/or stop; we determine this by looking at the
         const int velocity = master_current_velocity(ctxt);
-        const int     time = Time();
         // how far we have travelled from the sensor since the checkpoint
         const int   offset = ctxt->checkpoint.location.offset +
             (velocity * (time - ctxt->checkpoint.timestamp));
@@ -1502,6 +1505,8 @@ void train_master() {
         assert(result > 0,
                "[%s] Invalid message size (%d)", context.name, result);
 
+        const int time = Time();
+
         switch (req.type) {
         case MASTER_GOTO_LOCATION:
             master_goto_command(&context, &req, &control_callin, tid);
@@ -1511,7 +1516,8 @@ void train_master() {
             master_short_move_command(&context,
                                       req.arg1,
                                       &control_callin,
-                                      tid);
+                                      tid,
+                                      time);
             break;
 
         case MASTER_STOP_AT_SENSOR:
@@ -1523,24 +1529,29 @@ void train_master() {
             break;
 
         case MASTER_WHERE_ARE_YOU:
-            master_where_you_at(&context, &control_callin, req.arg1, tid);
+            master_where_you_at(&context, &control_callin, req.arg1, tid, time);
             break;
         case MASTER_MASTER_WHERE_ARE_YOU:
-            master_where_might_you_be(&context, tid);
+            master_where_might_you_be(&context, tid, time);
             break;
         case MASTER_MASTER_HERE_I_AM:
             master_i_am_here(&context, req.arg1, req.arg2, tid);
             break;
 
         case MASTER_PATH_DATA:
-            master_path_update(&context, req.arg1, (path_node*)req.arg3, tid);
+            master_path_update(&context,
+                               req.arg1,
+                               (path_node*)req.arg3,
+                               tid,
+                               time);
             break;
 
         case MASTER_BLASTER_LOCATION:
             master_location_update(&context,
                                    (train_state*)req.arg1,
                                    &blaster_callin,
-                                   tid);
+                                   tid,
+                                   time);
             break;
 
         case MASTER_UPDATE_TWEAK:
