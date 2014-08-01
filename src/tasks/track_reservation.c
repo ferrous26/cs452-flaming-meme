@@ -1,4 +1,5 @@
 
+#include <ui.h>
 #include <std.h>
 #include <debug.h>
 #include <train.h>
@@ -13,7 +14,7 @@
 
 #include <tasks/track_reservation.h>
 
-
+#define NUM_RES_UI_COLS 5
 
 #define LOG_HEAD  "[TRACK RESERVATION]\t"
 // #define DIR_FRONT 0
@@ -131,28 +132,6 @@ is_node_adjacent(_context* const ctxt,
     return false;
 }
 
-static inline int
-is_node_edge(_context* const ctxt,
-             const track_node* const n1,
-             const int train) {
-    switch (n1->type) {
-    case NODE_NONE:
-    case NODE_MERGE:
-    case NODE_SENSOR:
-        return train != _who_owns(ctxt, n1->edge[DIR_AHEAD].dest->reverse)
-            || train != _who_owns(ctxt, n1->reverse);
-    case NODE_ENTER:
-        return train != _who_owns(ctxt, n1->edge[DIR_AHEAD].dest->reverse);
-    case NODE_EXIT:
-        return train != _who_owns(ctxt, n1->reverse);
-    case NODE_BRANCH:
-        return train != _who_owns(ctxt, n1->edge[DIR_STRAIGHT].dest->reverse)
-            || train != _who_owns(ctxt, n1->edge[DIR_CURVED].dest->reverse)
-            || train != _who_owns(ctxt, n1->reverse);
-    }
-    return false;
-}
-
 static void _handle_reserve_section(_context* const ctxt,
                                     const int tid,
                                     const int train,
@@ -164,12 +143,12 @@ static void _handle_reserve_section(_context* const ctxt,
     int reply[] = {RESERVE_SUCCESS};
     ctxt->train_iter[train]++;
     
-    #ifdef NIK
     char* ptr;
     char path_print[512];
-    ptr = log_start(path_print);
-    ptr = sprintf(ptr, "RESERVATION FOR TRAIN%d:", train);
-    #endif
+    ptr = vt_goto(path_print, TRAIN_RESERVE_ROW, TRAIN_RESERVE_COL(train));
+
+    int ui_row      = 0;
+    int ui_col      = 0;
 
     for (int i = 0; i < lst_size; i++, node++) {
         const int index = _get_node_index(ctxt, *node);
@@ -180,11 +159,10 @@ static void _handle_reserve_section(_context* const ctxt,
                 nik_log("%s is not adjacent to train %d",
                         ctxt->track[index].name, train);
             } else {
-                #ifdef NIK
-                if ((i & 7) == 0) ptr = sprintf(ptr, "\r\n\t");
-                ptr = sprintf_string(ptr, (*node)->name); 
-                ptr = sprintf_string(ptr, "\t");
-                #endif
+                char* const old = ptr;
+                ptr             = sprintf_string(ptr, (*node)->name); 
+                *(ptr++)        = ' ';
+                ui_col         += ptr - old;
 
                 ctxt->reserve[index].owner = train;
                 ctxt->reserve[index].iter  = ctxt->train_iter[train];
@@ -199,12 +177,33 @@ static void _handle_reserve_section(_context* const ctxt,
                     (*node)->name, train, owner);
             reply[0] = RESERVE_FAILURE;
         }
+
+        if (ui_col > 20 - 5) {
+            const int clear = 20 - ui_col;
+            for (int j = 0; j < clear; j++) *(ptr++) = ' ';
+
+            ui_col  = 0;
+            ui_row += 1;
+            ptr     = vt_goto(ptr,
+                              TRAIN_RESERVE_ROW + ui_row,
+                              TRAIN_RESERVE_COL(train));
+        }
     }
 
-    #ifdef NIK
-    Puts(path_print, ptr - path_print);
-    #endif
 
+    if (ui_col < 20) {
+        const int clear = 20 - ui_col;
+        for (int i = 0; i < clear; i++) *(ptr++) = ' ';
+        ui_row += 1;
+    }
+    for (; ui_row < 5; ui_row++) {
+        ptr     = vt_goto(ptr,
+                          TRAIN_RESERVE_ROW + ui_row,
+                          TRAIN_RESERVE_COL(train));
+        for (int i = 0; i < 20; i++) *(ptr++) = ' ';
+    }
+
+    Puts(path_print, ptr - path_print); 
     result = Reply(tid, (char*)reply, sizeof(reply));
     assert(0 == result, "Failed to repond to track query");
 }

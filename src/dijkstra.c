@@ -9,7 +9,6 @@
 #include <char_buffer.h>
 #include <tasks/track_reservation.h>
 
-#define RESERVE_DIST
 #define HEAP_SIZE    (TRACK_MAX+1)
 
 typedef struct dijkstra_data {
@@ -18,9 +17,6 @@ typedef struct dijkstra_data {
     const track_node* prev;
     const track_node* next;
 } data_t;
-
-
-
 
 inline static void prime_search(const path_requisition* const opts,
                                 const track_node* ptr,
@@ -280,7 +276,7 @@ int dijkstra(const track_node* const track,
         case NODE_BRANCH:
             node->type               = PATH_TURNOUT;
             node->dist               = node_dist;
-            node->data.turnout.num   = path_ptr->num;
+            node->data.turnout.num   = (int16)path_ptr->num;
             node->data.turnout.state = direction ? 'C' : 'S';
             path_size++;
             break;
