@@ -66,7 +66,7 @@ static int __attribute__ ((unused)) blaster_estimate_speed(blaster* const ctxt) 
     return (truth.speed + truth.next_speed) >> 2;
 }
 
-#ifndef NIK
+#ifndef BANANANANANANANANANANANA
 #define blaster_debug_state( ... )
 #else
 static void __attribute__ ((unused))
