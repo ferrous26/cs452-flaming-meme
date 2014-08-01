@@ -18,7 +18,8 @@ typedef struct sf_req {
     sf_type type;
     union {
         int sensor;
-        
+        int sensor_request[2];
+
         struct update {
             int sensor;
             int time;
@@ -38,7 +39,7 @@ typedef struct sf_req {
 void __attribute__ ((noreturn)) sensor_farm(void);
 
 int delay_sensor_any(void);
-int delay_sensor(const int sensor_bank, const int sensor_num);
+int delay_sensor(int train_num, const int sensor_bank, const int sensor_num);
 
 #endif
 

@@ -13,17 +13,23 @@
 #include <tasks/courier.h>
 
 void sensor_notifier() {
-    int       tid, has_header;
+    int tid, has_header;
     const int sf_tid = WhoIs((char*)SENSOR_FARM_NAME);
-
 
     sf_type sensor_any = SF_D_SENSOR_ANY;
     struct {
         sf_type type;
         int     sensor;
+        int     train_num;
     } sensor_one = {
         .type = SF_D_SENSOR
     };
+
+    struct {
+        int sensor_num;
+        int train_num; 
+        int return_head;
+    } req_first;
 
     struct {
         int sensor_num;
@@ -36,7 +42,13 @@ void sensor_notifier() {
     } reply;
 
     int* const sensor_idx = &sensor_one.sensor;
-    int result = Receive(&tid, (char*)&req, sizeof(req));
+    int result = Receive(&tid, (char*)&req_first, sizeof(req_first));
+    assert(result >= 2*(int)sizeof(int), "nope budd %d", result);
+
+    req.sensor_num   = req_first.sensor_num;
+    req.return_head  = req_first.return_head;
+    result          -= (int) sizeof(int);
+
     Reply(tid, NULL, 0);
 
     do {

@@ -84,15 +84,16 @@ _is_console_dead(const tc_context* const ctxt) {
 
 static void try_send_sensor(tc_context* const ctxt, int sensor_num) {
     int tid, result; UNUSED(result);
-    int data[2] = {sensor_num, ctxt->sensor_iter};
 
     if (0 == intb_count(&ctxt->waiters)) {
+        const int data[] = {sensor_num, ctxt->train_pos, ctxt->sensor_iter};
         tid = Create(TC_CHILDREN_PRIORITY, sensor_notifier);
         CHECK_CREATE(tid, "Failed to create sensor waiter");
 
         result = Send(tid, (char*)&data, sizeof(data), NULL, 0);
         assert(result == 0, "Failed send to sensor waiter (%d)", result);
     } else {
+        const int data[] = {sensor_num, ctxt->sensor_iter};
         tid = intb_consume(&ctxt->waiters);
         result = Reply(tid, (char*)&data, sizeof(data));
         assert(result == 0, "Failed reply to sensor waiter %d (%d)",
@@ -154,8 +155,10 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     *(int*)&ctxt->sensor_tid = Create(TC_CHILDREN_PRIORITY, courier);
     CHECK_CREATE(ctxt->sensor_tid, "Failed to create farm courier");
 
+
+    int sensor_setup[] = {ctxt->sensor_expect, ctxt->train_pos};
     result = Send(sensor_tid,
-                  (char*)&ctxt->sensor_expect, sizeof(ctxt->sensor_expect),
+                  (char*)sensor_setup, sizeof(sensor_setup),
                   NULL, 0);
     assert(result == 0, "Failed to set up first sensor poll %d", result);
 
@@ -163,8 +166,6 @@ static TEXT_COLD void _init_context(tc_context* const ctxt) {
     assert(tid == sensor_tid, "received sensor from %d", tid);
     assert(result == sizeof(sensor_data),
             "Received invalid sensor data %d/%d", result, sizeof(sensor_data));
-
-
     intb_produce(&ctxt->waiters, tid);
 
     blaster_req_type failure = BLASTER_CONSOLE_LOST;
@@ -235,7 +236,10 @@ static void try_send_timeout(tc_context* const ctxt) {
     assert(ctxt->sensor_timeout >= 0, "Invalid timeout time %d",
            ctxt->sensor_timeout);
 
-    if (!can_send_timeout(ctxt)) return;
+    if (!can_send_timeout(ctxt)) {
+        log(LOG_HEAD "Not Sending a timeout %d", ctxt->sensor_timeout);   
+        return;
+    }
     int   result; UNUSED(result);
 
     struct {

@@ -35,7 +35,9 @@ typedef union {
     position_req position;
     turnout      turn;
     int          int_value;
+    int          sensor_request[2];    
 } mc_payload;
+
 
 typedef struct {
     mc_type    type;

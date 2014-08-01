@@ -11,9 +11,10 @@
 #include <tasks/clock_server.h>
 #include <tasks/train_server.h>
 
+#include <tasks/track_reservation.h>
 #include <tasks/sensor_farm.h>
 
-#define LOG_HEAD         "[SENSOR FARM] "
+#define LOG_HEAD         "[SENSOR FARM]\t"
 #define SENSOR_LIST_SIZE 9
 
 static int sensor_farm_tid;
@@ -25,6 +26,8 @@ typedef struct {
     int     wait_all;
     int     sensor_delay[NUM_SENSORS];
     int     sensor_error[NUM_SENSORS];
+
+    const   track_node* const track;
 } sf_context;
 
 static void __attribute__ ((noreturn)) sensor_poll() {
@@ -112,22 +115,34 @@ inline static void _update_sensors(sf_context* const ctxt,
 
 static inline void _sensor_delay(sf_context* const ctxt,
                                  const int tid,
-                                 const int sensor_num) {
+                                 const int sensor_num,
+                                 const int train_num) {
+
     assert(sensor_num >= 0 && sensor_num < NUM_SENSORS,
            LOG_HEAD "can't delay on invalid sensor %d (from %d)",
            tid, sensor_num);
 
+    int accept_tid = tid;
     if (-1 != ctxt->sensor_delay[sensor_num]) {
-        log(LOG_HEAD "%d rejected from sensor %d", tid, sensor_num);
+        int result, reject_tid;
+        int owner    = reserve_who_owns(ctxt->track[sensor_num].reverse);
+        int reply[2] = {REQUEST_REJECTED, sensor_num}; 
 
-        int reply[2] = {REQUEST_REJECTED, sensor_num};
-        int result   = Reply(tid, (char*)&reply, sizeof(reply));
-        assert(result == 0, "Failed notifing task %d on sensor", tid);
-        UNUSED(result);
-        return;
+
+        if (train_num == owner) {
+            reject_tid = ctxt->sensor_delay[sensor_num];
+        } else {
+            accept_tid = ctxt->sensor_delay[sensor_num];
+            reject_tid = tid;
+        }
+    
+
+        log(LOG_HEAD "%d rejected from sensor %d", reject_tid, sensor_num); 
+        result = Reply(reject_tid, (char*)&reply, sizeof(reply));
+        assert(result == 0, "Failed notifing task %d on sensor", reject_tid);
     }
 
-    ctxt->sensor_delay[sensor_num] = tid;
+    ctxt->sensor_delay[sensor_num] = accept_tid;
 }
 
 static inline void _sensor_wakeup(sf_context* const ctxt,
@@ -175,9 +190,9 @@ static TEXT_COLD void _init_farm(sf_context* const ctxt) {
     memset(ctxt->recent_sensors, 0, sizeof(ctxt->recent_sensors));
     ctxt->sensor_insert = ctxt->recent_sensors;
 
-    result = Receive(&tid, NULL, 0);
+    result = Receive(&tid, (char*)&ctxt->track, sizeof(ctxt->track));
+    assert(result == (int)sizeof(ctxt->track), "Failed to get task");
     _flush_sensors();
-    assert(result == 0, "Failed to get task");
 
     int poll_tid = Create(SENSOR_POLL_PRIORITY, sensor_poll);
     if (poll_tid < 0)
@@ -213,7 +228,13 @@ void sensor_farm() {
             break;
 
         case SF_D_SENSOR:
-            _sensor_delay(&context, tid, req.body.sensor);
+            assert(result == (int)sizeof(req.type)
+                              + (int)sizeof(req.body.sensor_request),
+                   "NOT ENUF STUFF %d", result);
+            _sensor_delay(&context,
+                          tid,
+                          req.body.sensor_request[0],
+                          req.body.sensor_request[1]);
             break;
 
         case SF_D_SENSOR_ANY:
@@ -237,7 +258,9 @@ void sensor_farm() {
     }
 }
 
-int delay_sensor(int sensor_bank, int sensor_num) {
+int delay_sensor(int train_num, int sensor_bank, int sensor_num) {
+    assert(XBETWEEN(train_num, -1, NUM_TRAINS), "Bad Train Num %d", train_num);
+
     switch (sensor_bank) {
     case 'a': sensor_bank = 'A';
     case 'A': break;
