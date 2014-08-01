@@ -461,7 +461,7 @@ int get_position_from(const track_location from,
     return 0;
 }
 
-int disable_sensor_num(const int sensor_num) {
+static int disable_sensor_num(const int sensor_num) {
     if (!XBETWEEN(sensor_num, -1, NUM_SENSORS)) return INVALID_MESSAGE;
 
     struct {
@@ -483,7 +483,7 @@ int disable_sensor_name(const int bank, const int num) {
     return disable_sensor_num(sensor_num);
 }
 
-int revive_sensor_num(const int sensor_num) {
+static int revive_sensor_num(const int sensor_num) {
     if (!XBETWEEN(sensor_num, -1, NUM_SENSORS)) return INVALID_MESSAGE;
 
     struct {
