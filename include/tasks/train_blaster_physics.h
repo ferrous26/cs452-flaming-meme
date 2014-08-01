@@ -108,10 +108,26 @@ static inline int
 physics_stopping_distance(const blaster* const ctxt, const int speed) {
 
     if (speed < 10) return 0;
-    return
+    const int base_dist =
         (ctxt->stop_dist_map.slope * speed) +
         ctxt->stop_dist_map.offset +
         ctxt->stopping_distance_offset;
+
+    switch (velocity_type(truth.location.sensor)) {
+    case TRACK_THREE_WAY:       return base_dist - 50000;
+    case TRACK_INNER_CURVE:     return base_dist - 50000;
+    case TRACK_INNER_STRAIGHT:  return base_dist + 50000;
+    case TRACK_OUTER_CURVE1:    return base_dist - 50000;
+    case TRACK_OUTER_CURVE2:    return base_dist - 50000;
+    case TRACK_STRAIGHT:        return base_dist + 50000;
+    case TRACK_LONG_STRAIGHT:   return base_dist + 80000;
+    case TRACK_BACK_CONNECT:    return base_dist - 50000;
+    case TRACK_OUTER_STRAIGHT:  return base_dist + 50000;
+    case TRACK_BUTT:            return base_dist - 40000;
+    case TRACK_TYPE_COUNT:
+    default:
+        return base_dist;
+    }
 }
 
 static inline int
