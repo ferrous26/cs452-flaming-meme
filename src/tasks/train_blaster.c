@@ -262,6 +262,7 @@ static void blaster_start_accelerate(blaster* const ctxt,
                 }
                 else
                     log("[%s] Narrowly avoided race condition!", ctxt->name);
+
                 ctxt->reverse_speed = to_speed;
                 return;
             }
@@ -608,7 +609,7 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
     }
 
     if (truth.is_accelerating)
-        ctxt->reverse_speed = current_accel.next_speed;
+        ctxt->reverse_speed = truth.next_speed;
     else
         ctxt->reverse_speed = truth.speed;
 
