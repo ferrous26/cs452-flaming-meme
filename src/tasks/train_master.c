@@ -590,18 +590,14 @@ static inline void master_find_next_stopping_point(master* const ctxt) {
     // this handles the case where we need to fast forward the route
 
     const path_node* const start_step =
-        MIN(ctxt->next_stop.step, ctxt->path_step);
+        MIN(ctxt->next_stop.action, ctxt->path_step);
 
     // TODO: why do we end uncleanly?!?!?!
+
     for (const path_node* step = start_step - 1; step >= ctxt->path; step--) {
         // if we have found a reverse step
         if (step->type == PATH_REVERSE || step == ctxt->path) {
-            // if the last step is a reverse
-            if (step->type == PATH_REVERSE && step == ctxt->path)
-                ctxt->next_stop.action = step + 1; // stop at non-reverse sensor
-            else // we have a stopping point
-                ctxt->next_stop.action = step;
-
+            ctxt->next_stop.action = step;
             return;
         }
     }
@@ -1261,6 +1257,7 @@ static inline void master_location_update(master* const ctxt,
         //     we are not path_completed
         else if (ctxt->checkpoint.speed == 0 && ctxt->path_stopping
                                              && !ctxt->path_completed) {
+
             log("[%s] Hit reversing point!", ctxt->name);
             master_set_reverse(ctxt, 0); // no delay required
             master_setup_next_short_move(ctxt, offset, time + 10);
