@@ -375,11 +375,13 @@ master_update_pathing_ui(master* const ctxt) {
 
     int i = 0;
     for (const path_node* step = ctxt->path_step;
-         step >= ctxt->path && i < 3;
+         step && step >= ctxt->path && i < 6;
          step--, i++) {
 
         const uint index = step - ctxt->path;
         ptr = vt_goto(ptr, TRAIN_PATH_ROW + i, TRAIN_PATH_COL(ctxt->train_id));
+        const char* const invis = ptr; // prefix of string holding escapes
+
         ptr = sprintf_uint(ptr, index);
         ptr = ui_pad(ptr, log10(index), 4);
 
@@ -391,10 +393,10 @@ master_update_pathing_ui(master* const ctxt) {
             break;
         }
         case PATH_TURNOUT: {
-            const int turn = step->data.turnout.num;
+            const uint turn = step->data.turnout.num;
             ptr = ui_pad(ptr, log10(turn), 4);
             ptr = sprintf(ptr,
-                          "%d %c",
+                          "%u %c",
                           turn, step->data.turnout.state);
             break;
         }
@@ -404,12 +406,13 @@ master_update_pathing_ui(master* const ctxt) {
         }
 
         ptr = sprintf_uint(ptr, step->dist / 1000);
+        ptr = ui_pad(ptr, ptr - invis, 16);
     }
 
     // pad out the rest of the path finding space (lame CPU burning)
     for (; i < 6; i++) {
         ptr = vt_goto(ptr, TRAIN_PATH_ROW + i, TRAIN_PATH_COL(ctxt->train_id));
-        ptr = sprintf_string(ptr, "            ");
+        ptr = sprintf_string(ptr, "                ");
     }
 
     Puts(buffer, ptr - buffer);
