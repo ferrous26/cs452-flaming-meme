@@ -237,7 +237,8 @@ static void try_send_timeout(tc_context* const ctxt) {
            ctxt->sensor_timeout);
 
     if (!can_send_timeout(ctxt)) {
-        log(LOG_HEAD "Not Sending a timeout %d", ctxt->sensor_timeout);   
+        if ((ctxt->state & TIMER_MASK) && ctxt->sensor_expect != 80)
+            log(LOG_HEAD "Not Sending a timeout %d", ctxt->sensor_timeout);   
         return;
     }
     int   result; UNUSED(result);

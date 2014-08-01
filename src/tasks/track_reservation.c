@@ -140,7 +140,7 @@ static void _handle_reserve_section(_context* const ctxt,
     CHECK_TRAIN(train);
 
     int result;
-    int reply[] = {RESERVE_SUCCESS};
+    int reply[] = {RESERVE_SUCCESS, 0};
     ctxt->train_iter[train]++;
     
     char* ptr;
@@ -173,9 +173,10 @@ static void _handle_reserve_section(_context* const ctxt,
                     ctxt->track[index].name, train);
 
         } else {
-            nik_log(LOG_HEAD "Failed reserving Section %s For %d, owned by %d",
-                    (*node)->name, train, owner);
+            log(LOG_HEAD "Failed reserving Section %s For %d, owned by %d",
+                (*node)->name, train, owner);
             reply[0] = RESERVE_FAILURE;
+            reply[1] = owner;
         }
 
         if (ui_col > 20 - 5) {
@@ -302,9 +303,10 @@ int reserve_section(const int train,
                 (char*)&req,   sizeof(req),
                 (char*)result, sizeof(result));
 
-    assert(size == (int)sizeof(int), "Bad send to track reservation");
+    assert(size >= (int)sizeof(int), "Bad send to track reservation");
 
-    return result[0] == RESERVE_SUCCESS;
+    if (result[0] == RESERVE_SUCCESS) return 1;
+    return -result[1];
 }
 
 int reserve_can_double(const track_node* const node, const int train) {

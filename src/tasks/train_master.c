@@ -1151,7 +1151,7 @@ should_perform_reservation(const master* const ctxt) {
       ;
 }
 
-static inline int perform_reservation(master* const ctxt) {
+static inline int perform_reservation(master* const ctxt, const int speed) {
     assert(XBETWEEN(ctxt->checkpoint.location.sensor, -1, NUM_SENSORS),
            "Can't Reserve From not sensor %d",
            ctxt->checkpoint.location.sensor);
@@ -1165,9 +1165,11 @@ static inline int perform_reservation(master* const ctxt) {
 
     int moving_dist = 0;
     if (0 != ctxt->checkpoint.speed) {
-        const int stop_dist = master_current_stopping_distance(ctxt);
+        const int stop_dist = physics_stopping_distance(ctxt->blaster_ctxt,
+                                                        speed);
         moving_dist = stop_dist + node->edge[0].dist;
     }
+
 
     const track_node* reserve[60];
     int               insert = 0;
@@ -1217,11 +1219,21 @@ static inline void master_location_update(master* const ctxt,
 
     if (ctxt->checkpoint.event == EVENT_SENSOR) ctxt->active = 1;
     if (ctxt->active && should_perform_reservation(ctxt)) {
-        const bool got_reservation = perform_reservation(ctxt);
+        int speed = ctxt->checkpoint.speed;
+        for (; speed > 0; speed = speed >> 1) {
+            const bool got_reservation = perform_reservation(ctxt, speed);
+            if (1 == got_reservation) break;
 
-        if (!got_reservation) {
-            log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);
-            master_set_speed(ctxt, ctxt->checkpoint.speed >> 1, 0);
+            log("[%s] Train %d is a prick", ctxt->name, -got_reservation);
+        }
+        if (speed < ctxt->checkpoint.speed) {
+            if (speed) {
+                log("[%s] Encrouching SLOW %d", ctxt->name, speed);
+                master_set_speed(ctxt, speed, 0);
+            } else {
+                log("[%s] Encrouching %d", ctxt->name, speed);
+                master_set_reverse(ctxt, 0);
+            }
         }
     } else {
         nik_log("[%s] NO NEW RESERVATION", ctxt->name);
