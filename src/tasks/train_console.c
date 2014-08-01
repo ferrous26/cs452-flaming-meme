@@ -284,7 +284,7 @@ static void reject_remaining_sensors(const tc_context* const ctxt) {
     cancel_req.size = 0;
     cancel_req.type = SF_W_SENSORS;
 
-    for (int i = 0; i < SENT_WAITER_SIZE; i++) {
+    for (int i = 0; i < MAX(SENT_WAITER_SIZE, 8); i++) {
         const int tid = ctxt->sent_waiters[i];
 
         if (-1 != tid) {
