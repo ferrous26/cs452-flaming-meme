@@ -523,7 +523,7 @@ master_goto(master* const ctxt,
             .sensor_to   = destination,
             .opts        = opts,
             .sensor_from = source,
-            .reserve     = 600,
+            .reserve     = 200,
         }
     };
 
