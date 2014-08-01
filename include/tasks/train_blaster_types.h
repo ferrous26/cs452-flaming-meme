@@ -47,6 +47,12 @@ typedef struct {
 } term;
 
 typedef struct {
+    int quad;
+    int slope;
+    int offset;
+} quadratic;
+
+typedef struct {
     term terms[4];
     int mega_scale;
 } cubic;
@@ -96,7 +102,7 @@ typedef struct blaster_context {
     cubic     amap; // map acceleration time to a starting distance
 
     int       vmap[TRAIN_SPEEDS][TRACK_TYPE_COUNT];
-    line      stop_dist_map;
+    quadratic stop_dist_map;
     cubic     start_dist_map;
 
     // these will usually be based on actual track feedback, unless we have to

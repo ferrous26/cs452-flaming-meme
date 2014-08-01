@@ -979,8 +979,9 @@ static TEXT_COLD void blaster_init_physics(blaster* const ctxt) {
         ctxt->dmap.terms[0].factor  = 34;
         ctxt->dmap.terms[0].scale   = 1;
 
-        ctxt->stop_dist_map.slope  =   7055;
-        ctxt->stop_dist_map.offset = -60500;
+        ctxt->stop_dist_map.quad  =     120;
+        ctxt->stop_dist_map.slope  = -10322;
+        ctxt->stop_dist_map.offset = 263250;
 
         ctxt->start_dist_map.mega_scale      = 1;
         ctxt->start_dist_map.terms[3].factor = 4837;

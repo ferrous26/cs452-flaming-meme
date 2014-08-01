@@ -109,6 +109,7 @@ physics_stopping_distance(const blaster* const ctxt, const int speed) {
 
     if (speed < 10) return 0;
     return
+        (ctxt->stop_dist_map.quad * speed * speed) +
         (ctxt->stop_dist_map.slope * speed) +
         ctxt->stop_dist_map.offset +
         ctxt->stopping_distance_offset;
