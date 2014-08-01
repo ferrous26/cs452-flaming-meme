@@ -127,7 +127,7 @@ char* vt_scroll_down(char* buffer);
 /**
  * The row where logging begins.
  */
-#define LOG_HOME 32
+#define LOG_HOME 34
 
 /**
  * The row where logging ends.

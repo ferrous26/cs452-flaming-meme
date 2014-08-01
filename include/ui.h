@@ -25,16 +25,16 @@
 #define TRAIN_PREDICTION_COL(id)  TRAIN_SENSOR_COL(id)
 #define TRAIN_PATH_ROW           (TRAIN_PREDICTION_ROW + 2)
 #define TRAIN_PATH_COL(id)        TRAIN_PREDICTION_COL(id)
-#define TRAIN_RESERVE_ROW        (TRAIN_PATH_ROW + 6)
+#define TRAIN_RESERVE_ROW        (TRAIN_PATH_ROW + 8)
 #define TRAIN_RESERVE_COL(id)     TRAIN_SENSOR_COL(id)
 
 #define TRAIN_CONSOLE_ROW         TRAIN_LOCATION_ROW
 #define TRAIN_CONSOLE_COL(id)    (TRAIN_LOCATION_COL(id) + 14)
 
-#define TURNOUT_ROW (TRAIN_ROW + 21)
+#define TURNOUT_ROW (TRAIN_ROW + 24)
 #define TURNOUT_COL 5
 
-#define SENSOR_ROW TURNOUT_ROW
+#define SENSOR_ROW TURNOUT_ROW + 1
 #define SENSOR_COL 60
 
 char* ui_pad(char* ptr, const int input_width, const int total_width);

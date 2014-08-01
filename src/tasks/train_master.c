@@ -370,12 +370,12 @@ master_try_fast_forward(master* const ctxt) {
 static void
 master_update_pathing_ui(master* const ctxt) {
 
-    char buffer[140];
+    char buffer[256];
     char* ptr = buffer;
 
     int i = 0;
     for (const path_node* step = ctxt->path_step;
-         step && step >= ctxt->path && i < 6;
+         step && step >= ctxt->path && i < 7;
          step--, i++) {
 
         const uint index = step - ctxt->path;
@@ -389,30 +389,30 @@ master_update_pathing_ui(master* const ctxt) {
         case PATH_SENSOR: {
             const sensor s = pos_to_sensor(step->data.sensor);
             ptr = sprintf(ptr, "%c %d", s.bank, s.num);
-            ptr = ui_pad(ptr, log10(s.num), 4);
+            ptr = ui_pad(ptr, log10(s.num), 6);
             break;
         }
         case PATH_TURNOUT: {
             const uint turn = step->data.turnout.num;
-            ptr = ui_pad(ptr, log10(turn), 4);
+            ptr = ui_pad(ptr, log10(turn), 6);
             ptr = sprintf(ptr,
                           "%u %c",
                           turn, step->data.turnout.state);
             break;
         }
         case PATH_REVERSE:
-            ptr = sprintf_string(ptr, "R     ");
+            ptr = sprintf_string(ptr, "R       ");
             break;
         }
 
         ptr = sprintf_uint(ptr, step->dist / 1000);
-        ptr = ui_pad(ptr, ptr - invis, 16);
+        ptr = ui_pad(ptr, ptr - invis, 18);
     }
 
     // pad out the rest of the path finding space (lame CPU burning)
     for (; i < 6; i++) {
         ptr = vt_goto(ptr, TRAIN_PATH_ROW + i, TRAIN_PATH_COL(ctxt->train_id));
-        ptr = sprintf_string(ptr, "                ");
+        ptr = sprintf_string(ptr, "                  ");
     }
 
     Puts(buffer, ptr - buffer);
