@@ -617,9 +617,14 @@ static void blaster_reverse_step1(blaster* const ctxt, const int time) {
 
     blaster_set_speed(ctxt, 0, time); // STAHP!
     ctxt->reversing = 1;
+    ctxt->reverse_courier = -2;
 }
 
 static void blaster_reverse_step2(blaster* const ctxt) {
+
+    assert(ctxt->reverse_courier == -2,
+           "[%s] Reversing race condition (%d)",
+           ctxt->name, ctxt->reverse_courier);
 
     ctxt->reverse_courier = blaster_create_new_delay_courier(ctxt);
 
@@ -825,14 +830,17 @@ blaster_process_acceleration_event(blaster* const ctxt,
         assert(result == 0, "[%s] Fuuuuu (%d)", ctxt->name, result);
         UNUSED(result);
 
-        truth.next_location.offset = 0;
+        truth.next_location.offset  = 0;
         current_accel.next_location = truth.next_location;
         current_accel.next_distance = truth.next_distance;
     }
     // I don't fuckin' know what to do in this case
     else {
-        log("[%s] Teleported since train started accelerating!",
+        log("[%s] Teleported since started acceleration!",
             ctxt->name);
+
+        // might happen after dead sensor
+
         // TODO: this will happen at startup because we will often
         // start from the wrong position on the track
 
