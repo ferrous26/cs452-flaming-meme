@@ -459,9 +459,9 @@ master_update_pathing_ui(master* const ctxt) {
     }
 
     // pad out the rest of the path finding space (lame CPU burning)
-    for (; i < 6; i++) {
+    for (; i < 7; i++) {
         ptr = vt_goto(ptr, TRAIN_PATH_ROW + i, TRAIN_PATH_COL(ctxt->train_id));
-        ptr = sprintf_string(ptr, "                  ");
+        ptr = sprintf_string(ptr, "                    ");
     }
 
     Puts(buffer, ptr - buffer);
@@ -528,7 +528,6 @@ master_goto(master* const ctxt,
     // do not forget to force current path to end
     ctxt->path_last = 0;
     ctxt->path_step = NULL;
-    master_update_pathing_ui(ctxt);
 }
 
 static inline void
@@ -973,8 +972,6 @@ static inline void master_path_update(master* const ctxt,
     ctxt->path_stopping  = false;
     ctxt->path_completed = false;
 
-    master_update_pathing_ui(ctxt);
-
     // some stuff we need to know before we kick off the path finding
     const int velocity = master_current_velocity(ctxt);
     // how far we have travelled from the sensor since the checkpoint
@@ -984,6 +981,7 @@ static inline void master_path_update(master* const ctxt,
     if (path[size - 1].type == PATH_REVERSE) {
         log("[%s] Started with a reverse", ctxt->name);
         master_set_reverse(ctxt, time + 2);
+        master_update_pathing_ui(ctxt);
         return;
 
     } else {
@@ -1204,13 +1202,6 @@ static inline void master_location_update(master* const ctxt,
                                           const int time) {
 
     memcpy(&ctxt->checkpoint, state, sizeof(train_state));
-    //const sensor l = pos_to_sensor(state->location.sensor);
-    //    log("[%s] Got position update (%c%d) %p %s",
-    //ctxt->name,
-    //l.bank, l.num,
-    //state,
-    //event_to_str(ctxt->checkpoint.event));
-
     master_update_location_ui(ctxt);
 
     const int result = Reply(tid, (char*)pkg, sizeof(blaster_req));
