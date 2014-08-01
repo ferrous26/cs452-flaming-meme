@@ -28,6 +28,7 @@ void sensor_notifier(void);
 void time_notifier(void);
 void one_time_courier(void);
 void delayed_one_way_courier(void);
+void async_courier(void);
 void courier(void);
 
 #endif

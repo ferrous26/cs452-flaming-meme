@@ -161,6 +161,42 @@ void delayed_one_way_courier() {
            delay_req.head.receiver, result);
 }
 
+void async_courier() {
+
+    struct {
+        int   receiver;
+        char  message[252];
+    } package;
+
+    int tid;
+    int result;
+    const int size = Receive(&tid, (char*)&package, sizeof(package));
+    assert(size >= (int)(sizeof(int) * 2),
+           "Recived an invalid setup message %d / %d",
+           size, sizeof(int));
+
+    result = Reply(tid, NULL, 0);
+    assert(result == 0, "Failed reposnding to setup task (%d)", result);
+    UNUSED(result);
+
+    const int send_size = size - (int)sizeof(int);
+    result = Send(package.receiver,
+                  package.message, send_size,
+                  package.message, sizeof(package.message));
+
+    assert(result >= 0,
+           "failed sending to receiver %d (%d)",
+           package.receiver, result);
+
+    result = Send(tid,
+                  package.message, result,
+                  NULL, 0);
+
+    assert(result >= 0,
+           "failed sending back to the receiver %d (%d)",
+           package.receiver, result);
+}
+
 void courier() {
     int tid;
     courier_package package;
@@ -200,6 +236,4 @@ void courier() {
         assert(result >= 0, "Error sending response to %d (%d)",
                tid, result);
     } while (result > 0);
-
-    log("[Courier%d] has died...", myTid());
 }
