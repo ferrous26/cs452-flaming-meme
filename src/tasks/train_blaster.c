@@ -802,7 +802,8 @@ blaster_process_acceleration_event(blaster* const ctxt,
 
         // choose a pseudo-magic value for speed to use in the calculation
         const int    late_delta_t = timestamp - truth.timestamp;
-        const int estimated_speed = MAX(20, (truth.speed * 8) / 10);
+        const int        speed_bs = (truth.speed * 8) / 10;
+        const int estimated_speed = MAX(20, speed_bs);
         const int   late_velocity =
             physics_velocity(ctxt,
                              estimated_speed,
@@ -839,7 +840,17 @@ blaster_process_acceleration_event(blaster* const ctxt,
         log("[%s] Teleported since started acceleration!",
             ctxt->name);
 
-        // might happen after dead sensor
+        // choose a pseudo-magic value for speed to use in the calculation
+        const int    late_delta_t = timestamp - truth.timestamp;
+        const int        speed_bs = (truth.speed * 8) / 10;
+        const int estimated_speed = MAX(20, speed_bs);
+        const int   late_velocity =
+            physics_velocity(ctxt,
+                             estimated_speed,
+                             velocity_type(truth.location.sensor));
+
+        // so just try and add a bit of fudge
+        truth.location.offset += late_velocity * late_delta_t;
 
         // TODO: this will happen at startup because we will often
         // start from the wrong position on the track
