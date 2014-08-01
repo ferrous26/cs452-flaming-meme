@@ -1246,6 +1246,7 @@ static inline void master_location_update(master* const ctxt,
 
             // aw yisss, hard coded values
             if (ctxt->chasee >= 0) {
+                ctxt->chasee = -1;
                 ctxt->toggled_horn = true;
                 train_toggle_horn(58);
             }
@@ -1332,8 +1333,16 @@ static inline void master_location_update(master* const ctxt,
         // no more commands to be given to the train if we are done
         if (ctxt->path_completed && ctxt->checkpoint.speed == 0) {
             const sensor s = pos_to_sensor(ctxt->destination);
-            log("[%s] Arriving at %c%d", ctxt->name, s.bank, s.num);
             ctxt->path_step = NULL;
+
+            if (ctxt->chasee) {
+                log("[%s] Failed to catch my target. Trying again.",
+                    ctxt->name);
+                master_find_chasee(ctxt);
+            }
+            else {
+                log("[%s] Arriving at %c%d", ctxt->name, s.bank, s.num);
+            }
         }
         // 3 - we hit speed 0, so we should throw the reverse command if
         //     we are not path_completed
