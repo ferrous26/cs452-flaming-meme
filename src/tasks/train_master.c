@@ -91,8 +91,24 @@ static int master_current_velocity(master* const ctxt) {
 }
 
 static int master_current_stopping_distance(master* const ctxt) {
-    return physics_stopping_distance(ctxt->blaster_ctxt,
-                                     ctxt->checkpoint.speed);
+    const int base_dist = physics_stopping_distance(ctxt->blaster_ctxt,
+                                                    ctxt->checkpoint.speed);
+
+    switch (velocity_type(ctxt->checkpoint.location.sensor)) {
+    case TRACK_THREE_WAY:       return base_dist - 50000;
+    case TRACK_INNER_CURVE:     return base_dist - 50000;
+    case TRACK_INNER_STRAIGHT:  return base_dist + 50000;
+    case TRACK_OUTER_CURVE1:    return base_dist - 50000;
+    case TRACK_OUTER_CURVE2:    return base_dist - 50000;
+    case TRACK_STRAIGHT:        return base_dist + 50000;
+    case TRACK_LONG_STRAIGHT:   return base_dist + 80000;
+    case TRACK_BACK_CONNECT:    return base_dist - 50000;
+    case TRACK_OUTER_STRAIGHT:  return base_dist + 50000;
+    case TRACK_BUTT:            return base_dist - 40000;
+    case TRACK_TYPE_COUNT:
+    default:
+        return base_dist;
+    }
 }
 
 static inline int master_head_distance(master* const ctxt) {
@@ -669,7 +685,7 @@ static inline bool master_is_last_path_chunk(master* const ctxt) {
 static inline void master_recalculate_stopping_point(master* const ctxt,
                                                      const int offset) {
 
-    const int  stop_dist = master_current_stopping_distance(ctxt);
+    const int stop_dist = master_current_stopping_distance(ctxt);
 
     // we want to be sure that we clear the turnout, so add padding
     const int stop_point = stop_dist -
