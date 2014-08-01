@@ -289,9 +289,11 @@ int delay_sensor(int train_num, int sensor_bank, int sensor_num) {
     struct {
         sf_type type;
         int     sensor;
+        int     train;
     } req = {
         .type   = SF_D_SENSOR,
-        .sensor = sensor_to_pos(sensor_bank, sensor_num)
+        .sensor = sensor_to_pos(sensor_bank, sensor_num),
+        .train  = train_num,
     };
 
     int result[2];
