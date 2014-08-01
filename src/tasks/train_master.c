@@ -1425,6 +1425,7 @@ static TEXT_COLD void master_init(master* const ctxt) {
     ctxt->destination         = -1;
     ctxt->sensor_to_stop_at   = -1;
     ctxt->sensor_block.sensor = -1;
+    ctxt->chasee              = -1;
 }
 
 static TEXT_COLD void master_init_couriers(master* const ctxt,
