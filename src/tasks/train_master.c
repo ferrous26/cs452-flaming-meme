@@ -1248,6 +1248,7 @@ static inline void master_location_update(master* const ctxt,
 
         if (speed < ctxt->checkpoint.speed) {
             if (speed) {
+                if (speed < 20) speed = 0;
                 log("[%s] Encrouching SLOW %d", ctxt->name, speed);
                 master_set_speed(ctxt, speed, 0);
             }
