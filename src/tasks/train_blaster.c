@@ -500,8 +500,10 @@ static void blaster_set_speed(blaster* const ctxt,
 
     put_train_speed((char)ctxt->train_gid, (char)(set_speed / 10));
 
-    if (set_speed == truth.speed)
+    if (set_speed == truth.speed) {
         log("[%s] Speed already set to %d", ctxt->name, set_speed);
+        return;
+    }
 
     if (truth.speed > set_speed) {
         if (set_speed != 0)
