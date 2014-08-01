@@ -62,6 +62,7 @@ typedef struct master_context {
     int          sensor_to_stop_at;  // special case for handling ss command
     sensor_block sensor_block;
     int          chasee;
+    bool         toggled_horn;
 
     int              short_moving_distance;
     int              short_moving_timestamp;
@@ -1233,6 +1234,12 @@ static inline void master_location_update(master* const ctxt,
         if (!got_reservation) {
             log("[%s] Encrouching %d", ctxt->name, ctxt->checkpoint.speed);
             master_set_speed(ctxt, ctxt->checkpoint.speed >> 1, 0);
+
+            // aw yisss, hard coded values
+            if (ctxt->chasee >= 0) {
+                ctxt->toggled_horn = true;
+                train_toggle_horn(58);
+            }
         }
     } else {
         nik_log("[%s] NO NEW RESERVATION", ctxt->name);
@@ -1352,12 +1359,22 @@ master_chase(master* const ctxt,
     sprintf(name, "MASTR%d", chasee);
     name[7] = '\0';
 
-    ctxt->chasee = WhoIs(name);
-    assert(ctxt->chasee >= 0,
+    const int chasee_tid = WhoIs(name);
+    assert(chasee_tid >= 0,
            "[%s] Failed to find legit train (%d)",
-           ctxt->name, ctxt->chasee);
+           ctxt->name, chasee_tid);
 
-    master_find_chasee(ctxt);
+    if (chasee_tid == ctxt->chasee) {
+        ctxt->chasee = -1;
+        if (ctxt->toggled_horn) {
+            train_toggle_horn(58);
+            ctxt->toggled_horn = false;
+        }
+    }
+    else {
+        ctxt->chasee = chasee_tid;
+        master_find_chasee(ctxt);
+    }
 
     master_release_control_courier(ctxt, pkg, courier_tid);
 }
