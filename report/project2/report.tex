@@ -233,6 +233,60 @@ example, \ttt{go 49 B 16 0} will send train 49 to sensor B16.
 
 \section*{Sensor Attribution}
 
+Since one of the goals of this milestone was to control multiple trains on the
+track at the same time we needed to build on top of the naive method that was
+used for the last milestone. We chose for the trains to use an active approach.
+
+\subsection*{Train Console}
+
+When a \ttt{Train Blaster} task is signaled to start moving it creates a
+\ttt{Train Console} task for itself. This task is in charge of waiting for
+sensors as well as waiting for a timeout when the train has expected to trigger
+the next sensor. The console will then take which ever events fire and make a
+decision of what to forward back to the \ttt{Train Blaster}. The 
+\ttt{Train Console} would start up a notifier for every sensor that it could
+possibly hit within the future.
+
+We chose this approach due to the nature of the hardware and since in a full
+working state we would end up with a system that is very tolerant to hardware
+failure. This system also fits nicely into the existing system we had set up
+for use during the calibration of the trains.
+
+One of the biggest issues we had with this system was that we needed to
+synchronize the creation and use of sensor notifiers, a single timeout notifier
+the courier that was used to deliver a command to the train for what has
+happened position and with the sensor server to know when we want to get the
+expired notifier back. This also required for us to keep the 
+\ttt{Train Console} in a synchronized state with the \ttt{Train Blaster} so we
+can keep the positions of the train. 
+
+Due to the hard technical nature of this synchronization we we were never able
+to get all of the edge cases worked out of this section of the code. This would
+cause instances where this task will go into a deadlocked state waiting for one
+of its observed sensors to be actuated. Since this task was responsible for
+helping to verify train location this would cause for our train model model
+tasks to also go into a mostly deadlocked state while the train continues to
+move around the track. Unfortunately we had run out of time before we were able
+to either make our current implementation less error prone or able to move to
+another system required less precise methods of operation.
+
+\subsection*{Sensor Farm}
+
+The \ttt{Sensor Farm} is a server that maintains the state of all of the
+sensors on the track. It will create a task \ttt{Sensor Poller} that gets when
+a sensor has been actuated on the track and will notify the \ttt{Sensor Farm}
+the time in which the event has been triggered. On top of Updating the UI over
+which sensors have been actuated the \ttt{Sensor Farm} will also notify tasks
+when a sensor has been triggered.
+
+The sensor farm just maintains an of task ids to with each position in the
+array corresponding to one of the sensors on the track. If multiple tasks try
+to wait on the same sensor then the new task will be rejected unless the task
+asking for the sensor notification belongs to a train owning the reservation of
+the reverse direction. Since there is a noticeable amount of time for the
+sensor event propagation to make it to the interested train the timestamp is
+taken at the \ttt{Sensor Poll} level and passed along with the sensor event.
+
 \section*{Reservations}
 
 
