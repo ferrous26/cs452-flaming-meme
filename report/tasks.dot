@@ -2,18 +2,20 @@ digraph tasks {
 
   clock_server  [label = "Clock Server", shape = record];
   term_server   [label = "Terminal Serial I/O", shape = record];
-  train_server  [label = "Train Controller Serial I/O", shape = record];
 
-  task_launcher [label = "Task Launcher (Shell)", shape = record];
+  train_server  [label = "Controller Serial I/O&#10;(Train Data Link Layer)", shape = record];
+  blaster -> train_server;
 
-  train_control [label = "Train Control (Warehouse)", shape = record];
-  blaster       [label = "Blaster (Train Network Layer)", shape = record];
-  master        [label = "Master (Train Transport Layer)", shape = record];
+  task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
 
-  mb_command_courier [label = "Command Courier", shape = oval];
+  train_control [label = "Train Control&#10;(Warehouse)", shape = record];
+  blaster       [label = "Blaster&#10;(Train Network Layer)", shape = record];
+  master        [label = "Master&#10;(Train Transport Layer)", shape = record];
+
+  mb_command_courier [label = "Command&#10;Courier", shape = octagon];
   master -> mb_command_courier -> blaster;
   
-  mb_location_courier [label = "Position Update Courier", shape = diamond];
+  mb_location_courier [label = "Position Update&#10;Courier", shape = doubleoctagon];
   master -> mb_location_courier -> blaster -> mb_location_courier -> master;
 
   sensor_farm   [label = "Sensor Farm", shape = record];
