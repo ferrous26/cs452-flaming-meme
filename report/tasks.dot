@@ -9,9 +9,12 @@ digraph tasks {
   train_control [label = "Train Control (Warehouse)", shape = record];
   blaster       [label = "Blaster (Train Network Layer)", shape = record];
   master        [label = "Master (Train Transport Layer)", shape = record];
-  master_blaster_courier [label = "Courier", shape = oval];
 
-  master -> master_blaster_courier -> blaster;
+  mb_command_courier [label = "Command Courier", shape = oval];
+  master -> mb_command_courier -> blaster;
+  
+  mb_location_courier [label = "Position Update Courier", shape = diamond];
+  master -> mb_location_courier -> blaster -> mb_location_courier -> master;
 
   sensor_farm   [label = "Sensor Farm", shape = record];
 
