@@ -1,172 +1,168 @@
 digraph tasks {
-  overlap = compress;
-  rankdir = LR;
+    overlap = compress;
+    rankdir = LR;
 
-  task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
+    task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
 
-  subgraph cluster_name_server {
-    name_server [label = "Name Server", shape = record]
-  }
+    subgraph cluster_name_server {
+        name_server [label = "Name Server", shape = record]
+    }
 
-  task_launcher -> name_server;
-  master -> name_server;
+    task_launcher -> name_server;
+    master        -> name_server;
 
-  subgraph cluster_idle {
-    label  = "Idle";
-    idle [label = "Idle Task", shape = record];
-    idle_ui [label = "Idle UI", shape = record];
-  }
+    subgraph cluster_idle {
+        label  = "Idle";
+        idle    [label = "Idle Task", shape = record];
+        idle_ui [label = "Idle UI", shape = record];
+    }
 
-  subgraph cluster_clock {
-    label = "Clock";
+    subgraph cluster_clock {
+        label = "Clock";
 
-    clock_server  [label = "Server", shape = record];
-    clock_notifier [label = "Notifier", shape = diamond];
-    clock_ui [label = "UI", shape = record];
+        clock_server   [label = "Server", shape = record];
+        clock_notifier [label = "Notifier", shape = diamond];
+        clock_ui       [label = "UI", shape = record];
 
-    clock_notifier -> clock_server;
-    clock_ui -> clock_server;
-  }
+        clock_notifier -> clock_server;
+        clock_ui       -> clock_server;
+    }
 
-  task_launcher -> clock_server;
-  blaster -> clock_server;
-  master -> clock_server;
-  train_ui -> clock_server;
-  idle_ui -> clock_server;
+    task_launcher      -> clock_server;
+    blaster            -> clock_server;
+    master             -> clock_server;
+    train_ui           -> clock_server;
+    idle_ui            -> clock_server;
+    mb_command         -> clock_server;
+    tc_timer_notify    -> clock_server;
+    blaster_accelerate -> clock_server;
+    blaster_reverse    -> clock_server;
 
-  subgraph cluster_terminal_io {
-    label = "Terminal I/O";
-  
-    term_server      [label = "Serial Server", shape = record];
-    term_out_carrier [label = "Output Courier", shape = diamond];
-    term_in_notifier [label = "Input Notifier", shape = diamond];
-    
-    term_out_carrier -> term_server;
-    term_in_notifier -> term_server;
-  }
+    subgraph cluster_terminal_io {
+        label = "Terminal I/O";
 
-  task_launcher -> term_server;
-  blaster -> term_server;
-  master -> term_server;
-  idle_ui -> term_server;
-  clock_ui -> term_server;
-  train_ui -> term_server;
-  mission_control -> term_server;
-  sensor_farm -> term_server;
-  reservation -> term_server;
+        term_server      [label = "Serial Server", shape = record];
+        term_out_carrier [label = "Output Courier", shape = diamond];
+        term_in_notifier [label = "Input Notifier", shape = diamond];
 
-  subgraph cluster_train_io {
-    label = "Train Controller I/O";
+        term_out_carrier -> term_server;
+        term_in_notifier -> term_server;
+    }
 
-    train_server [label = "Serial Server&#10;(Train Data Link Layer)", shape = record];
-    train_out_carrier [label = "Output Courier", shape = diamond];
-    train_in_notifier [label = "Input Notifier", shape = diamond];
-    train_ui [label = "Bandwidth UI", shape = record];
+    task_launcher   -> term_server;
+    blaster         -> term_server;
+    master          -> term_server;
+    idle_ui         -> term_server;
+    clock_ui        -> term_server;
+    train_ui        -> term_server;
+    mission_control -> term_server;
+    sensor_farm     -> term_server;
+    reservation     -> term_server;
 
-    train_out_carrier -> train_server;
-    train_in_notifier -> train_server;
-    train_ui -> train_server;
-  }
+    subgraph cluster_train_io {
+        label = "Train Controller I/O";
 
-  blaster -> train_server;
-  mission_control -> train_server;
-  sensor_poll -> train_server;
+        train_server      [label = "Serial Server&#10;(Train Data Link Layer)", shape = record];
+        train_out_carrier [label = "Output Courier", shape = diamond];
+        train_in_notifier [label = "Input Notifier", shape = diamond];
+        train_ui          [label = "Bandwidth UI", shape = record];
 
-  mission_control [label = "Mission&#10;Control", shape = record];
-  task_launcher -> mission_control;
-  blaster -> mission_control;
-  master -> mission_control;
+        train_out_carrier -> train_server;
+        train_in_notifier -> train_server;
+        train_ui          -> train_server;
+    }
 
-  subgraph cluster_train_control { 
-    label = "Train Control";
+    blaster         -> train_server;
+    mission_control -> train_server;
+    sensor_poll     -> train_server;
 
-    train_control [label = "Warehouse", shape = record];
-  
+    mission_control [label = "Mission&#10;Control", shape = record];
+    task_launcher -> mission_control;
+    blaster -> mission_control;
+    master -> mission_control;
+
+    subgraph cluster_train_control {
+        label = "Train Control";
+
+        train_control [label = "Warehouse", shape = record];
+    }
+
     blaster_control -> train_control;
     master_control  -> train_control;
-  }
+    task_launcher   -> train_control;
 
-  task_launcher -> train_control;
+    subgraph cluster_train_ai {
+        label = "Train AI&#10;(NUM_TRAINS instances)";
 
-  subgraph cluster_train_ai {
-    label = "Train AI&#10;(NUM_TRAINS instances)";
+        blaster            [label = "Blaster&#10;(Train Network Layer)", shape = record];
+        blaster_control    [label = "Command&#10;Courier", shape = octagon];
+        blaster_accelerate [label = "Acceleration&#10;Timer", shape = octagon];
+        blaster_reverse    [label = "Reverse&#10;Timer", shape = octagon];
 
-    blaster [label = "Blaster&#10;(Train Network Layer)", shape = record];
-    blaster_control [label = "Command&#10;Courier", shape = octagon];
-    blaster_accelerate [label = "Acceleration&#10;Timer", shape = octagon];
-    blaster_reverse    [label = "Reverse&#10;Courier", shape = octagon];
+        master             [label = "Master&#10;(Train Transport Layer)", shape = record];
+        master_control     [label = "Command&#10;Courier", shape = octagon];
 
-    master  [label = "Master&#10;(Train Transport Layer)", shape = record];
-    master_control [label = "Command&#10;Courier", shape = octagon];
+        mb_command         [label = "Command&#10;Courier", shape = octagon];
+        mb_location        [label = "Position Update&#10;Courier", shape = octagon];
 
-    mb_command [label = "Command&#10;Courier", shape = octagon];
-    mb_location [label = "Position Update&#10;Courier", shape = octagon];
+        train_console      [label = "Sensor Console", shape = record];
+        bl_console_reject  [label = "Console Cancel&#10;Courier", shape = octagon];
+        tc_blaster_notify  [label = "Console Update&#10;Courier", shape = octagon];
+        tc_timer_notify    [label = "Console Timeout&#10;Notifier", shape = octagon];
+        tc_sensor_notify   [label = "Sensor Notifier&#10;(Max 16 instances)", shape = octagon];
+        tc_sensor_cancel   [label = "Sensor Revocation&#10;Courier", shape = octagon];
 
-    train_console [label = "Sensor Console", shape = record];
-    bl_console_reject [label = "Console Cancel&#10;Courier", shape = octagon]; 
-    tc_blaster_notify [label = "Console Update&#10;Courier", shape = octagon];
-    tc_timer_notify  [label = "Console Timeout&#10;Notifier", shape = octagon];
-    tc_sensor_notify [label = "Sensor Notifier&#10;(Max 16 instances)" shape = octagon];
-    tc_sensor_cancel [label = "Sensor Revocation&#10;Courier" shape = octagon];
+        mb_location     -> blaster;
+        mb_location     -> master;
+        master_control  -> master;
+        blaster_control -> blaster;
 
-    mb_location -> blaster;
-    mb_location -> master;
-    master_control -> master;
-    blaster_control -> blaster;
-    master -> mb_command -> blaster;
-    blaster -> blaster_accelerate -> blaster;
-    blaster -> blaster_reverse -> blaster;
+        master  -> mb_command         -> blaster;
+        blaster -> blaster_accelerate -> blaster;
+        blaster -> blaster_reverse    -> blaster;
 
-    bl_console_reject -> train_console;
-    bl_console_reject -> blaster;
-    tc_blaster_notify -> train_console;
-    tc_blaster_notify -> blaster;
-    tc_timer_notify   -> train_console;
-    tc_timer_notify   -> clock_server;
-	
-  }
+        tc_blaster_notify -> blaster;
+        tc_timer_notify   -> blaster;
+        bl_console_reject -> blaster;
 
-  tc_sensor_notify -> train_console;
-  tc_sensor_notify -> sensor_farm;
-  tc_sensor_cancel -> train_console;
-  tc_sensor_cancel -> sensor_farm;
+        bl_console_reject -> train_console;
+        tc_blaster_notify -> train_console;
+        tc_timer_notify   -> train_console;
+        tc_sensor_notify  -> train_console;
+        tc_sensor_cancel  -> train_console;
+    }
 
-  mb_command         -> clock_server;
-  tc_timer_notify    -> clock_server;
-  tc_timer_notify    -> train_console;
+    subgraph cluster_path {
+        label = "Path Finding";
 
+        path_admin  [label = "Admin", shape = record];
+        path_worker [label = "Worker&#10;(2 * NUM_TRAINS instances)", shape = record];
 
-  blaster_accelerate -> clock_server;
-  blaster_reverse    -> clock_server;
-  
-  subgraph cluster_path {
-    label = "Path Finding";
+        path_worker -> path_admin;
+    }
 
-    path_admin [label = "Admin", shape = record];
-    path_worker [label = "Worker&#10;(2 * NUM_TRAINS instances)", shape = record];
+    master      -> path_admin;
+    path_worker -> master;
+    path_worker -> reservation;
 
-    path_worker -> path_admin;
-  }
+    subgraph cluster_sensors {
+        label = "Sensor Management";
 
-  master -> path_admin;
-  path_worker -> master;
-  path_worker -> reservation;
+        sensor_poll [label = "Poller", shape = record];
+        sensor_farm [label = "Farm", shape = record];
 
-  subgraph cluster_sensors {
-    label = "Sensor Management";
+        sensor_poll -> sensor_farm;
+    }
 
-    sensor_poll   [label = "Poller", shape = record];
-    sensor_farm   [label = "Farm", shape = record];
+    tc_sensor_notify  -> sensor_farm;
+    tc_sensor_cancel  -> sensor_farm;
 
-    sensor_poll -> sensor_farm;
-  }
+    subgraph cluster_reservation {
+        label = "Reservations";
 
-  subgraph cluster_reservation {
-    label = "Reservations";
+        reservation [label = "Server", shape = record];
+    }
 
-    reservation [label = "Server", shape = record];
-  }
-  master             -> reservation;
-  sensor_farm        -> reservation;
-
+    master      -> reservation;
+    sensor_farm -> reservation;
 }
