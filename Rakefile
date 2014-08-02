@@ -170,7 +170,6 @@ namespace :report do
   def pdf_compile report
     cd "report/#{report}" do
       sh 'pdflatex report.tex'
-      sh 'pdflatex report.tex'
       sh 'open report.pdf'
     end
   end
