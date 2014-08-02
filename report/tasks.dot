@@ -1,9 +1,19 @@
 digraph tasks {
 
-  node [shape = record];
+  clock_server  [label = "Clock Server", shape = record];
+  term_server   [label = "Terminal Serial I/O", shape = record];
+  train_server  [label = "Train Controller Serial I/O", shape = record];
 
-  clock_server  [label = "Clock Server"];
-  task_launcher [label = "Task Launcher (Shell)"];
+  task_launcher [label = "Task Launcher (Shell)", shape = record];
+
+  train_control [label = "Train Control (Warehouse)", shape = record];
+  blaster       [label = "Blaster (Train Network Layer)", shape = record];
+  master        [label = "Master (Train Transport Layer)", shape = record];
+  master_blaster_courier [label = "Courier", shape = oval];
+
+  master -> master_blaster_courier -> blaster;
+
+  sensor_farm   [label = "Sensor Farm", shape = record];
 
 }
 
