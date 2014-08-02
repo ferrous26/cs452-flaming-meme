@@ -243,7 +243,7 @@ When a \ttt{Train Blaster} task is signaled to start moving it creates a
 \ttt{Train Console} task for itself. This task is in charge of waiting for
 sensors as well as waiting for a timeout when the train has expected to trigger
 the next sensor. The console will then take which ever events fire and make a
-decision of what to forward back to the \ttt{Train Blaster}. The
+decision of what to forward back to the \ttt{Train Blaster}. The 
 \ttt{Train Console} would start up a notifier for every sensor that it could
 possibly hit within the future.
 
@@ -256,9 +256,9 @@ One of the biggest issues we had with this system was that we needed to
 synchronize the creation and use of sensor notifiers, a single timeout notifier
 the courier that was used to deliver a command to the train for what has
 happened position and with the sensor server to know when we want to get the
-expired notifier back. This also required for us to keep the
+expired notifier back. This also required for us to keep the 
 \ttt{Train Console} in a synchronized state with the \ttt{Train Blaster} so we
-can keep the positions of the train.
+can keep the positions of the train. 
 
 Due to the hard technical nature of this synchronization we we were never able
 to get all of the edge cases worked out of this section of the code. This would
@@ -288,6 +288,41 @@ sensor event propagation to make it to the interested train the timestamp is
 taken at the \ttt{Sensor Poll} level and passed along with the sensor event.
 
 \section*{Reservations}
+
+The way we handled reservations is by maintaining an active iteration similarly
+to how the \ttt{Train Console} handles its task synchronization. This means that
+every time a train asked for a reservation all of the previous reservations held
+by the Train were dropped. This means that every time a reservation is performed
+we needed to have a way of transferring the reservation list to the server. This
+was done by blocking the original task and just reading the list out in place.
+This was done because it was the easiest method of performing the operation.
+Also, when the reservation was performed we needed to follow an action based on
+whether the reservation was successful or not. This meant that performing the
+operation in a synchronous manner also greatly simplified the code path.
+
+Since our track graph was laid out such that every node corresponded to a point
+on the graph and a direction we made our reservation system use the standard
+track nodes as reservation points. In order to increase the precision of our
+reservation system we made every node correspond to half of its forward edge.
+This mean to own an entire edge of the graph a train would have to own both
+nodes bordered by the track segment.
+
+We chose to go with the automatic track dropping since coming up with a solution
+to calculate a proper track node free list was sufficiently hard problem,
+conversely, was much easier to calculate which segments of track the train would
+require at any given moment given a position and a velocity.
+
+The drawback of this method is that because sensors could cause the train
+position to relocate instantly there would be times that the train is actually
+unable to allocate the section of track that it is currently within. One of the
+side effects that we had because of this is that the train would stop and go
+into an infinite loop of stopping and trying to reacquire the section of track
+its currently on. We were able to remove this loop by allowing for a train to
+for allocate a section of track however by the end of the project we were unable
+to implement a system to warn trains that a section of their reservation might
+have been seized by someone else which can lead to collisions. This is
+especially likely to happen when a Train has become lost and newly finds itself
+but inside of another trains reservation.
 
 \part*{Final Project: \underline{The Thunderdome}}
 
