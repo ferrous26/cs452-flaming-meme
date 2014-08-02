@@ -160,12 +160,24 @@ namespace :md5 do
   task(:p2) { make_md5_for 'project2' }
 end
 
+desc 'Generate the tasks dot diagram'
+task :dot do
+  sh 'dot -Tpng report/tasks.dot > report/tasks.png'
+  sh 'open report/tasks.png'
+end
+
 namespace :report do
   def pdf_compile report
     cd "report/#{report}" do
       sh 'pdflatex report.tex'
       sh 'pdflatex report.tex'
       sh 'open report.pdf'
+    end
+  end
+
+  def dot_compile report
+    cd "report/#{report}" do
+      sh 'dot -Tpng report/tasks.dot > report/project2/tasks.png'
     end
   end
 
@@ -183,5 +195,8 @@ namespace :report do
   desc 'Compile the report for Project 1'
   task(p1: 'md5:p1') { pdf_compile 'project1' }
   desc 'Compile the report for Project 2'
-  task(p2: 'md5:p2') { pdf_compile 'project2' }
+  task(p2: ['md5:p2', 'dot']) do
+    dot_compile('project2')
+    pdf_compile('project2')
+  end
 end

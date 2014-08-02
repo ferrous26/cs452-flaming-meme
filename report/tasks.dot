@@ -1,0 +1,9 @@
+digraph tasks {
+
+  node [shape = record];
+
+  clock_server  [label = "Clock Server"];
+  task_launcher [label = "Task Launcher (Shell)"];
+
+}
+
