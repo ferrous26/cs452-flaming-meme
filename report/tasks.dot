@@ -1,12 +1,14 @@
 digraph tasks {
-//    overlap = prism;
+    overlap = false;
     rankdir = LR;
     splines = compound;
 
     task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
 
     subgraph cluster_name_server {
-        name_server [label = "Name Server", shape = record]
+        label = "Name Server";
+
+        name_server [label = "Server", shape = record]
     }
 
     task_launcher -> name_server;
@@ -110,7 +112,7 @@ digraph tasks {
         bl_console_reject  [label = "Console Cancel&#10;Courier", shape = octagon];
         tc_blaster_notify  [label = "Console Update&#10;Courier", shape = octagon];
         tc_timer_notify    [label = "Console Timeout&#10;Notifier", shape = octagon];
-        tc_sensor_notify   [label = "Sensor Notifier&#10;(Max 16 instances)", shape = octagon];
+        tc_sensor_notify   [label = "Sensor Notifier&#10;(Max. 16 instances/train)", shape = octagon];
         tc_sensor_cancel   [label = "Sensor Revocation&#10;Courier", shape = octagon];
 
         mb_location     -> blaster;
