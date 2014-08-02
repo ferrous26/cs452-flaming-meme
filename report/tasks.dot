@@ -39,7 +39,11 @@ digraph tasks {
   train_console     [label = "Train Console", shape = record];
   bl_console_reject [label = "Train Cancel Console", shape = oval]; 
   tc_blaster_notify [label = "Console Update Train", shape = oval];
-  tc_timer_notify  [label = "Train Console Timeout Notifier", shape = oval];
+  tc_timer_notify   [label = "Train Console Timeout Notifier", shape = oval];
+
+  path_admin        [label = "Path Admin", shape = record];
+  path_worker       [label = "Path Calculation Worker", shape = record];
+
   
   train_console -> tc_blaster_notify -> blaster -> tc_blaster_notify -> train_console; 
   blaster       -> bl_console_reject -> train_console -> bl_console_reject -> blaster;
@@ -48,6 +52,10 @@ digraph tasks {
   tc_timer_notify -> train_console;
 
   sensor_poll -> sensor_farm
+
+  path_worker -> path_admin;
+  path_worker -> master;
+
 
 }
 
