@@ -6,7 +6,7 @@ digraph tasks {
     task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
 
     subgraph cluster_name_server {
-        label = "Name Server";
+        label = "Name Resolution";
 
         name_server [label = "Server", shape = record]
     }
