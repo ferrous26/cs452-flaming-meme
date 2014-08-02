@@ -518,7 +518,25 @@ would kick in and try to re-route the train to the destination. This
 would sometimes produce a new route, causing the train to abort the
 reverse operation and continue going around the track.
 
-\subsection*{Tweakable Generalization}
+\subsubsection*{Routing Multiple Trains}
+
+Routing multiple train required that the routing algorithm look at
+track reservations to make sure that the route was available. This
+overhead complicated routing enough that routing was moved to a
+separate task which ran at a lower priority than most other tasks.
+
+The \ttt{Path Finding Administrator} would be contacted when a new
+route was required. The administrator would allocate a \ttt{Worker}
+task to perform the actual work and then the \ttt{Worker} would
+contact the \ttt{Master} once the route had been computed.
+
+\ttt{Master} tasks would hold onto \ttt{Worker} tasks for the duration
+of a path finding operation, and only release (\ttt{Reply} to) the
+\ttt{Worker} when a new route was requested. This was done to share
+memory from the \ttt{Worker} to \ttt{Master} in order to avoid
+having to copy the potentially large amount routing data.
+
+\subsection*{Tweakable Generalizations}
 
 The interface for adjusting tweakable values was generalized through
 the \ttt{tk} command. Using the command, a train number, a tweak
