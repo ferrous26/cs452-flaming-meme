@@ -80,7 +80,7 @@ previous milestone as well new commands mentioned below.
 \part*{Task Diagram}
 
 \begin{center}
-\includegraphics[scale=0.3]{tasks}
+\includegraphics[scale=0.25]{tasks}
 \end{center}
 
 
@@ -243,7 +243,7 @@ When a \ttt{Train Blaster} task is signaled to start moving it creates a
 \ttt{Train Console} task for itself. This task is in charge of waiting for
 sensors as well as waiting for a timeout when the train has expected to trigger
 the next sensor. The console will then take which ever events fire and make a
-decision of what to forward back to the \ttt{Train Blaster}. The 
+decision of what to forward back to the \ttt{Train Blaster}. The
 \ttt{Train Console} would start up a notifier for every sensor that it could
 possibly hit within the future.
 
@@ -256,9 +256,9 @@ One of the biggest issues we had with this system was that we needed to
 synchronize the creation and use of sensor notifiers, a single timeout notifier
 the courier that was used to deliver a command to the train for what has
 happened position and with the sensor server to know when we want to get the
-expired notifier back. This also required for us to keep the 
+expired notifier back. This also required for us to keep the
 \ttt{Train Console} in a synchronized state with the \ttt{Train Blaster} so we
-can keep the positions of the train. 
+can keep the positions of the train.
 
 Due to the hard technical nature of this synchronization we we were never able
 to get all of the edge cases worked out of this section of the code. This would

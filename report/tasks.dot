@@ -1,6 +1,7 @@
 digraph tasks {
-    overlap = compress;
+//    overlap = prism;
     rankdir = LR;
+    splines = compound;
 
     task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
 
