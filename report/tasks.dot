@@ -1,8 +1,23 @@
 digraph tasks {
-
+  name_server   [label = "Name Server", shape = record]
   clock_server  [label = "Clock Server", shape = record];
-  term_server   [label = "Terminal Serial I/O", shape = record];
-  train_server  [label = "Train Controller Serial I/O", shape = record];
+
+ subgraph {
+    term_server      [label = "Terminal Serial I/O", shape = record];
+    term_out_carrier [label = "Terminal Output Courier", shape = record];
+    term_in_notifier [label = "Terminal Input Notifier", shape = record];
+    
+    term_out_carrier -> term_server;
+    term_in_notifier -> term_server;
+  }
+  subgraph {
+    train_server  [label = "Train Controller Serial I/O", shape = record];
+    train_out_carrier [label = "Terminal Output Courier", shape = record];
+    train_in_notifier [label = "Terminal Input Notifier", shape = record];
+
+    train_out_carrier -> train_server;
+    train_in_notifier -> train_server;
+  }
 
   task_launcher [label = "Task Launcher (Shell)", shape = record];
 
@@ -12,11 +27,26 @@ digraph tasks {
 
   mb_command_courier [label = "Command Courier", shape = oval];
   master -> mb_command_courier -> blaster;
-  
   mb_location_courier [label = "Position Update Courier", shape = diamond];
   master -> mb_location_courier -> blaster -> mb_location_courier -> master;
 
+  sensor_poll   [label = "Sensor Poller", shape = record];
   sensor_farm   [label = "Sensor Farm", shape = record];
+
+  train_console     [label = "Train Console", shape = record];
+  bl_console_reject [label = "Train Cancel Console", shape = oval]; 
+  tc_blaster_notify [label = "Console Update Train", shape = oval];
+  tc_timer_notify  [label = "Train Console Timeout Notifier", shape = oval];
+  
+  train_console -> tc_blaster_notify -> blaster -> tc_blaster_notify -> train_console; 
+  blaster       -> bl_console_reject -> train_console -> bl_console_reject -> blaster;
+
+  tc_timer_notify -> clock_server;
+  tc_timer_notify -> train_console;
+
+  sensor_poll -> sensor_farm
+
+
 
 }
 
