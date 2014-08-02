@@ -63,7 +63,7 @@ digraph tasks {
 
   blaster -> train_server;
   mission_control -> train_server;
-  sensor_farm -> train_server;
+  sensor_poll -> train_server;
 
   mission_control [label = "Mission&#10;Control", shape = record];
   task_launcher -> mission_control;
@@ -97,6 +97,8 @@ digraph tasks {
     bl_console_reject [label = "Console Cancel&#10;Courier", shape = octagon]; 
     tc_blaster_notify [label = "Console Update&#10;Courier", shape = octagon];
     tc_timer_notify  [label = "Console Timeout&#10;Notifier", shape = octagon];
+    tc_sensor_notify [label = "Sensor Notifier&#10;(Max 16 instances)" shape = octagon];
+    tc_sensor_cancel [label = "Sensor Revocation Courier" shape = octagon];
 
     mb_location -> blaster;
     mb_location -> master;
@@ -108,14 +110,18 @@ digraph tasks {
     bl_console_reject -> blaster;
     tc_blaster_notify -> train_console;
     tc_blaster_notify -> blaster;
-    tc_timer_notify -> train_console;
-    tc_timer_notify -> blaster;
+    tc_timer_notify   -> train_console;
+    tc_timer_notify   -> clock_server;
+	
   }
 
-  train_console   -> sensor_poll;
-  mb_command      -> clock_server;
-  tc_timer_notify -> clock_server;
-  tc_timer_notify -> train_console;
+  tc_sensor_notify -> train_console;
+  tc_sensor_notify -> sensor_farm;
+  tc_sensor_cancel -> train_console;
+  tc_sensor_cancel -> sensor_farm;
+  mb_command       -> clock_server;
+  tc_timer_notify  -> clock_server;
+  tc_timer_notify  -> train_console;
   
   subgraph cluster_path {
     label = "Path Finding";
@@ -132,8 +138,8 @@ digraph tasks {
   subgraph cluster_sensors {
     label = "Sensor Management";
 
-    sensor_poll [label = "Poller", shape = record];
-    sensor_farm [label = "Farm", shape = record];
+    sensor_poll   [label = "Poller", shape = record];
+    sensor_farm   [label = "Farm", shape = record];
 
     sensor_poll -> sensor_farm;
   }
