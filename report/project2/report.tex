@@ -7,21 +7,18 @@
 
 \section*{Overview}
 
-This goals of our train project is to  adds basic train control functionality.
-From the terminal you can both track, in real time, the position of
-the train on the track and route it to a sensor location. Train track
-state is updated live on screen as the trains travel around the track.
-trains travel around the track.
+This Document outlines the functionality and design of our final train project
+separated into the various milestones the have gone into building our final OS.
 
-Commands issued into the terminal can manipulate trains and
-switches, as well as monitor sensors. Trains can start, stop, toggle
-lights and sound effects, and adjust speed. Switches can be toggled or
-explicitly set to the straight or curved state.
+This milestone allows for trains to be controlled via terminal where they can
+be router from their current position to any of the sensors on the track. In
+addition trains can start, stop, chase each other, and sound their horn all
+using commands issued by the terminal.
 
-The terminal displays information about current state
-of the trains and switches, including a short history of the most
-recent sensor activations.
-
+The terminal display holds real time information about the current state of the
+trains and switches including a short history of the recent sensor activations,
+the next steps a train driver intends to take while routing a train, A trains
+current position and the track nodes that the train has reserved.
 
 \section*{Operation Instructions}
 
@@ -49,7 +46,7 @@ After Initialization, the kernel will ask you to select a track,
 \ttt{a} or \ttt{b} so that it can load the correct track data,
 initialize the track, and setup the train drivers and all other
 supporting tasks.  At this point commands can be entered and should be
-echoed back on the line titled ``TERM> ''. Keys pressed should be
+echoed back on the line titled ``TERM$>$''. Keys pressed should be
 echoed back at the command prompt in place of the white
 cursor. Pressing the return key will confirm a command and cause it to
 be processed. An online listing of the commands can be printed by
@@ -85,6 +82,11 @@ previous milestone as well new commands mentioned below.
 
 
 \part*{Milestone One}
+
+The goal of this milestone is to add basic train control functionality. From the
+terminal you can both track, in real time, the position of the train on the
+track and route it to a sensor location. Train track state is updated live on
+screen as the trains travel around the track.
 
 \section*{The Track}
 
@@ -225,6 +227,13 @@ example, \ttt{go 49 B 16 0} will send train 49 to sensor B16.
 
 \part*{Milestone Two}
 
+The goal of this milestone is to add the ability for multiple trains to be
+controlled at at once. Due to the nature of having multiple trains this
+milestone sets up a system allowing for trains to reserve sections of track. On
+top the features provided by the last milestone this milestone allows for trains
+to perform short moves as well as for the trains to reverse during the routing
+phase.
+
 \section*{Positioning}
 
 \section*{Reversing The Train}
@@ -239,7 +248,7 @@ used for the last milestone. We chose for the trains to use an active approach.
 
 \subsection*{Train Console}
 
-When a \ttt{Train Blaster} task is signaled to start moving it creates a
+When a \ttt{Train Blaster} task is signalled to start moving it creates a
 \ttt{Train Console} task for itself. This task is in charge of waiting for
 sensors as well as waiting for a timeout when the train has expected to trigger
 the next sensor. The console will then take which ever events fire and make a
