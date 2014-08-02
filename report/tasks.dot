@@ -138,7 +138,7 @@ digraph tasks {
     subgraph cluster_path {
         label = "Path Finding";
 
-        path_admin  [label = "Admin", shape = record];
+        path_admin  [label = "Administrator", shape = record];
         path_worker [label = "Worker&#10;(2 * NUM_TRAINS instances)", shape = record];
 
         path_worker -> path_admin;
