@@ -548,12 +548,132 @@ distance, using during routing, to be 100 millimeters.
 
 \part*{Final Project: \underline{The Thunderdome}}
 
-\section*{Path Finding Options}
+A recreation of the infamous thunderdome, from Mad Max Beyond
+Thunderdome, was the inspiration for our final project. Treating the
+track as the thunderdome, we can have trains chase each other around
+much like Blaster chased Max around the thunderdome in the movie.
 
-\section*{Inter-train Communication}
+Reference footage can be found online at
+\url{https://www.youtube.com/watch?v=wEgy\_vIrTs4}. Two trains enter,
+one train leaves!
+
+\section*{Prelude}
+
+Using instructor feedback from our milestone demo, the terminal UI for
+our system had been reworked to include more information statically on
+screen.
+
+The first line of information for each train is the current estimated
+velocity of the train and which speed setting the train is current set
+to. The positive and negative symbol next to the speed setting
+indicate the direction that the train is facing.
+
+Train position information is also statically displayed on screen
+underneath the train velocity. However, the position information will
+not update periodically, it will only update when a train event
+occurs, such as hitting a sensor.
+
+Underneath the train position is the velocity delta and time delta
+for the last expected time of arrival versus actual time of arrival at
+the sensor for the current position.
+
+Underneath the delta values is the expected next sensor and estimated
+distance (in millimeters) and time (in clock server ticks) to get to
+the expected sensor.
+
+Each train will now list each of the track nodes that it has a
+reservation for, and will also list the next 7 steps in its path while
+path finding. This information is located underneath the expected next
+sensor.
 
 \section*{The Chasing Game}
 
+Much like Blaster chased Max around the Thunderdome, one train can
+chase another around the track. To enable chasing, use the
+\ttt{ch <chaser> <target>} command with two train numbers. For
+example, the command \ttt{ch 45 56} will cause train 45 to chase train
+56. Sending the command a second time will cause train 45 to stop
+chasing train 56. The chasing train is referred to as Blaster and the
+target train is referred to as Max.
+
+\section*{Setup}
+
+This game requires at least three trains. Train 58, which has a horn,
+is expected to be in the corner of the track somewhere and is only
+used for the horn. Any other two trains can be used for the active
+part of the game.
+
+Max is controlled by a human player via the terminal using the same
+\ttt{tr <train> <speed>} and \ttt{sw <switch> <state>} commands from
+the final kernel assignment. The human player will want to try
+flipping turnouts to keep Blaster away from Max, while also moving Max
+around.
+
+However, the relentless Blaster will eventually realize that he has
+been sent down the wrong path and re-route himself to try finding Max
+again.
+
+\subsection*{How To Lose}
+
+If Blaster ever catches up to Max then the horn will sound off and you
+will have lost the game. Max is caught and beaten to a pulp by
+Blaster. How long can you keep Max away from Blaster?
+
+\subsection*{How To Win}
+
+Can you find a way to disable Blaster? By exploiting bugs in the path
+finding logic, it may be possible to get Blaster caught in an infinite
+loop which causes him to get lost or get stuck in a reversing loop. If
+you are able to do this then you have defeated Blaster and won the
+game.
+
+\section*{Inter-Train Communication}
+
+in order for Blaster to find Max, we implemented a courier for
+\ttt{Master} tasks to communicate with each other. The courier is able
+to ask a \ttt{Master} task its position on the track and report the
+location.
+
+This scheme would have also been used for trains to negotiate deadlock
+avoidance had we had more time to work on the project or been able to
+resolve other bugs earlier.
+
+\section*{Path finding options}
+
+To make chasing easier to escape from, Blaster will try to approach
+Max from behind, which allows Max to avoid having to start by
+reversing.
+
+This is done by having Blaster pass options to the
+\ttt{Path Administrator} when finding a route to Max. Path finding
+supports options to approach a destination from etiher direction, and
+to not begin a path with a reversing operation.
+
+\section*{Known Bugs}
+
+Sometimes the chasing train will get stuck trying to find a path to
+the target. This is fixed by forcing the chasing train to start
+moving. Once moving, the train will correct itself and seek out the
+target train.
+
+There is an unresolved race condition related to sensor attribution
+that can cause path finding to get stuck in an infinite loop. While
+this may seem like a bug, it is also a feature of the game which
+allows you to defeat Blaster.
+
+Blaster will often get lost while travelling around the track,
+causing him to recalculate his path. This is more of a feature that
+makes the train behave more like the cinematic Blaster.
+
+The track is a bit small for this game, and reservation chunks can be
+quite large, so it is possible to lose the game even when the trains
+are physically far apart.
+
+The horn will not turn off automatically if you lose. You can use the
+command \ttt{hr 58} in order to toggle the horn from train 58.
+
+Due to an unresolved race condition with one of the couriers, the
+system may crash during chasing when Blaster is about to catch Max.
 
 \end{document}
 

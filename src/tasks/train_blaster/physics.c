@@ -139,10 +139,9 @@ physics_update_feedback_ui(const blaster* const ctxt,
                         TRAIN_SENSOR_ROW,
                         TRAIN_SENSOR_COL(ctxt->train_id));
 
-    const sensor s = pos_to_sensor(truth.location.sensor);
     ptr = sprintf(ptr,
                   "%d mm/s (%d)    ",
-                  s.bank, s.num, delta_v / 10, delta_t);
+                  delta_v / 10, delta_t);
 
     Puts(buffer, ptr - buffer);
 }

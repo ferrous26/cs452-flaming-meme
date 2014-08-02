@@ -48,7 +48,7 @@ blaster_distance_remaining(train_state* const state) {
 static inline int __attribute__((const, always_inline))
 blaster_estimate_timeout(int time_current, int time_next) {
     if (time_next <= 0) return 0;
-    return time_current + (((time_next - time_current) * 5) >> 2);
+    return time_current + (((time_next - time_current) * 3) >> 1);
 }
 
 const char* event_to_str(const train_event event) {

@@ -1312,10 +1312,14 @@ static inline void master_location_update(master* const ctxt,
                     ctxt->name,
                     s.bank, s.num,
                     a.bank, a.num);
-                master_goto(ctxt,
-                            ctxt->destination,
-                            ctxt->checkpoint.location.sensor,
-                            ctxt->destination_offset);
+
+                if (ctxt->chasee)
+                    master_find_chasee(ctxt);
+                else
+                    master_goto(ctxt,
+                                ctxt->destination,
+                                ctxt->checkpoint.location.sensor,
+                                ctxt->destination_offset);
                 return;
             }
             else {
