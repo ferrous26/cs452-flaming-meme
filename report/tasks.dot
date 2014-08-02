@@ -1,53 +1,140 @@
 digraph tasks {
-  name_server   [label = "Name Server", shape = record]
-  clock_server  [label = "Clock Server", shape = record];
+  overlap = compress;
+  rankdir = LR;
 
- subgraph {
-    term_server      [label = "Terminal Serial I/O", shape = record];
-    term_out_carrier [label = "Terminal Output Courier", shape = record];
-    term_in_notifier [label = "Terminal Input Notifier", shape = record];
+  task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
+
+  subgraph cluster_name_server {
+    name_server [label = "Name Server", shape = record]
+  }
+
+  subgraph cluster_idle {
+    label  = "Idle";
+    idle [label = "Idle Task", shape = record];
+    idle_ui [label = "Idle UI", shape = record];
+  }
+
+  subgraph cluster_clock {
+    label = "Clock";
+
+    clock_server  [label = "Server", shape = record];
+    clock_notifier [label = "Notifier", shape = diamond];
+    clock_ui [label = "UI", shape = record];
+
+    clock_notifier -> clock_server;
+    clock_ui -> clock_server;
+  }
+
+  task_launcher -> clock_server;
+  blaster -> clock_server;
+  master -> clock_server;
+
+  subgraph cluster_terminal_io {
+    label = "Terminal I/O";
+  
+    term_server      [label = "Serial Server", shape = record];
+    term_out_carrier [label = "Output Courier", shape = diamond];
+    term_in_notifier [label = "Input Notifier", shape = diamond];
     
     term_out_carrier -> term_server;
     term_in_notifier -> term_server;
   }
-  subgraph {
-    train_server  [label = "Train Controller Serial I/O", shape = record];
-    train_out_carrier [label = "Terminal Output Courier", shape = record];
-    train_in_notifier [label = "Terminal Input Notifier", shape = record];
+
+  task_launcher -> term_server;
+  blaster -> term_server;
+  master -> term_server;
+  idle_ui -> term_server;
+  clock_ui -> term_server;
+  train_ui -> term_server;
+  mission_control -> term_server;
+
+  subgraph cluster_train_io {
+    label = "Train Controller I/O";
+
+    train_server [label = "Serial Server&#10;(Train Data Link Layer)", shape = record];
+    train_out_carrier [label = "Output Courier", shape = diamond];
+    train_in_notifier [label = "Input Notifier", shape = diamond];
+    train_ui [label = "Bandwidth UI", shape = record];
 
     train_out_carrier -> train_server;
     train_in_notifier -> train_server;
+    train_ui -> train_server;
   }
 
-  train_server  [label = "Controller Serial I/O&#10;(Train Data Link Layer)", shape = record];
   blaster -> train_server;
+  mission_control -> train_server;
+  sensor_farm -> train_server;
 
-  task_launcher [label = "Task Launcher&#10;(Shell)", shape = record];
+  mission_control [label = "Mission&#10;Control", shape = record];
+  task_launcher -> mission_control;
+  blaster -> mission_control;
+  master -> mission_control;
 
-  train_control [label = "Train Control&#10;(Warehouse)", shape = record];
-  blaster       [label = "Blaster&#10;(Train Network Layer)", shape = record];
-  master        [label = "Master&#10;(Train Transport Layer)", shape = record];
+  subgraph cluster_train_control { 
+    label = "Train Control";
 
-  mb_command_courier [label = "Command&#10;Courier", shape = octagon];
-  master -> mb_command_courier -> blaster;
-  mb_location_courier [label = "Position Update&#10;Courier", shape = doubleoctagon];
-  master -> mb_location_courier -> blaster -> mb_location_courier -> master;
-
-  sensor_poll   [label = "Sensor Poller", shape = record];
-  sensor_farm   [label = "Sensor Farm", shape = record];
-
-  train_console     [label = "Train Console", shape = record];
-  bl_console_reject [label = "Train Cancel Console", shape = oval]; 
-  tc_blaster_notify [label = "Console Update Train", shape = oval];
-  tc_timer_notify  [label = "Train Console Timeout Notifier", shape = oval];
+    train_control [label = "Warehouse", shape = record];
   
-  train_console -> tc_blaster_notify -> blaster -> tc_blaster_notify -> train_console; 
-  blaster       -> bl_console_reject -> train_console -> bl_console_reject -> blaster;
+    blaster_control -> train_control;
+    master_control -> train_control;
+  }
 
+  task_launcher -> train_control;
+
+  subgraph cluster_train_ai {
+    label = "Train AI&#10;(NUM_TRAINS instances)";
+
+    blaster [label = "Blaster&#10;(Train Network Layer)", shape = record];
+    blaster_control [label = "Command&#10;Courier", shape = octagon];
+
+    master  [label = "Master&#10;(Train Transport Layer)", shape = record];
+    master_control [label = "Command&#10;Courier", shape = octagon];
+
+    mb_command [label = "Command&#10;Courier", shape = octagon];
+    mb_location [label = "Position Update&#10;Courier", shape = octagon];
+
+    train_console [label = "Sensor Console", shape = record];
+    bl_console_reject [label = "Console Cancel&#10;Courier", shape = octagon]; 
+    tc_blaster_notify [label = "Console Update&#10;Courier", shape = octagon];
+    tc_timer_notify  [label = "Console Timeout&#10;Notifier", shape = octagon];
+
+    mb_location -> blaster;
+    mb_location -> master;
+    master_control -> master;
+    blaster_control -> blaster;
+    master -> mb_command -> blaster;
+
+    bl_console_reject -> train_console;
+    bl_console_reject -> blaster;
+    tc_blaster_notify -> train_console;
+    tc_blaster_notify -> blaster;
+    tc_timer_notify -> train_console;
+    tc_timer_notify -> blaster;
+  }
+
+  train_console   -> sensor_poll;
+  mb_command      -> clock_server;
   tc_timer_notify -> clock_server;
   tc_timer_notify -> train_console;
+  
+  subgraph cluster_path {
+    label = "Path Finding";
 
-  sensor_poll -> sensor_farm
+    path_admin [label = "Admin", shape = record];
+    path_worker [label = "Worker&#10;(NUM_TRAINS instances)", shape = record];
 
+    path_worker -> path_admin;
+  }
+
+  master -> path_admin;
+  path_worker -> master;
+
+  subgraph cluster_sensors {
+    label = "Sensor Management";
+
+    sensor_poll [label = "Poller", shape = record];
+    sensor_farm [label = "Farm", shape = record];
+
+    sensor_poll -> sensor_farm;
+  }
 }
-
