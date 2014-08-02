@@ -8,6 +8,9 @@ digraph tasks {
     name_server [label = "Name Server", shape = record]
   }
 
+  task_launcher -> name_server;
+  master -> name_server;
+
   subgraph cluster_idle {
     label  = "Idle";
     idle [label = "Idle Task", shape = record];
@@ -28,6 +31,8 @@ digraph tasks {
   task_launcher -> clock_server;
   blaster -> clock_server;
   master -> clock_server;
+  train_ui -> clock_server;
+  idle_ui -> clock_server;
 
   subgraph cluster_terminal_io {
     label = "Terminal I/O";
@@ -47,6 +52,8 @@ digraph tasks {
   clock_ui -> term_server;
   train_ui -> term_server;
   mission_control -> term_server;
+  sensor_farm -> term_server;
+  reservation -> term_server;
 
   subgraph cluster_train_io {
     label = "Train Controller I/O";
@@ -76,7 +83,7 @@ digraph tasks {
     train_control [label = "Warehouse", shape = record];
   
     blaster_control -> train_control;
-    master_control -> train_control;
+    master_control  -> train_control;
   }
 
   task_launcher -> train_control;
@@ -86,6 +93,8 @@ digraph tasks {
 
     blaster [label = "Blaster&#10;(Train Network Layer)", shape = record];
     blaster_control [label = "Command&#10;Courier", shape = octagon];
+    blaster_accelerate [label = "Acceleration&#10;Timer", shape = octagon];
+    blaster_reverse    [label = "Reverse&#10;Courier", shape = octagon];
 
     master  [label = "Master&#10;(Train Transport Layer)", shape = record];
     master_control [label = "Command&#10;Courier", shape = octagon];
@@ -98,13 +107,15 @@ digraph tasks {
     tc_blaster_notify [label = "Console Update&#10;Courier", shape = octagon];
     tc_timer_notify  [label = "Console Timeout&#10;Notifier", shape = octagon];
     tc_sensor_notify [label = "Sensor Notifier&#10;(Max 16 instances)" shape = octagon];
-    tc_sensor_cancel [label = "Sensor Revocation Courier" shape = octagon];
+    tc_sensor_cancel [label = "Sensor Revocation&#10;Courier" shape = octagon];
 
     mb_location -> blaster;
     mb_location -> master;
     master_control -> master;
     blaster_control -> blaster;
     master -> mb_command -> blaster;
+    blaster -> blaster_accelerate -> blaster;
+    blaster -> blaster_reverse -> blaster;
 
     bl_console_reject -> train_console;
     bl_console_reject -> blaster;
@@ -119,21 +130,27 @@ digraph tasks {
   tc_sensor_notify -> sensor_farm;
   tc_sensor_cancel -> train_console;
   tc_sensor_cancel -> sensor_farm;
-  mb_command       -> clock_server;
-  tc_timer_notify  -> clock_server;
-  tc_timer_notify  -> train_console;
+
+  mb_command         -> clock_server;
+  tc_timer_notify    -> clock_server;
+  tc_timer_notify    -> train_console;
+
+
+  blaster_accelerate -> clock_server;
+  blaster_reverse    -> clock_server;
   
   subgraph cluster_path {
     label = "Path Finding";
 
     path_admin [label = "Admin", shape = record];
-    path_worker [label = "Worker&#10;(NUM_TRAINS instances)", shape = record];
+    path_worker [label = "Worker&#10;(2 * NUM_TRAINS instances)", shape = record];
 
     path_worker -> path_admin;
   }
 
   master -> path_admin;
   path_worker -> master;
+  path_worker -> reservation;
 
   subgraph cluster_sensors {
     label = "Sensor Management";
@@ -143,4 +160,13 @@ digraph tasks {
 
     sensor_poll -> sensor_farm;
   }
+
+  subgraph cluster_reservation {
+    label = "Reservations";
+
+    reservation [label = "Server", shape = record];
+  }
+  master             -> reservation;
+  sensor_farm        -> reservation;
+
 }
