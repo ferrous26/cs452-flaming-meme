@@ -23,7 +23,7 @@ current position and the track nodes that the train has reserved.
 \section*{Operation Instructions}
 
 A pre-compiled kernel exists at
-\ttt{/u/cs452/tftp/ARM/marada/m1.elf}, which can be loaded with
+\ttt{/u/cs452/tftp/ARM/marada/m3.elf}, which can be loaded with
 RedBoot using the following command:
 
 \begin{center}
@@ -36,7 +36,7 @@ The source code for the kernel exists in \ttt{/u3/marada/control3/},
 and can be compiled with the following command chain:
 
 \begin{center}
-  \ttt{cd /u3/marada/control3 \&\& /u/cs444/bin/rake local}
+  \ttt{cd /u3/marada/project \&\& /u/cs444/bin/rake local}
 \end{center}
 
 Which will produce a \ttt{kernel.elf} file in the same directory as
@@ -491,12 +491,12 @@ but inside of another trains reservation.
 
 \subsection*{Shortest Path Routing}
 
-Finding the shortest path on the track with a single train using
-Dijkstra's algorithm was reasonably easy. The challenge was how the
-train would respond to the short moves and reverse commands in the
-generated path.
+Finding the shortest path, by distance as opposed to time, on the
+track with a single train using Dijkstra's algorithm was reasonably
+easy. The challenge was how the train would respond to the short moves
+and reverse commands in the generated path.
 
-The \ttt{Master} task, the transport level of the hierarchy, was now
+\ttt{Master}, the transport level of the hierarchy, was now
 responsible for train routing. It would break up a generated routes
 into route chunks, separated at train reversing points. Each chunk of
 the route would be treated as a short move, computing the ideal speed
@@ -546,6 +546,9 @@ via the terminal.
 For instance, \ttt{tk 56 3 100} would change the turnout padding
 distance, using during routing, to be 100 millimeters.
 
+Giving a legitimate train number, but invalid tweak index will cause a
+help message to print out listing all the available tweakable variables.
+
 \part*{Final Project: \underline{The Thunderdome}}
 
 A recreation of the infamous thunderdome, from Mad Max Beyond
@@ -564,8 +567,8 @@ our system had been reworked to include more information statically on
 screen.
 
 The first line of information for each train is the current estimated
-velocity of the train and which speed setting the train is current set
-to. The positive and negative symbol next to the speed setting
+velocity of the train and the corresponding speed setting for the train.
+The positive and negative symbol next to the speed setting
 indicate the direction that the train is facing.
 
 Train position information is also statically displayed on screen
@@ -629,20 +632,21 @@ game.
 
 \section*{Inter-Train Communication}
 
-in order for Blaster to find Max, we implemented a courier for
+In order for Blaster to find Max, we implemented a courier for
 \ttt{Master} tasks to communicate with each other. The courier is able
 to ask a \ttt{Master} task its position on the track and report the
 location.
 
 This scheme would have also been used for trains to negotiate deadlock
-avoidance had we had more time to work on the project or been able to
-resolve other bugs earlier.
+avoidance, possibly allowing for multiple Blasters to chase Max around
+the track. However, we did not have enough luck resolving various bugs
+so that we could have time to implement these features.
 
 \section*{Path finding options}
 
 To make chasing easier to escape from, Blaster will try to approach
-Max from behind, which allows Max to avoid having to start by
-reversing.
+Max from behind, which allows Max (the player) to avoid having to
+start by reversing.
 
 This is done by having Blaster pass options to the
 \ttt{Path Administrator} when finding a route to Max. Path finding
@@ -673,7 +677,47 @@ The horn will not turn off automatically if you lose. You can use the
 command \ttt{hr 58} in order to toggle the horn from train 58.
 
 Due to an unresolved race condition with one of the couriers, the
-system may crash during chasing when Blaster is about to catch Max.
+system may crash during chasing when Blaster is about to catch
+Max. You may consider this to be another punishment for having lost
+the game.
+
+\section*{Reflection}
+
+The biggest lessons that we learned from the train project portion of
+the course is the importance of planning and scoping.
+
+With respect to time constraints, the scope of what we wanted to
+accomplish was too large, and trying to use an exploratory approach to
+implementation worked against us. We did not get to the final project
+portion of the course until it was too late, and so the number of
+features for the project was small.
+
+During the kernel development portion of the course, it was much
+easier to just try things and see how they worked. There were four
+boxes that could run the code and it was fast to try things out. When
+we got to the trains part of the course, everything took a long time
+to try, and track contention significantly delayed our ability to get
+results of what we wanted to test.
+
+We also did not forsee the degree to which we would have to deal with
+trains dying, degrading, and being replaced. This is doubly true for
+the track sensors and turnouts failing. Instead of spending so much
+time trying to get a precise calibration, it would have been more
+beneficial to try and design more strategies for compensating for the
+changes or working on entirely different features.
+
+We did not do enough up front planning given the scope of the
+project. The result was that components of the project did not fit
+together as easily as they should have when we went to integrate the
+components.
+
+Once again, in contrast to the kernel portion of the project, the
+assignment specification broke requirements up into small enough
+pieces such that we did not run into these issues.
+
+Finally, we did not realize these issues until we thought it was too
+late, and we tried to complete something demonstratable with what we
+had completed so far.
 
 \end{document}
 
