@@ -1,6 +1,6 @@
 task :default => :build
 
-ELF_NAME = 'm3'
+ELF_NAME = 'end'
 UW_HOME  = ENV['UW_HOME']
 UW_USER  = ENV['UW_USER']
 
@@ -195,5 +195,9 @@ namespace :report do
   task(p2: 'md5:p2') do
     dot_compile('project2')
     pdf_compile('project2')
+  end
+  desc 'Compile the report for the final exam'
+  task :ex do
+    pdf_compile('exam')
   end
 end

@@ -17,7 +17,7 @@
 \DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
 \captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
 
-\usepackage{fullpage}
+\usepackage[top=2in, bottom=1.5in, left=1in, right=1in]{geometry}
 
 \newcommand{\titlemake}[1]{
 \title{CS 452\\ Assignment \capitalisewords{#1}}
@@ -55,6 +55,18 @@ Nikolas Illerbrun (\texttt{nillerbr})\\}
 Mark Rada (\texttt{marada})\\
 Nikolas Illerbrun (\texttt{nillerbr})\\}
 \maketitle
+\newpage
+}
+
+\newcommand{\finalexam}{
+\clearpage
+\title{CS 452\\ Final Exam}
+\date{}
+\author{
+Mark Rada (\texttt{marada})\\
+Student \#20266085}
+\maketitle
+\thispagestyle{empty}
 \newpage
 }
 
