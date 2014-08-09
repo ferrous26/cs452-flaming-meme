@@ -566,7 +566,7 @@ static void blaster_reverse_direction(blaster* const ctxt,
     // then it will be updated correctly...and we have to hit an acceleration
     // event next...
     truth.next_location.offset = 0; // TODO: is this right?
-    // truth.next_timestamp    = I don't fucking know; // I don't need to know
+    truth.next_timestamp       = 0; // hmmm
 
     // https://www.youtube.com/watch?v=gAYL5H46QnQ
     assert(ctxt->console_cancel >= 0,
