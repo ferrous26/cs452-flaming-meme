@@ -2,7 +2,7 @@
 #include <vt100.h>
 #include <std.h>
 
-#include <parse.h>
+#include <tasks/task_launcher.h>
 #include <debug.h>
 
 static int consume_integer(const char* const str, int* const index) {
@@ -148,7 +148,9 @@ static command parse_e(const char* const cmd, int* const buffer) {
     return CMD_ECHO;
 }
 
-command parse_command(const char* const cmd, int* const buffer) {
+static inline command
+parse_command(const char* const cmd, int* const buffer)
+{
     switch (cmd[0]) {
     case '\r': return NONE;
     case 'b':  return parse_b(cmd, buffer);

@@ -1,7 +1,6 @@
 #include <syscall.h>
 #include <debug.h>
 #include <train.h>
-#include <parse.h>
 
 #include <normalize.h>
 
@@ -16,6 +15,8 @@
 
 #include <tasks/courier.h>
 #include <tasks/task_launcher.h>
+
+#include <tasks/task_launcher/parse.c>
 
 extern uint* _DataStart;
 extern uint* _DataKernEnd;
