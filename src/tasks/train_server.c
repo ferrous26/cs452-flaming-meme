@@ -22,8 +22,8 @@ typedef enum {
 typedef struct {
     treq_type type;
     struct {
-        int  size;
-        char data[4];
+        size_t size;
+        char   data[4];
     } payload;
 } train_req;
 
@@ -77,13 +77,15 @@ static void __attribute__((noreturn)) write_carrier() {
     };
 
     struct {
-        int  size;
-        char data[4];
+        size_t size;
+        char   data[4];
     } buffer;
 
-    buffer.size = RegisterAs((char*)TRAIN_CARRIER_NAME);
-    assert(buffer.size == 0,
+    int result = RegisterAs((char*)TRAIN_CARRIER_NAME);
+    assert(result == 0,
            "Train Carrier Failed to Register (%d)", buffer.size);
+
+    buffer.size = (size_t)result;
 
     char *next;
     FOREVER {
@@ -97,14 +99,14 @@ static void __attribute__((noreturn)) write_carrier() {
                 "Train Carrier Invalid Send Size (%d)", buffer.size);
 
         next = buffer.data;
-        for (int i = 0; i < buffer.size;) {
+        for (size_t i = 0; i < buffer.size;) {
             AwaitEvent(UART1_CTS, NULL, 0);
 
             ret = AwaitEvent(UART1_SEND, next, buffer.size);
 
-            assert(ret > 0 && ret <= 4, "Sending To Train Failed (%d)", ret);
+            assert(ret && ret <= 4, "Sending To Train Failed (%d)", ret);
             next += ret;
-            i    += ret;
+            i    += (size_t)ret;
 
             AwaitEvent(UART1_DOWN, NULL, 0);
         }
@@ -137,7 +139,7 @@ static void __attribute__((noreturn)) receive_notifier() {
                                 req.payload.data + req.payload.size,
                                 sizeof(req.payload.data));
 
-            req.payload.size += result;
+            req.payload.size += (size_t)result;
             assert(result == 1,
                    "Train Notifier had a bad receive (%d)", result);
         } while (req.payload.size < 2);
@@ -167,9 +169,9 @@ inline static void _startup() {
 }
 
 typedef struct {
-    int get_tid;
-    int send_tid;
-    int get_expecting;
+    int    get_tid;
+    int    send_tid;
+    size_t get_expecting;
 
     char_buffer train_in;
     char_buffer train_out;
@@ -179,12 +181,12 @@ typedef struct {
 
 static void ts_deliver_request(ts_context* const ctxt,
                                const int tid,
-                               const int size) {
+                               const size_t size) {
     assert(size > 0 && size <= 4,
            "trying to deliver invalid size (%d)", size);
 
     char c[4] = {0};
-    int index = size-1;
+    size_t index = size - 1;
 
     do {
         c[index] = cbuf_consume(&ctxt->train_in);
@@ -215,11 +217,12 @@ void train_server() {
                    "Double Registered Send %d %d",
                    tid, context.send_tid);
 
-            int  i;
-            for(i = 0; i<4 && cbuf_count(&context.train_out); i++) {
+            size_t i;
+
+            for (i = 0; i < 4 && cbuf_count(&context.train_out); i++)
                 req.payload.data[i] = cbuf_consume(&context.train_out);
-            }
-            if(i > 0) {
+
+            if (i > 0) {
                 req.payload.size = i;
                 context.bytes_out += i;
                 Reply(tid, (char*)&req.payload, sizeof(req.payload));
@@ -235,11 +238,11 @@ void train_server() {
 
             context.bytes_in += req.payload.size;
 
-            for (int i = 0; i < req.payload.size; i++)
+            for (size_t i = 0; i < req.payload.size; i++)
                 cbuf_produce(&context.train_in, req.payload.data[i]);
 
             if (-1 != context.get_tid &&
-                (int)cbuf_count(&context.train_in) >= context.get_expecting) {
+                cbuf_count(&context.train_in) >= context.get_expecting) {
 
                 ts_deliver_request(&context,
                                    context.get_tid,
@@ -269,15 +272,16 @@ void train_server() {
                    "Invalid train req size (%d)", req.payload.size);
 
             Reply(tid, NULL, 0);
-            for(int i = 0; i < req.payload.size; i++)
+            for (size_t i = 0; i < req.payload.size; i++)
                 cbuf_produce(&context.train_out, req.payload.data[i]);
 
             if (-1 != context.send_tid) {
-                int  i;
-                for(i = 0; i<4 && cbuf_count(&context.train_out) ; i++) {
+                size_t i;
+
+                for (i = 0; i < 4 && cbuf_count(&context.train_out); i++)
                     req.payload.data[i] = cbuf_consume(&context.train_out);
-                }
-                if(i > 0) {
+
+                if (i > 0) {
                     req.payload.size = i;
                     context.bytes_out += i;
                     Reply(context.send_tid,
@@ -366,8 +370,8 @@ int get_train_bank() {
     return data & 0xFFFF;
 }
 
-int get_train(char *buf, int buf_size) {
-    assert(buf_size > 0 && buf_size <= 10,
+int get_train(char *buf, size_t buf_size) {
+    assert(buf_size && buf_size <= 10,
            "Tried to read invalid sensor bank size (%d)", buf_size);
 
     train_req req = {

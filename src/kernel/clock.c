@@ -43,5 +43,5 @@ void irq_clock() {
         return;
     }
 
-    //assert(t, "Missed a clock tick");
+    ABORT("Missed a clock tick");
 }

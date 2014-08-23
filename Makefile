@@ -17,6 +17,8 @@ endif
 
 # source files
 SOURCES_ASM := $(wildcard src/*.asm)
+SOURCES_ASM += $(wildcard src/kernel/arch/arm920/*.asm)
+
 SOURCES_C   := $(wildcard src/*.c) $(wildcard src/tasks/*.c)
 
 # object files

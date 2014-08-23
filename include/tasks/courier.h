@@ -1,4 +1,3 @@
-
 #ifndef __COURIER_H__
 #define __COURIER_H__
 
@@ -24,7 +23,6 @@ typedef struct {
     int        ticks;
 } tdelay_header;
 
-void sensor_notifier(void);
 void time_notifier(void);
 void one_time_courier(void);
 void delayed_one_way_courier(void);

@@ -32,7 +32,7 @@ static char* _abort_ptid(char* ptr, task* const t) {
 static char* _abort_priority(char* ptr, task* const t) {
     if (!t) return ptr;
     ptr = sprintf(ptr, "%d", t->priority);
-    return ui_pad(ptr, log10(t->priority), COLUMN_WIDTH);
+    return ui_pad(ptr, ulog10(t->priority), COLUMN_WIDTH);
 }
 
 static char* _abort_next(char* ptr, task* const t) {
@@ -49,11 +49,13 @@ static char* _abort_stack_size(char* ptr, task* const t) {
     if (!t->sp)
         return sprintf_string(ptr, "-           ");
 
-    const int top = (int)task_stack(t);
-    const int bot = (int)t->sp;
-    const int siz = top - bot;
+    const int* const stack = task_stack(t);
 
-    return sprintf(ptr, "%p  ", siz);
+    const size_t top  = (size_t)stack;
+    const size_t bot  = (size_t)t->sp;
+    const size_t size = top - bot;
+
+    return sprintf(ptr, "%p  ", size);
 }
 
 static char* _abort_receiver(char* ptr, task* const t) {
@@ -109,7 +111,7 @@ void abort(const kreq_abort* const req) {
                   TASK_HEAP_TOP,
                   TASK_HEAP_BOT,
                   TASK_HEAP_TOP - TASK_HEAP_BOT,
-                  TASK_HEAP_SIZ);
+                  TASK_HEAP_SIZE);
 
     // Table header
     ptr = sprintf_string(ptr,
@@ -131,6 +133,7 @@ void abort(const kreq_abort* const req) {
         // skip descriptors that have never been allocated
         if (t->p_tid == -1) continue;
         if (!t->sp) continue; // TODO: remove this when not wanted...
+        if (true) continue;
 
         ptr = _abort_tid(ptr, t);
         ptr = _abort_ptid(ptr, t);

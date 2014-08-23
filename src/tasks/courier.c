@@ -5,88 +5,8 @@
 #include <syscall.h>
 
 #include <tasks/name_server.h>
-#include <tasks/sensor_farm.h>
 #include <tasks/clock_server.h>
-#include <tasks/mission_control.h>
-#include <tasks/mission_control_types.h>
-
 #include <tasks/courier.h>
-
-void sensor_notifier() {
-    int tid, has_header;
-    const int sf_tid = WhoIs((char*)SENSOR_FARM_NAME);
-
-    sf_type sensor_any = SF_D_SENSOR_ANY;
-    struct {
-        sf_type type;
-        int     sensor;
-        int     train_num;
-    } sensor_one = {
-        .type = SF_D_SENSOR
-    };
-
-    struct {
-        int sensor_num;
-        int train_num; 
-        int return_head;
-    } req_first;
-
-    struct {
-        int sensor_num;
-        int return_head;
-    } req;
-
-    struct {
-        int header;
-        int body[2];
-    } reply;
-
-    int* const sensor_idx = &sensor_one.sensor;
-    int result = Receive(&tid, (char*)&req_first, sizeof(req_first));
-    assert(result >= 2*(int)sizeof(int), "nope budd %d", result);
-
-    req.sensor_num   = req_first.sensor_num;
-    req.return_head  = req_first.return_head;
-    result          -= (int) sizeof(int);
-
-    Reply(tid, NULL, 0);
-
-    do {
-        assert(result >= (int)sizeof(*sensor_idx),
-               "sensor notifier failed %d", result);
-
-        *sensor_idx = req.sensor_num;
-        has_header  = result > (int)sizeof(*sensor_idx);
-        if(has_header) { reply.header = req.return_head; }
-
-        assert(*sensor_idx >= 0 && *sensor_idx <= 80,
-               "sensor notifier got invalid sensor num from %d (%d)",
-               tid, *sensor_idx);
-
-        if (80 == *sensor_idx) {
-            result = Send(sf_tid,
-                          (char*)&sensor_any, sizeof(sensor_any),
-                          (char*)&reply.body,   sizeof(reply.body));
-        } else {
-            result = Send(sf_tid,
-                          (char*)&sensor_one, sizeof(sensor_one),
-                          (char*)&reply.body,   sizeof(reply.body));
-        }
-        assert(result > 0, "got back back data (%d)", result);
-
-        if (has_header) {
-            result = Send(tid,
-                          (char*)&reply, sizeof(reply),
-                          (char*)&req,   sizeof(req));
-        } else {
-            result = Send(tid,
-                          (char*)&reply.body, sizeof(reply.body),
-                          (char*)&req,        sizeof(req));
-        }
-        assert(result >= 0, "Failed sending back to creator (%d)", result);
-    } while (result > 0);
-    log ("[SensorNotifier%d] has died...", myTid());
-}
 
 void time_notifier() {
     int tid;
@@ -117,10 +37,10 @@ void time_notifier() {
             break;
         }
 
-        const int reply_size = size - (int)sizeof(delay_req.head);
+        const size_t reply_size = (size_t)size - sizeof(delay_req.head);
         size = Send(tid,
-                    (char*)&delay_req.reply, reply_size,
-                    (char*)&delay_req, sizeof(delay_req));
+                    (char* const)&delay_req.reply, reply_size,
+                    (char* const)&delay_req, sizeof(delay_req));
     } while (size != 0);
 }
 
@@ -151,7 +71,7 @@ void delayed_one_way_courier() {
         }
     }
 
-    const int send_size = size - (int)sizeof(tdelay_header);
+    const size_t send_size = (size_t)size - sizeof(tdelay_header);
     result = Send(delay_req.head.receiver,
                   delay_req.message, send_size,
                   delay_req.message, sizeof(delay_req.message));
@@ -179,7 +99,7 @@ void async_courier() {
     assert(result == 0, "Failed reposnding to setup task (%d)", result);
     UNUSED(result);
 
-    const int send_size = size - (int)sizeof(int);
+    const size_t send_size = (size_t)size - sizeof(int);
     result = Send(package.receiver,
                   package.message, send_size,
                   package.message, sizeof(package.message));
@@ -189,7 +109,7 @@ void async_courier() {
            package.receiver, result);
 
     result = Send(tid,
-                  package.message, result,
+                  package.message, (size_t)result,
                   NULL, 0);
 
     assert(result >= 0,
@@ -220,7 +140,7 @@ void courier() {
 
     result = package.size;
     do {
-        const int size = result;
+        const size_t size = (size_t)result;
         if (result > 0) {
             result = Send(package.receiver,
                           buffer, size,
@@ -231,7 +151,7 @@ void courier() {
         }
 
         result = Send(tid,
-                      buffer, abs(result),
+                      buffer, (size_t)abs(result),
                       buffer, sizeof(buffer));
         assert(result >= 0, "Error sending response to %d (%d)",
                tid, result);

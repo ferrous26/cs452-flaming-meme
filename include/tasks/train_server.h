@@ -21,7 +21,7 @@ int put_train_cmd(char cmd, char vctm);
 int put_train_speed(char cmd, char vctm);
 int put_train_turnout(char cmd, char turn);
 
-int get_train(char* c, int buf_size);
+int get_train(char* c, size_t buf_size);
 int get_train_char(void);
 int get_train_bank(void);
 

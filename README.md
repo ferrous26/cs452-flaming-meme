@@ -9,5 +9,6 @@ CS452 Real Time Programming
 ## TODO
 
 - [ ] Fill-in TODO
+- [ ] Implement a PiroritySend to put message at front of queue (clock notifier)
 
 

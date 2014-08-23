@@ -4,6 +4,7 @@
 #include <std.h>
 #include <stdarg.h>
 #include <syscall.h>
+#include <debug.h>
 #include <tasks/name_server_kernel.h>
 #include <tasks/clock_server_kernel.h>
 
@@ -38,40 +39,40 @@ typedef enum {
 } syscall_num;
 
 typedef struct {
-    int  priority;
-    void (*code)(void);
+    const task_priority priority;
+    void (*const code)(void);
 } kreq_create;
 
 typedef struct {
-    int   tid;
-    char* msg;
-    int   msglen;
-    char* reply;
-    int   replylen;
+    const task_id     tid;
+    const char* const msg;
+    const size_t      msglen;
+    char* const       reply;
+    const size_t      replylen;
 } kreq_send;
 
 typedef struct {
-    int*  tid;
-    char* msg;
-    int   msglen;
+    task_id* const tid;
+    char* const    msg;
+    const size_t   msglen;
 } kreq_recv;
 
 typedef struct {
-    int   tid;
-    char* reply;
-    int   replylen;
+    const task_id tid;
+    char* const   reply;
+    const size_t  replylen;
 } kreq_reply;
 
 typedef struct {
-    int eventid;
-    char* event;
-    int eventlen;
+    const event_id eid;
+    char* const    event;
+    const size_t   eventlen;
 } kreq_event;
 
 typedef struct {
-    char*    file;
-    uint     line;
-    char*    msg;
+    const char* const file;
+    const uint        line;
+    const char* const msg;
     va_list* args;
 } kreq_abort;
 
@@ -79,19 +80,14 @@ typedef struct {
 void kernel_init(void) TEXT_COLD;
 void kernel_deinit(void) TEXT_COLD;
 
-void hwi_enter(void);                             /* found in context.asm */
-void kernel_enter(unsigned int code, void* req);  /* found in context.asm */
+void hwi_enter(void); /* found in context.asm */
+void swi_enter(void); /* found in context.asm */
 
 void syscall_handle(const syscall_num code, const void* const req, int* const sp)
     __attribute__ ((naked)) TEXT_HOT;
 
 void __attribute__ ((noreturn)) shutdown(void) TEXT_COLD;
 void __attribute__ ((noreturn)) abort(const kreq_abort* const req) TEXT_COLD;
-
-
-typedef int32  task_id;
-typedef int32  task_pri;
-typedef uint8  task_idx;
 
 typedef struct task_q_pointers {
     struct task_descriptor* head;
@@ -101,7 +97,7 @@ typedef struct task_q_pointers {
 typedef struct task_descriptor {
     task_id                 tid;
     task_id                 p_tid;
-    task_pri                priority;
+    task_priority           priority;
     int*                    sp;
     struct task_descriptor* next;
     struct task_q_pointers  recv_q;

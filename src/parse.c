@@ -58,11 +58,6 @@ static command parse_s(const char* const cmd, int* buffer) {
     int index = 1;
 
     switch (cmd[index++]) {
-    case 'm':
-        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return SHORT_MOVE;
     case 't':
         if (!isspace(cmd[index++])) return ERROR;
         return CMD_STRESS;
@@ -71,30 +66,10 @@ static command parse_s(const char* const cmd, int* buffer) {
         if (parse_argument(cmd, 'c', &index, &buffer[1] )) return ERROR;
         if (!isspace(cmd[index]))                          return ERROR;
         return TRACK_TURNOUT;
-    case 's':
-        if (parse_argument(cmd, 'c', &index, buffer))     return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return SWITCH_STOP;
-    case 'd':
-        if (!isspace(cmd[index])) return ERROR;
-        return SWITCH_TIME;
     case 'p':
         return SEPPUKU;
     case 'z':
         return SIZES;
-    case 'k':
-        if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return CMD_SENSOR_KILL;
-    case 'r':
-        if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return CMD_SENSOR_REVIVE;
-
     default:
         return ERROR;
     }
@@ -103,8 +78,6 @@ static command parse_s(const char* const cmd, int* buffer) {
 static command parse_t(const char* const cmd, int* const buffer) {
     int index = 1;
     switch(cmd[index++]) {
-    case 'd':
-        return THUNDERDOME;
     case 'r':
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
@@ -114,24 +87,6 @@ static command parse_t(const char* const cmd, int* const buffer) {
         if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
         if (!isspace(cmd[index]))                         return ERROR;
         return TEST_TIME;
-    case 'k':
-        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return UPDATE_TWEAK;
-    default:
-        return ERROR;
-    }
-}
-
-static command parse_w(const char* const cmd, int* const buffer) {
-    int index = 1;
-    switch(cmd[index++]) {
-    case 'h':
-        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (!isspace(cmd[index]))                     return ERROR;
-        return WHEREIS;
     default:
         return ERROR;
     }
@@ -156,10 +111,6 @@ static command parse_r(const char* const cmd, int* const buffer) {
     case 'e':
         if (!isspace(cmd[index])) return ERROR;
         return TRACK_RESET;
-    case 'l':
-        if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (!isspace(cmd[index]))                     return ERROR;
-        return REVERSE_LOOKUP;
     }
 
     return ERROR;
@@ -173,29 +124,6 @@ static command parse_b(const char* const cmd, int* const buffer) {
     if (!isspace(cmd[index++])) return ERROR;
 
     return CMD_BENCHMARK;
-}
-
-static command parse_c(const char* const cmd, int* const buffer) {
-    int index = 1;
-    UNUSED(buffer);
-
-    if (cmd[index++] != 'h')    return ERROR;
-    if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-    if (parse_argument(cmd, 'i', &index, buffer + 1)) return ERROR;
-    if (!isspace(cmd[index++])) return ERROR;
-
-    return LOC_CHASE;
-}
-
-static command parse_a(const char* const cmd, int* const buffer) {
-    int index = 1;
-    UNUSED(buffer);
-
-    if (cmd[index++] != 'c')    return ERROR;
-    if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-    if (!isspace(cmd[index++])) return ERROR;
-
-    return CALIBRATE_ACCELERATION;
 }
 
 static command parse_h(const char* const cmd, int* const buffer) {
@@ -220,89 +148,16 @@ static command parse_e(const char* const cmd, int* const buffer) {
     return CMD_ECHO;
 }
 
-static command parse_g(const char* const cmd, int* const buffer) {
-    int index = 1;
-    switch (cmd[index++]) {
-    case 'o':
-	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-        if (parse_argument(cmd, 'c', &index, &buffer[1])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
-        if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
-	return GO;
-    }
-    return ERROR;
-}
-
-static command parse_d(const char* const cmd, int* const buffer) {
-    int index = 1;
-    switch (cmd[index++]) {
-    case 'p':
-	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-	return DUMP;
-    case 'r':
-	if (parse_argument(cmd, 'i', &index, buffer)) return ERROR;
-	return DROP_RESERVATION;
-    }
-    return ERROR;
-}
-
-static command parse_p(const char* const cmd, int* const buffer) {
-    int index = 1;
-
-    switch (cmd[index++]) {
-    case 'f':
-	if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-	if (parse_argument(cmd, 'c', &index, &buffer[2])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
-        if (!isspace(cmd[index++]))                       return ERROR;
-        return PATH_FIND;
-    case 's':
-	if (parse_argument(cmd, 'c', &index, &buffer[0])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[3])) return ERROR;
-        if (!isspace(cmd[index++]))                       return ERROR;
-        return PATH_STEPS;
-    }
-    return ERROR;
-}
-
-static command parse_n(const char* const cmd, int* const buffer) {
-    int index = 1;
-    switch (cmd[index++]) {
-    case 'h':
-	if (parse_argument(cmd, 'i', &index, &buffer[0])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[2])) return ERROR;
-        if (!isspace(cmd[index++]))                       return ERROR;
-        return CMD_RESERVE_NODE;
-    case 'w':
-	if (parse_argument(cmd, 'i', &index, &buffer[0])) return ERROR;
-	if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
-        if (!isspace(cmd[index++]))                       return ERROR;
-        return CMD_LOOKUP_RESERVATION;
-    }
-    return ERROR;
-}
-
 command parse_command(const char* const cmd, int* const buffer) {
     switch (cmd[0]) {
     case '\r': return NONE;
-    case 'a':  return parse_a(cmd, buffer);
     case 'b':  return parse_b(cmd, buffer);
-    case 'c':  return parse_c(cmd, buffer);
-    case 'd':  return parse_d(cmd, buffer);
     case 'e':  return parse_e(cmd, buffer);
-    case 'g':  return parse_g(cmd, buffer);
     case 'h':  return parse_h(cmd, buffer);
-    case 'n':  return parse_n(cmd, buffer);
-    case 'p':  return parse_p(cmd, buffer);
     case 'q':  return parse_q(cmd, buffer);
     case 's':  return parse_s(cmd, buffer);
     case 'r':  return parse_r(cmd, buffer);
     case 't':  return parse_t(cmd, buffer);
-    case 'w':  return parse_w(cmd, buffer);
     default:   return ERROR;
     }
 }

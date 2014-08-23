@@ -10,6 +10,8 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 
+#define TENTH_OF_A_SECOND 10 // number of clock ticks in a tenth of a second
+
 int clock_server_tid;
 
 typedef enum {
@@ -64,24 +66,33 @@ static void __attribute__ ((noreturn)) clock_ui() {
     int minutes = 0;
     int seconds = 0;
     int  tenths = 0;
+    int    time = Time();
 
     FOREVER {
-        int time = Delay(10);
+        time = DelayUntil(time + TENTH_OF_A_SECOND);
         CLOCK_ASSERT(time, time);
 
-        tenths++;
+        if (time == ERR_MISSED_DEADLINE) {
+            // we need to sync the clock
+            time    = Time();
+            tenths  = time    / 10;
+            seconds = tenths  / 10;
+            minutes = seconds / 60;
+            tenths  = tenths  % 10;
+            seconds = seconds % 60;
+            minutes = minutes % 100;
+        }
+        else {
+            tenths++;
+        }
+
         if (tenths == 10) {
             seconds++;
             tenths = 0;
 
             if (seconds == 60) {
-                // sync with the actual time
-                tenths  = time    / 10;
-                seconds = tenths  / 10;
-                minutes = seconds / 60;
-                tenths  = tenths  % 10;
-                seconds = seconds % 60;
-                minutes = minutes % 100;
+                seconds = 0;
+                minutes = (minutes + 1) % 100;
 
                 ptr    = vt_goto(buffer, CLOCK_ROW, CLOCK_MINUTES);
                 ptr    = sprintf(ptr, "%c%c:%c%c.%c",
@@ -149,7 +160,7 @@ void clock_server() {
     clock_req   req;    // store incoming requests
     int         result; // used by Reply() calls
     cs_context context;
-    const int  missed_deadline = MISSED_DEADLINE;
+    const int missed_deadline = ERR_MISSED_DEADLINE;
 
     _startup(&context);
 
@@ -223,7 +234,7 @@ int Time() {
         return time;
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
+    if (result == ERR_INVALID_TASK || result == ERR_INCOMPLETE)
         ABORT("Clock server died");
 
     // else, error out
@@ -235,7 +246,7 @@ int Delay(int ticks) {
     if (ticks <= 0) {
         if (ticks < 0) // only when strictly less than 0
             log("%d missed deadline with Delay(%d).", myTid(), ticks);
-        return MISSED_DEADLINE;
+        return ERR_MISSED_DEADLINE;
     }
 
     clock_req req = {
@@ -252,7 +263,7 @@ int Delay(int ticks) {
         return time;
 
     // maybe clock server died
-    if (result == INVALID_TASK || result == INCOMPLETE)
+    if (result == ERR_INVALID_TASK || result == ERR_INCOMPLETE)
         ABORT("Clock server died");
 
     return result;
@@ -269,15 +280,15 @@ int DelayUntil(int ticks) {
     };
 
     int time;
-    int result = Send(clock_server_tid,
-                      (char*)&req,  sizeof(clock_req),
-                      (char*)&time, sizeof(time));
+    const int result = Send(clock_server_tid,
+                            (char*)&req,  sizeof(clock_req),
+                            (char*)&time, sizeof(time));
 
     if (result == sizeof(time))
         return time;
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
+    if (result == ERR_INVALID_TASK || result == ERR_INCOMPLETE)
         ABORT("Clock server died");
 
     return result;

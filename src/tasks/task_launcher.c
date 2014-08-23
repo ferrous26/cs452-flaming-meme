@@ -3,9 +3,7 @@
 #include <train.h>
 #include <parse.h>
 
-#include <track_node.h>
 #include <normalize.h>
-#include <track_data.h>
 
 #include <tasks/idle.h>
 #include <tasks/stress.h>
@@ -16,17 +14,8 @@
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
 
-#include <tasks/mission_control.h>
-#include <tasks/sensor_farm.h>
-#include <tasks/track_reservation.h>
-#include <tasks/thunderdome.h>
-
 #include <tasks/courier.h>
-#include <tasks/path_admin.h>
-
-#include <tasks/train_control.h>
 #include <tasks/task_launcher.h>
-#include <tasks/calibrate.h>
 
 extern uint* _DataStart;
 extern uint* _DataKernEnd;
@@ -102,112 +91,27 @@ static void print_section_sizes() {
     Puts(buffer, ptr - buffer);
 }
 
-static void where_is_train(int* args) {
-
-    const track_location l = train_where_are_you(args[0]);
-
-    if (l.sensor == INVALID_TRAIN) {
-        log("Train %d does not exist", args[0]);
-    }
-    else if (l.sensor < 0) {
-        log("Failed to send message to train %d (%d)",
-            args[0], l.sensor);
-    }
-    else if (l.sensor == 80) {
-        log("Train %d does not know where it is", args[0]);
-    }
-    else {
-        const sensor s = pos_to_sensor(l.sensor);
-        log("Train %d is at %c%d %c %d cm",
-            args[0], s.bank, s.num,
-            l.offset >= 0 ? '+' : '-',
-            abs(l.offset) / 10000);
-    }
-}
-
-static void path_steps(int* args) {
-
-    const int start_sensor = sensor_to_pos(args[0], args[1]);
-
-    const track_location start_location = {
-        .sensor = start_sensor,
-        .offset = args[2] * 1000
-    };
-
-    track_location locs[NUM_SENSORS];
-
-    // now find out our end position
-    const int result = get_position_from(start_location,
-                                         locs,
-                                         args[3] * 1000);
-    assert(result == 0, "Failed to scan ahead on the track (%d)", result);
-    UNUSED(result);
-
-    log("Trip distance %d mm", args[3]);
-
-    // we need to walk the list and see what we have
-    for (int i = 0; i < NUM_SENSORS; i++) {
-        const sensor loc = pos_to_sensor(locs[i].sensor);
-        log("At checkpoint %c%d there are %d mm left",
-            loc.bank, loc.num, locs[i].offset / 1000);
-
-        if (locs[i].offset <= 0 || locs[i].sensor == AN_EXIT) break;
-    }
-}
-
 static void action(command cmd, int args[]) {
     switch(cmd) {
     case NONE:
         print_help();
         break;
-    case DUMP:
-        train_dump_velocity_table(args[0]);
-        break;
     case QUIT:
         Shutdown();
-    case WHEREIS:
-        where_is_train(args);
-        break;
     case LOC_SPEED:
-        train_set_speed(args[0], args[1]);
+        //train_set_speed(args[0], args[1]);
         break;
     case LOC_REVERSE:
-        train_reverse(args[0]);
+        //train_reverse(args[0]);
         break;
     case LOC_HORN:
-	train_toggle_horn(args[0]);
+	//train_toggle_horn(args[0]);
 	break;
-    case LOC_CHASE:
-        train_chase(args[0], args[1]);
-        break;
     case TRACK_RESET:
-       reset_train_state();
+        //reset_train_state();
        break;
     case TRACK_TURNOUT:
-        update_turnout(args[0], args[1]);
-        break;
-    case SWITCH_STOP:
-        train_stop_at_sensor(args[2], args[0], args[1]);
-        break;
-    case SWITCH_TIME: {
-        delay_sensor_any();
-        int time = Time();
-        delay_sensor_any();
-        time = Time() - time;
-        log("time interval took %d", time);
-        break;
-    }
-
-    case GO:
-        train_goto_location(args[0], args[1], args[2], args[3]);
-        break;
-
-    case DROP_RESERVATION:
-        train_drop_reservation(args[0]);
-        break;
-
-    case SHORT_MOVE:
-        train_short_move(args[0], args[1]);
+        //update_turnout(args[0], args[1]);
         break;
 
     case CMD_BENCHMARK:
@@ -229,72 +133,6 @@ static void action(command cmd, int args[]) {
 
     case SIZES:
         print_section_sizes();
-        break;
-
-    case UPDATE_TWEAK:
-        train_update_tweak(args[0], args[1], args[2]);
-        break;
-
-    case REVERSE_LOOKUP: {
-        char name[8];
-        if (WhoTid(args[0], name) < 0) {
-            log("tid %d is not registered", args[0]);
-        } else {
-            log("tid %d is %s", args[0], name);
-        }
-        break;
-    }
-
-    case PATH_FIND: {
-        int time = Time();
-
-        const int train_id = NUM_TRAINS;
-        // args[4] > NUM_TRAINS ? NUM_TRAINS : args[4];
-
-        pa_request req = {
-            .type = PA_GET_PATH,
-            .req  = {
-                .requestor   = myTid(),
-                .header      = 0,
-                .sensor_to   = (short)sensor_to_pos(args[2], args[3]),
-                .sensor_from = (short)sensor_to_pos(args[0], args[1]),
-                .opts        = train_id,
-                .reserve     = 100
-            }
-        };
-
-        int worker_tid;
-        path_response res;
-
-        Send(WhoIs((char*)PATH_ADMIN_NAME),
-             (char*)&req, sizeof(req), (char*)&worker_tid, sizeof(worker_tid));
-        Receive(&worker_tid, (char*)&res, sizeof(res));
-        for (int i = res.size-1, j = 0; i >= 0; i--, j++) {
-            switch(res.path[i].type) {
-            case PATH_SENSOR: {
-                const sensor print = pos_to_sensor(res.path[i].data.int_value);
-                log("%d  \tS\t%c%d\t%d", j, print.bank, print.num, res.path[i].dist);
-                break;
-            }
-            case PATH_TURNOUT:
-                log("%d  \tT\t%d %c\t%d",
-                    j, res.path[i].data.turnout.num, res.path[i].data.turnout.state,
-                    res.path[i].dist);
-                break;
-            case PATH_REVERSE:
-                log("%d  \tR\t\t%d", j, res.path[i].dist);
-                break;
-            }
-        }
-
-        log("delta %d\treserved %d", Time() - time, res.reserved);
-        Reply(worker_tid, NULL, 0);
-
-        break;
-    }
-
-    case PATH_STEPS:
-        path_steps(args);
         break;
 
     case TEST_TIME: {
@@ -320,34 +158,6 @@ static void action(command cmd, int args[]) {
         Reply(tid, NULL, 0);
     }   break;
 
-    case CMD_RESERVE_NODE: {
-        int res = reserve_section_term(args[1], args[0]);
-        log("RESERVE: %d", res);
-    }   break;
-
-    case CMD_LOOKUP_RESERVATION: {
-        int res = reserve_who_owns_term(args[0]);
-        log("LOOKUP: %d", res);
-    }   break;
-
-    case CMD_SENSOR_KILL: {
-        disable_sensor_name(args[0], args[1]);
-    }   break;
-
-    case CMD_SENSOR_REVIVE: {
-        revive_sensor_name(args[0], args[1]);
-    }   break;
-
-    case CALIBRATE_ACCELERATION: {
-        int tid = Create(5, accelerate);
-        Send(tid, (char*)args, sizeof(int), NULL, 0);
-        break;
-    }
-
-    case THUNDERDOME:
-        Create(myPriority() + 1, thunderdome);
-        break;
-
     case ERROR:
         log("invalid command");
 	print_help();
@@ -369,14 +179,6 @@ void task_launcher() {
     ptr = sprintf_string(ptr, "Please select track (a) or (b)... ");
     Puts(buffer, ptr-buffer);
 
-    do {
-        // quick hack to force track loading
-        buffer[0] = (char)Getc(TERMINAL);
-        if (buffer[0] == 'q') {
-            log("Aborting track load...be careful!");
-            break;
-        }
-    } while (load_track(buffer[0]));
     ptr = buffer;
 
     FOREVER {

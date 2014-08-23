@@ -44,7 +44,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
         idle_time /= T4_TICKS_PER_SECOND;
         non_idle_ticks = 0;
 
-        if (idle_time >= 1000) idle_time = 999; // handle this edge case
+        if (idle_time >= 10000) idle_time = 9999; // handle this edge case
 
         const int idle_time_fraction = idle_time % 10;
         idle_time /= 10;

@@ -3,14 +3,16 @@
 #include <io.h>
 #include <debug.h>
 
-inline static int _syscall(volatile syscall_num code, volatile void* request) {
+static inline int
+_syscall(volatile syscall_num code, volatile void* request)
+{
     register int r0 asm ("r0") = code;
     register volatile void* r1 asm ("r1") = request;
 
     asm ("swi\t0"
-	:
-	:"r"(r0), "r"(r1)
-	:"r2", "r3", "ip");
+         :
+         : "r"(r0), "r"(r1)
+         : "r2", "r3", "ip");
 
 #ifdef CLANG
     // r0 will have the return value of the operation
@@ -25,9 +27,9 @@ inline static int _syscall(volatile syscall_num code, volatile void* request) {
 #endif
 }
 
-int Create(int priority, void (*code)()) {
-    if (priority > TASK_PRIORITY_MAX || priority < TASK_PRIORITY_MIN)
-        return INVALID_PRIORITY;
+task_id Create(const task_priority priority, void (* const code)())
+{
+    if (priority > TASK_PRIORITY_MAX) return ERR_INVALID_PRIORITY;
 
     volatile kreq_create req = {
         .code     = code,
@@ -36,34 +38,40 @@ int Create(int priority, void (*code)()) {
     return _syscall(SYS_CREATE, &req);
 }
 
-int myTid() {
+task_id myTid()
+{
     return _syscall(SYS_TID, NULL);
 }
 
-int myParentTid() {
+task_id myParentTid()
+{
     return _syscall(SYS_PTID, NULL);
 }
 
-int myPriority() {
-    return _syscall(SYS_PRIORITY, NULL);
+task_priority myPriority()
+{
+    return (task_priority)_syscall(SYS_PRIORITY, NULL);
 }
 
-int ChangePriority(int priority) {
-    return _syscall(SYS_CHANGE, (volatile void*)priority);
+task_priority ChangePriority(const task_priority priority)
+{
+    return (task_priority)_syscall(SYS_CHANGE, (volatile void*)priority);
 }
 
-void Pass() {
+void Pass()
+{
     _syscall(SYS_PASS, NULL);
 }
 
-void Exit() {
+void Exit()
+{
     _syscall(SYS_EXIT, NULL);
 }
 
-int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
-    assert(msglen   >= 0, "NEGITIVE MESSAGE %d", msglen);
-    assert(replylen >= 0, "REPLY MESSAGE %d", replylen);
-    
+int Send(const task_id tid,
+         const char* const msg, const size_t msglen,
+         char* const reply,     const size_t replylen)
+{
     volatile kreq_send req = {
         .tid      = tid,
         .msg      = msg,
@@ -71,13 +79,12 @@ int Send(int tid, char* msg, int msglen, char* reply, int replylen) {
         .msglen   = msglen,
         .replylen = replylen
     };
-    const int result = _syscall(SYS_SEND, &req);
-    assert(result != NOT_ENUF_MEMORY, "Reply to %d failed NOT_ENUF_MEMORY");
-    return result;
+    return _syscall(SYS_SEND, &req);
 }
 
-int Receive(int* tid, char* msg, int msglen) {
-    assert(msglen   >= 0, "NEGITIVE MESSAGE %d", msglen);
+int Receive(task_id* const tid,
+            char* const msg, const size_t msglen)
+{
     volatile kreq_recv req = {
         .tid    = tid,
         .msg    = msg,
@@ -86,39 +93,40 @@ int Receive(int* tid, char* msg, int msglen) {
     return _syscall(SYS_RECV, &req);
 }
 
-int Reply(int tid, char* reply, int replylen) {
-    assert(replylen >= 0, "REPLY MESSAGE %d", replylen);
-
+int Reply(const task_id tid,
+          char* const reply, const size_t replylen)
+{
     volatile kreq_reply req = {
         .tid      = tid,
         .reply    = reply,
         .replylen = replylen
     };
-
-
-    const int result = _syscall(SYS_REPLY, &req);
-    assert(result != NOT_ENUF_MEMORY, "Reply to %d failed NOT_ENUF_MEMORY");
-    return result;
+    return _syscall(SYS_REPLY, &req);
 }
 
-int AwaitEvent(int eventid, char* event, int eventlen) {
+int AwaitEvent(const event_id eid,
+               char* const event, const size_t eventlen)
+{
+    if (eid >= EVENT_COUNT) return ERR_INVALID_EVENT;
+
     volatile kreq_event req = {
-        .eventid  = eventid,
+        .eid      = eid,
         .event    = event,
         .eventlen = eventlen
     };
     return _syscall(SYS_AWAIT, &req);
 }
 
-void Shutdown() {
+void Shutdown()
+{
     _syscall(SYS_SHUTDOWN, NULL);
     FOREVER;
 }
 
 void Abort(const char* const file,
 	   const uint line,
-	   const char* const msg, ...) {
-
+	   const char* const msg, ...)
+{
     va_list args;
     va_start(args, msg);
 
@@ -129,11 +137,13 @@ void Abort(const char* const file,
         .args = &args
     };
 
+    // if called from within the kernel, shortcut to the proper handler
     if (debug_processor_mode() == SUPERVISOR)
         abort((const kreq_abort* const)&req);
 
     _syscall(SYS_ABORT, &req);
 
     va_end(args);
-    FOREVER;
+
+    FOREVER; // so that flow analysis thinks the function does not return
 }

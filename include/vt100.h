@@ -127,7 +127,7 @@ char* vt_scroll_down(char* buffer);
 /**
  * The row where logging begins.
  */
-#define LOG_HOME 34
+#define LOG_HOME 10
 
 /**
  * The row where logging ends.
@@ -148,17 +148,5 @@ char* log_end(char* buffer);
 void  log(const char* fmt, ...);
 void  clog(const int time, const char* fmt, ...); // manually-timestamped log
 void  klog(const char* fmt, ...);
-
-#ifdef NIK
-#define nik_log( fmt, ... ) log(fmt, ##__VA_ARGS__ )
-#else
-#define nik_log( ... )
-#endif
-
-#ifdef MARK
-#define mark_log(fmt, ... ) log(fmt, ##__VA_ARGS__ )
-#else
-#define mark_log( ... )
-#endif
 
 #endif

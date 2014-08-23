@@ -153,7 +153,7 @@ int WhoIs(char* name) {
 
     if (result > OK) return status;
 
-    assert(result == INVALID_TASK || result == INCOMPLETE,
+    assert(result == ERR_INVALID_TASK || result == ERR_INCOMPLETE,
            "Name Server Has Died!");
 
     // else, error out
@@ -177,7 +177,7 @@ int WhoTid(int tid, char* name) {
 
     assert(result < 0 || result == NAME_MAX_SIZE,
            "NameServer returned unexpected value %d", result);
-    assert(result != INVALID_TASK || result != INCOMPLETE,
+    assert(result != ERR_INVALID_TASK || result != ERR_INCOMPLETE,
            "Name Server Has Died!");
 
     // else, error out
@@ -203,7 +203,7 @@ int RegisterAs(char* name) {
     if (result > OK) return (status < 0 ? status :  0);
 
     // maybe clock server died, so we can try again
-    if (result == INVALID_TASK || result == INCOMPLETE)
+    if (result == ERR_INVALID_TASK || result == ERR_INCOMPLETE)
 	if (Create(TASK_PRIORITY_HIGH - 1, name_server) > 0)
 	    return RegisterAs(name);
 

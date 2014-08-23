@@ -140,12 +140,12 @@ void irq_uart2_recv() {
         if (c == '`') magic_sysreq();
             req->event[0] = c;
 
-        int i;
+        uint i;
         for (i = 1; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
             req->event[i] = *data;
         }
 
-        t->sp[0] = i;
+        t->sp[0] = (int)i;
         *ctlr &= ~RTIS_MASK;
         scheduler_reschedule(t);
 
@@ -175,12 +175,12 @@ void irq_uart2_send() {
     assert(t != NULL, "UART2 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req = (kreq_event*)t->sp[1];
 
-    const int count = 8 < req->eventlen ? 8 : req->eventlen;
-    for (int i = 0; i < count; i++) {
+    const uint count = 8 < req->eventlen ? 8 : req->eventlen;
+    for (uint i = 0; i < count; i++) {
         *data = req->event[i];
     }
 
-    t->sp[0] = count;
+    t->sp[0] = (int)count;
 
     // disable the interrupt now that we have sent out a full block
     int* const ctlr = (int*)(UART2_BASE + UART_CTLR_OFFSET);

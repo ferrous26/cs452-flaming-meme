@@ -212,7 +212,7 @@ static void __attribute__ ((noreturn)) send_carrier() {
 	// now, pump the buffer through to the kernel
 	uint chunk = 0;
 	while (msg.length) {
-	    result = AwaitEvent(UART2_SEND, buffer + chunk, (int)msg.length);
+	    result = AwaitEvent(UART2_SEND, buffer + chunk, msg.length);
 	    TERM_ASSERT(result > 0, result);
 
 	    chunk      += (uint)result;
@@ -468,7 +468,7 @@ int put_term_char(char ch) {
 
     if (result == 0) return OK;
 
-    assert(result != INCOMPLETE && result != INVALID_TASK,
+    assert(result != ERR_INCOMPLETE && result != ERR_INVALID_TASK,
 	   "Terminal server died");
 
     return result;
@@ -491,7 +491,7 @@ int term_put_string(char* const str, int length) {
 
     if (result == 0) return OK;
 
-    assert(result != INCOMPLETE && result != INVALID_TASK,
+    assert(result != ERR_INCOMPLETE && result != ERR_INVALID_TASK,
 	   "Terminal server died");
 
     return result;
@@ -509,7 +509,7 @@ int get_term_char() {
 
     if (result > 0) return byte;
 
-    assert(result != INCOMPLETE && result != INVALID_TASK,
+    assert(result != ERR_INCOMPLETE && result != ERR_INVALID_TASK,
 	   "Terminal server died");
 
     return result;

@@ -1,25 +1,9 @@
-
 #ifndef __STD_H__
 #define __STD_H__
 
+#include <types.h>
+
 #define FOREVER for (;;)
-
-#define UNUSED(x) (void)(x)
-#define NULL 0
-
-typedef unsigned int bool;
-#define true  1
-#define false 0
-
-typedef unsigned int   uint32;
-typedef unsigned int   uint;
-typedef signed   int   int32;
-typedef unsigned short uint16;
-typedef signed   short int16;
-typedef unsigned char  uint8;
-typedef          char  int8;
-
-typedef void (*voidf)(void);
 
 static inline int __attribute__ ((const))
 abs(const int val) { return val < 0 ? -val : val; }
@@ -28,6 +12,7 @@ bool __attribute__ ((const)) isspace(const char c);
 bool __attribute__ ((const)) isdigit(const char c);
 bool __attribute__ ((const)) ishexdigit(const char c);
 int  __attribute__ ((const)) log10(int c);
+int  __attribute__ ((const)) ulog10(uint c);
 
 #include <limits.h>
 #include <memory.h>

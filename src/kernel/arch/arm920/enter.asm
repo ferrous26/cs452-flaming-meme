@@ -1,9 +1,8 @@
-	.file	"context.asm"
+	.file	"enter.asm"
 	.text
-
-
 	.align	2
 	.section .text.kern
+
 	.global	 hwi_enter
 	.type	 hwi_enter, %function
 hwi_enter:
@@ -18,19 +17,19 @@ hwi_enter:
 
 	mov	lr, #0
 	mov	r0, #0
+	.size	hwi_enter, .-hwi_enter
 
-	.global	kernel_enter
-	.type	kernel_enter, %function
-kernel_enter:
+	.global	swi_enter
+	.type	swi_enter, %function
+swi_enter:
 	mov	r2, lr
 	mrs	r3, spsr
 
-	msr	cpsr, #0xDF 		/* system */
+	msr	cpsr, #0xDF         /* system */
 	stmfd	sp!, {r0-r11, lr}	/* Store user state on the users stack */
-	mov	r2, sp			/* kernel needs the sp to find data again */
-	msr	cpsr, #0xD3 		/* supervisor */
+	mov	r2, sp			        /* kernel needs the sp to find data again */
+	msr	cpsr, #0xD3         /* supervisor */
 
 	mov     sp, #0x300000
 	b	syscall_handle
-	.size	kernel_enter, .-kernel_enter
-	.size	hwi_enter, .-hwi_enter
+	.size	swi_enter, .-swi_enter
