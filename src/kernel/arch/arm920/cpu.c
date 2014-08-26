@@ -1,50 +1,9 @@
-
-#include <io.h>
-#include <debug.h>
+#include <kernel/arch/arm920/cpu.h>
 #include <vt100.h>
 #include <kernel.h>
 #include <syscall.h>
 
 #include <tasks/term_server.h>
-
-#ifdef DEBUG
-
-// TODO: we have 4 functions that do almost the same thing, they should
-//       get refactored, not into macros, because performance doesn't
-//       matter too much for these calls
-
-void debug_log(const char* const msg, ...) {
-    va_list args;
-    va_start(args, msg);
-
-    char buffer[256];
-    char* ptr = buffer;
-
-    ptr = log_start(ptr);
-    ptr = sprintf_va(ptr, msg, args);
-    ptr = log_end(ptr);
-
-    Puts(buffer, (uint)(ptr - buffer));
-    va_end(args);
-}
-
-void kdebug_log(const char* const msg, ...) {
-    va_list args;
-    va_start(args, msg);
-
-    char buffer[256];
-    char* ptr = buffer;
-
-    ptr = log_start(ptr);
-    ptr = sprintf_va(ptr, msg, args);
-    ptr = log_end(ptr);
-
-    uart2_bw_write(buffer, (uint)(ptr - buffer));
-    va_end(args);
-}
-
-#endif
-
 
 #define CPU_MODE_MASK             0x0000001f
 
@@ -86,7 +45,7 @@ static inline bool cc_s(const uint status) { return (status & FLAG_STICKY_OVERFL
 static void _debug_psr(const char* const name, const uint status) {
 
     void (*logger)(const char* const,...) = NULL;
-    switch (debug_processor_mode()) {
+    switch (processor_mode()) {
     case USER:
 	logger = log;
 	break;
@@ -134,7 +93,7 @@ void debug_spsr(void) {
     _debug_psr("SPSR", status);
 }
 
-pmode debug_processor_mode() {
+pmode processor_mode() {
     uint status;
     asm("mrs %0, cpsr" : "=r" (status));
 

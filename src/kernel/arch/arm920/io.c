@@ -5,13 +5,39 @@
  *
  */
 
-#include <io.h>
-#include <debug.h>
-#include <ts7200.h>
+#include <kernel/arch/arm920/io.h>
+#include <kernel/arch/arm920/ts7200.h>
 #include <kernel.h>
 #include <syscall.h>
+#include <stdio.h>
 
 #define NOP(count) for (volatile uint _cnt = 0; _cnt < (count>>2)+1; _cnt++)
+
+void vt_init()
+{
+    char buffer[32];
+    char* ptr = buffer;
+
+    ptr = vt_clear_screen(ptr);
+    ptr = vt_hide_cursor(ptr);
+
+    ptr = vt_set_scroll_region(ptr, LOG_HOME, 80);
+    ptr = vt_goto(ptr, LOG_HOME, 1);
+    ptr = vt_save_cursor(ptr);
+
+    uart2_bw_write(buffer, ptr - buffer);
+}
+
+void vt_deinit()
+{
+    char buffer[64];
+    char* ptr = buffer;
+
+    ptr = vt_reset_scroll_region(ptr);
+    ptr = vt_unhide_cursor(ptr);
+    ptr = sprintf_string(ptr, "\nSHUTTING DOWN");
+    uart2_bw_write(buffer, ptr - buffer);
+}
 
 // ASCII byte that tells VT100 to stop transmitting
 // #define XOFF  17
@@ -21,7 +47,8 @@
 
 inline static void uart_setoptions(const uint base,
 				   const int speed,
-				   const int fifo) {
+				   const int fifo)
+{
     /**
      * BAUDDIV = (F_uartclk / (16 * BAUD_RATE)) - 1
      * http://www.cgl.uwaterloo.ca/~wmcowan/teaching/cs452/pdf/EP93xx_Users_Guide_UM1.pdf
@@ -48,17 +75,20 @@ inline static void uart_setoptions(const uint base,
     }
 }
 
-inline static void uart_initirq(const uint base) {
+inline static void uart_initirq(const uint base)
+{
     int* const ctlr = (int*)(base + UART_CTLR_OFFSET);
     *ctlr = UARTEN_MASK | MSIEN_MASK | RIEN_MASK;
 }
 
-inline static void uart_drain(const uint base) {
+inline static void uart_drain(const uint base)
+{
     volatile int* const data = (int*)(base + UART_DATA_OFFSET);
     for (int i = UART_FIFO_SIZE; i; i--) *data;
 }
 
-void uart_init() {
+void uart_init()
+{
     uart_setoptions(UART1_BASE, 0xBF, 0);
     uart_setoptions(UART2_BASE, 0x03, 1);
     NOP(55);
@@ -80,7 +110,8 @@ void uart_init() {
     uart_drain(UART2_BASE);
 }
 
-void uart2_bw_write(const char* string, int length) {
+void uart2_bw_write(const char* string, int length)
+{
     volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
 
@@ -90,24 +121,28 @@ void uart2_bw_write(const char* string, int length) {
     }
 }
 
-bool uart2_bw_can_read(void) {
+bool uart2_bw_can_read(void)
+{
     volatile const int* const flags = (int*)(UART2_BASE + UART_FLAG_OFFSET);
     return (*flags & RXFF_MASK);
 }
 
-char uart2_bw_read() {
+char uart2_bw_read()
+{
     volatile const char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
     return *data;
 }
 
-char uart2_bw_waitget() {
+char uart2_bw_waitget()
+{
     while (!uart2_bw_can_read());
     return uart2_bw_read();
 }
 
 
 #ifdef ASSERT
-static inline void uart_rsr_check(int base) {
+static inline void uart_rsr_check(int base)
+{
     volatile int* const rsr = (int*)(base + UART_RSR_OFFSET);
     assert(!(*rsr & 0xf), "UART %p has had an error %p", base, *rsr);
 }
@@ -115,11 +150,13 @@ static inline void uart_rsr_check(int base) {
 #define uart_rsr_check(...)
 #endif
 
-static void __attribute__ ((noreturn, noinline)) magic_sysreq() {
+static void __attribute__ ((noreturn, noinline)) magic_sysreq()
+{
     Abort(__FILE__, 0, "Magic SysRq key pressed");
 }
 
-void irq_uart2_recv() {
+void irq_uart2_recv()
+{
     uart_rsr_check(UART2_BASE);
 
     volatile int*  const flag = (int*) (UART2_BASE + UART_FLAG_OFFSET);
@@ -138,11 +175,11 @@ void irq_uart2_recv() {
 
         char c = *data;
         if (c == '`') magic_sysreq();
-            req->event[0] = c;
+        ((char*)req->event)[0] = c;
 
         uint i;
         for (i = 1; !(*flag & RXFE_MASK) && i < req->eventlen; i++) {
-            req->event[i] = *data;
+            ((char*)req->event)[i] = *data;
         }
 
         t->sp[0] = (int)i;
@@ -164,7 +201,8 @@ void irq_uart2_recv() {
     // that we mask interrupts
 }
 
-void irq_uart2_send() {
+void irq_uart2_send()
+{
     uart_rsr_check(UART2_BASE);
 
     volatile char* const data = (char*)(UART2_BASE + UART_DATA_OFFSET);
@@ -176,9 +214,8 @@ void irq_uart2_send() {
     kreq_event* const req = (kreq_event*)t->sp[1];
 
     const uint count = 8 < req->eventlen ? 8 : req->eventlen;
-    for (uint i = 0; i < count; i++) {
-        *data = req->event[i];
-    }
+    for (uint i = 0; i < count; i++)
+        *data = ((char*)req->event)[i];
 
     t->sp[0] = (int)count;
 
@@ -189,7 +226,8 @@ void irq_uart2_send() {
     scheduler_schedule(t);
 }
 
-void irq_uart2() {
+void irq_uart2()
+{
     uart_rsr_check(UART2_BASE);
     int* const intr = (int*)(UART2_BASE + UART_INTR_OFFSET);
 
@@ -200,7 +238,8 @@ void irq_uart2() {
     irq_uart2_recv();
 }
 
-void irq_uart1_recv() {
+void irq_uart1_recv()
+{
     uart_rsr_check(UART1_BASE);
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
 
@@ -209,7 +248,7 @@ void irq_uart1_recv() {
 
     if (t != NULL) {
         kreq_event* const req_space = (kreq_event*) t->sp[1];
-        req_space->event[0] = *data;
+        ((char*)req_space->event)[0] = *data;
         t->sp[0] = 1;
 
         scheduler_reschedule(t);
@@ -219,7 +258,8 @@ void irq_uart1_recv() {
     assert(false, "UART1 dropped char %d", *data);
 }
 
-void irq_uart1_send() {
+void irq_uart1_send()
+{
     uart_rsr_check(UART1_BASE);
 
     volatile char* const data = (char*)(UART1_BASE + UART_DATA_OFFSET);
@@ -229,7 +269,7 @@ void irq_uart1_send() {
 
     assert(t != NULL, "UART1 SEND INTERRUPT WITHOUT SENDER!");
     kreq_event* const req_space = (kreq_event*) t->sp[1];
-    *data = req_space->event[0];
+    *data = ((char*)req_space->event)[0];
     t->sp[0] = 1;
 
     int* const ctlr = (int*)(UART1_BASE + UART_CTLR_OFFSET);
@@ -237,7 +277,8 @@ void irq_uart1_send() {
     scheduler_reschedule(t);
 }
 
-void irq_uart1() {
+void irq_uart1()
+{
     uart_rsr_check(UART1_BASE);
 
     int* const intr = (int*)(UART1_BASE + UART_INTR_OFFSET);
@@ -258,4 +299,24 @@ void irq_uart1() {
     }
 
     if (t) scheduler_reschedule(t);
+}
+
+char* klog_start(char* buffer) {
+    buffer = vt_restore_cursor(buffer);
+    return sprintf_string(buffer, "kernel: ");
+}
+
+void klog(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    char buffer[256];
+    char* ptr = buffer;
+
+    ptr = klog_start(ptr);
+    ptr = sprintf_va(ptr, fmt, args);
+    ptr = log_end(ptr);
+
+    uart2_bw_write(buffer, ptr - buffer);
+    va_end(args);
 }

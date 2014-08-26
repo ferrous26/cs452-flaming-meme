@@ -1,5 +1,5 @@
 #include <kernel.h>
-#include <clz.h>
+#include <kernel/arch/arm920/clz.h>
 
 static struct task_manager {
     uint32 state; // bitmap for accelerating queue selection

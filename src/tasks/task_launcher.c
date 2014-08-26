@@ -1,10 +1,8 @@
+#include <tasks/task_launcher.h>
+
 #include <syscall.h>
-#include <debug.h>
 #include <train.h>
 
-#include <normalize.h>
-
-#include <tasks/idle.h>
 #include <tasks/stress.h>
 #include <tasks/bench_msg.h>
 
@@ -12,9 +10,6 @@
 #include <tasks/train_server.h>
 #include <tasks/name_server.h>
 #include <tasks/clock_server.h>
-
-#include <tasks/courier.h>
-#include <tasks/task_launcher.h>
 
 #include <tasks/task_launcher/parse.c>
 
@@ -93,6 +88,8 @@ static void print_section_sizes() {
 }
 
 static void action(command cmd, int args[]) {
+    UNUSED(args);
+
     switch(cmd) {
     case NONE:
         print_help();
@@ -135,29 +132,6 @@ static void action(command cmd, int args[]) {
     case SIZES:
         print_section_sizes();
         break;
-
-    case TEST_TIME: {
-        struct {
-            tnotify_header head;
-            int            number;
-        } msg = {
-            .head = {
-                .type  = DELAY_RELATIVE,
-                .ticks = args[0]
-            },
-            .number = 12
-        };
-        log ("%d", sizeof(msg));
-
-        int ret = 4;
-        int tid = Create(4, time_notifier);
-
-        Send(tid, (char*)&msg, sizeof(msg), NULL, 0);
-        Receive(&tid, (char*)&ret, sizeof(ret));
-
-        log("%d", ret);
-        Reply(tid, NULL, 0);
-    }   break;
 
     case ERROR:
         log("invalid command");

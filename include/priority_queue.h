@@ -1,6 +1,7 @@
-
 #ifndef __PRIORITY_QUEUE_H__
 #define __PRIORITY_QUEUE_H__
+
+#include <std.h>
 
 typedef struct {
     int key;
@@ -13,6 +14,7 @@ typedef struct {
     pq_node* heap;
 } priority_queue;
 
+// TODO: fix the heap[1] hack...fuuuuuuu Nik
 static inline int __attribute__((always_inline, const, used))
 pq_peek_key(const priority_queue* const q) { return q->heap[0].key; }
 
@@ -28,4 +30,3 @@ int  pq_delete(priority_queue* const q);
 void pq_raise(priority_queue* const q, const int value, const int new_key);
 
 #endif
-

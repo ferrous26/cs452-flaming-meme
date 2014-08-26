@@ -1,7 +1,7 @@
-
 #ifndef __TRAIN_SERVER_H__
 #define __TRAIN_SERVER_H__
 
+#include <std.h>
 #include <serial.h>
 
 #define TRAIN_CARRIER_NAME  "TRAIN_C"

@@ -1,11 +1,9 @@
-
-#include <io.h>
-#include <vt100.h>
-#include <debug.h>
-#include <syscall.h>
 #include <tasks/stress.h>
 #include <tasks/term_server.h>
 #include <tasks/clock_server.h>
+#include <vt100.h>
+#include <syscall.h>
+
 
 static void stress_sub() {
     int tid  = myTid();

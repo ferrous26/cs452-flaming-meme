@@ -4,7 +4,6 @@
 #include <std.h>
 #include <stdarg.h>
 #include <syscall.h>
-#include <debug.h>
 #include <tasks/name_server_kernel.h>
 #include <tasks/clock_server_kernel.h>
 
@@ -45,27 +44,27 @@ typedef struct {
 
 typedef struct {
     const task_id     tid;
-    const char* const msg;
+    const void* const msg;
     const size_t      msglen;
-    char* const       reply;
+    void* const       reply;
     const size_t      replylen;
 } kreq_send;
 
 typedef struct {
     task_id* const tid;
-    char* const    msg;
+    void* const    msg;
     const size_t   msglen;
 } kreq_recv;
 
 typedef struct {
     const task_id tid;
-    char* const   reply;
+    void* const   reply;
     const size_t  replylen;
 } kreq_reply;
 
 typedef struct {
     const event_id eid;
-    char* const    event;
+    void* const    event;
     const size_t   eventlen;
 } kreq_event;
 
@@ -73,7 +72,7 @@ typedef struct {
     const char* const file;
     const uint        line;
     const char* const msg;
-    va_list* args;
+    va_list*          args;
 } kreq_abort;
 
 

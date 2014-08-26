@@ -2,9 +2,8 @@
 #ifndef __IRQ_H__
 #define __IRQ_H__
 
-#include <std.h>
-#include <debug.h>
 #include <kernel.h>
+#include <std.h>
 
 void irq_init(void) TEXT_COLD;
 void irq_deinit(void) TEXT_COLD;

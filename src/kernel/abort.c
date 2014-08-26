@@ -1,4 +1,5 @@
 #include <kernel.h>
+#include <ui.h>
 
 #define COLUMN_WIDTH 12
 
@@ -133,7 +134,6 @@ void abort(const kreq_abort* const req) {
         // skip descriptors that have never been allocated
         if (t->p_tid == -1) continue;
         if (!t->sp) continue; // TODO: remove this when not wanted...
-        if (true) continue;
 
         ptr = _abort_tid(ptr, t);
         ptr = _abort_ptid(ptr, t);

@@ -49,13 +49,6 @@ task :build, :params do |_, args|
 
   env  = []
 
-  name = `whoami`.chomp
-  if name.match 'rada'
-    env << 'MARK=yes'
-  else
-    env << 'NIK=yes'
-  end
-
   # individual flags
   env << 'STRICT=yes'           if params.include? 's'
   env << 'BENCHMARK=yes'        if params.include? 'b'
@@ -65,6 +58,7 @@ task :build, :params do |_, args|
   env << 'RELEASE=2'            if params.include? '2'
   env << 'RELEASE=3'            if params.include? '3'
   env << 'RELEASE=s'            if params.include? 'x'
+  env << 'RELEASE=g'            if params.include? 'g'
 
   cmds = if params.include? 't'
            []
@@ -121,83 +115,49 @@ task(:future) { Rake::Task[:build].invoke('f2b') }
 desc 'Make a local release_bench build'
 task(:local) { Rake::Task[:build].invoke('p2sbt') }
 
-namespace :md5 do
+desc 'Generate the PDF guide'
+task :guide => 'guide:pdf'
+
+namespace :guide do
   def make_md5_for report
     headers = FileList['include/**/*.h']
-    impls   = ['Makefile', 'Rakefile', 'orex.ld'] +
-      FileList['src/**/*.c'] +
-      FileList['src/**/*.asm']
+    impls   = FileList['src/**/*.c'] +
+              FileList['src/**/*.asm']
+    others  = ['Makefile', 'Rakefile'] + FileList['ld/*.ld']
 
     require 'digest/md5'
     require 'csv'
 
     md5 = Digest::MD5.new
 
-    CSV.open("report/#{report}/md5_info_headers.csv", 'w') do |csv|
-      csv << ['file', 'hash']
-      headers.sort.each do |file|
-        csv << [file.gsub(/_/, '\_'), md5.hexdigest(File.read file)]
+    ['headers', 'impls', 'others'].each do |set|
+      CSV.open("#{report}/md5_info_#{set}.csv", 'w') do |csv|
+        csv << ['file', 'hash']
+        headers.sort.each do |file|
+          csv << [file.gsub(/_/, '\_'), md5.hexdigest(File.read file)]
+        end
       end
-    end
 
-    CSV.open("report/#{report}/md5_info_impls.csv", 'w') do |csv|
-      csv << ['file', 'hash']
-      impls.sort.each do |file|
-        csv << [file.gsub(/_/, '\_'), md5.hexdigest(File.read file)]
-      end
-    end
-
-    puts "md5sum -> report/#{report}/md5_info_headers.csv"
-    puts "md5sum -> report/#{report}/md5_info_impls.csv"
-  end
-
-  task(:a0) { make_md5_for 'a0'       }
-  task(:k1) { make_md5_for 'kernel1'  }
-  task(:k2) { make_md5_for 'kernel2'  }
-  task(:k3) { make_md5_for 'kernel3'  }
-  task(:k4) { make_md5_for 'kernel4'  }
-  task(:p1) { make_md5_for 'project1' }
-  task(:p2) { make_md5_for 'project2' }
-end
-
-desc 'Generate the tasks dot diagram'
-task :dot do
-  sh 'dot -Tpng report/tasks.dot > report/tasks.png'
-  sh 'open report/tasks.png'
-end
-
-namespace :report do
-  def pdf_compile report
-    cd "report/#{report}" do
-      sh 'pdflatex report.tex'
-      sh 'open report.pdf'
+      puts "md5sum -> report/#{report}/md5_info_#{set}.csv"
     end
   end
 
-  def dot_compile report
-    sh 'dot -Tpng report/tasks.dot > report/project2/tasks.png'
+  desc 'Generate MD5 hashes of project files'
+  task :md5 do
+    make_md5_for 'guide'
   end
 
-  desc 'Compile the report for A0'
-  task(a0: 'md5:a0') { pdf_compile 'a0' }
-
-  4.times do |count|
-    count += 1
-    desc "Compile the report for Kernel #{count}"
-    task("k#{count}" => "md5:k#{count}") {
-      pdf_compile "kernel#{count}"
-    }
+  desc 'Generate the tasks diagram'
+  task :dot do
+    sh 'dot -Tpng guide/tasks.dot > guide/tasks.png'
+    sh 'open guide/tasks.png'
   end
 
-  desc 'Compile the report for Project 1'
-  task(p1: 'md5:p1') { pdf_compile 'project1' }
-  desc 'Compile the report for Project 2'
-  task(p2: 'md5:p2') do
-    dot_compile('project2')
-    pdf_compile('project2')
-  end
-  desc 'Compile the report for the final exam'
-  task :ex do
-    pdf_compile('exam')
+  desc 'Compile the PDF guide'
+  task :pdf => [:md5, :dot] do
+    cd 'guide/' do
+      sh 'pdflatex guide.tex'
+      sh 'open guide.pdf'
+    end
   end
 end

@@ -3,7 +3,6 @@
 #include <std.h>
 
 #include <tasks/task_launcher.h>
-#include <debug.h>
 
 static int consume_integer(const char* const str, int* const index) {
     int result = 0, neg = 0;
@@ -83,10 +82,6 @@ static command parse_t(const char* const cmd, int* const buffer) {
         if (parse_argument(cmd, 'i', &index, &buffer[1])) return ERROR;
         if (!isspace(cmd[index]))                         return ERROR;
         return LOC_SPEED;
-    case 't':
-        if (parse_argument(cmd, 'i', &index, buffer))     return ERROR;
-        if (!isspace(cmd[index]))                         return ERROR;
-        return TEST_TIME;
     default:
         return ERROR;
     }

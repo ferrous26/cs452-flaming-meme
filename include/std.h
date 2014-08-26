@@ -3,6 +3,10 @@
 
 #include <types.h>
 
+/* Signify code that runs once (or rarely) */
+#define TEXT_COLD __attribute__ ((section (".text.cold")))
+#define DATA_COLD __attribute__ ((section (".data.cold")))
+
 #define FOREVER for (;;)
 
 static inline int __attribute__ ((const))
@@ -16,6 +20,7 @@ int  __attribute__ ((const)) ulog10(uint c);
 
 #include <limits.h>
 #include <memory.h>
+#include <stdio.h>
 
 // This is the code the has been used extensively by Prof. Buhr
 // for CS246 and also CS343 since the actual distrubution of the
@@ -36,7 +41,15 @@ static inline int __attribute__ ((const)) mod2_int(int top, int mod) {
 #define BETWEEN(val, lo, hi)  ((val) >= (lo) && (val) <= (hi))
 #define XBETWEEN(val, lo, hi) ((val) > (lo) && (val) < (hi))
 
-#define TEXT_COLD __attribute__ ((section (".text.cold")))
-#define DATA_COLD __attribute__ ((section (".data.cold")))
+#ifdef ASSERT
+#define assert(expr, msg, ...)						\
+    {									\
+	if (!(expr))							\
+	    Abort(__FILE__, __LINE__, msg, ##__VA_ARGS__);		\
+    }
+
+#else
+#define assert(expr, msg, ...)
+#endif
 
 #endif

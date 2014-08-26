@@ -1,15 +1,14 @@
-#include <std.h>
+#include <tasks/train_server.h>
 #include <ui.h>
 #include <train.h>
-#include <debug.h>
 #include <syscall.h>
-#include <char_buffer.h>
+#include <circular_buffer.h>
 
 #include <tasks/priority.h>
 #include <tasks/name_server.h>
 #include <tasks/term_server.h>
 #include <tasks/clock_server.h>
-#include <tasks/train_server.h>
+
 
 typedef enum {
     CARRIER,
@@ -42,7 +41,7 @@ static void __attribute__((noreturn)) train_server_ui() {
     char* ptr = vt_goto(buffer, TRAIN_BANDWIDTH_ROW, TRAIN_BANDWIDTH_COL);
     ptr = sprintf(ptr,
                   "TRAIN    0 B/s Up    0 B/s Down %c",
-                  (twirl = ui_twirler(twirl)));
+                  (twirl = ui_twirl(twirl)));
     Puts(buffer, ptr - buffer);
 
 
@@ -61,7 +60,7 @@ static void __attribute__((noreturn)) train_server_ui() {
                       bytes[0]);
         ptr = ui_pad(ptr, log10(bytes[1]), TRAIN_BANDWIDTH_WIDTH);
         ptr = sprintf(ptr, "%d B/s Down %c",
-                      bytes[1], (twirl = ui_twirler(twirl)));
+                      bytes[1], (twirl = ui_twirl(twirl)));
         Puts(buffer, ptr - buffer);
     }
 }

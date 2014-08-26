@@ -1,14 +1,11 @@
-
-#include <pq.h>
-#include <vt100.h>
-#include <debug.h>
-#include <syscall.h>
-
-#include <tasks/priority.h>
-
+#include <tasks/clock_server.h>
 #include <tasks/term_server.h>
 #include <tasks/name_server.h>
-#include <tasks/clock_server.h>
+#include <priority_queue.h>
+#include <syscall.h>
+#include <tasks/priority.h>
+
+
 
 #define TENTH_OF_A_SECOND 10 // number of clock ticks in a tenth of a second
 
@@ -40,9 +37,7 @@ static void __attribute__ ((noreturn)) clock_notifier() {
         int result = AwaitEvent(CLOCK_TICK, NULL, 0);
         CLOCK_ASSERT(result == 0, result);
 
-        result = Send(clock,
-                      (char*)&msg, sizeof(msg),
-                      NULL, 0);
+        result = Send(clock, &msg, sizeof(msg), NULL, 0);
         CLOCK_ASSERT(result == 0, result);
     }
 }
@@ -241,22 +236,11 @@ int Time() {
     return result;
 }
 
-int Delay(int ticks) {
-    // handle negative/non-delay cases on the task side
-    if (ticks <= 0) {
-        if (ticks < 0) // only when strictly less than 0
-            log("%d missed deadline with Delay(%d).", myTid(), ticks);
-        return ERR_MISSED_DEADLINE;
-    }
-
-    clock_req req = {
-        .type  = CLOCK_DELAY,
-        .ticks = ticks
-    };
-
+static int _delay(const clock_req* const req)
+{
     int time;
     int result = Send(clock_server_tid,
-                      (char*)&req,  sizeof(clock_req),
+                      (char*)req,   sizeof(clock_req),
                       (char*)&time, sizeof(time));
 
     if (result == sizeof(int))
@@ -269,27 +253,31 @@ int Delay(int ticks) {
     return result;
 }
 
+int Delay(int ticks) {
+    // handle negative/non-delay cases on the task side
+    if (ticks <= 0) {
+        if (ticks < 0) // only when strictly less than 0
+            log("%d missed deadline with Delay(%d).", myTid(), ticks);
+        return ERR_MISSED_DEADLINE;
+    }
+
+    const clock_req req = {
+        .type  = CLOCK_DELAY,
+        .ticks = ticks
+    };
+
+    return _delay(&req);
+}
+
 int DelayUntil(int ticks) {
     // handle negative/non-delay cases on the task side
     if (ticks <= 0)
         ABORT("%d made nonsensical DelayUntil(%d) call.", myTid(), ticks);
 
-    clock_req req = {
+    const clock_req req = {
         .type = CLOCK_DELAY_UNTIL,
         .ticks = ticks
     };
 
-    int time;
-    const int result = Send(clock_server_tid,
-                            (char*)&req,  sizeof(clock_req),
-                            (char*)&time, sizeof(time));
-
-    if (result == sizeof(time))
-        return time;
-
-    // maybe clock server died, so we can try again
-    if (result == ERR_INVALID_TASK || result == ERR_INCOMPLETE)
-        ABORT("Clock server died");
-
-    return result;
+    return _delay(&req);
 }

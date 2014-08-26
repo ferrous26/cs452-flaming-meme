@@ -78,12 +78,12 @@ void Pass(void);
 void Exit(void);
 
 int Send(const task_id tid,
-         const char* const msg, const size_t msglen,
-         char* const reply, const size_t replylen);
+         const void* const msg, const size_t msglen,
+         void* const reply,     const size_t replylen);
 int Receive(task_id* const tid,
-            char* const msg, const size_t msglen);
+            void* const msg, const size_t msglen);
 int Reply(const task_id tid,
-          char* const reply, const size_t replylen);
+          void* const reply, const size_t replylen);
 
 
 typedef enum event_identifier {
@@ -98,7 +98,7 @@ typedef enum event_identifier {
 #define EVENT_COUNT (UART1_DOWN + 1)
 
 int AwaitEvent(const event_id eid,
-               char* const event, const size_t eventlen);
+               void* const event, const size_t eventlen);
 
 /**
  * http://i0.kym-cdn.com/photos/images/original/000/056/667/madagascar.gif

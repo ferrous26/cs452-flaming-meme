@@ -1,11 +1,8 @@
 #include <kernel.h>
-#include <std.h>
 #include <syscall.h>
-#include <ts7200.h>
-#include <irq.h>
-#include <io.h>
-#include <debug.h>
-#include <ui.h>
+#include <kernel/arch/arm920/ts7200.h>
+#include <kernel/arch/arm920/irq.h>
+#include <kernel/arch/arm920/io.h>
 
 #include <tasks/priority.h>
 #include <tasks/idle.h>
@@ -20,8 +17,8 @@
 
 #define SWI_HANDLER ((volatile uint*)0x08)
 
-#ifdef DEBUG
 extern const int _TextStart;
+#ifdef DEBUG
 extern const int _TextEnd;
 #endif
 

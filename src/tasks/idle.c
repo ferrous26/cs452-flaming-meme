@@ -4,9 +4,8 @@
 #include <tasks/clock_server.h>
 #include <ui.h>
 #include <std.h>
-#include <clock.h>
-#include <debug.h>
 #include <syscall.h>
+#include <kernel/arch/arm920/clock.h>
 
 // best case number of Timer4 ticks for a context switch
 #define MINIMUM_NON_IDLE_TIME 1
@@ -54,7 +53,7 @@ static void __attribute__ ((noreturn)) idle_ui() {
 		      '0' + (idle_time / 10),
                       '0' + (idle_time % 10),
                       '0' + idle_time_fraction,
-		      (twirl = ui_twirler(twirl)));
+		      (twirl = ui_twirl(twirl)));
         Puts(buffer, ptr - buffer);
     }
 }

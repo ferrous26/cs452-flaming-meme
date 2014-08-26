@@ -40,4 +40,8 @@ void irq_uart1(void) TEXT_HOT;
 void irq_uart1_send(void) TEXT_HOT;
 void irq_uart1_recv(void) TEXT_HOT;
 
+char* klog_start(char* buffer);
+void  klog(const char* fmt, ...);
+#define klog_end log_end
+
 #endif

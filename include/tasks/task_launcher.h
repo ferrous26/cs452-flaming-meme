@@ -19,8 +19,6 @@ typedef enum {
     SIZES,
     SEPPUKU,
 
-    TEST_TIME,
-
     QUIT,
     ERROR,
 } command;

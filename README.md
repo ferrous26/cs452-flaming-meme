@@ -10,5 +10,7 @@ CS452 Real Time Programming
 
 - [ ] Fill-in TODO
 - [ ] Implement a PiroritySend to put message at front of queue (clock notifier)
-
+- [ ] More flexible name server
+- [ ] Fix clock UI timing
+- [ ] Fix clock server pq usage
 

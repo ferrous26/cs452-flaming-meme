@@ -3,97 +3,19 @@
  */
 
 #include <std.h>
-#include <debug.h>
 #include <vt100.h>
-#include <clock.h>
 #include <kernel.h>
-#include <irq.h>
-
+#include <kernel/arch/arm920/irq.h>
+#include <kernel/arch/arm920/clock.h>
+#include <kernel/arch/arm920/io.h>
+#include <kernel/arch/arm920/cache.h>
+#include <kernel/arch/arm920/cpu.h>
 
 extern const void* const _DataStart;
-extern const void* const _DataKernEnd;
-extern const void* const _DataKernWarmEnd;
 extern const void* const _BssEnd;
-
-extern const void* const _TextStart;
-extern const void* const _TextKernEnd;
 
 static void* exit_point = NULL;
 static void* exit_sp    = NULL;
-
-static inline TEXT_COLD void _flush_caches() {
-    // Invalidate the I/D-Cache
-    asm volatile ("mov r0, #0                \n\t"
-                  "mcr p15, 0, r0, c7, c7, 0 \n\t"
-		  "mcr p15, 0, r0, c8, c7, 0 \n\t"
-		  :
-		  :
-		  : "r0");
-}
-
-#define FILL_SIZE 0x1F
-static TEXT_COLD void _lockdown_icache() {
-    register uint r0 asm ("r0") = (uint)&_TextStart & FILL_SIZE;
-    register uint r1 asm ("r1") = (uint)&_TextKernEnd;
-
-    // Makes sure we lock up to the lowest point including the end defined here
-    asm volatile ("mov      r2, #0                      \n\t"
-                  "mcr      p15, 0, r2, c9, c0,  1      \n"
-                  "ICACHE_LOOP:                         \n\t"
-                  "mcr      p15, 0, r0, c7, c13, 1      \n\t"
-                  "add      r0, r0, #32                 \n\t"
-                  "and      r3, r0, #0xE0               \n\t"
-                  "cmp      r3, #0                      \n\t"
-                  "addeq    r2, r2, #1 << 26            \n\t"
-                  "mcreq    p15, 0, r2, c9, c0,  1      \n\t"
-                  "cmp      r0, r1                      \n\t"
-                  "ble      ICACHE_LOOP                 \n\t"
-                  "cmp      r3, #0                      \n\t"
-                  "addne    r2, r2, #1 << 26            \n\t"
-                  "mcrne    p15, 0, r2, c9, c0,  1      \n\t"
-                  :
-                  : "r" (r0), "r" (r1)
-                  : "r2", "r3" );
-}
-
-static TEXT_COLD void _lockdown_dcache() {
-
-    const uint warm_chunk =
-        (((uint)&_DataKernWarmEnd - (uint)&_DataKernEnd) / sizeof(task)) *
-        TASKS_TO_LOCKDOWN;
-
-    register uint r0 asm ("r0") = (uint)&_DataStart & FILL_SIZE;
-    register uint r1 asm ("r1") = (uint)&_DataKernEnd + (uint)warm_chunk;
-
-    // Makes sure we lock up to the lowest point including the end defined here
-    asm volatile ("mov      r2, #0                      \n\t"
-                  "mcr      p15, 0, r2, c9, c0,  0      \n"
-                  "DCACHE_LOOP:                         \n\t"
-                  "ldr      r3, [r0], #32               \n\t"
-                  "and      r3, r0, #0xE0               \n\t"
-                  "cmp      r3, #0                      \n\t"
-                  "addeq    r2, r2, #1 << 26            \n\t"
-                  "mcreq    p15, 0, r2, c9, c0,  0      \n\t"
-                  "cmp      r0, r1                      \n\t"
-                  "ble      DCACHE_LOOP                 \n\t"
-                  "cmp      r3, #0                      \n\t"
-                  "addne    r2, r2, #1 << 26            \n\t"
-                  "mcrne    p15, 0, r2, c9, c0,  0      \n\t"
-                  :
-                  : "r" (r0), "r" (r1)
-                  : "r2", "r3" );
-}
-
-static TEXT_COLD void _enable_caches() {
-    // Turn on the I-Cache
-    asm volatile ("mrc p15, 0, r0, c1, c0, 0 \n\t" //get cache control
-                  "orr r0, r0, #0x1000       \n\t" //turn I-Cache
-		  "orr r0, r0, #5            \n\t" //turn on mmu and dcache #b0101
-	          "mcr p15, 0, r0, c1, c0, 0 \n\t"
-		  :
-		  :
-		  : "r0");
-}
 
 static TEXT_COLD void _init() {
     _flush_caches(); // we want to flush caches immediately
@@ -112,7 +34,7 @@ static TEXT_COLD void _init() {
 }
 
 void TEXT_COLD shutdown() {
-    assert(debug_processor_mode() == SUPERVISOR,
+    assert(processor_mode() == SUPERVISOR,
 	   "Trying to shutdown from non-supervisor mode");
 
     vt_deinit();

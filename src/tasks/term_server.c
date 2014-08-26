@@ -1,12 +1,13 @@
+#include <tasks/term_server.h>
+#include <circular_buffer.h>
 #include <std.h>
-#include <debug.h>
 #include <syscall.h>
-#include <char_buffer.h>
-#include <ts7200.h>
+
+#include <kernel/arch/arm920/ts7200.h>
 
 #include <tasks/priority.h>
 #include <tasks/name_server.h>
-#include <tasks/term_server.h>
+
 
 typedef enum {
     GETC     = 1,

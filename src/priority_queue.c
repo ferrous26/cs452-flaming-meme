@@ -1,9 +1,5 @@
-
-#include <std.h>
-#include <debug.h>
+#include <priority_queue.h>
 #include <syscall.h>
-
-#include <pq.h>
 
 #define LEFT(i)   (i << 1)
 #define RIGHT(i)  (LEFT(i) + 1)

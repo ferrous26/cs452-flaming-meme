@@ -78,7 +78,7 @@ CFLAGS += -D __BUILD__=$(shell cat VERSION)
 CFLAGS += -D __CODE_NAME__=$(shell cat CODE_NAME)
 CFLAGS += -std=gnu99 -fomit-frame-pointer -c -Isrc -I. -Iinclude -mcpu=arm920t
 
-LDFLAGS = -init main -Map kernel.map -N -T orex.ld --warn-unresolved-symbols
+LDFLAGS = -init main -Map kernel.map -N -T ld/arm920.ld --warn-unresolved-symbols
 
 
 ifdef CLANG

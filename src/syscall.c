@@ -1,7 +1,7 @@
 #include <syscall.h>
+#include <stdio.h>
 #include <kernel.h>
-#include <io.h>
-#include <debug.h>
+#include <kernel/arch/arm920/cpu.h>
 
 static inline int
 _syscall(volatile syscall_num code, volatile void* request)
@@ -69,8 +69,8 @@ void Exit()
 }
 
 int Send(const task_id tid,
-         const char* const msg, const size_t msglen,
-         char* const reply,     const size_t replylen)
+         const void* const msg, const size_t msglen,
+         void* const reply,     const size_t replylen)
 {
     volatile kreq_send req = {
         .tid      = tid,
@@ -83,7 +83,7 @@ int Send(const task_id tid,
 }
 
 int Receive(task_id* const tid,
-            char* const msg, const size_t msglen)
+            void* const msg, const size_t msglen)
 {
     volatile kreq_recv req = {
         .tid    = tid,
@@ -94,7 +94,7 @@ int Receive(task_id* const tid,
 }
 
 int Reply(const task_id tid,
-          char* const reply, const size_t replylen)
+          void* const reply, const size_t replylen)
 {
     volatile kreq_reply req = {
         .tid      = tid,
@@ -105,7 +105,7 @@ int Reply(const task_id tid,
 }
 
 int AwaitEvent(const event_id eid,
-               char* const event, const size_t eventlen)
+               void* const event, const size_t eventlen)
 {
     if (eid >= EVENT_COUNT) return ERR_INVALID_EVENT;
 
@@ -138,12 +138,12 @@ void Abort(const char* const file,
     };
 
     // if called from within the kernel, shortcut to the proper handler
-    if (debug_processor_mode() == SUPERVISOR)
+    if (processor_mode() == SUPERVISOR)
         abort((const kreq_abort* const)&req);
 
     _syscall(SYS_ABORT, &req);
 
-    va_end(args);
-
+    // unreachable code...
+    // va_end(args);
     FOREVER; // so that flow analysis thinks the function does not return
 }

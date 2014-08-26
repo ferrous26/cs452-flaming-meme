@@ -1,7 +1,8 @@
-#include <vt100.h>
-#include <clock.h>
-#include <irq.h>
-#include <ts7200.h>
+#include <kernel/arch/arm920/irq.h>
+#include <kernel/arch/arm920/clock.h>
+#include <kernel/arch/arm920/ts7200.h>
+#include <stdio.h>
+
 
 #define HWI_HANDLER ((uint* volatile)0x18)
 

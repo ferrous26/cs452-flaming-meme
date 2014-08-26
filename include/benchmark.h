@@ -6,7 +6,7 @@
 #ifdef BENCHMARK
 
 #include <std.h>
-#include <clock.h>
+#include <kernel/arch/arm920/clock.h>
 #include <vt100.h>
 
 struct benchmark {
