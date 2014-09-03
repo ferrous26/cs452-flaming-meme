@@ -30,16 +30,15 @@
 
 .DS_Store
 
-report/**/*.aux
-report/**/*.log
-report/**/*.out
-report/**/md5_info.csv
-report/**/md5_info_headers.csv
-report/**/md5_info_impls.csv
-
+guide/**/*.aux
+guide/**/*.log
+guide/**/*.out
+guide/tasks.png
+guide/**/md5_info.csv
+guide/**/md5_info_headers.csv
+guide/**/md5_info_impls.csv
+guide/**/md5_info_others.csv
 
 VERSION
 CODE_NAME
 
-report/project2/tasks.png
-report/tasks.png

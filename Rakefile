@@ -119,32 +119,27 @@ desc 'Generate the PDF guide'
 task :guide => 'guide:pdf'
 
 namespace :guide do
-  def make_md5_for report
-    headers = FileList['include/**/*.h']
-    impls   = FileList['src/**/*.c'] +
-              FileList['src/**/*.asm']
-    others  = ['Makefile', 'Rakefile'] + FileList['ld/*.ld']
-
+  desc 'Generate MD5 hashes of project files'
+  task :md5 do
     require 'digest/md5'
     require 'csv'
 
     md5 = Digest::MD5.new
 
-    ['headers', 'impls', 'others'].each do |set|
-      CSV.open("#{report}/md5_info_#{set}.csv", 'w') do |csv|
+    [
+     ['headers', FileList['include/**/*.h']],
+     ['impls',   FileList['src/**/*.c'] + FileList['src/**/*.asm']],
+     ['others',  ['README.md', 'Makefile', 'Rakefile'] + FileList['ld/*.ld']]
+    ].each do |set, list|
+      CSV.open("guide/md5_info_#{set}.csv", 'w') do |csv|
         csv << ['file', 'hash']
-        headers.sort.each do |file|
+          list.sort.each do |file|
           csv << [file.gsub(/_/, '\_'), md5.hexdigest(File.read file)]
         end
       end
 
-      puts "md5sum -> report/#{report}/md5_info_#{set}.csv"
+      puts "md5sum -> guide/md5_info_#{set}.csv"
     end
-  end
-
-  desc 'Generate MD5 hashes of project files'
-  task :md5 do
-    make_md5_for 'guide'
   end
 
   desc 'Generate the tasks diagram'
