@@ -11,8 +11,8 @@
 #include <kernel/arch/arm920/cache.h>
 #include <kernel/arch/arm920/cpu.h>
 
-extern const void* const _DataStart;
-extern const void* const _BssEnd;
+extern const void* const _data_start;
+extern const void* const _bss_end;
 
 static void* exit_point = NULL;
 static void* exit_sp    = NULL;
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 		    "=r" (ep));
 
     // zero out our base space
-    memset((void*)&_DataStart, 0, (uint)&_BssEnd - (uint)&_DataStart);
+    memset((void*)&_data_start, 0, (uint)&_bss_end - (uint)&_data_start);
 
     exit_point = ep;
 // So...none of this works completely...it will get the stack pointer

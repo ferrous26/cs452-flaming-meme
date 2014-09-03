@@ -17,9 +17,9 @@
 
 #define SWI_HANDLER ((volatile uint*)0x08)
 
-extern const int _TextStart;
+extern const int _text_start;
 #ifdef DEBUG
-extern const int _TextEnd;
+extern const int _text_end;
 #endif
 
 task* int_queue[EVENT_COUNT] DATA_HOT;
@@ -328,7 +328,7 @@ static inline void ksyscall_await(const kreq_event* const req) {
 static inline bool __attribute__ ((pure)) is_valid_pc(const int* const sp) {
     int pc = sp[2] == 0 ? sp[17] : sp[2];
 
-    if (pc >= (int)&_TextStart && pc <= (int)&_TextEnd) {
+    if (pc >= (int)&_text_start && pc <= (int)&_text_end) {
         return 0;
     }
 

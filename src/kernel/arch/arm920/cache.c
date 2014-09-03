@@ -1,10 +1,10 @@
 #include <kernel/arch/arm920/cache.h>
 
-extern const int const _DataStart;
-extern const int const _DataKernEnd;
-extern const int const _DataKernWarmEnd;
+extern const int const _data_start;
+extern const int const _data_hot_end;
+extern const int const _data_warm_end;
 
-extern const int const _TextKernEnd;
+extern const int const _text_hot_end;
 
 #define FILL_SIZE 0x1F
 
@@ -33,8 +33,8 @@ void _enable_caches()
 
 void _lockdown_icache()
 {
-    register uint r0 asm ("r0") = (uint)&_TextStart & FILL_SIZE;
-    register uint r1 asm ("r1") = (uint)&_TextKernEnd;
+    register uint r0 asm ("r0") = (uint)&_text_start & FILL_SIZE;
+    register uint r1 asm ("r1") = (uint)&_text_hot_end;
 
     // Makes sure we lock up to the lowest point including the end defined here
     asm volatile ("mov      r2, #0                      \n"
@@ -59,11 +59,11 @@ void _lockdown_icache()
 void _lockdown_dcache()
 {
     const uint warm_chunk =
-        (((uint)&_DataKernWarmEnd - (uint)&_DataKernEnd) / sizeof(task)) *
+        (((uint)&_data_warm_end - (uint)&_data_hot_end) / sizeof(task)) *
         TASKS_TO_LOCKDOWN;
 
-    register uint r0 asm ("r0") = (uint)&_DataStart & FILL_SIZE;
-    register uint r1 asm ("r1") = (uint)&_DataKernEnd + (uint)warm_chunk;
+    register uint r0 asm ("r0") = (uint)&_data_start & FILL_SIZE;
+    register uint r1 asm ("r1") = (uint)&_data_hot_end + (uint)warm_chunk;
 
     // Makes sure we lock up to the lowest point including the end defined here
     asm volatile ("mov      r2, #0                      \n"

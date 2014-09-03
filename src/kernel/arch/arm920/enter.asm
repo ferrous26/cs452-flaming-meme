@@ -1,7 +1,7 @@
 	.file	"enter.asm"
 	.text
 	.align	2
-	.section .text.kern
+	.section .text.hot
 
 	.global	 hwi_enter
 	.type	 hwi_enter, %function

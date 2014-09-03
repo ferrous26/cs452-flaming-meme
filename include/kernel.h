@@ -7,10 +7,10 @@
 #include <tasks/name_server_kernel.h>
 #include <tasks/clock_server_kernel.h>
 
-#define TEXT_HOT  __attribute__ ((section (".text.kern")))
-#define DATA_HOT  __attribute__ ((section (".data.kern")))
-#define DATA_WARM __attribute__ ((section (".data.kern.warm")))
-#define DATA_HOT  __attribute__ ((section (".data.kern")))
+#define TEXT_HOT  __attribute__ ((section (".text.hot")))
+#define DATA_HOT  __attribute__ ((section (".data.hot")))
+#define DATA_WARM __attribute__ ((section (".data.warm")))
+#define DATA_HOT  __attribute__ ((section (".data.hot")))
 
 // we want to lockdown 64 task descriptors into the cache
 #define TASKS_TO_LOCKDOWN 64

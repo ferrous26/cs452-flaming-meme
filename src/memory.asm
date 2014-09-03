@@ -1,5 +1,5 @@
 	.file	"memory.asm"
-	.section ".text.kern"
+	.section ".text.hot"
 
 	.align	2
 	.global memcpy

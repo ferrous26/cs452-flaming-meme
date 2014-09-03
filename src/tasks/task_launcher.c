@@ -13,18 +13,18 @@
 
 #include <tasks/task_launcher/parse.c>
 
-extern uint* _DataStart;
-extern uint* _DataKernEnd;
-extern uint* _DataKernWarmEnd;
-extern uint* _DataEnd;
-extern uint* _BssStart;
-extern uint* _BssEnd;
-extern uint* _RODataStart;
-extern uint* _RODataEnd;
-extern uint* _TextStart;
-extern uint* _TextKernEnd;
-extern uint* _TextColdStart;
-extern uint* _TextEnd;
+extern uint* _data_start;
+extern uint* _data_hot_end;
+extern uint* _data_warm_end;
+extern uint* _data_end;
+extern uint* _bss_start;
+extern uint* _bss_end;
+extern uint* _ro_data_start;
+extern uint* _ro_data_end;
+extern uint* _text_start;
+extern uint* _text_hot_end;
+extern uint* _text_cold_start;
+extern uint* _text_end;
 
 #define TERM_ROW (LOG_HOME - 2) // command prompt starts after logging region
 #define TERM_COL 6
@@ -66,23 +66,23 @@ static void print_section_sizes() {
                   "   Kernel Warm: %u bytes\n"
                   "          Task: %u bytes\n"
                   "         Total: %u bytes\n"
-                  "Text:\r\n"
+                  "Text:\n"
                   "    Kernel Hot: %u bytes\n"
                   "     Task Reg.: %u bytes\n"
                   "     Task Cold: %u bytes\n"
                   "         Total: %u bytes\n"
                   "BSS:            %u bytes\n"
                   "ROData:         %u bytes\n",
-                  &_DataKernEnd     - &_DataStart,
-                  &_DataKernWarmEnd - &_DataKernEnd,
-                  &_DataEnd         - &_DataKernWarmEnd,
-                  &_DataEnd         - &_DataStart,
-                  &_TextKernEnd     - &_TextStart,
-                  &_TextColdStart   - &_TextKernEnd,
-                  &_TextEnd         - &_TextColdStart,
-                  &_TextEnd         - &_TextStart,
-                  &_BssEnd          - &_BssStart,
-                  &_RODataEnd       - &_RODataStart);
+                  &_data_hot_end    - &_data_start,
+                  &_data_warm_end   - &_data_warm_end,
+                  &_data_end        - &_data_warm_end,
+                  &_data_end        - &_data_start,
+                  &_text_hot_end    - &_text_start,
+                  &_text_cold_start - &_text_hot_end,
+                  &_text_end        - &_text_cold_start,
+                  &_text_end        - &_text_start,
+                  &_bss_end         - &_bss_start,
+                  &_ro_data_end     - &_ro_data_start);
     ptr = log_end(ptr);
     Puts(buffer, ptr - buffer);
 }
