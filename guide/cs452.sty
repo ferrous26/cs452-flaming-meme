@@ -1,0 +1,55 @@
+\usepackage{csvsimple}
+\usepackage{pgfplotstable}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{csquotes}
+\usepackage{mfirstuc}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{parskip}
+\usepackage{listings}
+
+\lstset{language=C}
+
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.png}
+
+\usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+
+\usepackage[top=2in, bottom=1.5in, left=1in, right=1in]{geometry}
+
+\newcommand{\guidetitle}{
+\clearpage
+\title{piOS\\ Guide Book}
+\date{}
+\author{
+Mark Rada (\texttt{marada})\\
+Student \#20266085}
+\maketitle
+\thispagestyle{empty}
+\newpage
+}
+
+\newcommand{\filehashlist}[1]{
+  \begin{center}
+    \begin{tabular}{l|l}
+      \bfseries File & \bfseries MD5 Hash
+      \\\hline
+      \csvreader[head to column names]{#1}{}%
+      {\\\file & \ttt{\hash}}%
+    \end{tabular}
+\end{center}
+\newpage
+}
+
+\newcommand{\ttt}{\texttt}
+\newcommand{\tbf}{\textbf}
+
+\renewcommand{\thepart}{}
+\renewcommand{\thesection}{}
+\renewcommand{\thesubsection}{}
+\renewcommand{\thesubsubsection}{}

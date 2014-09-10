@@ -1,10 +1,10 @@
 \documentclass[pdftex,10pt,a4paper]{article}
-\usepackage{../cs452}
+\usepackage{cs452}
 \usepackage{verbatim}
 
 \begin{document}
 
-\kernelmake{4}
+\guidetitle
 
 \section*{Overview}
 
@@ -58,16 +58,11 @@ it to be processed. An online listing of the commands can be printed
 by entering an empty command.
 
 \subsection*{Submitted Files}
-\begin{center}
-\begin{tabular}{l|l}
-  \bfseries File & \bfseries MD5 Hash
-  \\\hline
-  \csvreader[head to column names]{md5_info.csv}{}%
-  {\\\file & \ttt{\hash}}%
-\end{tabular}
-\end{center}
 
-\newpage
+\filehashlist{md5_info_headers.csv}
+\filehashlist{md5_info_impls.csv}
+\filehashlist{md5_info_others.csv}
+
 \part*{The Kernel}
 
 The kernel is organized into four sections: task management,
@@ -1191,6 +1186,28 @@ The following commands are recognized by the OS:
 	A benchmarking task, requires a special build to work successfully,
 	on a release build will just waste time.
 \end{description}
+
+\newpage
+\part*{Task Diagram}
+
+The graph on the following page shows all the tasks present in our
+system after initialization.
+
+Tasks are grouped by function, and the directed edges indicate
+communication using \ttt{Send}. Courier tasks have an octagonal shape,
+event notifiers use a diamond shape, and all other tasks have a
+rectangular shape.
+
+Communication channels between tasks that only exist for task
+initialization, such as registering with the name server, is not shown
+as it would make an already complicated graph impossible to read.
+
+\newpage
+
+\begin{center}
+\includegraphics[scale=0.3, clip=true, trim=5mm 0 0 0]{tasks}
+\end{center}
+
 
 \newpage
 \section*{Abortions And Assertions}

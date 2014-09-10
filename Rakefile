@@ -142,14 +142,17 @@ namespace :guide do
     end
   end
 
-  desc 'Generate the tasks diagram'
-  task :dot do
+  task :_dot do
     sh 'dot -Tpng guide/tasks.dot > guide/tasks.png'
+  end
+
+  desc 'Generate the tasks diagram'
+  task :dot => :_dot do
     sh 'open guide/tasks.png'
   end
 
   desc 'Compile the PDF guide'
-  task :pdf => [:md5, :dot] do
+  task :pdf => [:md5, :_dot] do
     cd 'guide/' do
       sh 'pdflatex guide.tex'
       sh 'open guide.pdf'
