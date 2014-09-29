@@ -7,7 +7,7 @@ OBJCOPY = $(PREFIX)/bin/arm-none-eabi-objcopy
 ifdef RELEASE
 CFLAGS += -fpeel-loops -unswitch-loops -floop-optimize2
 else
-CFLAGS += -Og
+CFLAGS += -Og # turn on safe optimizations
 endif
 
 CFLAGS += -Wsuggest-attribute=format -Wmissing-format-attribute
