@@ -12,6 +12,6 @@ ifdef DEBUG
 ASFLAGS += -mapcs-32 # -mapcs: always generate a complete stack frame
 endif
 
-CFLAGS  += -mcpu=arm920t -D COWAN
+CFLAGS  += -mcpu=arm920t -D ARM920
 ASFLAGS	+= -mcpu=arm920t
 LDFLAGS += -L/u/wbcowan/gnuarm-4.0.2/lib/gcc/arm-elf/4.0.2 -T ld/arm920.ld

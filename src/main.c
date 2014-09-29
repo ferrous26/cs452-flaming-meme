@@ -73,12 +73,14 @@ int main(int argc, char** argv) {
     exit_point = ep;
 // So...none of this works completely...it will get the stack pointer
 // close to where it should be, but will leak a varying amount of
-// memory depending on the build type...release builds currently do
-// not leak.
-#ifdef COWAN
-    exit_sp    = sp - 1;
-#else
+// memory depending on the build type...release builds are the only build
+// where this actually works correctly
+#ifdef ARM920
     exit_sp    = sp - 2;
+#else
+#ifdef PI
+    exit_sp    = sp - 1;
+#endif
 #endif
 
     _init();
