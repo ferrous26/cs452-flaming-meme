@@ -34,7 +34,7 @@ CFLAGS += -D __BUILD__=$(shell cat VERSION)
 CFLAGS += -D __CODE_NAME__=$(shell cat CODE_NAME)
 CFLAGS += -std=gnu99 -fomit-frame-pointer -c -Isrc -I. -Iinclude
 
-CFLAGS += --freestanding -msoft-float
+CFLAGS += --freestanding -msoft-float -fwrapv -fno-short-enums
 CFLAGS += -Wall -Wextra -Wshadow -Wcast-align -Wredundant-decls
 CFLAGS += -Wno-div-by-zero -Wno-multichar -Wpadded
 CFLAGS += -Wswitch-enum -Wdisabled-optimization
