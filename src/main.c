@@ -76,11 +76,7 @@ int main(int argc, char** argv) {
 // memory depending on the build type...release builds are the only build
 // where this actually works correctly
 #ifdef ARM920
-    exit_sp    = sp - 2;
-#else
-#ifdef PI
-    exit_sp    = sp - 1;
-#endif
+    exit_sp = sp - 2;
 #endif
 
     _init();
