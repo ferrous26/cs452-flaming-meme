@@ -44,7 +44,7 @@ void TEXT_COLD shutdown() {
     _flush_caches();
 
     asm volatile (
-                  // unlock cache lines for Dididier/Kelsy
+                  // unlock cache lines for Didier/Kalsi
                   "mcr      p15, 0, r2, c9, c0,  1      \n\t"
                   "mcr      p15, 0, r2, c9, c0,  0      \n\t"
 
