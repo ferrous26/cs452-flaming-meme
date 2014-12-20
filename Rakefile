@@ -105,7 +105,7 @@ desc 'Standard release build with benchmarking enabled'
 task(:release_bench) { Rake::Task[:build].invoke('p2sb') }
 
 desc 'Build for the raspberry pi'
-task(:pi) { Rake::Task[:build].invoke('πpsad') }
+task(:pi) { Rake::Task[:build].invoke('πsad') }
 
 
 desc 'Generate the PDF guide'
