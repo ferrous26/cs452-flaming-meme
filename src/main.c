@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
 
     _init();
 
-    assert(false, "failed to launch first task");
+    ABORT("failed to launch first task");
 
     UNUSED(argc);
     UNUSED(argv);
